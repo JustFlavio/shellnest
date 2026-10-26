@@ -42,11 +42,12 @@ export function TabShell({
     <div
       data-selected={selected || undefined}
       className={cn(
-        "group/tab relative flex h-[34px] max-w-[280px] min-w-[140px] shrink-0 cursor-pointer items-center gap-[6px] rounded-[7px] border border-transparent pr-[3px] pl-[4px] text-[13px] whitespace-nowrap text-muted-foreground transition-colors",
-        "hover:bg-card/60 hover:text-foreground focus-within:bg-card/60 focus-within:text-foreground",
+        "group/tab relative flex h-[34px] w-[220px] max-w-[260px] min-w-[160px] shrink-0 cursor-pointer items-center gap-[4px] rounded-[10px] border border-transparent bg-sidebar pr-[6px] pl-[6px] text-[13px] whitespace-nowrap text-muted-foreground transition-colors motion-reduce:transition-none",
+        "hover:bg-card hover:text-foreground focus-within:text-foreground",
         selected &&
-          "bg-card text-foreground hover:bg-card focus-within:bg-card",
-        fixed && "min-w-0",
+          "bg-foreground/15 text-foreground hover:bg-foreground/15",
+        !fixed && "max-[760px]:w-[160px] max-[760px]:min-w-[140px]",
+        fixed && "w-auto min-w-0 pr-[12px]",
         dragging && "opacity-45",
         drop &&
           "before:absolute before:inset-y-[4px] before:w-[2px] before:rounded-[1px] before:bg-primary before:content-['']",
@@ -107,6 +108,7 @@ export function TabLead({
 
 export function TabMain({
   className,
+  children,
   ...props
 }: Omit<ComponentProps<typeof Button>, "variant">) {
   return (
@@ -114,11 +116,13 @@ export function TabMain({
       variant="ghost"
       type="button"
       className={cn(
-        "h-full min-w-0 flex-1 justify-start overflow-hidden bg-transparent py-0 pr-[8px] pl-[4px] text-[13px] text-ellipsis text-inherit hover:bg-transparent hover:text-inherit",
+        "h-full min-w-0 flex-1 shrink justify-start overflow-hidden rounded-[5px] bg-transparent px-[4px] py-0 text-[13px] text-inherit hover:bg-transparent hover:text-inherit",
         className,
       )}
       {...props}
-    />
+    >
+      <span className="min-w-0 truncate">{children}</span>
+    </Button>
   );
 }
 

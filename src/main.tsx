@@ -1917,7 +1917,7 @@ function App() {
           </DropdownMenuContent>
         </DropdownMenu>
         <div
-          className="flex min-w-0 flex-1 items-center gap-[4px] overflow-x-auto px-[8px] py-[5px]"
+          className="flex min-w-0 flex-1 items-center gap-[6px] overflow-x-auto px-[8px] py-[5px]"
           onDragOver={(e) => {
             if (dragPane) {
               e.preventDefault();
@@ -2048,7 +2048,7 @@ function App() {
               )}
               <ActionMenu
                 label={`Azioni scheda ${tab.title}`}
-                className="size-[24px]"
+                className="size-[24px] text-inherit opacity-0 transition-opacity group-hover/tab:opacity-100 group-focus-within/tab:opacity-100 group-data-[selected]/tab:opacity-100 aria-expanded:opacity-100 [@media(hover:none)]:opacity-100 motion-reduce:transition-none"
               >
                 {tab.layout && (
                   <DropdownMenuItem
@@ -2113,7 +2113,7 @@ function App() {
             </TabShell>
           ))}
           {launcherOpen && (
-            <TabShell selected={active === "launcher"}>
+            <TabShell className="w-[170px]" selected={active === "launcher"}>
               <TabLead
                 icon={<SquarePlus size={15} />}
                 onClose={closeLauncher}
