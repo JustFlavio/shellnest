@@ -4,6 +4,8 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Esplora interfaccia" }).click();
   await page.getByRole("heading", { name: "Host", level: 1 }).waitFor();
+  // Park the pointer in an empty corner so no hover state leaks into shots.
+  await page.mouse.move(1275, 795);
 });
 
 const shot = (page, name) =>
@@ -47,4 +49,9 @@ test("quick connect launcher", async ({ page }) => {
   await page.getByRole("button", { name: "Connessione rapida" }).click();
   await page.getByRole("combobox", { name: "Cerca host o schede" }).waitFor();
   await shot(page, "launcher");
+});
+
+test("narrow window collapses the sidebar", async ({ page }) => {
+  await page.setViewportSize({ width: 700, height: 700 });
+  await shot(page, "narrow");
 });

@@ -12,6 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "./components/ui/dropdown-menu";
 
+const newBadge = "text-[12px] text-muted-foreground";
+
 export function VaultPicker({
   view,
   busy,
@@ -30,18 +32,18 @@ export function VaultPicker({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="vault-picker"
+        className="mb-[8px] flex w-full items-center gap-[9px] rounded-lg border border-border bg-card p-[8px] text-left text-foreground outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-65 data-popup-open:bg-accent max-[760px]:justify-center max-[760px]:p-[6px] [&>svg]:shrink-0 [&>svg]:text-muted-foreground max-[760px]:[&>svg]:hidden"
         aria-label={"Vault attivo: " + view.vaultName}
         disabled={busy || disabled}
       >
-        <span className="vault-picker-icon">
+        <span className="grid size-[28px] shrink-0 place-items-center rounded-[6px] border border-input text-muted-foreground">
           <LockKeyhole size={16} />
         </span>
-        <span className="vault-picker-name">
-          <small>Vault</small>
-          <span>{view.vaultName}</span>
+        <span className="flex min-w-0 flex-1 flex-col gap-[2px] max-[760px]:hidden">
+          <small className="text-[12px] text-muted-foreground">Vault</small>
+          <span className="truncate text-[13px] font-medium">{view.vaultName}</span>
         </span>
-        {!view.exists && <span className="vault-new">Nuovo</span>}
+        {!view.exists && <span className={newBadge + " max-[760px]:hidden"}>Nuovo</span>}
         <ChevronsUpDown size={14} />
       </DropdownMenuTrigger>
       <DropdownMenuContent className="min-w-64" align="start" sideOffset={6}>
@@ -61,7 +63,7 @@ export function VaultPicker({
               >
                 <LockKeyhole size={14} />
                 <span className="truncate">{vault.name}</span>
-                {!vault.exists && <span className="vault-new">Nuovo</span>}
+                {!vault.exists && <span className={newBadge}>Nuovo</span>}
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>

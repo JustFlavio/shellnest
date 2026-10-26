@@ -13,6 +13,7 @@ import { GroupEditor } from "./GroupEditor";
 import { AlertDialogDescription } from "./components/ui/alert-dialog";
 import { SelectField } from "./SelectField";
 import { IdentitiesTable, KeysTable } from "./CollectionTables";
+import { NavItem } from "./NavItem";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import {
@@ -1464,7 +1465,9 @@ function App() {
             Shellnest
             <span>{desktop ? "0.3 · In sviluppo" : "Anteprima browser"}</span>
           </div>
-          {(desktop || preview) && vaultPicker}
+          {(desktop || preview) && (
+            <div className="[&>button]:mb-[24px]">{vaultPicker}</div>
+          )}
           <h1>
             {view.exists
               ? "Sblocca vault"
@@ -2033,30 +2036,22 @@ function App() {
                   ? UserRound
                   : KeyRound;
             return (
-              <Button
-                variant="ghost"
-                type="button"
+              <NavItem
                 key={p}
-                className={
-                  page === p && active === "vault" ? "nav active" : "nav"
-                }
-                aria-label={labels[p]}
-                title={labels[p]}
-                aria-current={
-                  page === p && active === "vault" ? "page" : undefined
-                }
-                onClick={() => navigate(p)}
-              >
-                <Icon size={16} />
-                <span className="nav-label">{labels[p]}</span>
-                <span className="nav-count">
-                  {p === "hosts"
+                icon={<Icon size={16} />}
+                label={labels[p]}
+                count={
+                  p === "hosts"
                     ? view.hosts.length
                     : p === "identities"
                       ? view.identities.length
-                      : view.keys.length}
-                </span>
-              </Button>
+                      : view.keys.length
+                }
+                active={page === p && active === "vault"}
+                aria-label={labels[p]}
+                title={labels[p]}
+                onClick={() => navigate(p)}
+              />
             );
           })}
         </nav>
@@ -2074,23 +2069,19 @@ function App() {
                 active === "vault" &&
                 ancestry(view.groups, group).some((a) => a.id === g.id);
               return (
-                <Button
+                <NavItem
                   key={g.id}
-                  variant="ghost"
-                  type="button"
-                  className={`nav${current ? " active" : ""}`}
+                  icon={<Folder size={15} />}
+                  label={g.name}
+                  count={groupHostCount(g.id)}
+                  active={current}
                   aria-label={`Cartella ${g.name}`}
-                  aria-current={current ? "page" : undefined}
                   title={g.name}
                   onClick={() => {
                     navigate("hosts");
                     setGroup(g.id);
                   }}
-                >
-                  <Folder size={15} />
-                  <span className="nav-label">{g.name}</span>
-                  <span className="nav-count">{groupHostCount(g.id)}</span>
-                </Button>
+                />
               );
             })}
           </nav>
