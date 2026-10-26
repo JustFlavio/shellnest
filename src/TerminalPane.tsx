@@ -254,6 +254,8 @@ export function TerminalPane({
     const observer = new ResizeObserver(resize);
     observer.observe(el.current!);
     const input = term.onData((data) => {
+      // Typing or pasting is the end of a copy: like every terminal, drop the selection.
+      if (term.hasSelection()) term.clearSelection();
       if (ready) send(data);
       else if (!pendingOverflow) {
         if (pendingInput.length + data.length <= 32768) pendingInput += data;
