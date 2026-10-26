@@ -723,7 +723,7 @@ test("bulk summaries identify every affected host with its login and nondefault 
   assert.doesNotMatch(html, /192.0.2.1:22/);
   assert.match(html, /192.0.2.2/);
   assert.match(html, /:2222/);
-  assert.equal((html.match(/<li>/g) ?? []).length, 2);
+  assert.equal((html.match(/<li[ >]/g) ?? []).length, 2);
 });
 
 test("identity and key tables disable deletion while in use", async () => {
