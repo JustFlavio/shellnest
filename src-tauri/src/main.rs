@@ -308,15 +308,94 @@ async fn unlock(
 ) -> Result<View, String> {
     let password = zeroize::Zeroizing::new(password);
     tauri::async_runtime::spawn_blocking(move || {
-        open_selected(&app.state::<AppState>(), &vault_id, &password, create)
+        open_selected(
+            &app.state::<AppState>(),
+            &vault_id,
+            Secret::Password(&password),
+            create,
+        )
     })
     .await
     .map_err(|e| e.to_string())?
 }
+enum Secret<'a> {
+    Password(&'a str),
+    Key(zeroize::Zeroizing<[u8; 32]>),
+}
+// The vault key lives in the OS keychain (macOS Keychain, Windows Credential Manager), one entry per vault.
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+mod keychain {
+    use base64::{engine::general_purpose::STANDARD as B64, Engine};
+    use zeroize::Zeroizing;
+    fn entry(id: &str) -> Result<keyring::Entry, String> {
+        keyring::Entry::new("Shellnest", id).map_err(|e| e.to_string())
+    }
+    pub fn save(id: &str, key: &[u8; 32]) -> Result<(), String> {
+        entry(id)?
+            .set_password(&B64.encode(key))
+            .map_err(|e| e.to_string())
+    }
+    pub fn load(id: &str) -> Result<Zeroizing<[u8; 32]>, String> {
+        let text = Zeroizing::new(entry(id)?.get_password().map_err(|e| e.to_string())?);
+        let bytes = Zeroizing::new(B64.decode(text.as_bytes()).map_err(|e| e.to_string())?);
+        let mut key = Zeroizing::new([0; 32]);
+        if bytes.len() != 32 {
+            return Err("Chiave salvata non valida".into());
+        }
+        key.copy_from_slice(&bytes);
+        Ok(key)
+    }
+    pub fn forget(id: &str) {
+        if let Ok(e) = entry(id) {
+            let _ = e.delete_credential();
+        }
+    }
+}
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+mod keychain {
+    use zeroize::Zeroizing;
+    const NO: &str = "Portachiavi non disponibile su questo sistema";
+    pub fn save(_: &str, _: &[u8; 32]) -> Result<(), String> {
+        Err(NO.into())
+    }
+    pub fn load(_: &str) -> Result<Zeroizing<[u8; 32]>, String> {
+        Err(NO.into())
+    }
+    pub fn forget(_: &str) {}
+}
+#[tauri::command]
+async fn unlock_saved(app: tauri::AppHandle, vault_id: String) -> Result<View, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let key = keychain::load(&vault_id)?;
+        let opened = open_selected(&app.state::<AppState>(), &vault_id, Secret::Key(key), false);
+        // A key that no longer opens the vault is useless: ask for the password again.
+        if opened.is_err() {
+            keychain::forget(&vault_id);
+        }
+        opened
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+#[tauri::command]
+fn is_remembered(vault_id: String) -> bool {
+    keychain::load(&vault_id).is_ok()
+}
+#[tauri::command]
+fn set_remembered(state: State<AppState>, vault_id: String, enabled: bool) -> Result<(), String> {
+    if !enabled {
+        keychain::forget(&vault_id);
+        return Ok(());
+    }
+    let guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
+    state.ensure_vault(&vault_id)?;
+    let v = guard.as_ref().ok_or("Vault bloccato")?;
+    keychain::save(&vault_id, &v.key)
+}
 fn open_selected(
     s: &AppState,
     vault_id: &str,
-    password: &str,
+    secret: Secret,
     create: bool,
 ) -> Result<View, String> {
     let mut guard = s.vault.lock().map_err(|_| "Stato non disponibile")?;
@@ -329,13 +408,19 @@ fn open_selected(
         if path.exists() {
             return Err("Esiste già un vault locale".into());
         }
+        let Secret::Password(password) = secret else {
+            return Err("Serve la password per creare il vault".into());
+        };
         let v = OpenVault::create(password)?;
         vault::save(&path, &v.disk)?;
         v
     } else {
         let raw = std::fs::read(&path).map_err(|e| e.to_string())?;
         let disk: Disk = serde_json::from_slice(&raw).map_err(|_| "Vault non valido")?;
-        let mut v = OpenVault::unlock(password, disk)?;
+        let mut v = match secret {
+            Secret::Password(password) => OpenVault::unlock(password, disk)?,
+            Secret::Key(key) => OpenVault::unlock_with_key(key, disk)?,
+        };
         if v.data.migrated {
             let backup = path.with_extension("pre-v4.bak");
             if !backup.exists() {
@@ -494,6 +579,7 @@ fn delete(state: &AppState, id: &str) -> Result<View, String> {
     drop(guard);
     // The catalog no longer lists it; a leftover file is harmless.
     let _ = std::fs::remove_file(path);
+    keychain::forget(id);
     view(state)
 }
 // Persist a candidate before replacing the in-memory data, so write failures do not lose edits.
@@ -759,6 +845,9 @@ fn main() {
             rename_vault,
             delete_vault,
             unlock,
+            unlock_saved,
+            is_remembered,
+            set_remembered,
             lock,
             save_host,
             reveal_host_password,
@@ -832,7 +921,7 @@ mod tests {
     fn host_and_new_credentials_commit_together_without_exposing_or_overwriting_secrets() {
         let fixture = VaultFixture::new();
         let state = fixture.state();
-        open_selected(&state, "personal", "test-only master password", true).unwrap();
+        open_selected(&state, "personal", Secret::Password("test-only master password"), true).unwrap();
         let host = Host {
             id: "inline-host".into(),
             name: "API".into(),
@@ -945,7 +1034,7 @@ mod tests {
     fn delayed_connection_metadata_never_updates_a_changed_endpoint() {
         let fixture = VaultFixture::new();
         let state = fixture.state();
-        open_selected(&state, "personal", "test-only master password", true).unwrap();
+        open_selected(&state, "personal", Secret::Password("test-only master password"), true).unwrap();
         mutate(&state, "personal", |data| {
             data.upsert_identity(Identity {
                 id: "admin".into(),
@@ -1032,7 +1121,7 @@ mod tests {
     fn multiple_vaults_keep_files_passwords_and_mutations_isolated() {
         let fixture = VaultFixture::new();
         let state = fixture.state();
-        open_selected(&state, "personal", "personal test password", true).unwrap();
+        open_selected(&state, "personal", Secret::Password("personal test password"), true).unwrap();
         mutate(&state, "personal", |data| {
             data.upsert_identity(Identity {
                 id: "personal-login".into(),
@@ -1053,18 +1142,18 @@ mod tests {
         assert_eq!(work.vaults.len(), 2);
         assert_eq!(std::fs::read(&state.path).unwrap(), personal_bytes);
         assert!(mutate(&state, "personal", |_| Ok(())).is_err());
-        assert!(open_selected(&state, "personal", "personal test password", false).is_err());
-        assert!(open_selected(&state, &work.vault_id, "short", true).is_err());
+        assert!(open_selected(&state, "personal", Secret::Password("personal test password"), false).is_err());
+        assert!(open_selected(&state, &work.vault_id, Secret::Password("short"), true).is_err());
         assert!(!state.active_path().unwrap().exists());
-        open_selected(&state, &work.vault_id, "work test password", true).unwrap();
+        open_selected(&state, &work.vault_id, Secret::Password("work test password"), true).unwrap();
         assert!(view(&state).unwrap().identities.is_empty());
         let work_path = state.active_path().unwrap();
         assert_ne!(work_path, state.path);
         select(&state, "personal").unwrap();
         assert!(state.vault.lock().unwrap().is_none());
-        assert!(open_selected(&state, "personal", "work test password", false).is_err());
+        assert!(open_selected(&state, "personal", Secret::Password("work test password"), false).is_err());
         assert_eq!(std::fs::read(&state.path).unwrap(), personal_bytes);
-        let personal = open_selected(&state, "personal", "personal test password", false).unwrap();
+        let personal = open_selected(&state, "personal", Secret::Password("personal test password"), false).unwrap();
         assert_eq!(personal.identities.len(), 1);
         assert_eq!(personal.identities[0].id, "personal-login");
         let before = state.catalog.lock().unwrap().selected.clone();
@@ -1081,10 +1170,10 @@ mod tests {
     fn only_empty_non_default_vaults_can_be_deleted() {
         let fixture = VaultFixture::new();
         let state = fixture.state();
-        open_selected(&state, "personal", "personal test password", true).unwrap();
+        open_selected(&state, "personal", Secret::Password("personal test password"), true).unwrap();
         assert!(delete(&state, "personal").is_err());
         let work = create(&state, "personal", "Lavoro").unwrap();
-        open_selected(&state, &work.vault_id, "work test password", true).unwrap();
+        open_selected(&state, &work.vault_id, Secret::Password("work test password"), true).unwrap();
         mutate(&state, &work.vault_id, |data| {
             data.upsert_identity(Identity {
                 id: "login".into(),
@@ -1115,7 +1204,7 @@ mod tests {
     fn switching_closes_sessions_and_catalog_failure_preserves_open_vault() {
         let fixture = VaultFixture::new();
         let state = fixture.state();
-        open_selected(&state, "personal", "personal test password", true).unwrap();
+        open_selected(&state, "personal", Secret::Password("personal test password"), true).unwrap();
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
         state
             .sessions
@@ -1125,7 +1214,7 @@ mod tests {
         let work = create(&state, "personal", "Lavoro").unwrap();
         assert!(matches!(rx.try_recv(), Ok(terminal::Input::Close)));
         assert!(state.sessions.lock().unwrap().is_empty());
-        open_selected(&state, &work.vault_id, "work test password", true).unwrap();
+        open_selected(&state, &work.vault_id, Secret::Password("work test password"), true).unwrap();
         let catalog_file = state.path.with_extension("catalog.json");
         std::fs::remove_file(&catalog_file).unwrap();
         std::fs::create_dir(&catalog_file).unwrap();

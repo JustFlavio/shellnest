@@ -31,7 +31,7 @@ const row =
 export const soon =
   "ml-[8px] rounded-[6px] border border-input px-[6px] py-[1px] align-middle text-[11px] font-normal text-muted-foreground";
 
-function Row({
+export function Row({
   label,
   hint,
   children,

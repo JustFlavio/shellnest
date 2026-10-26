@@ -28,6 +28,12 @@ portable-pty = "0.9"
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.28", default-features = false, features = ["fs", "poll"] }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3", default-features = false, features = ["apple-native"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { version = "3", default-features = false, features = ["windows-native"] }
+
 [profile.release]
 strip = true
 lto = true

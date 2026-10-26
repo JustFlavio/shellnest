@@ -5,7 +5,8 @@ import { AlertDialogDescription } from "./components/ui/alert-dialog";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { PasswordInput } from "./PasswordInput";
-import { card, cardTitle } from "./SettingsDialog";
+import { Switch } from "./components/ui/switch";
+import { Row, card, cardTitle } from "./SettingsDialog";
 import { help, muted } from "./editor-ui";
 import type { View } from "./types";
 
@@ -27,6 +28,8 @@ export function VaultSettings({
   onCreate,
   onRename,
   onDelete,
+  remembered,
+  onRemember,
 }: {
   view: View;
   busy: boolean;
@@ -42,6 +45,8 @@ export function VaultSettings({
   onCreate: () => void;
   onRename: () => void;
   onDelete: () => void;
+  remembered: boolean | null;
+  onRemember: (enabled: boolean) => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   const isDefault = view.vaultId === "personal";
@@ -132,6 +137,21 @@ export function VaultSettings({
           vault vuoto e mai il Personale.
         </p>
       </section>
+      {remembered !== null && (
+        <section className={card}>
+          <h3 className={cardTitle}>Sblocco · {view.vaultName}</h3>
+          <Row
+            label="Ricorda su questo dispositivo"
+            hint="La chiave resta nel portachiavi di sistema: all’avvio il vault si apre senza password. “Blocca vault” la richiede comunque finché non riavvii l’app."
+          >
+            <Switch
+              label="Ricorda su questo dispositivo"
+              checked={remembered}
+              onChange={onRemember}
+            />
+          </Row>
+        </section>
+      )}
       <section className={card}>
         <h3 className={cardTitle}>Sincronizzazione · {view.vaultName}</h3>
         <p className={muted}>

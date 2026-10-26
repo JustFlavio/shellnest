@@ -68,6 +68,7 @@ import { WindowControls } from "./WindowControls";
 import { TerminalPane, terminalHandles } from "./TerminalPane";
 import { SettingsDialog, type SettingsSection } from "./SettingsDialog";
 import { VaultSettings } from "./VaultSettings";
+import { Switch } from "./components/ui/switch";
 import {
   DEFAULT_FONT_SIZE,
   DEFAULT_SETTINGS,
@@ -152,6 +153,10 @@ function App() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
+  const [remember, setRemember] = useState(true);
+  const [remembered, setRemembered] = useState<boolean | null>(null);
+  const [trying, setTrying] = useState(false);
+  const triedSaved = useRef(new Set<string>());
   const [password, setPassword] = useState(""),
     [confirmPassword, setConfirmPassword] = useState(""),
     [restore, setRestore] = useState(false),
@@ -357,6 +362,30 @@ function App() {
         .finally(() => setLoading(false));
     else setLoading(false);
   }, []);
+  // Reopens a vault whose key is in the system keychain, once per vault and app run (a manual lock stays locked).
+  const waitingSaved =
+    desktop &&
+    !loading &&
+    !view.unlocked &&
+    view.exists &&
+    !triedSaved.current.has(view.vaultId);
+  useEffect(() => {
+    if (!waitingSaved) return;
+    triedSaved.current.add(view.vaultId);
+    setTrying(true);
+    invoke<View>("unlock_saved", { vaultId: view.vaultId })
+      .then(update)
+      .catch(() => {})
+      .finally(() => setTrying(false));
+  }, [waitingSaved, view.vaultId]);
+  useEffect(() => {
+    setRemembered(null);
+    if (!settingsSection || !view.unlocked || !desktop) return;
+    const id = view.vaultId;
+    void invoke<boolean>("is_remembered", { vaultId: id }).then((on) => {
+      if (id === currentVault.current) setRemembered(on);
+    });
+  }, [!!settingsSection, view.unlocked, view.vaultId]);
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(""), 4500);
@@ -535,7 +564,10 @@ function App() {
           else lockVault();
         },
         openSettings: () => openSettings(),
-        closePane: () => leader && askClosePane(focusOf(leader)),
+        closePane: () =>
+          active === "launcher"
+            ? closeLauncher()
+            : leader && askClosePane(focusOf(leader)),
         closeWorkspace: () => leader && askCloseTab(leader.id),
         reopenTab: reopenTab,
         gotoTab: () => {
@@ -1525,7 +1557,7 @@ function App() {
       )}
     </>
   );
-  if (loading)
+  if (loading || trying || waitingSaved)
     return (
       <main className="relative grid h-dvh place-items-center overflow-auto px-[20px] pt-[64px] pb-[24px]">
         <header
@@ -1620,6 +1652,11 @@ function App() {
                         create: !view.exists,
                       });
                   update(next);
+                  if (desktop && !restore && remember)
+                    await invoke("set_remembered", {
+                      vaultId: next.vaultId,
+                      enabled: true,
+                    }).catch((e) => setError(`Password non salvata: ${e}`));
                   setPassword("");
                   setConfirmPassword("");
                   setSyncToken("");
@@ -1679,6 +1716,16 @@ function App() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                   />
                 </label>
+              )}
+              {desktop && !restore && (
+                <div className="mt-[16px] flex items-center justify-between gap-[12px] text-[13px]">
+                  Ricorda su questo dispositivo
+                  <Switch
+                    label="Ricorda su questo dispositivo"
+                    checked={remember}
+                    onChange={setRemember}
+                  />
+                </div>
               )}
               <Button
                 variant="default"
@@ -3219,6 +3266,13 @@ function App() {
               onSyncNow={() => void synchronize(true)}
               onSwitch={requestSwitch}
               onCreate={() => {
+              remembered={remembered}
+              onRemember={(enabled) =>
+                void run(async () => {
+                  await invokeScoped("set_remembered", { enabled });
+                  setRemembered(enabled);
+                })
+              }
                 setError("");
                 setVaultDialog({ mode: "create", name: "" });
               }}

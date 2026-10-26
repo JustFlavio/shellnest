@@ -205,7 +205,10 @@ impl OpenVault {
         if salt.len() != 16 {
             return Err("Salt non valido".into());
         }
-        let key = derive(password, &salt)?;
+        Self::unlock_with_key(derive(password, &salt)?, disk)
+    }
+    // The key a keychain-remembered vault is reopened with, instead of the password.
+    pub fn unlock_with_key(key: Zeroizing<[u8; 32]>, disk: Disk) -> Result<Self, String> {
         let data = decrypt(&key, &disk.envelope)?;
         let mut disk = disk;
         disk.dirty |= data.migrated;
@@ -274,6 +277,12 @@ mod tests {
         let v = OpenVault::create("correct horse battery staple").unwrap();
         assert!(OpenVault::unlock("wrong password", v.disk.clone()).is_err());
         assert!(OpenVault::unlock("correct horse battery staple", v.disk).is_ok());
+    }
+    #[test]
+    fn reopens_with_the_saved_key_only_when_it_is_right() {
+        let v = OpenVault::create("correct horse battery staple").unwrap();
+        assert!(OpenVault::unlock_with_key(Zeroizing::new(*v.key), v.disk.clone()).is_ok());
+        assert!(OpenVault::unlock_with_key(Zeroizing::new([7; 32]), v.disk).is_err());
     }
     #[test]
     fn tampering_is_detected_and_nonces_change() {
