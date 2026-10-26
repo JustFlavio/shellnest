@@ -2250,7 +2250,7 @@ function App() {
                   variant="default"
                   type="button"
                   className={cn(
-                    "h-[30px] bg-clip-border",
+                    "h-[30px] bg-clip-border focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-foreground/60",
                     page === "hosts" && "rounded-r-none",
                   )}
                   disabled={busy}
@@ -2271,7 +2271,7 @@ function App() {
                         <Button
                           variant="default"
                           type="button"
-                          className="h-[30px] w-[28px] rounded-l-none bg-clip-border px-0 shadow-[inset_1px_0_0_rgb(0_0_0/0.22)] aria-expanded:brightness-110"
+                          className="h-[30px] w-[28px] rounded-l-none bg-clip-border px-0 shadow-[inset_1px_0_0_rgb(0_0_0/0.22)] aria-expanded:brightness-110 focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-foreground/60"
                         />
                       }
                       aria-label="Altre azioni di creazione"
