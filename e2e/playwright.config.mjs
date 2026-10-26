@@ -12,7 +12,7 @@ export default defineConfig({
     colorScheme: "dark",
   },
   expect: {
-    toHaveScreenshot: { animations: "disabled", caret: "hide", maxDiffPixelRatio: 0.002 },
+    toHaveScreenshot: { animations: "disabled", caret: "hide", maxDiffPixelRatio: 0.0002 },
   },
   webServer: {
     command: "npm run dev",

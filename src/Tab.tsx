@@ -43,9 +43,9 @@ export function TabShell({
       data-selected={selected || undefined}
       className={cn(
         "group/tab relative flex h-[34px] max-w-[280px] min-w-[140px] shrink-0 cursor-pointer items-center gap-[6px] rounded-[7px] border border-transparent pr-[3px] pl-[4px] text-[13px] whitespace-nowrap text-muted-foreground transition-colors",
-        "hover:border-border hover:bg-accent/70 hover:text-foreground focus-within:border-border focus-within:bg-accent/70 focus-within:text-foreground",
+        "hover:bg-card/60 hover:text-foreground focus-within:bg-card/60 focus-within:text-foreground",
         selected &&
-          "border-input bg-card text-foreground shadow-[inset_0_-2px_var(--primary)] hover:border-input hover:bg-card focus-within:border-input focus-within:bg-card",
+          "bg-card text-foreground hover:bg-card focus-within:bg-card",
         fixed && "min-w-0",
         dragging && "opacity-45",
         drop &&
