@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { LoaderCircle, CircleAlert, TerminalSquare } from "lucide-react";
+import { LoaderCircle, CircleAlert, TerminalSquare, X } from "lucide-react";
+import { OsIcon } from "./OsIcon";
 import { Button } from "./components/ui/button";
 import { StatusDot } from "./Tab";
 import { cn } from "./lib/utils";
@@ -17,6 +18,8 @@ export function TerminalPane({
   active,
   box,
   focused,
+  ghost,
+  animate,
   onFocus,
   onDragPane,
   onError,
@@ -32,6 +35,10 @@ export function TerminalPane({
   box?: { x: number; y: number; w: number; h: number };
   // undefined when the tab is not split
   focused?: boolean;
+  // being dragged away: stays as a faint trace while the others take its place
+  ghost?: boolean;
+  // glide to a new box (set while panes rearrange, off while resizing by hand)
+  animate?: boolean;
   onFocus?: () => void;
   // set when split: the header can be dragged to move the pane
   onDragPane?: (dragging: boolean) => void;
@@ -249,6 +256,14 @@ export function TerminalPane({
         if (focused !== false) terminal.current?.focus();
       });
   }, [active, focused]);
+  const statusLabel =
+    tab.status === "closed"
+      ? "Terminata"
+      : tab.status === "failed"
+        ? "Non riuscita"
+        : tab.status === "connected"
+          ? "Connessa"
+          : "Connessione…";
   const endpoint =
     tab.kind === "local"
       ? "Shell del dispositivo"
@@ -256,7 +271,10 @@ export function TerminalPane({
   return (
     <div
       className={cn(
-        "absolute box-border min-h-0 flex-none flex-col bg-background px-[16px] pb-[12px]",
+        "group/pane absolute z-1 box-border min-h-0 flex-none flex-col bg-background px-[16px] pb-[12px]",
+        animate &&
+          "transition-[left,top,width,height,opacity] duration-200 ease-out",
+        ghost && "pointer-events-none z-0 opacity-40",
         focused !== undefined &&
           "m-[4px] rounded-[12px] border border-border bg-clip-padding px-[10px] pb-[8px]",
         focused && "border-primary",
@@ -272,28 +290,50 @@ export function TerminalPane({
       onFocus={onFocus}
       onMouseDown={onFocus}
     >
-      <div
-        className="mb-[8px] flex h-[38px] shrink-0 items-center gap-[9px] border-b border-border font-mono text-[12px] text-muted-foreground [&>span:last-child]:ml-auto"
-        draggable={!!onDragPane}
-        onDragStart={(e) => {
-          e.dataTransfer.effectAllowed = "move";
-          e.dataTransfer.setData("application/x-server-manager-pane", tab.id);
-          onDragPane?.(true);
-        }}
-        onDragEnd={() => onDragPane?.(false)}
-      >
-        <StatusDot status={tab.status ?? "connecting"} />
-        {endpoint}
-        <span>
-          {tab.kind === "local" ? "PTY locale" : tab.identityName} ·{" "}
-          {tab.status === "closed"
-            ? "Terminata"
-            : tab.status === "failed"
-              ? "Non riuscita"
-              : tab.status === "connected"
-                ? "Connessa"
-                : "Connessione…"}
-        </span>
+      <div className="mt-[2px] mb-[6px] flex h-[34px] shrink-0 items-center gap-[8px] text-[12px] text-muted-foreground">
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 items-center gap-[8px]",
+            onDragPane && "cursor-grab active:cursor-grabbing",
+          )}
+          title={onDragPane ? "Trascina per spostare il pannello" : undefined}
+          draggable={!!onDragPane}
+          onDragStart={(e) => {
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("application/x-server-manager-pane", tab.id);
+            onDragPane?.(true);
+          }}
+          onDragEnd={() => onDragPane?.(false)}
+        >
+          {tab.kind === "local" ? (
+            <TerminalSquare size={14} className="shrink-0" />
+          ) : (
+            <OsIcon
+              size="tab"
+              os={tab.kind === "ssh" ? tab.host.os : undefined}
+            />
+          )}
+          <span className="truncate text-[13px] text-foreground">
+            {tab.title}
+          </span>
+          {tab.kind !== "local" && (
+            <span className="truncate font-mono text-[11px]">{endpoint}</span>
+          )}
+          <StatusDot status={tab.status ?? "connecting"} className="ml-[2px]" />
+          <span className="sr-only">{statusLabel}</span>
+        </div>
+        {focused !== undefined && (
+          <Button
+            variant="ghost"
+            type="button"
+            size="icon-sm"
+            className="text-muted-foreground opacity-0 transition-opacity group-focus-within/pane:opacity-100 group-hover/pane:opacity-100"
+            aria-label={`Chiudi pannello ${tab.title}`}
+            onClick={onClose}
+          >
+            <X size={15} />
+          </Button>
+        )}
       </div>
       <div
         ref={el}

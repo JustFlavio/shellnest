@@ -210,3 +210,30 @@ test("focus goes back to the pressed button even when the browser did not focus 
   await page.keyboard.press("Escape");
   await expect(button).toBeFocused();
 });
+
+test("a dragged pane makes room: the others close ranks, then return", async ({
+  page,
+}) => {
+  await openFromLauncher(page, /Produzione.*connessioni/);
+  const handles = page.locator('[title="Trascina per spostare il pannello"]');
+  const second = page.locator(".xterm").nth(1);
+  const before = (await second.boundingBox()).width;
+  const dt = await page.evaluateHandle(() => new DataTransfer());
+  await handles.first().dispatchEvent("dragstart", { dataTransfer: dt });
+  await expect
+    .poll(async () => (await second.boundingBox()).width)
+    .toBeGreaterThan(before + 100);
+  await handles.first().dispatchEvent("dragend", { dataTransfer: dt });
+  await expect
+    .poll(async () => Math.abs((await second.boundingBox()).width - before))
+    .toBeLessThan(2);
+});
+
+test("pane close button only shows on hover", async ({ page }) => {
+  await openFromLauncher(page, /Produzione.*connessioni/);
+  await page.mouse.move(1275, 795);
+  const close = page.getByRole("button", { name: /Chiudi pannello/ }).first();
+  await expect(close).toHaveCSS("opacity", "0");
+  await page.locator(".xterm").first().hover();
+  await expect(close).toHaveCSS("opacity", "1");
+});

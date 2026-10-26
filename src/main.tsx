@@ -190,6 +190,9 @@ function App() {
       name: string;
     } | null>(null),
     [dragPane, setDragPane] = useState<string>(),
+    // While a pane is dragged, the others close ranks after a short delay, as if it had left.
+    [reflow, setReflow] = useState(false),
+    [settling, setSettling] = useState(false),
     [dropHint, setDropHint] = useState<{ paneId: string; edge: Edge | null }>(),
     [active, setActive] = useState("vault"),
     [lastSync, setLastSync] = useState(""),
@@ -1052,11 +1055,29 @@ function App() {
         ).length
       : 0;
   })();
+  useEffect(() => {
+    if (dragPane) {
+      setSettling(true);
+      const timer = window.setTimeout(() => setReflow(true), 150);
+      return () => window.clearTimeout(timer);
+    }
+    setReflow(false);
+    const timer = window.setTimeout(() => setSettling(false), 300);
+    return () => window.clearTimeout(timer);
+  }, [dragPane]);
   const geos = new Map(
     tabs.flatMap((t) =>
       t.layout ? [[t.id, layoutRects(t.layout)] as const] : [],
     ),
   );
+  // Geometry on screen: without the dragged pane once the others have closed ranks.
+  const shown = new Map(geos);
+  if (reflow && dragPane) {
+    const leader = tabs.find((t) => t.id === dragPane)?.parent ?? dragPane;
+    const layout = tabs.find((t) => t.id === leader)?.layout;
+    const rest = layout && removeLeaf(layout, dragPane);
+    if (rest) shown.set(leader, layoutRects(rest));
+  }
   const tabStatus = (
     id: string,
     status: "connecting" | "connected" | "closed" | "failed",
@@ -2681,7 +2702,13 @@ function App() {
                 key={tab.id}
                 tab={tab}
                 active={active === leader}
-                box={geo?.panes[tab.id]}
+                box={
+                  tab.id === dragPane
+                    ? geo?.panes[tab.id]
+                    : (shown.get(leader)?.panes[tab.id] ?? geo?.panes[tab.id])
+                }
+                ghost={tab.id === dragPane && reflow}
+                animate={settling}
                 focused={geo ? focus === tab.id : undefined}
                 onFocus={geo ? () => setFocusedPane(tab.id) : undefined}
                 onDragPane={
@@ -2718,7 +2745,7 @@ function App() {
           })}
           {(dragPane || (drag?.id && drag.id !== active)) &&
             Object.entries(
-              geos.get(active)?.panes ?? {
+              shown.get(active)?.panes ?? {
                 [active]: { x: 0, y: 0, w: 1, h: 1 },
               },
             ).map(([id, box]) =>
@@ -2767,7 +2794,7 @@ function App() {
                 </div>
               ),
             )}
-          {geos.get(active)?.dividers.map((d) => (
+          {shown.get(active)?.dividers.map((d) => (
             <div
               key={d.path}
               className={cn(
