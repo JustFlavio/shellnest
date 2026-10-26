@@ -6,6 +6,11 @@ import {
   insertLeaf,
   dropEdge,
   replaceLeaf,
+  toTemplate,
+  fromTemplate,
+  pruneTemplate,
+  gridLayout,
+  snapshotSession,
   removeLeaf,
   layoutRects,
   setRatio,
@@ -96,4 +101,82 @@ test("replacing a leaf keeps the layout shape", () => {
     replaceLeaf(l, "b", "c"),
     insertLeaf({ id: "a" }, "a", { id: "c" }, "right"),
   );
+});
+test("templates save hosts, drop unsavable sessions and restore with fresh ids", () => {
+  let l = insertLeaf({ id: "a" }, "a", { id: "b" }, "right");
+  l = insertLeaf(l, "b", { id: "q" }, "bottom");
+  const saved = toTemplate(l, (id) =>
+    id === "a" ? { hostId: "h1" } : id === "b" ? { local: true } : null,
+  );
+  assert.deepEqual(saved, {
+    dir: "row",
+    ratio: 0.5,
+    a: { hostId: "h1" },
+    b: { local: true },
+  });
+  assert.equal(
+    toTemplate({ id: "q" }, () => null),
+    null,
+  );
+  let n = 0;
+  const { layout, leaves } = fromTemplate(saved, () => `s${++n}`);
+  assert.deepEqual(leafIds(layout), ["s1", "s2"]);
+  assert.deepEqual(leaves, [
+    { id: "s1", spec: { hostId: "h1" } },
+    { id: "s2", spec: { local: true } },
+  ]);
+});
+test("grid layouts are near-square and stay within the saved ratio range", () => {
+  const leaves = (n) =>
+    Array.from({ length: n }, (_, i) => ({ hostId: `h${i}` }));
+  const ids = (n) => {
+    const out = [];
+    const walk = (x) => (x.dir ? (walk(x.a), walk(x.b)) : out.push(x.hostId));
+    walk(gridLayout(leaves(n)));
+    return out;
+  };
+  assert.deepEqual(gridLayout(leaves(1)), { hostId: "h0" });
+  assert.equal(gridLayout(leaves(2)).dir, "row");
+  const four = gridLayout(leaves(4));
+  assert.equal(four.dir, "col");
+  assert.equal(four.a.dir, "row");
+  assert.deepEqual(ids(7), ["h0", "h1", "h2", "h3", "h4", "h5", "h6"]);
+  const ratios = (x) =>
+    x.dir ? [x.ratio, ...ratios(x.a), ...ratios(x.b)] : [];
+  assert.ok(
+    ratios(gridLayout(leaves(16))).every((r) => r >= 0.05 && r <= 0.95),
+  );
+});
+test("pruning a saved layout collapses splits; sessions snapshot per tab", () => {
+  const l = {
+    dir: "row",
+    ratio: 0.5,
+    a: { hostId: "gone" },
+    b: { local: true },
+  };
+  assert.deepEqual(
+    pruneTemplate(l, (x) => x.hostId !== "gone"),
+    { local: true },
+  );
+  assert.equal(
+    pruneTemplate({ hostId: "gone" }, () => false),
+    null,
+  );
+  const tabs = [
+    {
+      id: "a",
+      kind: "ssh",
+      host: { id: "h1" },
+      layout: { dir: "row", ratio: 0.5, a: { id: "a" }, b: { id: "b" } },
+      name: "Db",
+    },
+    { id: "b", kind: "local", parent: "a" },
+    { id: "c", kind: "quick" },
+    { id: "d", kind: "ssh", host: { id: "h2" } },
+  ];
+  const snap = snapshotSession(tabs, "d");
+  assert.equal(snap.items.length, 2);
+  assert.equal(snap.active, 1);
+  assert.equal(snap.items[0].name, "Db");
+  assert.deepEqual(snap.items[1].layout, { hostId: "h2" });
 });

@@ -70,7 +70,15 @@ test("fixed sheet actions remain associated with their validated forms", () => {
   for (const [Editor, value] of [
     [
       HostEditor,
-      { id: "new", name: "", address: "", port: 22, identityId: "" },
+      {
+        id: "new",
+        name: "",
+        address: "",
+        port: 22,
+        ownPort: null,
+        groupId: "",
+        identityId: "",
+      },
     ],
     [
       IdentityEditor,
@@ -102,7 +110,8 @@ test("discard protection covers changed endpoints, chosen identities and new pas
     name: "Server",
     address: "192.0.2.1",
     port: 22,
-    group: "",
+    ownPort: 22,
+    groupId: "",
     identityId: "admin",
     fingerprint: "",
   };
@@ -115,12 +124,24 @@ test("discard protection covers changed endpoints, chosen identities and new pas
     hasPassword: true,
     hostCount: 1,
   };
-  const view = { hosts: [host], identities: [identity], keys: [] };
+  const view = {
+    hosts: [host],
+    identities: [identity],
+    keys: [],
+    groups: [],
+  };
   const hostDirty = (value, currentView = view) =>
     HostEditor({ value, view: currentView }).props.dirty;
   assert.equal(hostDirty({ ...host }), false);
   assert.equal(hostDirty({ ...host, address: "192.0.2.2" }), true);
-  const draft = { ...host, id: "new", name: "", address: "", identityId: "" };
+  const draft = {
+    ...host,
+    id: "new",
+    name: "",
+    address: "",
+    ownPort: null,
+    identityId: "",
+  };
   assert.equal(hostDirty(draft), false);
   assert.equal(hostDirty({ ...draft, identityId: "chosen" }), true);
   assert.equal(hostDirty({ ...draft, identityId: "admin" }), true);
@@ -226,19 +247,30 @@ test("form actions preserve explicit submit and cancel button types", () => {
   }
 });
 
+const groups = [
+  { id: "work", name: "Work", parentId: "", identityId: "", port: null },
+];
 test("folders stay separate from root hosts in both layouts and search reveals matches", () => {
   const hosts = [
-    { id: "a", name: "Grouped", group: "Work", address: "192.0.2.1", port: 22 },
+    {
+      id: "a",
+      name: "Grouped",
+      groupId: "work",
+      address: "192.0.2.1",
+      port: 22,
+    },
     {
       id: "b",
       name: "Standalone",
-      group: "",
+      groupId: "",
       address: "192.0.2.2",
       port: 2222,
     },
   ];
   const props = {
     hosts,
+    groups,
+    hostCount: () => 1,
     identities: [],
     selected: new Set(["a"]),
     busy: false,
@@ -265,7 +297,7 @@ test("folders stay separate from root hosts in both layouts and search reveals m
       createElement(HostsView, {
         ...props,
         layout,
-        group: "Work",
+        group: "work",
         hosts: [hosts[0]],
         busy: true,
       }),
@@ -286,7 +318,7 @@ test("single click selects, Ctrl and Cmd toggle, double click and Enter connect 
   const host = {
     id: "a",
     name: "Server",
-    group: "",
+    groupId: "",
     address: "192.0.2.1",
     port: 22,
   };
@@ -305,6 +337,8 @@ test("single click selects, Ctrl and Cmd toggle, double click and Enter connect 
     const tree = (busy = false) =>
       HostsView({
         hosts: [host, other],
+        groups: [],
+        hostCount: () => 0,
         identities: [],
         selected,
         layout,
@@ -425,7 +459,8 @@ test("draft validation requires its own password or an explicit shared identity"
     name: "API",
     address: "192.0.2.1",
     port: 22,
-    group: "",
+    ownPort: 22,
+    groupId: "",
     identityId: "",
     username: "root",
     hasPassword: true,
@@ -622,7 +657,9 @@ test("folder click selects, Ctrl toggles, double click and Enter open in both la
     const item = (busy = false) =>
       find(
         HostsView({
-          hosts: [{ id: "a", name: "Server", group: "Work" }],
+          hosts: [{ id: "a", name: "Server", groupId: "work" }],
+          groups,
+          hostCount: () => 1,
           identities: [],
           selected: hosts,
           selectedFolders: folders,
@@ -634,27 +671,27 @@ test("folder click selects, Ctrl toggles, double click and Enter open in both la
           onSelectFolders(value) {
             folders = value;
           },
-          onOpenGroup(name) {
-            assert.equal(name, "Work");
+          onOpenGroup(id) {
+            assert.equal(id, "work");
             opened++;
           },
         }),
       );
     item().props.onClick({});
-    assert.deepEqual([...folders], ["Work"]);
+    assert.deepEqual([...folders], ["work"]);
     assert.equal(hosts.size, 0);
     assert.equal(opened, 0);
     item().props.onClick({ ctrlKey: true });
     assert.equal(folders.size, 0);
     item().props.onKeyDown({ key: " ", preventDefault() {} });
-    assert.deepEqual([...folders], ["Work"]);
+    assert.deepEqual([...folders], ["work"]);
     item().props.onDoubleClick();
     item().props.onKeyDown({ key: "Enter", preventDefault() {} });
     assert.equal(opened, 2);
     item(true).props.onClick({ metaKey: true });
     item(true).props.onDoubleClick();
     assert.equal(opened, 2);
-    assert.deepEqual([...folders], ["Work"]);
+    assert.deepEqual([...folders], ["work"]);
   }
 });
 
@@ -687,4 +724,49 @@ test("bulk summaries identify every affected host with its login and nondefault 
   assert.match(html, /192.0.2.2/);
   assert.match(html, /:2222/);
   assert.equal((html.match(/<li>/g) ?? []).length, 2);
+});
+
+test("identity and key tables disable deletion while in use", async () => {
+  const { IdentitiesTable, KeysTable } = await import("./CollectionTables.tsx");
+  const btn = (html, name) =>
+    html.match(new RegExp(`<button[^>]*aria-label="Elimina ${name}"[^>]*>`))[0];
+  const noop = () => {};
+  const shared = { busy: false, onEdit: noop, onDelete: noop, onUsage: noop };
+  const keys = [
+    {
+      id: "k",
+      name: "Chiave",
+      fingerprint: "",
+      identityCount: 1,
+      hostCount: 2,
+    },
+  ];
+  const identities = [
+    {
+      id: "i1",
+      name: "Usata",
+      username: "root",
+      auth: "key",
+      keyId: "k",
+      hostCount: 3,
+    },
+    {
+      id: "i2",
+      name: "Libera",
+      username: "deploy",
+      auth: "password",
+      hostCount: 0,
+    },
+  ];
+  const ih = renderToStaticMarkup(
+    createElement(IdentitiesTable, { ...shared, identities, keys }),
+  );
+  assert.ok(btn(ih, "Usata").includes('disabled=""'));
+  assert.ok(!btn(ih, "Libera").includes('disabled=""'));
+  assert.match(ih, /Chiave/);
+  const kh = renderToStaticMarkup(
+    createElement(KeysTable, { ...shared, keys, identities }),
+  );
+  assert.ok(btn(kh, "Chiave").includes('disabled=""'));
+  assert.match(kh, /Da verificare/);
 });

@@ -27,6 +27,7 @@ import {
   Check,
   LoaderCircle,
   AlertCircle,
+  ContactRound,
 } from "lucide-react";
 import { OsIcon } from "./OsIcon";
 import type { HostDraft, View, IdentityForm, KeyForm } from "./types";
@@ -34,6 +35,8 @@ import type { ReactNode } from "react";
 import { HostPasswordInput } from "./HostPasswordInput";
 import { HostCredentialsField } from "./HostCredentialsField";
 import { hostDraftIsDirty, hostDraftIsValid } from "./host-draft";
+import { GroupField } from "./GroupField";
+import { groupPath, inheritedIdentity, portSource } from "./groups.mjs";
 
 export function Panel({
   title,
@@ -78,7 +81,7 @@ export function Panel({
     >
       <DialogContent
         ref={popup}
-        className={`panel ${variant === "sheet" ? "side-sheet" : "centered-panel"} ${className}`}
+        className={`panel ${variant === "sheet" ? "side-sheet" : "centered-panel"} ${variant === "alert" ? "alert-panel" : ""} ${className}`}
         initialFocus={
           variant === "alert"
             ? () =>
@@ -93,21 +96,19 @@ export function Panel({
         <header>
           <DialogTitle render={<h2 />}>{title}</DialogTitle>
           {status}
-          {variant !== "alert" && (
-            <Button
-              variant="ghost"
-              type="button"
-              aria-label="Chiudi pannello"
-              onClick={requestClose}
-              disabled={busy}
-            >
-              {variant === "sheet" ? (
-                <PanelRightClose className="size-5" />
-              ) : (
-                <X size={18} />
-              )}
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            type="button"
+            aria-label="Chiudi pannello"
+            onClick={requestClose}
+            disabled={busy}
+          >
+            {variant === "sheet" ? (
+              <PanelRightClose className="size-5" />
+            ) : (
+              <X size={18} />
+            )}
+          </Button>
         </header>
         <div className="panel-body" inert={busy ? true : undefined}>
           {error && (
@@ -132,16 +133,8 @@ export function Panel({
           </AlertDialogDescription>
           <footer>
             <Button
-              data-alert-cancel
-              variant="ghost"
-              type="button"
-              disabled={busy}
-              onClick={() => setDiscarding(false)}
-            >
-              Continua a modificare
-            </Button>
-            <Button
               variant="destructive"
+              className="danger"
               type="button"
               disabled={busy}
               onClick={onClose}
@@ -154,7 +147,7 @@ export function Panel({
     </Root>
   );
 }
-function EditorSection({
+export function EditorSection({
   title,
   children,
 }: {
@@ -175,6 +168,7 @@ export function HostEditor({
   onSubmit,
   onClose,
   onNewIdentity,
+  onNewGroup,
   busy,
   error,
   saveStatus,
@@ -188,6 +182,7 @@ export function HostEditor({
   onSubmit: () => void;
   onClose: () => void;
   onNewIdentity: () => void;
+  onNewGroup: (name: string) => void;
   busy: boolean;
   error: string;
   saveStatus?: "idle" | "editing" | "saving" | "saved" | "error";
@@ -203,8 +198,13 @@ export function HostEditor({
   const selectedIdentity = view.identities.find(
     (i) => i.id === value.identityId,
   );
+  const portFrom = portSource(view.groups, value.groupId);
+  const folderIdentity = inheritedIdentity(view.groups, value.groupId);
+  const inherited = view.identities.find(
+    (i) => i.id === folderIdentity?.identityId,
+  );
   const dirty = hasUnsavedChanges ?? hostDraftIsDirty(value, existing);
-  const valid = hostDraftIsValid(value, view.identities, existing);
+  const valid = hostDraftIsValid(value, view.identities, existing, view.groups);
   const StatusIcon =
     saveStatus === "saving"
       ? LoaderCircle
@@ -313,25 +313,12 @@ export function HostEditor({
               placeholder="Nome dell’host"
             />
           </label>
-          <label className="sheet-field sheet-control">
-            <span className="visually-hidden">Cartella</span>
-            <Folder className="field-icon" aria-hidden="true" />
-            <Input
-              value={value.group}
-              onChange={(e) => onChange({ ...value, group: e.target.value })}
-              list="host-groups"
-              placeholder="Cartella (facoltativa)"
-            />
-            <datalist id="host-groups">
-              {[
-                ...new Set(
-                  view.hosts.map((host) => host.group).filter(Boolean),
-                ),
-              ].map((name) => (
-                <option key={name}>{name}</option>
-              ))}
-            </datalist>
-          </label>
+          <GroupField
+            value={value}
+            groups={view.groups}
+            onChange={onChange}
+            onNewGroup={onNewGroup}
+          />
         </EditorSection>
         <fieldset className="editor-section host-connection">
           <legend className="visually-hidden">Accesso SSH</legend>
@@ -341,47 +328,106 @@ export function HostEditor({
               type="number"
               min={1}
               max={65535}
-              required
-              value={value.port}
-              onChange={(e) =>
-                onChange({ ...value, port: Number(e.target.value) })
-              }
-            />
-          </label>
-          <div className="sheet-divider" />
-          <h3 className="credentials-heading">Credenziali</h3>
-          <HostCredentialsField
-            value={value}
-            identities={view.identities}
-            onChange={onChange}
-            onNewIdentity={onNewIdentity}
-          />
-          <div className="sheet-field">
-            <HostPasswordInput
-              key={`${view.vaultId}:${value.id}:${value.identityId}`}
-              hasSavedPassword={!!existing?.hasPassword && !value.identityId}
-              onReveal={onRevealPassword}
-              aria-label="Password SSH"
-              required={!value.identityId && !existing?.hasPassword}
-              disabled={!!selectedIdentity}
-              autoComplete="new-password"
-              value={selectedIdentity ? "" : credentials.password}
-              placeholder={
-                selectedIdentity ? "Gestita dall’identità" : "Password"
-              }
+              value={value.ownPort ?? ""}
+              placeholder={String(
+                portSource(view.groups, value.groupId)?.port ?? 22,
+              )}
               onChange={(e) =>
                 onChange({
                   ...value,
-                  credentials: { ...credentials, password: e.target.value },
+                  ownPort:
+                    e.target.value === "" ? null : Number(e.target.value),
                 })
               }
             />
-          </div>
-          {!value.identityId && existing?.hasPassword && (
+          </label>
+          {value.ownPort === null && portFrom && (
             <p className="help">
-              Lascia vuoto per mantenere la password salvata.
+              Porta ereditata dal gruppo {groupPath(view.groups, portFrom.id)}.
             </p>
           )}
+          <div className="sheet-divider" />
+          <h3 className="credentials-heading">Credenziali</h3>
+          {value.inheritIdentity && folderIdentity ? (
+            <div className="inherited-identity">
+              <ContactRound aria-hidden="true" />
+              <span>
+                Identità <strong>{inherited?.name ?? "—"}</strong>
+                {inherited ? ` (${inherited.username})` : ""} dal gruppo{" "}
+                <strong>{groupPath(view.groups, folderIdentity.id)}</strong>
+              </span>
+              <Button
+                variant="ghost"
+                type="button"
+                onClick={() => onChange({ ...value, inheritIdentity: false })}
+              >
+                Usa credenziali proprie
+              </Button>
+            </div>
+          ) : (
+            <>
+              {folderIdentity && (
+                <div className="inherited-identity">
+                  <ContactRound aria-hidden="true" />
+                  <span>
+                    Il gruppo{" "}
+                    <strong>{groupPath(view.groups, folderIdentity.id)}</strong>{" "}
+                    offre l’identità <strong>{inherited?.name ?? "—"}</strong>.
+                  </span>
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    onClick={() =>
+                      onChange({
+                        ...value,
+                        inheritIdentity: true,
+                        identityId: "",
+                        credentials: { username: "", password: "" },
+                      })
+                    }
+                  >
+                    Usala
+                  </Button>
+                </div>
+              )}
+              <HostCredentialsField
+                value={value}
+                identities={view.identities}
+                onChange={onChange}
+                onNewIdentity={onNewIdentity}
+              />
+            </>
+          )}
+          {!(value.inheritIdentity && folderIdentity) && (
+            <div className="sheet-field">
+              <HostPasswordInput
+                key={`${view.vaultId}:${value.id}:${value.identityId}`}
+                hasSavedPassword={!!existing?.hasPassword && !value.identityId}
+                onReveal={onRevealPassword}
+                aria-label="Password SSH"
+                required={!value.identityId && !existing?.hasPassword}
+                disabled={!!selectedIdentity}
+                autoComplete="new-password"
+                value={selectedIdentity ? "" : credentials.password}
+                placeholder={
+                  selectedIdentity ? "Gestita dall’identità" : "Password"
+                }
+                onChange={(e) =>
+                  onChange({
+                    ...value,
+                    credentials: { ...credentials, password: e.target.value },
+                  })
+                }
+              />
+            </div>
+          )}
+          {!value.identityId &&
+            !value.inheritIdentity &&
+            existing?.hasPassword && (
+              <p className="help">
+                Lascia vuoto per mantenere la password salvata.
+              </p>
+            )}
         </fieldset>
       </form>
     </Panel>

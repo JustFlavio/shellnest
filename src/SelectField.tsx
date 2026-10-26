@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import {
   Select,
   SelectContent,
@@ -12,6 +12,7 @@ export function SelectField({
   onValueChange,
   options,
   placeholder,
+  icon,
   required,
   disabled,
   ...props
@@ -20,6 +21,7 @@ export function SelectField({
   onValueChange: (value: string) => void;
   options: { value: string; label: string }[];
   placeholder?: string;
+  icon?: ReactNode;
   required?: boolean;
 }) {
   return (
@@ -33,6 +35,7 @@ export function SelectField({
       disabled={disabled}
     >
       <SelectTrigger {...props}>
+        {icon}
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent align="start" alignItemWithTrigger={false}>

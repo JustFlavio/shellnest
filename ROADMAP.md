@@ -37,3 +37,7 @@ Verifica del 25 ottobre 2026 su Windows: build TypeScript/Vite riuscita, 21 test
 - Firma/notarizzazione, build e test su macOS, revisione di sicurezza prima di una release stabile.
 
 Non pianificati per la prima release: seriale, collaborazione in tempo reale, account multiutente e compatibilità con il cloud un altro client SSH.
+
+## Idee future
+
+- Impostazioni dell'app per scegliere il font: uno per l'interfaccia (oggi Geist) e uno per il terminale (oggi Cascadia Code in `TerminalPane.tsx`), con anteprima dal vivo.

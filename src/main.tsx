@@ -1,8 +1,18 @@
 import { HostSummary } from "./HostSummary";
 import { useHostAutosave } from "./useHostAutosave";
-import { hostDraftIsValid } from "./host-draft";
+import { hostDraftIsValid, hostInheritsIdentity } from "./host-draft";
+import {
+  ancestry,
+  childGroups,
+  groupOptions,
+  groupPath,
+  inheritedIdentity,
+  subtreeIds,
+} from "./groups.mjs";
+import { GroupEditor } from "./GroupEditor";
 import { AlertDialogDescription } from "./components/ui/alert-dialog";
 import { SelectField } from "./SelectField";
+import { IdentitiesTable, KeysTable } from "./CollectionTables";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import {
@@ -11,19 +21,25 @@ import {
   DropdownMenuContent,
   DropdownMenuSeparator,
   DropdownMenuItem,
+  DropdownMenuShortcut,
 } from "./components/ui/dropdown-menu";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
+  ArrowUpDown,
   Check,
+  ChevronDown,
   Cloud,
   Folder,
+  FolderPlus,
   KeyRound,
   LockKeyhole,
   Pencil,
   Plus,
+  SquarePlus,
   Search,
   Server,
   Settings2,
@@ -42,6 +58,7 @@ import {
 import { createPreviewBackend } from "./preview";
 import { WindowControls } from "./WindowControls";
 import { TerminalPane } from "./TerminalPane";
+import { OsIcon } from "./OsIcon";
 import { HostEditor, IdentityEditor, KeyEditor, Panel } from "./Editors";
 import { HostsView } from "./HostsView";
 import { VaultPicker } from "./VaultPicker";
@@ -51,16 +68,21 @@ import type { QuickConnection } from "./ConnectionLauncher";
 import type { Edge } from "./workbench-state.mjs";
 import {
   dropEdge,
+  fromTemplate,
+  gridLayout,
   insertLeaf,
   layoutRects,
   leafIds,
+  pruneTemplate,
   removeLeaf,
   replaceLeaf,
   reorderTabs,
   setRatio,
+  snapshotSession,
   syncUrlForVault,
+  toTemplate,
 } from "./workbench-state.mjs";
-import { emptyView, newHost, newIdentity, newKey } from "./types";
+import { emptyView, newGroup, newHost, newIdentity, newKey } from "./types";
 import type {
   Host,
   HostDraft,
@@ -71,7 +93,11 @@ import type {
   TerminalTab,
   View,
   QuickTarget,
+  GroupForm,
+  Workspace,
+  WorkspaceDraft,
 } from "./types";
+import type { SavedNode } from "./workbench-state.mjs";
 import "./theme.css";
 import "./style.css";
 
@@ -101,6 +127,7 @@ function App() {
     [group, setGroup] = useState(""),
     [query, setQuery] = useState(""),
     [hostForm, setHostForm] = useState<HostDraft | null>(null),
+    [groupForm, setGroupForm] = useState<GroupForm | null>(null),
     [identityForm, setIdentityForm] = useState<IdentityForm | null>(null),
     [keyForm, setKeyForm] = useState<KeyForm | null>(null);
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(
@@ -120,11 +147,13 @@ function App() {
     [trust, setTrust] = useState<{
       host?: Host;
       quick?: QuickConnection;
+      workspaces?: WorkspaceDraft[];
+      activeIndex?: number;
       fingerprint: string;
       tabId?: string;
     } | null>(null),
     [deletion, setDeletion] = useState<{
-      kind: Page;
+      kind: Page | "groups";
       id: string;
       name: string;
       ids?: string[];
@@ -137,6 +166,12 @@ function App() {
     }>(),
     [focusedPane, setFocusedPane] = useState(""),
     [renaming, setRenaming] = useState<string>(),
+    [launcherOpen, setLauncherOpen] = useState(false),
+    [savingWs, setSavingWs] = useState<{
+      tabId?: string;
+      hostIds?: string[];
+      name: string;
+    } | null>(null),
     [dragPane, setDragPane] = useState<string>(),
     [dropHint, setDropHint] = useState<{ paneId: string; edge: Edge | null }>(),
     [active, setActive] = useState("vault"),
@@ -205,6 +240,7 @@ function App() {
     if (
       !Array.isArray(next.keys) ||
       !Array.isArray(next.identities) ||
+      !Array.isArray(next.workspaces) ||
       !Array.isArray(next.vaults) ||
       !next.vaultId
     )
@@ -253,6 +289,7 @@ function App() {
           hostForm,
           view.identities,
           view.hosts.find((h) => h.id === hostForm.id),
+          view.groups,
         ))
     )
       return;
@@ -293,16 +330,29 @@ function App() {
     hostForm,
     view.hosts.find((h) => h.id === hostForm?.id),
     view.identities,
+    view.groups,
     view.vaultId,
-    busy || !!identityForm || !!keyForm,
+    busy || !!identityForm || !!keyForm || !!groupForm,
     async (draft) => {
       const generation = epoch.current;
-      const { credentials, username, hasPassword, ...host } = draft;
+      const {
+        credentials,
+        username,
+        hasPassword,
+        inheritIdentity,
+        port: _effectivePort,
+        ownPort,
+        effectiveIdentityId: _effectiveIdentity,
+        identitySource: _identitySource,
+        ...host
+      } = draft;
       const next = await invokeScoped<View>("save_host", {
-        host,
-        credentials: host.identityId
-          ? null
-          : (credentials ?? { username: username ?? "", password: "" }),
+        host: { ...host, port: ownPort },
+        inherit: !!inheritIdentity,
+        credentials:
+          host.identityId || inheritIdentity
+            ? null
+            : (credentials ?? { username: username ?? "", password: "" }),
       });
       if (generation !== epoch.current)
         throw new Error("Il vault attivo è cambiato");
@@ -359,13 +409,13 @@ function App() {
       ) {
         e.preventDefault();
         e.stopPropagation();
-        setActive("launcher");
-        setLauncherKey((key) => key + 1);
+        openLauncher();
       }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n") {
         e.preventDefault();
         setActive("vault");
-        setHostForm(newHost());
+        if (e.shiftKey) newFolder();
+        else setHostForm(draftFor());
       }
       if (
         (e.ctrlKey || e.metaKey) &&
@@ -398,30 +448,34 @@ function App() {
         e.stopPropagation();
         closePane(focusOf(leader));
       }
-      const order = tabs.filter((t) => !t.parent);
+      const order = tabs.filter((t) => !t.parent),
+        items = [
+          "vault",
+          ...order.map((t) => t.id),
+          ...(launcherOpen ? ["launcher"] : []),
+        ];
       if (
         (e.metaKey || e.ctrlKey) &&
         !e.shiftKey &&
         !e.altKey &&
         /^[1-9]$/.test(e.key) &&
-        order[+e.key - 1]
+        items[+e.key - 1]
       ) {
         e.preventDefault();
         e.stopPropagation();
-        setActive(order[+e.key - 1].id);
+        setActive(items[+e.key - 1]);
       }
       if (
         e.metaKey &&
         e.shiftKey &&
         !e.altKey &&
-        (e.code === "BracketLeft" || e.code === "BracketRight") &&
-        order.length
+        (e.code === "BracketLeft" || e.code === "BracketRight")
       ) {
         e.preventDefault();
         e.stopPropagation();
-        const at = order.findIndex((t) => t.id === active),
+        const at = Math.max(0, items.indexOf(active)),
           step = e.code === "BracketLeft" ? -1 : 1;
-        setActive(order[(at + step + order.length) % order.length].id);
+        setActive(items[(at + step + items.length) % items.length]);
       }
       if (
         leader &&
@@ -475,7 +529,21 @@ function App() {
     shortcuts,
     tabs,
     focusedPane,
+    launcherOpen,
   ]);
+  useEffect(() => {
+    if (!desktop || !view.unlocked || !tabs.length) return;
+    try {
+      const snapshot = snapshotSession(tabs, active);
+      if (snapshot.items.length)
+        localStorage.setItem(
+          `shellnest.session.${view.vaultId}`,
+          JSON.stringify(snapshot),
+        );
+    } catch {
+      // Restoring a session is a convenience; storage may be unavailable.
+    }
+  }, [tabs, active, view.vaultId, view.unlocked]);
   useEffect(() => {
     document
       .querySelector(".tab.selected")
@@ -491,10 +559,13 @@ function App() {
     setError("");
   };
   const identity = (host: Host) =>
-    view.identities.find((i) => i.id === host.identityId);
+    view.identities.find(
+      (i) => i.id === (host.effectiveIdentityId || host.identityId),
+    );
   type Dir = "row" | "col";
   const terminals = useRef<HTMLDivElement>(null);
   const addTab = (tab: TerminalTab) => {
+    if (active === "launcher") setLauncherOpen(false);
     setTabs((old) => [...old, tab]);
     setActive(tab.id);
   };
@@ -503,6 +574,36 @@ function App() {
     window.clearTimeout(spring.current?.timer);
     spring.current = undefined;
   };
+  // Left slot of a tab: its icon, replaced by a close X on hover and on the selected tab.
+  const tabLead = (
+    icon: ReactNode,
+    onClose?: () => void,
+    label = "",
+    status?: string,
+  ) => (
+    <Button
+      variant="ghost"
+      type="button"
+      className={`tab-lead${onClose ? " closable" : ""}`}
+      aria-label={onClose ? `Chiudi ${label}` : undefined}
+      tabIndex={onClose ? 0 : -1}
+      onClick={onClose}
+    >
+      <span className="tab-icon">{icon}</span>
+      {onClose && <X className="tab-x" size={14} />}
+      {status && <span className={`session-dot ${status}`} />}
+    </Button>
+  );
+  const tabIcon = (t: TerminalTab) =>
+    t.layout ? (
+      <LayoutGrid size={14} />
+    ) : t.kind === "ssh" ? (
+      <OsIcon
+        os={view.hosts.find((h) => h.id === t.host.id)?.os ?? t.host.os}
+      />
+    ) : (
+      <TerminalSquare size={14} />
+    );
   const tabLabel = (t: TerminalTab) =>
     t.name ?? (t.layout ? "Workspace" : t.title);
   const clearDnd = () => {
@@ -597,14 +698,14 @@ function App() {
     }
     setFocusedPane(srcId);
   };
-  const openTab = (host: Host) => {
+  const makeTab = (host: Host, id: string = crypto.randomUUID()) => {
     const i = identity(host);
     if (!i && !(host.username && host.hasPassword))
       throw new Error(
         "Inserisci le credenziali dell’host o scegli un’identità.",
       );
-    const tab = {
-      id: crypto.randomUUID(),
+    return {
+      id,
       kind: "ssh" as const,
       host,
       vaultId: view.vaultId,
@@ -613,6 +714,9 @@ function App() {
       username: i?.username ?? host.username!,
       identityName: i?.name ?? "Credenziali dell’host",
     };
+  };
+  const openTab = (host: Host) => {
+    const tab = makeTab(host);
     addTab(tab);
     return tab.id;
   };
@@ -714,25 +818,156 @@ function App() {
     setActive(id);
     setFocusedPane(id);
   };
+  const closeLauncher = () => {
+    setLauncherOpen(false);
+    if (active === "launcher") setActive(bar[bar.length - 1]?.id ?? "vault");
+  };
   const openLauncher = () => {
+    setLauncherOpen(true);
     setActive("launcher");
     setLauncherKey((k) => k + 1);
   };
+  const makeLocalTab = (id: string = crypto.randomUUID()): TerminalTab => ({
+    id,
+    kind: "local",
+    vaultId: view.vaultId,
+    title: "Terminale locale",
+    username: "",
+    identityName: "",
+    status: "connecting",
+  });
+  // Recreate every session of the given layouts, one tab bar entry each. Hosts not trusted yet are
+  // verified first through the usual fingerprint dialog, which calls this again once approved.
+  const openWorkspaces = async (
+    list: WorkspaceDraft[],
+    hosts: Host[] = view.hosts,
+    activeIndex = 0,
+  ) => {
+    if (preview) throw new Error("Le connessioni funzionano nell’app desktop.");
+    if (!list.length) return;
+    const built = list.map((item) => {
+      const { layout, leaves } = fromTemplate(item.layout, () =>
+        crypto.randomUUID(),
+      );
+      const specs = leaves.map(({ id, spec }) => ({
+        id,
+        local: !("hostId" in spec),
+        host:
+          "hostId" in spec
+            ? hosts.find((h) => h.id === spec.hostId)
+            : undefined,
+      }));
+      return { name: item.name, layout, specs };
+    });
+    const specs = built.flatMap((b) => b.specs);
+    if (specs.some((s) => !s.local && !s.host))
+      throw new Error("Un host da aprire non esiste più.");
+    const untrusted = specs.find((s) => s.host && !s.host.fingerprint);
+    if (untrusted?.host) {
+      const fingerprint = await invokeScoped<string>("probe_host", {
+        id: untrusted.host.id,
+      });
+      setTrust({
+        host: untrusted.host,
+        fingerprint,
+        workspaces: list,
+        activeIndex,
+      });
+      return;
+    }
+    const groups = built.map((b) => {
+      const [leader, ...rest] = b.specs.map((s) =>
+        s.host ? makeTab(s.host, s.id) : makeLocalTab(s.id),
+      );
+      return { leader, rest, layout: b.layout, name: b.name };
+    });
+    setTabs((old) => [
+      ...old,
+      ...groups.flatMap((g) => [
+        {
+          ...g.leader,
+          name: g.name,
+          layout: g.rest.length ? g.layout : undefined,
+        },
+        ...g.rest.map((t) => ({ ...t, parent: g.leader.id })),
+      ]),
+    ]);
+    if (active === "launcher") setLauncherOpen(false);
+    const target = groups[Math.min(activeIndex, groups.length - 1)].leader.id;
+    setActive(target);
+    setFocusedPane(target);
+  };
+  // The tabs open when the app was last used on this device, minus hosts that no longer exist.
+  const lastSession = () => {
+    try {
+      const raw = localStorage.getItem(`shellnest.session.${view.vaultId}`);
+      const saved = raw && JSON.parse(raw);
+      if (!saved || !Array.isArray(saved.items)) return null;
+      const known = new Set(view.hosts.map((h) => h.id));
+      const items = (saved.items as WorkspaceDraft[]).flatMap((item) => {
+        const layout = pruneTemplate(
+          item.layout,
+          (leaf) => !("hostId" in leaf) || known.has(leaf.hostId),
+        );
+        return layout ? [{ name: item.name, layout }] : [];
+      });
+      const count = (n: SavedNode): number =>
+        "dir" in n ? count(n.a) + count(n.b) : 1;
+      return items.length
+        ? {
+            items,
+            active: Number(saved.active) || 0,
+            count: items.reduce((sum, i) => sum + count(i.layout), 0),
+          }
+        : null;
+    } catch {
+      return null;
+    }
+  };
+  const saveWorkspace = () =>
+    void run(async () => {
+      if (!savingWs) return;
+      let layout: SavedNode | null;
+      let leader: TerminalTab | undefined;
+      if (savingWs.hostIds) {
+        layout = gridLayout(savingWs.hostIds.map((hostId) => ({ hostId })));
+      } else {
+        leader = tabs.find((t) => t.id === savingWs.tabId);
+        if (!leader?.layout) return;
+        const byId = new Map(tabs.map((t) => [t.id, t]));
+        layout = toTemplate(leader.layout, (id) => {
+          const t = byId.get(id);
+          return t?.kind === "ssh"
+            ? { hostId: t.host.id }
+            : t?.kind === "local"
+              ? { local: true as const }
+              : null;
+        });
+        if (!layout || !("dir" in layout))
+          throw new Error(
+            "Servono almeno due sessioni salvabili (host o terminale locale): le connessioni rapide non si salvano.",
+          );
+      }
+      const name = savingWs.name.trim(),
+        existing = view.workspaces.find((w) => w.name === name);
+      update(
+        await invokeScoped<View>("save_workspace", {
+          workspace: { id: existing?.id ?? "", name, layout },
+        }),
+      );
+      setSavingWs(null);
+      setNotice(`Workspace “${name}” salvato.`);
+      if (leader) {
+        const id = leader.id;
+        setTabs((old) => old.map((t) => (t.id === id ? { ...t, name } : t)));
+      } else await openWorkspaces([{ name, layout }]);
+    });
   const openLocal = () => {
     if (preview) {
       setError("Il terminale locale funziona nell’app desktop.");
       return;
     }
-    const tab: TerminalTab = {
-      id: crypto.randomUUID(),
-      kind: "local",
-      vaultId: view.vaultId,
-      title: "Terminale locale",
-      username: "",
-      identityName: "",
-      status: "connecting",
-    };
-    addTab(tab);
+    addTab(makeLocalTab());
   };
   const openQuick = (target: QuickTarget) => {
     const i = view.identities.find((i) => i.id === target.identityId);
@@ -814,6 +1049,14 @@ function App() {
       .catch((e) => setError(String(e)));
   };
   const bar = tabs.filter((t) => !t.parent);
+  const skippedQuick = (() => {
+    const layout = tabs.find((t) => t.id === savingWs?.tabId)?.layout;
+    return layout
+      ? leafIds(layout).filter(
+          (id) => tabs.find((t) => t.id === id)?.kind === "quick",
+        ).length
+      : 0;
+  })();
   const geos = new Map(
     tabs.flatMap((t) =>
       t.layout ? [[t.id, layoutRects(t.layout)] as const] : [],
@@ -824,6 +1067,8 @@ function App() {
     status: "connecting" | "connected" | "closed" | "failed",
   ) => setTabs((old) => old.map((t) => (t.id === id ? { ...t, status } : t)));
   const resetWorkspace = (next: View) => {
+    setLauncherOpen(false);
+    setSavingWs(null);
     epoch.current++;
     update(next);
     setTabs([]);
@@ -916,15 +1161,28 @@ function App() {
           ?.focus(),
       );
   };
-  const groups = [
-    ...new Set(view.hosts.map((h) => h.group).filter(Boolean)),
-  ].sort();
+  const groupHostCount = (id: string) => {
+    const ids = new Set(subtreeIds(view.groups, id));
+    return view.hosts.filter((h) => ids.has(h.groupId)).length;
+  };
+  const draftFor = (groupId = ""): HostDraft => ({
+    ...newHost(groupId),
+    inheritIdentity: !!inheritedIdentity(view.groups, groupId),
+  });
+  const editDraft = (host: Host): HostDraft => ({
+    ...host,
+    inheritIdentity: hostInheritsIdentity(host),
+  });
+  const closeGroupEditor = () => {
+    setGroupForm(null);
+    setError("");
+  };
   const hostRows = view.hosts
     .filter(
       (h) =>
-        (!group || h.group === group) &&
+        (!group || h.groupId === group) &&
         (!usage || usage.ids.includes(h.identityId)) &&
-        `${h.name} ${h.address} ${h.group} ${identity(h)?.name ?? ""} ${identity(h)?.username ?? h.username ?? ""}`
+        `${h.name} ${h.address} ${groupPath(view.groups, h.groupId)} ${identity(h)?.name ?? ""} ${identity(h)?.username ?? h.username ?? ""}`
           .toLowerCase()
           .includes(query.toLowerCase()),
     )
@@ -947,6 +1205,7 @@ function App() {
     .sort((a, b) => a.name.localeCompare(b.name));
   const anyPanel = !!(
     hostForm ||
+    groupForm ||
     identityForm ||
     keyForm ||
     settings ||
@@ -974,9 +1233,13 @@ function App() {
         </Button>
       </div>
     ) : null;
+  const newFolder = () => {
+    setGroupForm(newGroup(group));
+    setError("");
+  };
   const onNew = () => {
     setError("");
-    if (page === "hosts") setHostForm(newHost());
+    if (page === "hosts") setHostForm(draftFor(group));
     if (page === "identities") setIdentityForm(newIdentity());
     if (page === "keys") setKeyForm(newKey());
   };
@@ -1104,15 +1367,6 @@ function App() {
           </div>
           <footer>
             <Button
-              data-alert-cancel
-              variant="ghost"
-              type="button"
-              disabled={busy}
-              onClick={() => setPendingSwitch(null)}
-            >
-              Annulla
-            </Button>
-            <Button
               variant="default"
               type="button"
               className="primary"
@@ -1137,15 +1391,6 @@ function App() {
             connessioni SSH selezionate verranno terminate.
           </AlertDialogDescription>
           <footer>
-            <Button
-              data-alert-cancel
-              variant="ghost"
-              type="button"
-              disabled={busy}
-              onClick={() => setPendingClose(null)}
-            >
-              Annulla
-            </Button>
             <Button
               variant="destructive"
               type="button"
@@ -1177,15 +1422,6 @@ function App() {
           </AlertDialogDescription>
           <footer>
             <Button
-              data-alert-cancel
-              variant="ghost"
-              type="button"
-              disabled={busy}
-              onClick={() => setPendingLock(false)}
-            >
-              Annulla
-            </Button>
-            <Button
               variant="default"
               type="button"
               className="primary"
@@ -1206,7 +1442,11 @@ function App() {
           <span data-tauri-drag-region>Shellnest</span>
           <WindowControls onError={setError} />
         </header>
-        <p>Apertura vault…</p>
+        <div className="gate-skeleton" role="status" aria-label="Apertura vault">
+          <span className="skeleton" />
+          <span className="skeleton" />
+          <span className="skeleton" />
+        </div>
       </main>
     );
   if (!view.unlocked)
@@ -1396,7 +1636,7 @@ function App() {
       </main>
     );
   return (
-    <div className="app">
+    <div className={active === "vault" ? "app" : "app no-sidebar"}>
       <header className="app-header" data-tauri-drag-region>
         <div className="app-name" data-tauri-drag-region>
           <span className="brand-icon">
@@ -1435,7 +1675,7 @@ function App() {
               disabled={busy}
               onClick={() => {
                 setActive("vault");
-                setHostForm(newHost());
+                setHostForm(draftFor(group));
               }}
             >
               <Plus size={15} />
@@ -1541,6 +1781,20 @@ function App() {
           aria-label="Sessioni e connessioni"
           data-tauri-drag-region
         >
+          <div
+            className={active === "vault" ? "tab fixed selected" : "tab fixed"}
+          >
+            {tabLead(<Server size={14} />)}
+            <Button
+              variant="ghost"
+              type="button"
+              className="tab-main"
+              aria-current={active === "vault" ? "page" : undefined}
+              onClick={() => setActive("vault")}
+            >
+              Vault
+            </Button>
+          </div>
           {bar.map((tab) => (
             <div
               key={tab.id}
@@ -1595,10 +1849,19 @@ function App() {
                 clearDnd();
               }}
             >
+              {tabLead(
+                tabIcon(tab),
+                () => closeTab(tab.id),
+                tabLabel(tab),
+                tab.status ?? "connecting",
+              )}
               {renaming === tab.id ? (
                 <input
                   className="tab-rename"
                   autoFocus
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                   defaultValue={tabLabel(tab)}
                   aria-label="Nome scheda"
                   onFocus={(e) => e.currentTarget.select()}
@@ -1620,19 +1883,25 @@ function App() {
                 <Button
                   variant="ghost"
                   type="button"
+                  className="tab-main"
                   aria-current={active === tab.id ? "page" : undefined}
                   title={tabLabel(tab)}
                   onClick={() => setActive(tab.id)}
                   onDoubleClick={() => setRenaming(tab.id)}
                 >
-                  <TerminalSquare size={14} />
-                  <span
-                    className={`session-dot ${tab.status ?? "connecting"}`}
-                  />
                   {tabLabel(tab)}
                 </Button>
               )}
               <ActionMenu label={`Azioni scheda ${tab.title}`}>
+                {tab.layout && (
+                  <DropdownMenuItem
+                    onClick={() =>
+                      setSavingWs({ tabId: tab.id, name: tab.name ?? "" })
+                    }
+                  >
+                    Salva come workspace…
+                  </DropdownMenuItem>
+                )}
                 {tab.layout && (
                   <DropdownMenuItem onClick={() => closePane(focusOf(tab))}>
                     Chiudi pannello attivo
@@ -1684,16 +1953,22 @@ function App() {
                   Sposta a destra
                 </DropdownMenuItem>
               </ActionMenu>
+            </div>
+          ))}
+          {launcherOpen && (
+            <div className={active === "launcher" ? "tab selected" : "tab"}>
+              {tabLead(<SquarePlus size={15} />, closeLauncher, "nuova scheda")}
               <Button
                 variant="ghost"
                 type="button"
-                aria-label={`Chiudi ${tab.title}`}
-                onClick={() => closeTab(tab.id)}
+                className="tab-main"
+                aria-current={active === "launcher" ? "page" : undefined}
+                onClick={() => setActive("launcher")}
               >
-                <X size={13} />
+                Nuova scheda
               </Button>
             </div>
-          ))}
+          )}
           <Button
             variant="ghost"
             type="button"
@@ -1785,34 +2060,34 @@ function App() {
             );
           })}
         </nav>
-        {groups.length > 0 && (
+        {view.groups.length > 0 && (
           <nav className="folder-nav" aria-label="Cartelle host">
             <h2>Cartelle</h2>
-            {groups.map((name) => (
-              <Button
-                key={name}
-                variant="ghost"
-                type="button"
-                className={`nav${page === "hosts" && group === name && active === "vault" ? " active" : ""}`}
-                aria-label={`Cartella ${name}`}
-                aria-current={
-                  page === "hosts" && group === name && active === "vault"
-                    ? "page"
-                    : undefined
-                }
-                title={name}
-                onClick={() => {
-                  navigate("hosts");
-                  setGroup(name);
-                }}
-              >
-                <Folder size={15} />
-                <span className="nav-label">{name}</span>
-                <span className="nav-count">
-                  {view.hosts.filter((h) => h.group === name).length}
-                </span>
-              </Button>
-            ))}
+            {childGroups(view.groups, "").map((g) => {
+              const current =
+                page === "hosts" &&
+                active === "vault" &&
+                ancestry(view.groups, group).some((a) => a.id === g.id);
+              return (
+                <Button
+                  key={g.id}
+                  variant="ghost"
+                  type="button"
+                  className={`nav${current ? " active" : ""}`}
+                  aria-label={`Cartella ${g.name}`}
+                  aria-current={current ? "page" : undefined}
+                  title={g.name}
+                  onClick={() => {
+                    navigate("hosts");
+                    setGroup(g.id);
+                  }}
+                >
+                  <Folder size={15} />
+                  <span className="nav-label">{g.name}</span>
+                  <span className="nav-count">{groupHostCount(g.id)}</span>
+                </Button>
+              );
+            })}
           </nav>
         )}
       </aside>
@@ -1833,6 +2108,9 @@ function App() {
         {active === "launcher" && (
           <ConnectionLauncher
             key={`${view.vaultId}-${launcherKey}`}
+            vaultName={view.vaultName}
+            groups={view.groups}
+            workspaces={view.workspaces}
             hosts={view.hosts}
             identities={view.identities}
             tabs={bar.map((t) => ({
@@ -1846,7 +2124,25 @@ function App() {
                     : `${t.username}@${t.target.address}`,
             }))}
             onConnect={connect}
+            onOpenWorkspace={(ws) => void run(() => openWorkspaces([ws]))}
+            session={lastSession()}
+            onRestore={() => {
+              const saved = lastSession();
+              if (saved)
+                void run(() =>
+                  openWorkspaces(saved.items, view.hosts, saved.active),
+                );
+            }}
+            onCreateWorkspace={(hostIds) => setSavingWs({ hostIds, name: "" })}
+            onDeleteWorkspace={(ws) =>
+              void run(async () => {
+                update(
+                  await invokeScoped<View>("delete_workspace", { id: ws.id }),
+                );
+              })
+            }
             onActivateTab={(id) => {
+              setLauncherOpen(false);
               setActive(id);
             }}
             onLocalTerminal={openLocal}
@@ -1859,7 +2155,12 @@ function App() {
           <section className="workspace">
             <header className="page-heading">
               <div className="page-title">
-                <h1>{page === "hosts" && group ? group : labels[page]}</h1>
+                <h1>
+                  {page === "hosts" && group
+                    ? (view.groups.find((g) => g.id === group)?.name ??
+                      labels[page])
+                    : labels[page]}
+                </h1>
                 <span className="result-count" role="status">
                   {page === "hosts"
                     ? hostRows.length
@@ -1908,20 +2209,46 @@ function App() {
               </div>
             </div>
             <div className="toolbar">
-              <Button
-                variant="default"
-                type="button"
-                className="primary"
-                disabled={busy}
-                onClick={onNew}
-              >
-                <Plus size={15} />
-                {page === "hosts"
-                  ? "Nuovo host"
-                  : page === "identities"
-                    ? "Nuova identità"
-                    : "Importa chiave"}
-              </Button>
+              <div className="inline-flex items-stretch">
+                <Button
+                  variant="default"
+                  type="button"
+                  className={`primary h-[30px] ${page === "hosts" ? "rounded-r-none" : ""}`}
+                  disabled={busy}
+                  onClick={onNew}
+                  title={page === "hosts" ? "Ctrl/Cmd N" : undefined}
+                >
+                  <Plus size={15} />
+                  {page === "hosts"
+                    ? "Nuovo host"
+                    : page === "identities"
+                      ? "Nuova identità"
+                      : "Importa chiave"}
+                </Button>
+                {page === "hosts" && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      className="primary grid h-[30px] w-7 place-items-center rounded-r-lg shadow-[inset_1px_0_0_rgb(0_0_0/0.22)] outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 data-popup-open:brightness-110"
+                      aria-label="Altre azioni di creazione"
+                      disabled={busy}
+                    >
+                      <ChevronDown size={15} />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="min-w-56">
+                      <DropdownMenuItem onClick={onNew}>
+                        <Plus size={14} />
+                        Nuovo host
+                        <DropdownMenuShortcut>⌘N</DropdownMenuShortcut>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={newFolder}>
+                        <FolderPlus size={14} />
+                        Nuova cartella
+                        <DropdownMenuShortcut>⇧⌘N</DropdownMenuShortcut>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
               {page === "hosts" && (
                 <Button
                   variant="ghost"
@@ -1939,6 +2266,7 @@ function App() {
                 <>
                   <SelectField
                     className="folder-filter"
+                    icon={<Folder size={14} />}
                     aria-label="Filtra per cartella"
                     placeholder="Tutte le cartelle"
                     value={group}
@@ -1948,11 +2276,15 @@ function App() {
                     }}
                     options={[
                       { value: "", label: "Tutte le cartelle" },
-                      ...groups.map((name) => ({ value: name, label: name })),
+                      ...groupOptions(view.groups).map((o) => ({
+                        value: o.group.id,
+                        label: o.path,
+                      })),
                     ]}
                   />
                   <SelectField
                     className="sort-select"
+                    icon={<ArrowUpDown size={14} />}
                     aria-label="Ordina host"
                     value={sort}
                     onValueChange={(value) =>
@@ -2081,6 +2413,25 @@ function App() {
                     <ArrowLeft size={12} />
                     Tutte le cartelle
                   </Button>
+                  {ancestry(view.groups, group)
+                    .reverse()
+                    .map((g) => (
+                      <Fragment key={g.id}>
+                        <span aria-hidden="true">/</span>
+                        <Button
+                          variant="ghost"
+                          type="button"
+                          className="link"
+                          aria-current={g.id === group ? "page" : undefined}
+                          onClick={() => {
+                            setGroup(g.id);
+                            clearSelection();
+                          }}
+                        >
+                          {g.name}
+                        </Button>
+                      </Fragment>
+                    ))}
                 </div>
               )}
               <div
@@ -2095,11 +2446,25 @@ function App() {
                 {page === "hosts" ? (
                   <HostsView
                     hosts={hostRows}
+                    groups={view.groups}
+                    hostCount={groupHostCount}
                     group={group}
                     searching={Boolean(query.trim())}
-                    onOpenGroup={(name) => {
-                      setGroup(name);
+                    onOpenGroup={(id) => {
+                      setGroup(id);
                       clearSelection();
+                    }}
+                    onNewGroup={(parentId) => {
+                      setGroupForm(newGroup(parentId));
+                      setError("");
+                    }}
+                    onEditGroup={(g) => {
+                      setGroupForm({ ...g });
+                      setError("");
+                    }}
+                    onDeleteGroup={(g) => {
+                      setDeletion({ kind: "groups", id: g.id, name: g.name });
+                      setError("");
                     }}
                     editingId={hostForm?.id}
                     identities={view.identities}
@@ -2110,12 +2475,12 @@ function App() {
                     onSelect={setSelected}
                     onConnect={connect}
                     onEdit={(host) => {
-                      setHostForm({ ...host });
+                      setHostForm(editDraft(host));
                       setError("");
                     }}
                     onDuplicate={(host) => {
                       setHostForm({
-                        ...host,
+                        ...editDraft(host),
                         id: crypto.randomUUID(),
                         name: `${host.name} (copia)`,
                         fingerprint: "",
@@ -2143,198 +2508,65 @@ function App() {
                     busy={busy}
                   />
                 ) : page === "identities" ? (
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Nome</th>
-                        <th>Utente SSH</th>
-                        <th>Metodo / chiave</th>
-                        <th>Utilizzo</th>
-                        <th className="actions-col">Azioni</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {identityRows.map((i) => (
-                        <tr key={i.id}>
-                          <td>
-                            <Button
-                              variant="ghost"
-                              type="button"
-                              className="cell-link strong"
-                              disabled={busy}
-                              onClick={() => editIdentity(i)}
-                            >
-                              <UserRound size={15} />
-                              {i.name}
-                            </Button>
-                          </td>
-                          <td className="mono">{i.username}</td>
-                          <td>
-                            {i.auth === "key" ? (
-                              <span className="inline">
-                                <KeyRound size={13} />
-                                {view.keys.find((k) => k.id === i.keyId)
-                                  ?.name ?? "Chiave mancante"}
-                              </span>
-                            ) : (
-                              "Password"
-                            )}
-                          </td>
-                          <td>
-                            <Button
-                              variant="ghost"
-                              type="button"
-                              className="cell-link"
-                              onClick={() => showUsage([i.id], i.name)}
-                            >
-                              {i.hostCount} host
-                            </Button>
-                          </td>
-                          <td>
-                            <div className="row-actions">
-                              <Button
-                                variant="ghost"
-                                type="button"
-                                aria-label={`Modifica ${i.name}`}
-                                disabled={busy}
-                                onClick={() => editIdentity(i)}
-                              >
-                                <Pencil size={14} />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                type="button"
-                                aria-label={`Elimina ${i.name}`}
-                                disabled={busy || i.hostCount > 0}
-                                title={
-                                  i.hostCount
-                                    ? "Riassegna prima gli host che utilizzano questa identità"
-                                    : "Elimina identità"
-                                }
-                                onClick={() => {
-                                  setDeletion({
-                                    kind: "identities",
-                                    id: i.id,
-                                    name: i.name,
-                                  });
-                                  setError("");
-                                }}
-                              >
-                                <Trash2 size={14} />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <IdentitiesTable
+                    identities={identityRows}
+                    keys={view.keys}
+                    busy={busy}
+                    onEdit={(id) =>
+                      editIdentity(view.identities.find((i) => i.id === id)!)
+                    }
+                    onDelete={(id, name) => {
+                      setDeletion({ kind: "identities", id, name });
+                      setError("");
+                    }}
+                    onUsage={showUsage}
+                  />
                 ) : (
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Nome</th>
-                        <th>Impronta pubblica</th>
-                        <th>Utilizzo</th>
-                        <th className="actions-col">Azioni</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {keyRows.map((k) => (
-                        <tr key={k.id}>
-                          <td>
-                            <Button
-                              variant="ghost"
-                              type="button"
-                              className="cell-link strong"
-                              disabled={busy}
-                              onClick={() => editKey(k)}
-                            >
-                              <KeyRound size={15} />
-                              {k.name}
-                            </Button>
-                          </td>
-                          <td className="mono key-fingerprint">
-                            {k.fingerprint || "Da verificare"}
-                          </td>
-                          <td>
-                            <Button
-                              variant="ghost"
-                              type="button"
-                              className="cell-link"
-                              onClick={() =>
-                                showUsage(
-                                  view.identities
-                                    .filter((i) => i.keyId === k.id)
-                                    .map((i) => i.id),
-                                  k.name,
-                                )
-                              }
-                            >
-                              {k.identityCount} identità · {k.hostCount} host
-                            </Button>
-                          </td>
-                          <td>
-                            <div className="row-actions">
-                              <Button
-                                variant="ghost"
-                                type="button"
-                                aria-label={`Modifica ${k.name}`}
-                                disabled={busy}
-                                onClick={() => editKey(k)}
-                              >
-                                <Pencil size={14} />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                type="button"
-                                aria-label={`Elimina ${k.name}`}
-                                disabled={busy || k.identityCount > 0}
-                                title={
-                                  k.identityCount
-                                    ? "Riassegna prima le identità che utilizzano questa chiave"
-                                    : "Elimina chiave"
-                                }
-                                onClick={() => {
-                                  setDeletion({
-                                    kind: "keys",
-                                    id: k.id,
-                                    name: k.name,
-                                  });
-                                  setError("");
-                                }}
-                              >
-                                <Trash2 size={14} />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <KeysTable
+                    keys={keyRows}
+                    identities={view.identities}
+                    busy={busy}
+                    onEdit={(id) => editKey(view.keys.find((k) => k.id === id)!)}
+                    onDelete={(id, name) => {
+                      setDeletion({ kind: "keys", id, name });
+                      setError("");
+                    }}
+                    onUsage={showUsage}
+                  />
                 )}
-                {((page === "hosts" && !hostRows.length) ||
+                {((page === "hosts" &&
+                  !hostRows.length &&
+                  !(
+                    !query.trim() &&
+                    !usage &&
+                    childGroups(view.groups, group).length
+                  )) ||
                   (page === "identities" && !identityRows.length) ||
                   (page === "keys" && !keyRows.length)) && (
                   <div className="empty">
                     <h2>
-                      {query || usage || group
+                      {query || usage
                         ? "Nessun risultato"
-                        : page === "hosts"
-                          ? "Nessun host"
-                          : page === "identities"
-                            ? "Nessuna identità"
-                            : "Nessuna chiave SSH"}
+                        : page === "hosts" && group
+                          ? "Cartella vuota"
+                          : page === "hosts"
+                            ? "Nessun host"
+                            : page === "identities"
+                              ? "Nessuna identità"
+                              : "Nessuna chiave SSH"}
                     </h2>
                     <p>
-                      {query || usage || group
+                      {query || usage
                         ? "Modifica la ricerca o rimuovi i filtri."
-                        : page === "hosts"
-                          ? "Crea un’identità e assegnala ai tuoi server."
-                          : page === "identities"
-                            ? "Crea un’identità con utente SSH e una chiave dal portachiavi, oppure una password."
-                            : "Importa la chiave privata una volta, poi selezionala nelle identità."}
+                        : page === "hosts" && group
+                          ? "Aggiungi un host o crea un sottogruppo."
+                          : page === "hosts"
+                            ? "Crea un’identità e assegnala ai tuoi server."
+                            : page === "identities"
+                              ? "Crea un’identità con utente SSH e una chiave dal portachiavi, oppure una password."
+                              : "Importa la chiave privata una volta, poi selezionala nelle identità."}
                     </p>
-                    {query || usage || group ? (
+                    {query || usage ? (
                       <Button
                         variant="ghost"
                         type="button"
@@ -2412,7 +2644,7 @@ function App() {
                         );
                         if (host) {
                           setActive("vault");
-                          setHostForm({ ...host });
+                          setHostForm(editDraft(host));
                         }
                       }
                     : undefined
@@ -2507,7 +2739,7 @@ function App() {
           ))}
         </div>
       </main>
-      {hostForm && !identityForm && !keyForm && (
+      {hostForm && !identityForm && !keyForm && !groupForm && (
         <HostEditor
           value={hostForm}
           onChange={setHostForm}
@@ -2526,6 +2758,7 @@ function App() {
                 hostForm,
                 view.identities,
                 view.hosts.find((h) => h.id === hostForm.id),
+                view.groups,
               ) &&
               hostAutosave.dirty
             ) {
@@ -2536,6 +2769,10 @@ function App() {
               setHostForm(null);
               setError("");
             }
+          }}
+          onNewGroup={(name) => {
+            setGroupForm({ ...newGroup("", name), returnTo: "host" });
+            setError("");
           }}
           onNewIdentity={() => {
             setIdentityForm(newIdentity());
@@ -2550,6 +2787,34 @@ function App() {
               if (saved) connect(saved);
             });
           }}
+        />
+      )}
+      {groupForm && (
+        <GroupEditor
+          value={groupForm}
+          onChange={setGroupForm}
+          view={view}
+          busy={busy}
+          error={error}
+          returnTo={groupForm.returnTo}
+          onClose={closeGroupEditor}
+          onSubmit={() =>
+            void run(async () => {
+              const { returnTo, ...group } = groupForm;
+              update(await invokeScoped<View>("save_group", { group }));
+              if (returnTo && hostForm)
+                setHostForm({
+                  ...hostForm,
+                  groupId: group.id,
+                  inheritIdentity:
+                    hostForm.identityId || hostForm.credentials?.username
+                      ? hostForm.inheritIdentity
+                      : !!group.identityId,
+                });
+              closeGroupEditor();
+              setNotice("Gruppo salvato");
+            })
+          }
         />
       )}
       {identityForm && !keyForm && (
@@ -2679,7 +2944,9 @@ function App() {
               ? "Elimina host"
               : deletion.kind === "identities"
                 ? "Elimina identità"
-                : "Elimina chiave"
+                : deletion.kind === "groups"
+                  ? "Elimina gruppo"
+                  : "Elimina chiave"
           }
           busy={busy}
           error={error}
@@ -2694,7 +2961,9 @@ function App() {
           <p className="help">
             {deletion.kind === "hosts"
               ? "La chiave e l’identità associate verranno conservate. Il server remoto non viene modificato."
-              : "L’elemento verrà rimosso dal vault e dai dispositivi sincronizzati."}
+              : deletion.kind === "groups"
+                ? "Il gruppo deve essere vuoto: gli host e i sottogruppi non vengono eliminati."
+                : "L’elemento verrà rimosso dal vault e dai dispositivi sincronizzati."}
           </p>
           {deletion.kind === "hosts" && (
             <HostSummary
@@ -2705,15 +2974,6 @@ function App() {
             />
           )}
           <footer>
-            <Button
-              data-alert-cancel
-              variant="ghost"
-              type="button"
-              disabled={busy}
-              onClick={() => setDeletion(null)}
-            >
-              Annulla
-            </Button>
             <Button
               variant="destructive"
               type="button"
@@ -2726,10 +2986,14 @@ function App() {
                       ? "delete_host"
                       : deletion.kind === "identities"
                         ? "delete_identity"
-                        : "delete_key";
+                        : deletion.kind === "groups"
+                          ? "delete_group"
+                          : "delete_key";
                   for (const id of deletion.ids ?? [deletion.id]) {
                     update(await invokeScoped<View>(command, { id }));
                   }
+                  if (deletion.kind === "groups" && deletion.id === group)
+                    setGroup("");
                   setDeletion(null);
                   setNotice(
                     deletion.ids
@@ -2865,6 +3129,12 @@ function App() {
               </dd>
             </div>
             <div>
+              <dt>Nuova cartella</dt>
+              <dd>
+                <kbd>Ctrl/Cmd Maiusc N</kbd>
+              </dd>
+            </div>
+            <div>
               <dt>Cerca nella raccolta</dt>
               <dd>
                 <kbd>Ctrl Maiusc F</kbd>
@@ -2895,6 +3165,63 @@ function App() {
               </dd>
             </div>
           </dl>
+        </Panel>
+      )}
+      {savingWs && (
+        <Panel
+          variant="dialog"
+          title={savingWs.hostIds ? "Crea workspace" : "Salva come workspace"}
+          busy={busy}
+          error={error}
+          onClose={() => setSavingWs(null)}
+        >
+          <p className="help">
+            {savingWs.hostIds
+              ? `${savingWs.hostIds.length} host in griglia: lo salvo e lo apro, poi puoi sistemare i pannelli trascinandoli.`
+              : "Salva gli host e la disposizione dei pannelli: potrai riaprirli insieme da una nuova scheda."}
+          </p>
+          {skippedQuick > 0 && (
+            <p className="help">
+              {skippedQuick === 1
+                ? "1 connessione rapida non verrà salvata: salvala prima come host per includerla."
+                : `${skippedQuick} connessioni rapide non verranno salvate: salvale prima come host per includerle.`}
+            </p>
+          )}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (savingWs.name.trim()) saveWorkspace();
+            }}
+          >
+            <label>
+              Nome
+              <Input
+                autoFocus
+                maxLength={80}
+                value={savingWs.name}
+                onChange={(e) =>
+                  setSavingWs({ ...savingWs, name: e.target.value })
+                }
+              />
+            </label>
+            <footer>
+              <Button
+                variant="ghost"
+                type="button"
+                onClick={() => setSavingWs(null)}
+              >
+                Annulla
+              </Button>
+              <Button
+                variant="default"
+                type="submit"
+                className="primary"
+                disabled={busy || !savingWs.name.trim()}
+              >
+                Salva
+              </Button>
+            </footer>
+          </form>
         </Panel>
       )}
       {trust && (
@@ -2963,6 +3290,15 @@ function App() {
                     );
                     if (!approved?.fingerprint)
                       throw new Error("Impronta non salvata.");
+                    if (trust.workspaces) {
+                      setTrust(null);
+                      await openWorkspaces(
+                        trust.workspaces,
+                        next.hosts,
+                        trust.activeIndex,
+                      );
+                      return;
+                    }
                     if (
                       trust.tabId &&
                       pendingVerification.current.delete(trust.tabId)

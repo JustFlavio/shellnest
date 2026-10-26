@@ -25,8 +25,12 @@ pub struct Host {
     pub id: String,
     pub name: String,
     pub address: String,
-    pub port: u16,
-    pub group: String,
+    // None inherits the nearest group's port, then 22.
+    #[serde(default)]
+    pub port: Option<u16>,
+    #[serde(default)]
+    pub group_id: String,
+    // Empty with no credentials: inherits the nearest group's identity.
     pub identity_id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub credentials: Option<HostCredentials>,
@@ -61,12 +65,89 @@ pub struct SshKey {
     pub passphrase: String,
     pub fingerprint: String,
 }
+pub const MAX_GROUP_DEPTH: usize = 5;
+// A folder of hosts. Nested via parent_id; identity and port are defaults for the hosts below it.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Group {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub parent_id: String,
+    #[serde(default)]
+    pub identity_id: String,
+    #[serde(default)]
+    pub port: Option<u16>,
+}
+// A saved split layout. Leaves are {"hostId": id} or {"local": true}; splits are {dir, ratio, a, b}.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Workspace {
+    pub id: String,
+    pub name: String,
+    pub layout: serde_json::Value,
+}
+const MAX_LAYOUT_DEPTH: usize = 8;
+const MAX_LAYOUT_LEAVES: usize = 16;
+fn check_layout(
+    node: &serde_json::Value,
+    hosts: &HashSet<&str>,
+    depth: usize,
+    leaves: &mut usize,
+) -> bool {
+    let Some(obj) = node.as_object() else {
+        return false;
+    };
+    if let Some(id) = obj.get("hostId") {
+        *leaves += 1;
+        return obj.len() == 1 && id.as_str().is_some_and(|id| hosts.contains(id));
+    }
+    if obj.get("local") == Some(&serde_json::Value::Bool(true)) {
+        *leaves += 1;
+        return obj.len() == 1;
+    }
+    depth < MAX_LAYOUT_DEPTH
+        && obj.len() == 4
+        && matches!(obj.get("dir").and_then(|d| d.as_str()), Some("row" | "col"))
+        && obj
+            .get("ratio")
+            .and_then(|r| r.as_f64())
+            .is_some_and(|r| (0.05..=0.95).contains(&r))
+        && ["a", "b"].iter().all(|k| {
+            obj.get(*k)
+                .is_some_and(|child| check_layout(child, hosts, depth + 1, leaves))
+        })
+}
+// Drops the leaves of a deleted host; a split left with one child collapses into it.
+fn prune_layout(node: &serde_json::Value, host_id: &str) -> Option<serde_json::Value> {
+    let obj = node.as_object()?;
+    if obj.contains_key("hostId") || obj.contains_key("local") {
+        return (obj.get("hostId").and_then(|h| h.as_str()) != Some(host_id))
+            .then(|| node.clone());
+    }
+    match (
+        obj.get("a").and_then(|a| prune_layout(a, host_id)),
+        obj.get("b").and_then(|b| prune_layout(b, host_id)),
+    ) {
+        (Some(a), Some(b)) => {
+            let mut next = obj.clone();
+            next.insert("a".into(), a);
+            next.insert("b".into(), b);
+            Some(serde_json::Value::Object(next))
+        }
+        (one, other) => one.or(other),
+    }
+}
 #[derive(Clone, Serialize, Zeroize, ZeroizeOnDrop)]
 pub struct Data {
     pub schema_version: u32,
     pub hosts: Vec<Host>,
     pub identities: Vec<Identity>,
     pub keys: Vec<SshKey>,
+    #[zeroize(skip)]
+    pub groups: Vec<Group>,
+    #[zeroize(skip)]
+    pub workspaces: Vec<Workspace>,
     pub sync_url: String,
     pub sync_token: String,
     #[serde(skip)]
@@ -75,10 +156,12 @@ pub struct Data {
 impl Default for Data {
     fn default() -> Self {
         Self {
-            schema_version: 4,
+            schema_version: 5,
             hosts: vec![],
             identities: vec![],
             keys: vec![],
+            groups: vec![],
+            workspaces: vec![],
             sync_url: String::new(),
             sync_token: String::new(),
             migrated: false,
@@ -93,8 +176,13 @@ struct StoredHost {
     id: String,
     name: String,
     address: String,
-    port: u16,
+    #[serde(default)]
+    port: Option<u16>,
+    // Before schema 5 a folder was just a name on each host.
+    #[serde(default)]
     group: String,
+    #[serde(default)]
+    group_id: String,
     fingerprint: String,
     #[serde(default)]
     os: Option<String>,
@@ -124,6 +212,12 @@ struct StoredData {
     identities: Vec<Identity>,
     #[serde(default)]
     keys: Vec<SshKey>,
+    #[serde(default)]
+    #[zeroize(skip)]
+    groups: Vec<Group>,
+    #[serde(default)]
+    #[zeroize(skip)]
+    workspaces: Vec<Workspace>,
     sync_url: String,
     sync_token: String,
 }
@@ -132,7 +226,7 @@ impl<'de> Deserialize<'de> for Data {
         let stored = StoredData::deserialize(deserializer)?;
         if !matches!(
             stored.schema_version,
-            None | Some(1) | Some(2) | Some(3) | Some(4)
+            None | Some(1) | Some(2) | Some(3) | Some(4) | Some(5)
         ) {
             return Err(serde::de::Error::custom(
                 "Versione dati vault non supportata",
@@ -140,13 +234,15 @@ impl<'de> Deserialize<'de> for Data {
         }
         let legacy = matches!(stored.schema_version, None | Some(1));
         let mut data = Self {
-            schema_version: 4,
+            schema_version: 5,
             hosts: vec![],
             keys: stored.keys.clone(),
+            groups: stored.groups.clone(),
+            workspaces: stored.workspaces.clone(),
             identities: stored.identities.clone(),
             sync_url: stored.sync_url.clone(),
             sync_token: stored.sync_token.clone(),
-            migrated: stored.schema_version != Some(4),
+            migrated: stored.schema_version != Some(5),
         };
         for h in &stored.hosts {
             let identity_id = if legacy {
@@ -224,12 +320,32 @@ impl<'de> Deserialize<'de> for Data {
                 }
                 h.identity_id.clone()
             };
+            let legacy_name = legacy_group_name(&h.group);
+            let group_id = if !h.group_id.is_empty() || legacy_name.is_empty() {
+                h.group_id.clone()
+            } else if let Some(g) = data
+                .groups
+                .iter()
+                .find(|g| g.parent_id.is_empty() && g.name == legacy_name)
+            {
+                g.id.clone()
+            } else {
+                let id = new_id();
+                data.groups.push(Group {
+                    id: id.clone(),
+                    name: legacy_name,
+                    parent_id: String::new(),
+                    identity_id: String::new(),
+                    port: None,
+                });
+                id
+            };
             data.hosts.push(Host {
                 id: h.id.clone(),
                 name: h.name.clone(),
                 address: h.address.clone(),
                 port: h.port,
-                group: h.group.clone(),
+                group_id,
                 fingerprint: h.fingerprint.clone(),
                 identity_id,
                 credentials: h.credentials.clone(),
@@ -240,6 +356,16 @@ impl<'de> Deserialize<'de> for Data {
         data.validate().map_err(serde::de::Error::custom)?;
         Ok(data)
     }
+}
+// Folder names written before groups were entities may hold characters groups do not allow.
+fn legacy_group_name(name: &str) -> String {
+    name.chars()
+        .map(|c| if c == '/' || c.is_control() { ' ' } else { c })
+        .collect::<String>()
+        .trim()
+        .chars()
+        .take(80)
+        .collect()
 }
 pub fn key_fingerprint(private_key: &str, passphrase: &str) -> Result<String, String> {
     let key = decode_secret_key(
@@ -259,6 +385,8 @@ impl Data {
             self.hosts.iter().map(|h| &h.id).collect::<Vec<_>>(),
             self.identities.iter().map(|i| &i.id).collect(),
             self.keys.iter().map(|k| &k.id).collect(),
+            self.groups.iter().map(|g| &g.id).collect(),
+            self.workspaces.iter().map(|w| &w.id).collect(),
         ] {
             let mut seen = HashSet::new();
             for id in ids {
@@ -277,7 +405,50 @@ impl Data {
                 _ => return Err("Identità con riferimento alla chiave non valido".into()),
             }
         }
+        for g in &self.groups {
+            let mut depth = 1;
+            let mut cursor = g;
+            while !cursor.parent_id.is_empty() {
+                depth += 1;
+                cursor = self
+                    .groups
+                    .iter()
+                    .find(|p| p.id == cursor.parent_id)
+                    .ok_or("Gruppo padre non trovato")?;
+                if depth > MAX_GROUP_DEPTH {
+                    return Err(format!(
+                        "Le cartelle possono avere al massimo {MAX_GROUP_DEPTH} livelli"
+                    ));
+                }
+            }
+            let name = g.name.trim();
+            if name.is_empty()
+                || name.len() > 80
+                || name != g.name
+                || name.chars().any(|c| c == '/' || c.is_control())
+            {
+                return Err("Nome cartella non valido".into());
+            }
+            if g.port == Some(0)
+                || (!g.identity_id.is_empty()
+                    && !self.identities.iter().any(|i| i.id == g.identity_id))
+            {
+                return Err(format!("Impostazioni della cartella {} non valide", g.name));
+            }
+            if self.groups.iter().any(|o| {
+                o.id != g.id
+                    && o.parent_id == g.parent_id
+                    && o.name.to_lowercase() == g.name.to_lowercase()
+            }) {
+                return Err(format!("Esiste già una cartella chiamata {}", g.name));
+            }
+        }
         for h in &self.hosts {
+            if h.port == Some(0)
+                || (!h.group_id.is_empty() && !self.groups.iter().any(|g| g.id == h.group_id))
+            {
+                return Err(format!("Porta o cartella non valida per l’host {}", h.name));
+            }
             if let Some(credentials) = &h.credentials {
                 if !h.identity_id.is_empty()
                     || credentials.username.trim().is_empty()
@@ -291,6 +462,13 @@ impl Data {
                         "Credenziali dell’host non valide o in conflitto con un’identità".into(),
                     );
                 }
+            } else if h.identity_id.is_empty() {
+                if self.inherited_identity(h).is_none() {
+                    return Err(format!(
+                        "L’host {} non ha un’identità e la sua cartella non ne fornisce una",
+                        h.name
+                    ));
+                }
             } else if !self.identities.iter().any(|i| i.id == h.identity_id) {
                 return Err(format!(
                     "L’host {} fa riferimento a un’identità mancante",
@@ -298,17 +476,132 @@ impl Data {
                 ));
             }
         }
+        let host_ids: HashSet<&str> = self.hosts.iter().map(|h| h.id.as_str()).collect();
+        for w in &self.workspaces {
+            let mut leaves = 0;
+            if w.name.trim().is_empty()
+                || w.name.len() > 80
+                || !check_layout(&w.layout, &host_ids, 0, &mut leaves)
+                || leaves > MAX_LAYOUT_LEAVES
+            {
+                return Err(format!("Workspace {} non valido", w.name));
+            }
+        }
         Ok(())
+    }
+    // The group and its ancestors, nearest first.
+    fn group_ancestry(&self, group_id: &str) -> Vec<&Group> {
+        let mut chain = vec![];
+        let mut id = group_id;
+        while !id.is_empty() && chain.len() <= MAX_GROUP_DEPTH {
+            let Some(group) = self.groups.iter().find(|g| g.id == id) else {
+                break;
+            };
+            chain.push(group);
+            id = &group.parent_id;
+        }
+        chain
+    }
+    // The group a host takes its identity from: only hosts with no identity and no credentials of their own.
+    pub fn inherited_identity(&self, host: &Host) -> Option<&Group> {
+        if !host.identity_id.is_empty() || host.credentials.is_some() {
+            return None;
+        }
+        self.group_ancestry(&host.group_id)
+            .into_iter()
+            .find(|g| !g.identity_id.is_empty())
+    }
+    pub fn effective_identity_id(&self, host: &Host) -> String {
+        if !host.identity_id.is_empty() {
+            return host.identity_id.clone();
+        }
+        self.inherited_identity(host)
+            .map(|g| g.identity_id.clone())
+            .unwrap_or_default()
+    }
+    pub fn effective_port(&self, host: &Host) -> u16 {
+        host.port
+            .or_else(|| {
+                self.group_ancestry(&host.group_id)
+                    .into_iter()
+                    .find_map(|g| g.port)
+            })
+            .unwrap_or(22)
+    }
+    pub fn upsert_group(&mut self, mut group: Group) -> Result<(), String> {
+        group.name = group.name.trim().to_string();
+        if group.id.is_empty() {
+            group.id = new_id();
+        }
+        if let Some(old) = self.groups.iter_mut().find(|g| g.id == group.id) {
+            *old = group;
+        } else {
+            self.groups.push(group);
+        }
+        // A group cannot move under itself or one of its descendants.
+        for g in &self.groups {
+            let mut cursor = g;
+            let mut hops = 0;
+            while !cursor.parent_id.is_empty() {
+                if cursor.parent_id == g.id || hops > MAX_GROUP_DEPTH {
+                    return Err("Una cartella non può stare dentro se stessa".into());
+                }
+                hops += 1;
+                match self.groups.iter().find(|p| p.id == cursor.parent_id) {
+                    Some(parent) => cursor = parent,
+                    None => break,
+                }
+            }
+        }
+        self.validate()
+    }
+    pub fn delete_group(&mut self, id: &str) -> Result<(), String> {
+        if self.groups.iter().any(|g| g.parent_id == id) || self.hosts.iter().any(|h| h.group_id == id)
+        {
+            return Err("La cartella non è vuota: sposta o elimina prima il suo contenuto.".into());
+        }
+        self.groups.retain(|g| g.id != id);
+        Ok(())
+    }
+    pub fn upsert_workspace(&mut self, mut workspace: Workspace) -> Result<(), String> {
+        workspace.name = workspace.name.trim().to_string();
+        if workspace.id.is_empty() {
+            workspace.id = new_id();
+        }
+        if let Some(old) = self.workspaces.iter_mut().find(|w| w.id == workspace.id) {
+            *old = workspace;
+        } else {
+            self.workspaces.push(workspace);
+        }
+        self.validate()
+    }
+    pub fn delete_workspace(&mut self, id: &str) {
+        self.workspaces.retain(|w| w.id != id);
+    }
+    pub fn delete_host(&mut self, id: &str) {
+        self.hosts.retain(|h| h.id != id);
+        self.workspaces = std::mem::take(&mut self.workspaces)
+            .into_iter()
+            .filter_map(|mut w| {
+                w.layout = prune_layout(&w.layout, id)?;
+                Some(w)
+            })
+            .collect();
     }
     pub fn upsert_host(&mut self, mut host: Host) -> Result<(), String> {
         if host.name.trim().is_empty() {
             return Err("Nome, indirizzo e porta valida sono obbligatori".into());
         }
-        validate_endpoint(&host.address, host.port)?;
+        let port = self.effective_port(&host);
+        validate_endpoint(&host.address, port)?;
         let previous = self
             .hosts
             .iter()
-            .find(|h| h.id == host.id && h.address == host.address && h.port == host.port)
+            .find(|h| {
+                h.id == host.id
+                    && h.address == host.address
+                    && self.effective_port(h) == port
+            })
             .cloned();
         host.fingerprint = previous
             .as_ref()
@@ -325,10 +618,24 @@ impl Data {
     }
     pub fn upsert_host_with_credentials(
         &mut self,
-        mut host: Host,
+        host: Host,
         credentials: Option<HostCredentials>,
     ) -> Result<(), String> {
-        if host.identity_id.is_empty() {
+        self.upsert_host_inheriting(host, credentials, false)
+    }
+    // `inherit`: the host has no identity or credentials and uses its group's identity.
+    pub fn upsert_host_inheriting(
+        &mut self,
+        mut host: Host,
+        credentials: Option<HostCredentials>,
+        inherit: bool,
+    ) -> Result<(), String> {
+        if inherit {
+            if credentials.is_some() || !host.identity_id.is_empty() {
+                return Err("Eredita l’identità dalla cartella oppure sceglila, non entrambe".into());
+            }
+            host.credentials = None;
+        } else if host.identity_id.is_empty() {
             let previous = self
                 .hosts
                 .iter()
@@ -414,10 +721,11 @@ impl Data {
         self.validate()
     }
     pub fn delete_identity(&mut self, id: &str) -> Result<(), String> {
-        let used = self.hosts.iter().filter(|h| h.identity_id == id).count();
+        let used = self.hosts.iter().filter(|h| h.identity_id == id).count()
+            + self.groups.iter().filter(|g| g.identity_id == id).count();
         if used > 0 {
             return Err(format!(
-                "Identità utilizzata da {used} host. Riassegna prima gli host."
+                "Identità utilizzata da {used} host o cartelle. Riassegnali prima."
             ));
         }
         self.identities.retain(|i| i.id != id);
@@ -456,7 +764,10 @@ impl Data {
             .ok_or("Host non trovato")?;
         self.connection_for(host.clone(), None)
     }
-    fn connection_for(&self, host: Host, username: Option<&str>) -> Result<Connection, String> {
+    fn connection_for(&self, mut host: Host, username: Option<&str>) -> Result<Connection, String> {
+        // Downstream code sees the resolved port and identity, never the inherited-from-group blanks.
+        host.port = Some(self.effective_port(&host));
+        host.identity_id = self.effective_identity_id(&host);
         if let Some(credentials) = &host.credentials {
             let username = username.unwrap_or(&credentials.username).into();
             let password = credentials.password.clone();
@@ -533,8 +844,8 @@ impl Data {
                 id: format!("quick-{}", new_id()),
                 name: address.into(),
                 address: address.into(),
-                port,
-                group: String::new(),
+                port: Some(port),
+                group_id: String::new(),
                 identity_id: identity_id.into(),
                 credentials: None,
                 fingerprint: expected_fingerprint.into(),
@@ -605,8 +916,8 @@ mod tests {
             id: id.into(),
             name: id.into(),
             address: "192.0.2.10".into(),
-            port: 22,
-            group: "Produzione".into(),
+            port: Some(22),
+            group_id: String::new(),
             identity_id: identity_id.into(),
             credentials: None,
             fingerprint: String::new(),
@@ -640,7 +951,7 @@ mod tests {
         assert_eq!(data.resolve("b").unwrap().password, "secret-b");
         let mut data: Data = serde_json::from_slice(&serde_json::to_vec(&data).unwrap()).unwrap();
         assert!(!data.migrated);
-        assert_eq!(data.schema_version, 4);
+        assert_eq!(data.schema_version, 5);
         assert_eq!(data.resolve("a").unwrap().username, "deploy");
         data.upsert_identity(Identity {
             id: "shared".into(),
@@ -758,7 +1069,7 @@ mod tests {
         assert!(data
             .assign_identity(&["missing".into()], "missing")
             .is_err());
-        let future = serde_json::json!({"schema_version":5,"hosts":[],"keys":[],"identities":[],"sync_url":"","sync_token":""});
+        let future = serde_json::json!({"schema_version":6,"hosts":[],"keys":[],"identities":[],"sync_url":"","sync_token":""});
         assert!(serde_json::from_value::<Data>(future).is_err());
     }
     #[test]
@@ -796,6 +1107,154 @@ mod tests {
             .resolve_target("host", 22, "missing", None, &fp)
             .is_err());
     }
+    fn group(id: &str, name: &str, parent: &str) -> Group {
+        Group {
+            id: id.into(),
+            name: name.into(),
+            parent_id: parent.into(),
+            identity_id: String::new(),
+            port: None,
+        }
+    }
+    #[test]
+    fn groups_nest_up_to_five_levels_without_cycles_or_duplicate_siblings() {
+        let mut data = Data::default();
+        data.upsert_group(group("a", "Produzione", "")).unwrap();
+        data.upsert_group(group("b", "Api", "a")).unwrap();
+        // Failed edits are applied to a copy, as `mutate` does, so the vault stays untouched.
+        for (name, parent) in [("produzione", ""), ("Con/barra", ""), ("  ", "")] {
+            assert!(data.clone().upsert_group(group("x", name, parent)).is_err());
+        }
+        let mut parent = "b".to_string();
+        for (i, level) in ["c", "d", "e"].iter().enumerate() {
+            data.upsert_group(group(level, &format!("L{i}"), &parent)).unwrap();
+            parent = level.to_string();
+        }
+        assert!(data.clone().upsert_group(group("f", "Sesto", "e")).is_err());
+        assert!(data.clone().upsert_group(group("a", "Produzione", "e")).is_err());
+        assert!(data.clone().upsert_group(group("a", "Produzione", "a")).is_err());
+    }
+    #[test]
+    fn hosts_inherit_identity_and_port_from_the_nearest_group() {
+        let mut data = Data::default();
+        data.keys.push(key("k"));
+        data.identities.push(identity("deploy", "k", "deploy"));
+        data.identities.push(identity("root", "k", "root"));
+        let mut top = group("top", "Produzione", "");
+        top.identity_id = "deploy".into();
+        top.port = Some(2200);
+        data.upsert_group(top).unwrap();
+        let mut api = group("api", "Api", "top");
+        api.identity_id = "root".into();
+        data.upsert_group(api).unwrap();
+        let mut h = host("h", "");
+        h.port = None;
+        h.group_id = "api".into();
+        data.upsert_host_inheriting(h.clone(), None, true).unwrap();
+        let host = &data.hosts[0];
+        assert_eq!(data.effective_identity_id(host), "root");
+        assert_eq!(data.inherited_identity(host).unwrap().id, "api");
+        assert_eq!(data.effective_port(host), 2200);
+        let connection = data.resolve("h").unwrap();
+        assert_eq!(connection.username, "root");
+        assert_eq!(connection.host.port, Some(2200));
+        // Its own identity or port wins over the group's.
+        let mut own = h.clone();
+        own.identity_id = "deploy".into();
+        own.port = Some(22);
+        data.upsert_host_inheriting(own, None, false).unwrap();
+        assert_eq!(data.resolve("h").unwrap().username, "deploy");
+        assert_eq!(data.effective_port(&data.hosts[0]), 22);
+        assert!(data.inherited_identity(&data.hosts[0]).is_none());
+        // A host outside any identity-providing group cannot inherit.
+        let mut lone = host_in("lone", "");
+        lone.group_id = String::new();
+        assert!(data.upsert_host_inheriting(lone, None, true).is_err());
+        assert!(data.delete_identity("root").is_err());
+    }
+    fn host_in(id: &str, identity_id: &str) -> Host {
+        let mut h = host(id, identity_id);
+        h.port = None;
+        h
+    }
+    #[test]
+    fn groups_with_content_cannot_be_deleted() {
+        let mut data = Data::default();
+        data.keys.push(key("k"));
+        data.identities.push(identity("i", "k", "root"));
+        data.upsert_group(group("a", "A", "")).unwrap();
+        data.upsert_group(group("b", "B", "a")).unwrap();
+        let mut h = host("h", "i");
+        h.group_id = "b".into();
+        data.upsert_host(h).unwrap();
+        assert!(data.delete_group("a").is_err());
+        assert!(data.delete_group("b").is_err());
+        data.delete_host("h");
+        data.delete_group("b").unwrap();
+        data.delete_group("a").unwrap();
+        assert!(data.groups.is_empty());
+    }
+    #[test]
+    fn schema_4_folder_names_become_root_groups() {
+        let v4 = serde_json::json!({
+            "schema_version": 4,
+            "hosts": [
+                {"id":"1","name":"a","address":"192.0.2.1","port":22,"group":"Prod/Api","fingerprint":"","identityId":"i"},
+                {"id":"2","name":"b","address":"192.0.2.2","port":2222,"group":"Prod/Api","fingerprint":"","identityId":"i"},
+                {"id":"3","name":"c","address":"192.0.2.3","port":22,"group":"","fingerprint":"","identityId":"i"}
+            ],
+            "keys": [], "identities": [{"id":"i","name":"I","username":"root","auth":"password","keyId":"","password":"x"}],
+            "sync_url":"","sync_token":""
+        });
+        let data: Data = serde_json::from_value(v4).unwrap();
+        assert!(data.migrated);
+        assert_eq!(data.schema_version, 5);
+        assert_eq!(data.groups.len(), 1);
+        assert_eq!(data.groups[0].name, "Prod Api");
+        assert_eq!(data.hosts[0].group_id, data.groups[0].id);
+        assert_eq!(data.hosts[1].group_id, data.groups[0].id);
+        assert!(data.hosts[2].group_id.is_empty());
+        assert_eq!(data.hosts[1].port, Some(2222));
+        let roundtrip: Data = serde_json::from_slice(&serde_json::to_vec(&data).unwrap()).unwrap();
+        assert!(!roundtrip.migrated);
+        assert_eq!(roundtrip.groups.len(), 1);
+    }
+    #[test]
+    fn workspaces_validate_layouts_and_follow_deleted_hosts() {
+        use serde_json::json;
+        let mut data = Data::default();
+        data.keys.push(key("k"));
+        data.identities.push(identity("i", "k", "root"));
+        data.hosts.push(host("h1", "i"));
+        data.hosts.push(host("h2", "i"));
+        let layout = json!({"dir":"row","ratio":0.5,"a":{"hostId":"h1"},"b":{"hostId":"h2"}});
+        data.upsert_workspace(Workspace {
+            id: String::new(),
+            name: " Db ".into(),
+            layout,
+        })
+        .unwrap();
+        assert_eq!(data.workspaces[0].name, "Db");
+        assert!(!data.workspaces[0].id.is_empty());
+        for bad in [
+            json!({"hostId":"missing"}),
+            json!({"dir":"diag","ratio":0.5,"a":{"local":true},"b":{"local":true}}),
+            json!({"dir":"row","ratio":2.0,"a":{"local":true},"b":{"local":true}}),
+        ] {
+            let mut copy = data.clone();
+            let result = copy.upsert_workspace(Workspace {
+                id: "x".into(),
+                name: "Bad".into(),
+                layout: bad,
+            });
+            assert!(result.is_err());
+        }
+        data.delete_host("h1");
+        assert_eq!(data.workspaces[0].layout, json!({"hostId":"h2"}));
+        data.validate().unwrap();
+        data.delete_host("h2");
+        assert!(data.workspaces.is_empty());
+    }
     #[test]
     fn metadata_is_cached_preserved_on_edits_and_reset_on_endpoint_change() {
         let mut data = Data::default();
@@ -822,7 +1281,7 @@ mod tests {
         let roundtrip: Data = serde_json::from_slice(&serde_json::to_vec(&data).unwrap()).unwrap();
         assert_eq!(roundtrip.hosts[0].last_connected_at, Some(100));
         let mut edit = data.hosts[0].clone();
-        edit.port = 2222;
+        edit.port = Some(2222);
         data.upsert_host(edit).unwrap();
         assert_eq!(data.hosts[0].os, None);
         assert_eq!(data.hosts[0].last_connected_at, None);

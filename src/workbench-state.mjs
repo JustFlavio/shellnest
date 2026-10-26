@@ -66,6 +66,74 @@ export function replaceLeaf(node, oldId, newId) {
         b: replaceLeaf(node.b, oldId, newId),
       };
 }
+// Saved templates reference hosts instead of sessions. `describe(sessionId)` returns a leaf
+// ({hostId} | {local: true}) or null for sessions that cannot be saved; those leaves are dropped.
+export function toTemplate(node, describe) {
+  if (node.id !== undefined) return describe(node.id);
+  const a = toTemplate(node.a, describe),
+    b = toTemplate(node.b, describe);
+  return a && b ? { dir: node.dir, ratio: node.ratio, a, b } : (a ?? b);
+}
+// Inverse: a session layout with fresh ids, plus the saved leaf behind each id (in layout order).
+export function fromTemplate(node, newId) {
+  if (node.dir === undefined) {
+    const id = newId();
+    return { layout: { id }, leaves: [{ id, spec: node }] };
+  }
+  const a = fromTemplate(node.a, newId),
+    b = fromTemplate(node.b, newId);
+  return {
+    layout: { dir: node.dir, ratio: node.ratio, a: a.layout, b: b.layout },
+    leaves: [...a.leaves, ...b.leaves],
+  };
+}
+// Saved-layout leaves that fail `keep` are dropped; a split left with one child collapses into it.
+export function pruneTemplate(node, keep) {
+  if (node.dir === undefined) return keep(node) ? node : null;
+  const a = pruneTemplate(node.a, keep),
+    b = pruneTemplate(node.b, keep);
+  return a && b ? { ...node, a, b } : (a ?? b);
+}
+// Rows of a near-square grid, equal shares: 2 and 3 -> side by side, 4 -> 2x2, 5 -> 3 over 2.
+export function gridLayout(leaves) {
+  const chain = (nodes, dir) =>
+    nodes.length === 1
+      ? nodes[0]
+      : {
+          dir,
+          ratio: 1 / nodes.length,
+          a: nodes[0],
+          b: chain(nodes.slice(1), dir),
+        };
+  const rows = Math.floor(Math.sqrt(leaves.length)),
+    cols = Math.ceil(leaves.length / rows),
+    lines = [];
+  for (let i = 0; i < leaves.length; i += cols)
+    lines.push(chain(leaves.slice(i, i + cols), "row"));
+  return chain(lines, "col");
+}
+// Open tabs as saved layouts (one item per tab bar entry); quick connections are skipped.
+export function snapshotSession(tabs, activeId) {
+  const byId = new Map(tabs.map((t) => [t.id, t]));
+  const describe = (id) => {
+    const t = byId.get(id);
+    return t?.kind === "ssh"
+      ? { hostId: t.host.id }
+      : t?.kind === "local"
+        ? { local: true }
+        : null;
+  };
+  const items = [];
+  let active = 0;
+  for (const t of tabs) {
+    if (t.parent) continue;
+    const layout = t.layout ? toTemplate(t.layout, describe) : describe(t.id);
+    if (!layout) continue;
+    if (t.id === activeId) active = items.length;
+    items.push({ name: t.name, layout });
+  }
+  return { items, active };
+}
 // Returns the tree without the leaf, or null when it was the only one.
 export function removeLeaf(node, id) {
   if (node.id !== undefined) return node.id === id ? null : node;

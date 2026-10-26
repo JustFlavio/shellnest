@@ -1,17 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Host, HostDraft, Identity } from "./types";
+import type { Group, Host, HostDraft, Identity } from "./types";
 import { hostDraftIsDirty, hostDraftIsValid } from "./host-draft";
 
 export function useHostAutosave(
   draft: HostDraft | null,
   stored: Host | undefined,
   identities: Identity[],
+  groups: Group[],
   vaultId: string,
   paused: boolean,
   persist: (draft: HostDraft) => Promise<Host>,
 ) {
-  const latest = useRef({ draft, stored, identities, vaultId, persist });
-  latest.current = { draft, stored, identities, vaultId, persist };
+  const latest = useRef({
+    draft,
+    stored,
+    identities,
+    groups,
+    vaultId,
+    persist,
+  });
+  latest.current = { draft, stored, identities, groups, vaultId, persist };
   const acknowledged = useRef<HostDraft | null>(null);
   const saved = useRef<Host | null>(null);
   const failed = useRef<HostDraft | null>(null);
@@ -32,8 +40,10 @@ export function useHostAutosave(
       await pending.current;
       return saveLatest();
     }
-    const { draft, stored, identities, vaultId, persist } = latest.current;
-    if (!draft || !hostDraftIsValid(draft, identities, stored)) return null;
+    const { draft, stored, identities, groups, vaultId, persist } =
+      latest.current;
+    if (!draft || !hostDraftIsValid(draft, identities, stored, groups))
+      return null;
     if (draft === acknowledged.current) return saved.current;
     if (!hostDraftIsDirty(draft, stored)) return stored ?? null;
     setSaving(true);
@@ -76,14 +86,24 @@ export function useHostAutosave(
       saving ||
       !dirty ||
       failed.current === draft ||
-      !hostDraftIsValid(draft, identities, stored)
+      !hostDraftIsValid(draft, identities, stored, groups)
     )
       return;
     timer.current = setTimeout(() => {
       void flush().catch(() => {});
     }, 650);
     return () => clearTimeout(timer.current);
-  }, [draft, stored, identities, vaultId, paused, saving, dirty, flush]);
+  }, [
+    draft,
+    stored,
+    identities,
+    groups,
+    vaultId,
+    paused,
+    saving,
+    dirty,
+    flush,
+  ]);
   return {
     flush,
     dirty,

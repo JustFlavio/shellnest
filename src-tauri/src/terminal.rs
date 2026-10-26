@@ -71,21 +71,21 @@ pub async fn probe_host(
     vault_id: String,
     id: String,
 ) -> Result<String, String> {
-    let host = {
+    let (host, port) = {
         let state = app.state::<AppState>();
         let guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
         state.ensure_vault(&vault_id)?;
-        guard
-            .as_ref()
-            .ok_or("Vault bloccato")?
-            .data
+        let data = &guard.as_ref().ok_or("Vault bloccato")?.data;
+        let host = data
             .hosts
             .iter()
             .find(|h| h.id == id)
             .cloned()
-            .ok_or("Host non trovato")?
+            .ok_or("Host non trovato")?;
+        let port = data.effective_port(&host);
+        (host, port)
     };
-    probe(&host.address, host.port).await
+    probe(&host.address, port).await
 }
 fn validate_target(address: &str, port: u16) -> Result<(), String> {
     crate::model::validate_endpoint(address, port)
@@ -143,6 +143,12 @@ pub fn trust_host(
     state.ensure_vault(&vault_id)?;
     let v = guard.as_mut().ok_or("Vault bloccato")?;
     let mut data = v.data.clone();
+    let effective = data
+        .hosts
+        .iter()
+        .find(|h| h.id == id)
+        .map(|h| data.effective_port(h))
+        .ok_or("Host non trovato")?;
     let host = data
         .hosts
         .iter_mut()
@@ -151,7 +157,7 @@ pub fn trust_host(
     if !host.fingerprint.is_empty() {
         return Err("Questo host ha già un’impronta salvata".into());
     }
-    if host.address != address || host.port != port {
+    if host.address != address || effective != port {
         return Err("La destinazione è cambiata. Ripeti la verifica dell’impronta.".into());
     }
     host.fingerprint = expected;
@@ -172,7 +178,7 @@ async fn open(
     report("Connessione al server SSH");
     let h = handler(Some(host.fingerprint.clone()));
     let seen = h.seen.clone();
-    let mut session=client::connect(config(),(host.address.as_str(),host.port),h).await.map_err(|e|{
+    let mut session=client::connect(config(),(host.address.as_str(),host.port.unwrap_or(22)),h).await.map_err(|e|{
         if seen.lock().ok().and_then(|s|s.clone()).is_some_and(|f|f!=host.fingerprint){"Identità del server cambiata. Connessione bloccata: verifica la nuova impronta fuori dall’app.".into()}else{e.to_string()}
     })?;
     report("Impronta del server verificata");
@@ -371,7 +377,7 @@ fn publish_metadata(
     let vault_id = vault_id.to_owned();
     let id = host.host.id.clone();
     let address = host.host.address.clone();
-    let port = host.host.port;
+    let port = host.host.port.unwrap_or(22);
     let output = output.clone();
     tauri::async_runtime::spawn_blocking(move || {
         match crate::record_connection(
@@ -693,8 +699,8 @@ mod tests {
                     id: "test".into(),
                     name: "test".into(),
                     address: "127.0.0.1".into(),
-                    port,
-                    group: String::new(),
+                    port: Some(port),
+                    group_id: String::new(),
                     identity_id: "test-identity".into(),
                     credentials: None,
                     fingerprint,

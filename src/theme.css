@@ -1,42 +1,40 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
 
 @custom-variant dark (&:is(.dark *));
 
-@font-face {
-  font-family: "Inter";
-  src: url("/fonts/InterLatin.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-}
-
 :root {
-  --background: #1c1e2d;
-  --foreground: #eef0fa;
-  --header: #151724;
-  --sidebar: #242738;
-  --field: #242738;
-  --card: #2c3044;
-  --card-foreground: #eef0fa;
-  --popover: #2c3044;
-  --popover-foreground: #eef0fa;
-  --primary: #91b9ff;
-  --primary-foreground: #111b30;
-  --secondary: #2c3044;
-  --secondary-foreground: #eef0fa;
-  --muted: #2c3044;
-  --muted-foreground: #b0b7cd;
-  --accent: #344365;
-  --accent-foreground: #eef0fa;
-  --destructive: #ff929b;
-  --border: #3d435a;
-  --input: #3d435a;
-  --ring: #91b9ff;
+  --background: #17140f;
+  --foreground: #f4efe6;
+  --header: #0f0d0a;
+  --sidebar: #1e1a14;
+  --field: #1e1a14;
+  --card: #27221a;
+  --card-foreground: #f4efe6;
+  --popover: #27221a;
+  --popover-foreground: #f4efe6;
+  --primary: #f5a524;
+  --primary-foreground: #1a1204;
+  --secondary: #27221a;
+  --secondary-foreground: #f4efe6;
+  --muted: #27221a;
+  --muted-foreground: #a89f90;
+  --accent: #3a2f1c;
+  --accent-foreground: #f4efe6;
+  --destructive: #ff6b61;
+  --border: #38322a;
+  --input: #443d33;
+  --ring: #f5a524;
   --radius: 0.5rem;
+  --font-ui: "Geist Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Consolas, monospace;
 }
 
 @theme inline {
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-mono);
   --color-background: var(--background);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);

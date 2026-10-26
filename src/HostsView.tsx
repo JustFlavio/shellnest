@@ -17,21 +17,29 @@ import {
   Pencil,
   Trash2,
   Copy,
+  FolderPlus,
   UserRound,
   Folder,
 } from "lucide-react";
 import { OsIcon } from "./OsIcon";
 import { ActionMenu } from "./ActionMenu";
-import type { Host, Identity } from "./types";
+import type { Group, Host, Identity } from "./types";
+import { childGroups } from "./groups.mjs";
 import { CollectionSelection } from "./CollectionSelection";
 type Props = {
   hosts: Host[];
   editingId?: string;
   identities: Identity[];
   layout: "list" | "cards";
+  groups: Group[];
+  // Folder currently open (its id); empty at the top level.
   group?: string;
+  hostCount: (groupId: string) => number;
   searching?: boolean;
-  onOpenGroup: (group: string) => void;
+  onOpenGroup: (groupId: string) => void;
+  onNewGroup: (parentId: string) => void;
+  onEditGroup: (group: Group) => void;
+  onDeleteGroup: (group: Group) => void;
   selected: Set<string>;
   selectedFolders?: Set<string>;
   onSelectFolders?: (names: Set<string>) => void;
@@ -46,7 +54,8 @@ type Props = {
   busy: boolean;
 };
 export function HostsView(p: Props) {
-  const identity = (h: Host) => p.identities.find((i) => i.id === h.identityId);
+  const identity = (h: Host) =>
+    p.identities.find((i) => i.id === (h.effectiveIdentityId || h.identityId));
   const selectFolder = (
     name: string,
     e: Pick<MouseEvent, "ctrlKey" | "metaKey">,
@@ -80,12 +89,9 @@ export function HostsView(p: Props) {
     }
   };
   const endpoint = (h: Host) => h.address + (h.port === 22 ? "" : ":" + h.port);
-  const groups =
-    p.group || p.searching
-      ? []
-      : [...new Set(p.hosts.map((h) => h.group).filter(Boolean))].sort();
+  const folders = p.searching ? [] : childGroups(p.groups, p.group ?? "");
   const hosts =
-    p.group || p.searching ? p.hosts : p.hosts.filter((h) => !h.group);
+    p.group || p.searching ? p.hosts : p.hosts.filter((h) => !h.groupId);
   const edit = (h: Host) => (
     <Button
       variant="ghost"
@@ -308,53 +314,93 @@ export function HostsView(p: Props) {
         p.onSelectFolders?.(folders);
       }}
     >
-      {groups.length > 0 && (
+      {folders.length > 0 && (
         <section aria-label="Cartelle">
           <h2>Cartelle</h2>
           <div className={p.layout === "cards" ? "host-cards" : "folder-rows"}>
-            {groups.map((name) => (
-              <Button
-                variant="ghost"
-                key={name}
-                className="folder-tile"
-                data-selection-id={name}
-                data-selection-kind="folder"
-                aria-label={`Seleziona cartella ${name}`}
-                aria-pressed={p.selectedFolders?.has(name) ?? false}
-                title={`Doppio clic per aprire ${name}`}
-                disabled={p.busy}
-                onClick={(e) => selectFolder(name, e)}
-                onDoubleClick={() => {
-                  if (!p.busy) p.onOpenGroup(name);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (!p.busy) p.onOpenGroup(name);
-                  }
-                  if (e.key === " ") {
-                    e.preventDefault();
-                    selectFolder(name, e);
-                  }
-                }}
-              >
-                <span className="folder-icon">
-                  <Folder className="size-6" />
-                </span>
-                <span>
-                  <strong>{name}</strong>
-                  <small>
-                    {p.hosts.filter((h) => h.group === name).length} host
-                  </small>
-                </span>
-              </Button>
-            ))}
+            {folders.map((g) => {
+              const subfolders = p.groups.filter((o) => o.parentId === g.id);
+              return (
+                <div className="folder-item" key={g.id}>
+                  <Button
+                    variant="ghost"
+                    className="folder-tile"
+                    data-selection-id={g.id}
+                    data-selection-kind="folder"
+                    aria-label={`Seleziona cartella ${g.name}`}
+                    aria-pressed={p.selectedFolders?.has(g.id) ?? false}
+                    title={`Doppio clic per aprire ${g.name}`}
+                    disabled={p.busy}
+                    onClick={(e) => selectFolder(g.id, e)}
+                    onDoubleClick={() => {
+                      if (!p.busy) p.onOpenGroup(g.id);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (!p.busy) p.onOpenGroup(g.id);
+                      }
+                      if (e.key === " ") {
+                        e.preventDefault();
+                        selectFolder(g.id, e);
+                      }
+                    }}
+                  >
+                    <span className="folder-icon">
+                      <Folder className="size-6" />
+                    </span>
+                    <span>
+                      <strong>{g.name}</strong>
+                      <small>
+                        {p.hostCount(g.id)} host
+                        {subfolders.length > 0 &&
+                          ` · ${subfolders.length} ${subfolders.length === 1 ? "sottogruppo" : "sottogruppi"}`}
+                      </small>
+                    </span>
+                  </Button>
+                  <ActionMenu label={`Azioni cartella ${g.name}`}>
+                    <DropdownMenuItem
+                      disabled={p.busy}
+                      onClick={() => p.onOpenGroup(g.id)}
+                    >
+                      <Folder size={13} />
+                      Apri
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      disabled={p.busy}
+                      onClick={() => p.onEditGroup(g)}
+                    >
+                      <Pencil size={13} />
+                      Modifica gruppo
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      disabled={p.busy}
+                      onClick={() => p.onNewGroup(g.id)}
+                    >
+                      <FolderPlus size={13} />
+                      Nuovo sottogruppo
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      variant="destructive"
+                      disabled={p.busy}
+                      onClick={() => p.onDeleteGroup(g)}
+                    >
+                      <Trash2 size={13} />
+                      Elimina gruppo
+                    </DropdownMenuItem>
+                  </ActionMenu>
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
-      {(hosts.length > 0 || groups.length > 0) && (
+      {(hosts.length > 0 || folders.length > 0) && (
         <section aria-label="Host">
-          {p.layout === "cards" && <h2>{p.group || "Host"}</h2>}
+          {p.layout === "cards" && (
+            <h2>{p.groups.find((g) => g.id === p.group)?.name ?? "Host"}</h2>
+          )}
           {hosts.length > 0 ? (
             p.layout === "cards" ? (
               <div className="host-cards">{hosts.map(tile)}</div>
@@ -362,7 +408,11 @@ export function HostsView(p: Props) {
               table(hosts)
             )
           ) : (
-            <p className="muted">Nessun host fuori dalle cartelle.</p>
+            <p className="muted">
+              {p.group
+                ? "Nessun host in questa cartella."
+                : "Nessun host fuori dalle cartelle."}
+            </p>
           )}
         </section>
       )}

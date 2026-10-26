@@ -1,10 +1,19 @@
 import { emptyView } from "./types";
+import {
+  depthOf,
+  inheritedIdentity,
+  MAX_GROUP_DEPTH,
+  resolveHost,
+  subtreeIds,
+} from "./groups.mjs";
 import type {
   View,
   Host,
   IdentityForm,
   KeyForm,
   HostCredentials,
+  Group,
+  Workspace,
 } from "./types";
 
 // Only UI metadata lives here: passwords, private keys and tokens are discarded.
@@ -95,15 +104,28 @@ export function createPreviewBackend() {
             host.address?.trim() &&
             host.address.length <= 253 &&
             !/[\s\x00-\x1f\x7f/@\\[\]]/.test(host.address) &&
-            Number.isInteger(host.port) &&
-            host.port > 0 &&
-            host.port <= 65535,
+            (host.port === null ||
+              (Number.isInteger(host.port) &&
+                host.port > 0 &&
+                host.port <= 65535)),
           "Nome, indirizzo e porta valida sono obbligatori",
         );
+        requireValue(
+          !host.groupId || next.groups.some((g) => g.id === host.groupId),
+          "Cartella non trovata",
+        );
+        const inherit = args.inherit === true;
         const previous = next.hosts.find((h) => h.id === host.id);
         let username: string | null = null;
         let hasPassword = false;
-        if (!host.identityId) {
+        if (inherit) {
+          requireValue(
+            !host.identityId &&
+              args.credentials == null &&
+              inheritedIdentity(next.groups, host.groupId),
+            "La cartella non fornisce un’identità",
+          );
+        } else if (!host.identityId) {
           const credentials = args.credentials as HostCredentials | undefined;
           requireValue(
             credentials == null ||
@@ -136,15 +158,18 @@ export function createPreviewBackend() {
           (h) =>
             h.id === host.id &&
             h.address === host.address &&
-            h.port === host.port,
+            h.ownPort === host.port,
         );
         const saved: Host = {
           id: host.id,
           name: host.name,
           address: host.address,
-          port: host.port,
-          group: host.group,
+          port: host.port ?? 22,
+          ownPort: host.port,
+          groupId: host.groupId,
           identityId: host.identityId,
+          effectiveIdentityId: host.identityId,
+          identitySource: "",
           username,
           hasPassword,
           fingerprint: old?.fingerprint ?? "",
@@ -211,10 +236,78 @@ export function createPreviewBackend() {
       }
       case "delete_host":
         next.hosts = next.hosts.filter((h) => h.id !== args.id);
+        next.workspaces = next.workspaces.filter(
+          (w) => !JSON.stringify(w.layout).includes(String(args.id)),
+        );
+        break;
+      case "save_workspace": {
+        const w = args.workspace as Workspace;
+        requireValue(w.name.trim() && w.name.length <= 80, "Nome non valido");
+        const saved = { ...w, id: w.id || crypto.randomUUID() };
+        next.workspaces = [
+          ...next.workspaces.filter((x) => x.id !== saved.id),
+          saved,
+        ];
+        break;
+      }
+      case "delete_workspace":
+        next.workspaces = next.workspaces.filter((w) => w.id !== args.id);
+        break;
+      case "save_group": {
+        const g = args.group as Group;
+        const name = String(g?.name ?? "").trim();
+        requireValue(
+          g?.id && name && name.length <= 80 && !/[/\x00-\x1f\x7f]/.test(name),
+          "Nome cartella non valido",
+        );
+        requireValue(
+          !g.parentId || next.groups.some((p) => p.id === g.parentId),
+          "Gruppo padre non trovato",
+        );
+        requireValue(
+          !g.parentId || !subtreeIds(next.groups, g.id).includes(g.parentId),
+          "Una cartella non può stare dentro se stessa",
+        );
+        requireValue(
+          !g.parentId || depthOf(next.groups, g.parentId) < MAX_GROUP_DEPTH,
+          `Le cartelle possono avere al massimo ${MAX_GROUP_DEPTH} livelli`,
+        );
+        requireValue(
+          !next.groups.some(
+            (o) =>
+              o.id !== g.id &&
+              o.parentId === g.parentId &&
+              o.name.toLowerCase() === name.toLowerCase(),
+          ),
+          `Esiste già una cartella chiamata ${name}`,
+        );
+        requireValue(
+          !g.identityId || next.identities.some((i) => i.id === g.identityId),
+          "Identità non valida",
+        );
+        requireValue(
+          g.port === null ||
+            (Number.isInteger(g.port) && g.port > 0 && g.port <= 65535),
+          "Porta non valida",
+        );
+        next.groups = [
+          ...next.groups.filter((o) => o.id !== g.id),
+          { ...g, name },
+        ];
+        break;
+      }
+      case "delete_group":
+        requireValue(
+          !next.groups.some((g) => g.parentId === args.id) &&
+            !next.hosts.some((h) => h.groupId === args.id),
+          "La cartella non è vuota: sposta o elimina prima il suo contenuto.",
+        );
+        next.groups = next.groups.filter((g) => g.id !== args.id);
         break;
       case "delete_identity":
         requireValue(
-          !next.hosts.some((h) => h.identityId === args.id),
+          !next.hosts.some((h) => h.identityId === args.id) &&
+            !next.groups.some((g) => g.identityId === args.id),
           "Riassegna prima gli host che utilizzano questa identità",
         );
         next.identities = next.identities.filter((i) => i.id !== args.id);
@@ -279,6 +372,7 @@ export function createPreviewBackend() {
         name: v.vaultName,
         exists: v.exists,
       }));
+      view.hosts.forEach((h) => Object.assign(h, resolveHost(view.groups, h)));
       view.identities.forEach((i) => {
         i.hostCount = view.hosts.filter((h) => h.identityId === i.id).length;
       });
@@ -295,6 +389,8 @@ export function createPreviewBackend() {
         view.hosts = [];
         view.identities = [];
         view.keys = [];
+        view.groups = [];
+        view.workspaces = [];
       }
       return view;
     }
@@ -302,7 +398,13 @@ export function createPreviewBackend() {
 }
 
 export function previewView(): View {
-  const groups = ["Produzione", "Staging", "Sviluppo"];
+  const groups: Group[] = ["Produzione", "Staging", "Sviluppo"].map((name) => ({
+    id: `group-${name.toLowerCase()}`,
+    name,
+    parentId: "",
+    identityId: "",
+    port: null,
+  }));
   return {
     ...emptyView,
     exists: true,
@@ -337,13 +439,29 @@ export function previewView(): View {
         hostCount: 10,
       },
     ],
+    groups,
+    workspaces: [
+      {
+        id: "preview-workspace",
+        name: "Produzione",
+        layout: {
+          dir: "row",
+          ratio: 0.5,
+          a: { hostId: "preview-0" },
+          b: { hostId: "preview-1" },
+        },
+      },
+    ],
     hosts: Array.from({ length: 30 }, (_, i) => ({
       id: `preview-${i}`,
       name: `${["api", "database", "worker", "web", "monitoring"][i % 5]}-${String(Math.floor(i / 5) + 1).padStart(2, "0")}`,
       address: `192.0.2.${i + 10}`,
       port: 22,
-      group: groups[Math.floor(i / 10)],
+      ownPort: 22,
+      groupId: groups[Math.floor(i / 10)].id,
       identityId: i < 20 ? "identity-deploy" : "identity-admin",
+      effectiveIdentityId: i < 20 ? "identity-deploy" : "identity-admin",
+      identitySource: "",
       fingerprint: "",
       os: i % 5 === 0 ? "debian" : "ubuntu",
       lastConnectedAt: Date.now() - i * 300000,

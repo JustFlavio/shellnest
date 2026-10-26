@@ -1,9 +1,17 @@
 import { SelectField } from "./SelectField";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
-import { useMemo, useRef, useState } from "react";
-import { Clock3, Search, TerminalSquare, ArrowUpRight } from "lucide-react";
-import type { Host, Identity } from "./types";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Check,
+  History,
+  LayoutGrid,
+  Search,
+  TerminalSquare,
+  Trash2,
+} from "lucide-react";
+import type { Group, Host, Identity, Workspace } from "./types";
+import { groupPath } from "./groups.mjs";
 import { parseConnectionTarget } from "./connection-target.mjs";
 import type { ConnectionTarget } from "./connection-target.mjs";
 import { OsIcon } from "./OsIcon";
@@ -15,10 +23,18 @@ type RecentHost = Host & {
 export type QuickConnection = ConnectionTarget & { identityId: string };
 type LauncherTab = { id: string; title: string; subtitle?: string };
 export type ConnectionLauncherProps = {
+  vaultName: string;
+  groups: Group[];
   hosts: RecentHost[];
   identities: Identity[];
+  workspaces: Workspace[];
   tabs: LauncherTab[];
   onConnect: (host: Host) => void;
+  onOpenWorkspace: (workspace: Workspace) => void;
+  onDeleteWorkspace: (workspace: Workspace) => void;
+  session: { count: number } | null;
+  onRestore: () => void;
+  onCreateWorkspace: (hostIds: string[]) => void;
   onActivateTab: (id: string) => void;
   onLocalTerminal: () => void;
   onQuickConnect: (target: QuickConnection) => void;
@@ -26,11 +42,27 @@ export type ConnectionLauncherProps = {
   busy: boolean;
 };
 
+// Saved layouts count their leaves the same way a live layout does.
+const MAX_WORKSPACE_HOSTS = 16;
+const connectionCount = (workspace: Workspace) => {
+  const count = (n: Workspace["layout"]): number =>
+    "dir" in n ? count(n.a) + count(n.b) : 1;
+  return count(workspace.layout);
+};
+
 export function ConnectionLauncher({
+  vaultName,
+  groups,
   hosts,
   identities,
+  workspaces,
   tabs,
   onConnect,
+  onOpenWorkspace,
+  onDeleteWorkspace,
+  session,
+  onRestore,
+  onCreateWorkspace,
   onActivateTab,
   onLocalTerminal,
   onQuickConnect,
@@ -40,77 +72,162 @@ export function ConnectionLauncher({
   const [query, setQuery] = useState("");
   const identitySelect = useRef<HTMLButtonElement>(null);
   const [selection, setSelection] = useState(0);
+  const [armed, setArmed] = useState<string>();
+  const [picked, setPicked] = useState<string[] | null>(null);
+  const selecting = picked !== null;
+  const toggle = (id: string) =>
+    setPicked((old) =>
+      !old
+        ? old
+        : old.includes(id)
+          ? old.filter((x) => x !== id)
+          : old.length < MAX_WORKSPACE_HOSTS
+            ? [...old, id]
+            : old,
+    );
   const [identityId, setIdentityId] = useState(
     identities.length === 1 ? identities[0].id : "",
   );
+  useEffect(() => {
+    if (!armed) return;
+    const timer = setTimeout(() => setArmed(undefined), 3000);
+    return () => clearTimeout(timer);
+  }, [armed]);
   const text = query.trim().toLocaleLowerCase();
-  const recent = useMemo(
+  const sorted = useMemo(
     () =>
-      hosts
-        .filter((host) => (host.lastConnectedAt ?? 0) > 0)
-        .sort((a, b) => (b.lastConnectedAt ?? 0) - (a.lastConnectedAt ?? 0))
-        .slice(0, 12),
+      [...hosts].sort(
+        (a, b) =>
+          (b.lastConnectedAt ?? 0) - (a.lastConnectedAt ?? 0) ||
+          a.name.localeCompare(b.name),
+      ),
     [hosts],
   );
-  const matchingTabs = text
-    ? tabs.filter((tab) =>
-        `${tab.title} ${tab.subtitle ?? ""}`.toLocaleLowerCase().includes(text),
-      )
-    : [];
+  const hasRecent = sorted.some((h) => (h.lastConnectedAt ?? 0) > 0);
   const matchingHosts = text
-    ? hosts.filter((host) =>
-        `${host.name} ${host.address} ${host.group} ${identities.find((identity) => identity.id === host.identityId)?.username ?? host.username ?? ""}`
+    ? sorted.filter((host) =>
+        `${host.name} ${host.address} ${groupPath(groups, host.groupId)} ${identities.find((identity) => identity.id === (host.effectiveIdentityId || host.identityId))?.username ?? host.username ?? ""}`
           .toLocaleLowerCase()
           .includes(text),
       )
-    : recent.length
-      ? recent
-      : hosts.slice(0, 12);
+    : sorted;
   const target = parseConnectionTarget(query);
-  const results = [
-    ...matchingTabs.map((tab) => ({
+  const matches = (value: string) =>
+    !text || value.toLocaleLowerCase().includes(text);
+  const allResults = [
+    ...workspaces
+      .filter((workspace) => matches(workspace.name))
+      .map((workspace) => ({
+        key: `workspace-${workspace.id}`,
+        kind: "workspace" as const,
+        title: workspace.name,
+        path: `${connectionCount(workspace)} connessioni`,
+        os: undefined,
+        workspace,
+        activate: () => onOpenWorkspace(workspace),
+        hostId: undefined,
+      })),
+    ...(text
+      ? tabs.filter((tab) => matches(`${tab.title} ${tab.subtitle ?? ""}`))
+      : []
+    ).map((tab) => ({
       key: `tab-${tab.id}`,
-      title: tab.title,
-      detail: tab.subtitle ?? "Sessione aperta",
       kind: "tab" as const,
-      timestamp: undefined,
+      title: tab.title,
+      path: tab.subtitle ?? "Scheda aperta",
       os: undefined,
+      workspace: undefined,
       activate: () => onActivateTab(tab.id),
+      hostId: undefined,
     })),
     ...matchingHosts.map((host) => ({
       key: `host-${host.id}`,
-      title: host.name,
-      detail: `${identities.find((identity) => identity.id === host.identityId)?.username ?? host.username ?? "?"}@${host.address}:${host.port}${host.group ? ` · ${host.group}` : ""}`,
       kind: "host" as const,
-      timestamp: host.lastConnectedAt,
+      title: host.name,
+      path: host.groupId
+        ? `${vaultName} / ${groupPath(groups, host.groupId)}`
+        : vaultName,
       os: host.os,
-      activate: () => onConnect(host),
+      workspace: undefined,
+      activate: () => (selecting ? toggle(host.id) : onConnect(host)),
+      hostId: host.id,
     })),
   ];
+  const results = selecting
+    ? allResults.filter((result) => result.kind === "host")
+    : allResults;
   const selected = Math.min(selection, Math.max(0, results.length - 1));
-  return (
-    <section className="launcher" aria-label="Apri connessione">
-      <div className="launcher-heading">
-        <div>
-          <h1>Nuova connessione</h1>
-          <p className="muted">
-            Cerca un host, passa a una sessione aperta o inserisci un indirizzo
-            SSH.
-          </p>
-        </div>
+  useEffect(() => {
+    document
+      .querySelector(".launch-row.selected")
+      ?.scrollIntoView({ block: "nearest" });
+  }, [selected]);
+  const row = (result: (typeof results)[number], index: number) => (
+    <div
+      key={result.key}
+      className={`launch-row${selected === index ? " selected" : ""}`}
+    >
+      <Button
+        variant="ghost"
+        type="button"
+        id={`connection-${result.key}`}
+        role="option"
+        aria-selected={selected === index}
+        aria-checked={
+          selecting && result.hostId
+            ? picked.includes(result.hostId)
+            : undefined
+        }
+        disabled={busy}
+        onMouseEnter={() => setSelection(index)}
+        onClick={result.activate}
+      >
+        {selecting && result.hostId && (
+          <span
+            className={`launch-check${picked.includes(result.hostId) ? " on" : ""}`}
+            aria-hidden
+          >
+            {picked.includes(result.hostId) && <Check size={11} />}
+          </span>
+        )}
+        {result.kind === "workspace" ? (
+          <span className="launch-workspace-icon">
+            <LayoutGrid size={14} />
+          </span>
+        ) : (
+          <OsIcon os={result.os} />
+        )}
+        <span className="launch-row-name">{result.title}</span>
+        <span className="launch-row-path">{result.path}</span>
+      </Button>
+      {result.workspace && (
         <Button
           variant="ghost"
           type="button"
-          className="launcher-local"
-          disabled={busy || preview}
-          onClick={onLocalTerminal}
+          className={`launch-row-delete${armed === result.workspace.id ? " armed" : ""}`}
+          aria-label={`Elimina workspace ${result.title}`}
+          disabled={busy}
+          onClick={() => {
+            if (armed === result.workspace!.id) {
+              setArmed(undefined);
+              onDeleteWorkspace(result.workspace!);
+            } else setArmed(result.workspace!.id);
+          }}
         >
-          <TerminalSquare size={16} />
-          Terminale locale
+          {armed === result.workspace.id ? "Conferma" : <Trash2 size={13} />}
         </Button>
-      </div>
-      <div className="launcher-search">
-        <Search size={18} />
+      )}
+    </div>
+  );
+  const indexed = results.map((result, index) => ({ result, index }));
+  const section = (kinds: string[]) =>
+    indexed.filter(({ result }) => kinds.includes(result.kind));
+  const workspaceRows = section(["workspace"]),
+    otherRows = section(["tab", "host"]);
+  return (
+    <section className="launch" aria-label="Nuova scheda">
+      <div className="launch-search">
+        <Search size={16} />
         <Input
           autoFocus
           aria-label="Cerca host o schede"
@@ -158,68 +275,103 @@ export function ConnectionLauncher({
             }
           }}
         />
-        <kbd>Ctrl/Cmd K</kbd>
+        <kbd>{/Mac/.test(navigator.userAgent) ? "⌘K" : "Ctrl K"}</kbd>
       </div>
-      <div className="launcher-results">
-        <div className="launcher-section-title">
-          <Clock3 size={14} />
-          <h2>
-            {text
-              ? "Risultati"
-              : recent.length
-                ? "Connessioni recenti"
-                : "Host salvati"}
-          </h2>
-          <span>{results.length}</span>
-        </div>
-        <div
-          id="connection-results"
-          role="listbox"
-          aria-label={text ? "Risultati ricerca" : "Connessioni disponibili"}
-        >
-          {results.map((result, index) => (
-            <Button
-              variant="ghost"
-              type="button"
-              key={result.key}
-              id={`connection-${result.key}`}
-              role="option"
-              aria-selected={selected === index}
-              className={`launcher-result${selected === index ? " selected" : ""}`}
-              disabled={busy}
-              onMouseEnter={() => setSelection(index)}
-              onClick={result.activate}
-            >
-              <OsIcon os={result.os} />
-              <span className="launcher-result-name">
-                {result.title}
-                <small>{result.detail}</small>
-              </span>
-              <span className="launcher-result-kind">
-                {result.kind === "tab"
-                  ? "Scheda aperta"
-                  : !text &&
-                      result.timestamp &&
-                      Number.isFinite(new Date(result.timestamp).getTime())
-                    ? new Date(result.timestamp).toLocaleString("it-IT", {
-                        day: "2-digit",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : "SSH"}
-              </span>
-              <ArrowUpRight size={14} />
-            </Button>
-          ))}
-        </div>
-        {!results.length && (
-          <p className="launcher-empty">
-            {text
-              ? "Nessun host o scheda corrisponde alla ricerca."
-              : "Le connessioni recenti compariranno dopo il primo accesso riuscito."}
-          </p>
+      <div
+        id="connection-results"
+        role="listbox"
+        aria-label={text ? "Risultati ricerca" : "Connessioni disponibili"}
+      >
+        {!selecting && workspaceRows.length > 0 && (
+          <div className="launch-card">
+            <div className="launch-card-head">
+              <h2>Workspace</h2>
+            </div>
+            {workspaceRows.map(({ result, index }) => row(result, index))}
+          </div>
         )}
+        <div className="launch-card">
+          <div className="launch-card-head">
+            <h2>
+              {selecting
+                ? "Scegli gli host"
+                : text
+                  ? "Risultati"
+                  : hasRecent
+                    ? "Connessioni recenti"
+                    : "Host salvati"}
+            </h2>
+            <div className="launch-card-actions">
+              {selecting ? (
+                <>
+                  <span className="launch-count">
+                    {picked.length}/{MAX_WORKSPACE_HOSTS}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    onClick={() => setPicked(null)}
+                  >
+                    Annulla
+                  </Button>
+                  <Button
+                    variant="default"
+                    type="button"
+                    className="primary"
+                    disabled={busy || picked.length < 2}
+                    onClick={() => {
+                      onCreateWorkspace(picked);
+                      setPicked(null);
+                    }}
+                  >
+                    Crea workspace
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    disabled={busy || preview}
+                    onClick={onLocalTerminal}
+                  >
+                    <TerminalSquare size={14} />
+                    Terminale locale
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    disabled={busy || hosts.length < 2}
+                    onClick={() => setPicked([])}
+                  >
+                    <LayoutGrid size={14} />
+                    Crea workspace
+                  </Button>
+                  {session && (
+                    <Button
+                      variant="ghost"
+                      type="button"
+                      disabled={busy}
+                      title="Riapre le schede dell’ultima sessione su questo dispositivo"
+                      onClick={onRestore}
+                    >
+                      <History size={14} />
+                      Ripristina ({session.count})
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+          {otherRows.map(({ result, index }) => row(result, index))}
+          {!otherRows.length && (
+            <p className="launch-empty">
+              {text
+                ? "Nessun host o scheda corrisponde alla ricerca."
+                : "Nessun host salvato. Aggiungine uno dal Vault o digita un indirizzo SSH."}
+            </p>
+          )}
+        </div>
       </div>
       {target && (
         <form
@@ -282,7 +434,7 @@ export function ConnectionLauncher({
         </form>
       )}
       {preview && (
-        <p className="launcher-preview help">
+        <p className="launch-preview help">
           Anteprima: connessioni SSH e terminale locale sono disponibili
           nell’app desktop.
         </p>

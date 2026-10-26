@@ -1,11 +1,17 @@
-import type { LayoutNode } from "./workbench-state.mjs";
+import type { LayoutNode, SavedNode } from "./workbench-state.mjs";
 export type Host = {
   id: string;
   name: string;
   address: string;
+  // Effective port; ownPort is null when it comes from a folder or the 22 default.
   port: number;
-  group: string;
+  ownPort: number | null;
+  groupId: string;
+  // Own identity; empty when the host uses its own credentials or inherits from its folder.
   identityId: string;
+  effectiveIdentityId: string;
+  // The folder an inherited identity comes from, empty otherwise.
+  identitySource: string;
   username?: string | null;
   hasPassword?: boolean;
   fingerprint: string;
@@ -15,7 +21,17 @@ export type Host = {
 export type HostCredentials = { username: string; password: string };
 export type HostDraft = Host & {
   credentials?: HostCredentials;
+  // No identity or credentials of its own: use the folder's identity.
+  inheritIdentity?: boolean;
 };
+export type Group = {
+  id: string;
+  name: string;
+  parentId: string;
+  identityId: string;
+  port: number | null;
+};
+export type GroupForm = Group & { returnTo?: string };
 export type Identity = {
   id: string;
   name: string;
@@ -50,10 +66,14 @@ export type View = {
   hosts: Host[];
   identities: Identity[];
   keys: SshKey[];
+  groups: Group[];
+  workspaces: Workspace[];
   syncUrl: string;
   syncConfigured: boolean;
   dirty: boolean;
 };
+export type WorkspaceDraft = { name?: string; layout: SavedNode };
+export type Workspace = WorkspaceDraft & { id: string; name: string };
 export type VaultInfo = { id: string; name: string; exists: boolean };
 export type QuickTarget = {
   address: string;
@@ -94,19 +114,31 @@ export const emptyView: View = {
   hosts: [],
   identities: [],
   keys: [],
+  groups: [],
+  workspaces: [],
   syncUrl: "",
   syncConfigured: false,
   dirty: false,
 };
-export const newHost = (): HostDraft => ({
+export const newHost = (groupId = ""): HostDraft => ({
   id: crypto.randomUUID(),
   name: "",
   address: "",
   port: 22,
-  group: "",
+  ownPort: null,
+  groupId,
   identityId: "",
+  effectiveIdentityId: "",
+  identitySource: "",
   fingerprint: "",
   credentials: { username: "", password: "" },
+});
+export const newGroup = (parentId = "", name = ""): GroupForm => ({
+  id: crypto.randomUUID(),
+  name,
+  parentId,
+  identityId: "",
+  port: null,
 });
 export const newIdentity = (): IdentityForm => ({
   id: crypto.randomUUID(),

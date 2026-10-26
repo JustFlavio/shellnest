@@ -45,3 +45,34 @@ export function replaceLeaf(
   oldId: string,
   newId: string,
 ): LayoutNode;
+export type SavedNode =
+  | { hostId: string }
+  | { local: true }
+  | { dir: "row" | "col"; ratio: number; a: SavedNode; b: SavedNode };
+export function toTemplate(
+  node: LayoutNode,
+  describe: (id: string) => ({ hostId: string } | { local: true }) | null,
+): SavedNode | null;
+export function fromTemplate(
+  node: SavedNode,
+  newId: () => string,
+): {
+  layout: LayoutNode;
+  leaves: { id: string; spec: { hostId: string } | { local: true } }[];
+};
+export function pruneTemplate(
+  node: SavedNode,
+  keep: (leaf: { hostId: string } | { local: true }) => boolean,
+): SavedNode | null;
+export function gridLayout<T extends SavedNode>(leaves: T[]): SavedNode;
+export function snapshotSession(
+  tabs: {
+    id: string;
+    parent?: string;
+    name?: string;
+    layout?: LayoutNode;
+    kind: string;
+    host?: { id: string };
+  }[],
+  activeId: string,
+): { items: { name?: string; layout: SavedNode }[]; active: number };

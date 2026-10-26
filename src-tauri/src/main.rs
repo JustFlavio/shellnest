@@ -91,24 +91,35 @@ struct HostView {
     id: String,
     name: String,
     address: String,
+    // Effective port; own_port is None when it comes from a group (or the 22 default).
     port: u16,
-    group: String,
+    own_port: Option<u16>,
+    group_id: String,
     identity_id: String,
+    effective_identity_id: String,
+    // The group an inherited identity comes from; empty when the host has its own.
+    identity_source: String,
     username: Option<String>,
     has_password: bool,
     fingerprint: String,
     os: Option<String>,
     last_connected_at: Option<u64>,
 }
-impl From<&Host> for HostView {
-    fn from(h: &Host) -> Self {
+impl HostView {
+    fn new(h: &Host, data: &vault::Data) -> Self {
         Self {
             id: h.id.clone(),
             name: h.name.clone(),
             address: h.address.clone(),
-            port: h.port,
-            group: h.group.clone(),
+            port: data.effective_port(h),
+            own_port: h.port,
+            group_id: h.group_id.clone(),
             identity_id: h.identity_id.clone(),
+            effective_identity_id: data.effective_identity_id(h),
+            identity_source: data
+                .inherited_identity(h)
+                .map(|g| g.id.clone())
+                .unwrap_or_default(),
             username: h.credentials.as_ref().map(|c| c.username.clone()),
             has_password: h
                 .credentials
@@ -151,6 +162,8 @@ struct View {
     hosts: Vec<HostView>,
     identities: Vec<IdentityView>,
     keys: Vec<KeyView>,
+    groups: Vec<model::Group>,
+    workspaces: Vec<model::Workspace>,
     sync_url: String,
     sync_configured: bool,
     dirty: bool,
@@ -184,7 +197,13 @@ fn view(s: &AppState) -> Result<View, String> {
             vaults: vaults(),
             exists: true,
             unlocked: true,
-            hosts: v.data.hosts.iter().map(HostView::from).collect(),
+            hosts: v
+                .data
+                .hosts
+                .iter()
+                .map(|h| HostView::new(h, &v.data))
+                .collect(),
+            groups: v.data.groups.clone(),
             identities: v
                 .data
                 .identities
@@ -231,6 +250,7 @@ fn view(s: &AppState) -> Result<View, String> {
                         .count(),
                 })
                 .collect(),
+            workspaces: v.data.workspaces.clone(),
             sync_url: v.data.sync_url.clone(),
             sync_configured: !v.data.sync_token.is_empty(),
             dirty: v.disk.dirty,
@@ -244,6 +264,8 @@ fn view(s: &AppState) -> Result<View, String> {
             hosts: vec![],
             identities: vec![],
             keys: vec![],
+            groups: vec![],
+            workspaces: vec![],
             sync_url: String::new(),
             sync_configured: false,
             dirty: false,
@@ -428,9 +450,10 @@ fn save_host(
     vault_id: String,
     host: Host,
     credentials: Option<HostCredentials>,
+    inherit: Option<bool>,
 ) -> Result<View, String> {
     mutate(&state, &vault_id, |data| {
-        data.upsert_host_with_credentials(host, credentials)
+        data.upsert_host_inheriting(host, credentials, inherit.unwrap_or(false))
     })
 }
 fn mutate(
@@ -481,7 +504,34 @@ fn assign_identity(
 #[tauri::command]
 fn delete_host(state: State<AppState>, vault_id: String, id: String) -> Result<View, String> {
     mutate(&state, &vault_id, |data| {
-        data.hosts.retain(|h| h.id != id);
+        data.delete_host(&id);
+        Ok(())
+    })
+}
+#[tauri::command]
+fn save_group(
+    state: State<AppState>,
+    vault_id: String,
+    group: model::Group,
+) -> Result<View, String> {
+    mutate(&state, &vault_id, |data| data.upsert_group(group))
+}
+#[tauri::command]
+fn delete_group(state: State<AppState>, vault_id: String, id: String) -> Result<View, String> {
+    mutate(&state, &vault_id, |data| data.delete_group(&id))
+}
+#[tauri::command]
+fn save_workspace(
+    state: State<AppState>,
+    vault_id: String,
+    workspace: model::Workspace,
+) -> Result<View, String> {
+    mutate(&state, &vault_id, |data| data.upsert_workspace(workspace))
+}
+#[tauri::command]
+fn delete_workspace(state: State<AppState>, vault_id: String, id: String) -> Result<View, String> {
+    mutate(&state, &vault_id, |data| {
+        data.delete_workspace(&id);
         Ok(())
     })
 }
@@ -533,7 +583,9 @@ pub(crate) fn record_connection(
     state.ensure_vault(vault_id)?;
     let v = guard.as_mut().ok_or("Vault bloccato")?;
     if !v.data.hosts.iter().any(|host| {
-        host.id == host_id && host.address == expected_address && host.port == expected_port
+        host.id == host_id
+            && host.address == expected_address
+            && v.data.effective_port(host) == expected_port
     }) {
         return Ok(());
     }
@@ -641,6 +693,10 @@ fn main() {
             delete_key,
             assign_identity,
             delete_host,
+            save_group,
+            delete_group,
+            save_workspace,
+            delete_workspace,
             configure_sync,
             sync::sync_vault,
             sync::restore_vault,
@@ -705,8 +761,8 @@ mod tests {
             id: "inline-host".into(),
             name: "API".into(),
             address: "192.0.2.20".into(),
-            port: 22,
-            group: String::new(),
+            port: Some(22),
+            group_id: String::new(),
             identity_id: String::new(),
             credentials: None,
             fingerprint: String::new(),
@@ -827,8 +883,8 @@ mod tests {
                 id: "server".into(),
                 name: "Server".into(),
                 address: "192.0.2.1".into(),
-                port: 22,
-                group: String::new(),
+                port: Some(22),
+                group_id: String::new(),
                 identity_id: "admin".into(),
                 credentials: None,
                 fingerprint: String::new(),
@@ -849,7 +905,7 @@ mod tests {
         .unwrap();
         mutate(&state, "personal", |data| {
             let mut host = data.hosts[0].clone();
-            host.port = 2222;
+            host.port = Some(2222);
             data.upsert_host(host)
         })
         .unwrap();
@@ -987,8 +1043,8 @@ mod tests {
                 id: "server".into(),
                 name: "Server".into(),
                 address: "192.0.2.1".into(),
-                port: 22,
-                group: String::new(),
+                port: Some(22),
+                group_id: String::new(),
                 identity_id: "login".into(),
                 credentials: None,
                 fingerprint: String::new(),
