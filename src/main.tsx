@@ -1795,7 +1795,10 @@ function App() {
         <div
           className="flex min-w-0 flex-1 items-center gap-[4px] overflow-x-auto px-[8px] py-[5px]"
           onDragOver={(e) => {
-            if (dragPane) e.preventDefault();
+            if (dragPane) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+            }
             const r = e.currentTarget.getBoundingClientRect();
             if (e.clientX - r.left < 48) e.currentTarget.scrollLeft -= 14;
             else if (r.right - e.clientX < 48) e.currentTarget.scrollLeft += 14;
@@ -1837,6 +1840,7 @@ function App() {
               }
               draggable
               onDragStart={(e) => {
+                e.dataTransfer.effectAllowed = "move";
                 e.dataTransfer.setData(
                   "application/x-server-manager-tab",
                   tab.id,
@@ -1852,6 +1856,7 @@ function App() {
                 )
                   return;
                 e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
                 // Hover a dragged tab over another one to open it, so it can be dropped on its panes.
                 if (drag?.id !== tab.id && spring.current?.id !== tab.id) {
                   clearSpring();
@@ -2729,6 +2734,7 @@ function App() {
                   }}
                   onDragOver={(e) => {
                     e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
                     const r = e.currentTarget.getBoundingClientRect(),
                       edge = dropEdge(
                         e.clientX - r.left,

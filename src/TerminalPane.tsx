@@ -276,6 +276,7 @@ export function TerminalPane({
         className="mb-[8px] flex h-[38px] shrink-0 items-center gap-[9px] border-b border-border font-mono text-[12px] text-muted-foreground [&>span:last-child]:ml-auto"
         draggable={!!onDragPane}
         onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = "move";
           e.dataTransfer.setData("application/x-server-manager-pane", tab.id);
           onDragPane?.(true);
         }}
