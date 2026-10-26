@@ -39,6 +39,7 @@
   --color-background: var(--background);
   --color-field: var(--field);
   --color-header: var(--header);
+  --color-sidebar: var(--sidebar);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-foreground: var(--foreground);

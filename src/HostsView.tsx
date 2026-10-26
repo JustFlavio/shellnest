@@ -432,7 +432,7 @@ export function HostsView(p: Props) {
           </div>
         </section>
       )}
-      {(hosts.length > 0 || folders.length > 0) && (
+      {(hosts.length > 0 || (p.group && folders.length > 0)) && (
         <section aria-label="Host">
           {p.layout === "cards" && (
             <h2>{p.groups.find((g) => g.id === p.group)?.name ?? "Host"}</h2>
@@ -444,11 +444,7 @@ export function HostsView(p: Props) {
               table(hosts)
             )
           ) : (
-            <p className={muted}>
-              {p.group
-                ? "Nessun host in questa cartella."
-                : "Nessun host fuori dalle cartelle."}
-            </p>
+            <p className={muted}>Nessun host in questa cartella.</p>
           )}
         </section>
       )}
