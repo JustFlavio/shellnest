@@ -2250,7 +2250,7 @@ function App() {
                 <Button
                   variant="default"
                   type="button"
-                  className={`primary h-[30px] ${page === "hosts" ? "rounded-r-none" : ""}`}
+                  className={`h-[30px] bg-clip-border ${page === "hosts" ? "rounded-r-none" : ""}`}
                   disabled={busy}
                   onClick={onNew}
                   title={page === "hosts" ? "Ctrl/Cmd N" : undefined}
