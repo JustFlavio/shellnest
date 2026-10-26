@@ -55,3 +55,32 @@ test("narrow window collapses the sidebar", async ({ page }) => {
   await page.setViewportSize({ width: 700, height: 700 });
   await shot(page, "narrow");
 });
+
+test("shortcuts dialog", async ({ page }) => {
+  await page.getByRole("button", { name: "Menu applicazione" }).click();
+  await page.getByRole("menuitem", { name: "Scorciatoie da tastiera" }).click();
+  await page.getByRole("heading", { name: "Scorciatoie da tastiera" }).waitFor();
+  await shot(page, "shortcuts");
+});
+
+test("new identity sheet", async ({ page }) => {
+  await page.getByRole("button", { name: "Identità" }).first().click();
+  await page.getByRole("button", { name: "Nuova identità" }).click();
+  await page.getByRole("heading", { name: /identità/i, level: 2 }).waitFor();
+  await shot(page, "identity-editor");
+});
+
+test("new folder editor", async ({ page }) => {
+  await page.getByRole("button", { name: "Altre azioni di creazione" }).click();
+  await page.getByRole("menuitem", { name: /Nuova cartella/ }).click();
+  await page.getByRole("dialog").waitFor();
+  await shot(page, "folder-editor");
+});
+
+test("delete host confirmation", async ({ page }) => {
+  await page.getByRole("button", { name: "Lista" }).click();
+  await page.getByRole("button", { name: "Azioni api-07" }).click();
+  await page.getByRole("menuitem", { name: "Elimina host" }).click();
+  await page.getByRole("heading", { name: "Elimina host" }).waitFor();
+  await shot(page, "delete-host");
+});

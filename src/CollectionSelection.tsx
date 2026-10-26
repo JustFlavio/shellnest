@@ -62,8 +62,10 @@ export function CollectionSelection({
     <div
       className="host-collection"
       onPointerDown={(e) => {
+        // Portaled menus bubble through React: their clicks must reach them.
         if (
           busy ||
+          !e.currentTarget.contains(e.target as Node) ||
           e.button !== 0 ||
           e.pointerType === "touch" ||
           (e.target as HTMLElement).closest(
