@@ -93,6 +93,8 @@ export type TerminalTab = {
   // pane of another tab's split workspace; hidden from the tab bar
   // user-chosen tab name; overrides the title (or "Workspace" when split)
   name?: string;
+  // title the terminal set itself (OSC 0/2); a user-chosen name wins
+  termTitle?: string;
   parent?: string;
   layout?: LayoutNode;
 } & (

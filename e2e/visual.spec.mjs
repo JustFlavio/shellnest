@@ -353,3 +353,38 @@ test("Cmd+F opens the terminal search, Esc closes it and refocuses", async ({ pa
   await expect(box).toHaveCount(0);
   await expect(page.locator(".xterm-helper-textarea").first()).toBeFocused();
 });
+
+const termWrite = (page, data) =>
+  page.evaluate((d) => [...window.__terminals.values()][0].write(d), data);
+
+test("OSC title shows in tab and pane header, a renamed tab wins", async ({ page }) => {
+  await openFromLauncher(page, /api-01/);
+  await termWrite(page, "\x1b]0;lavoro in corso\x07");
+  await expect(page.getByRole("button", { name: "lavoro in corso", exact: true })).toBeVisible();
+  await expect(page.locator("span", { hasText: /^lavoro in corso$/ }).first()).toBeVisible();
+  await page.getByRole("button", { name: "lavoro in corso", exact: true }).dblclick();
+  await page.getByRole("textbox", { name: "Nome scheda" }).fill("Fisso");
+  await page.keyboard.press("Enter");
+  await termWrite(page, "\x1b]2;altro titolo\x07");
+  await expect(page.getByRole("button", { name: "Fisso", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "altro titolo", exact: true })).toHaveCount(0);
+});
+
+test("scrolled-up viewport stays put when new output arrives", async ({ page }) => {
+  await openFromLauncher(page, /api-01/);
+  const lines = (from, to) =>
+    Array.from({ length: to - from }, (_, i) => "riga " + (from + i)).join("\r\n") + "\r\n";
+  await termWrite(page, lines(0, 200));
+  const state = () =>
+    page.evaluate(() => {
+      const b = [...window.__terminals.values()][0].buffer.active;
+      return { y: b.viewportY, base: b.baseY };
+    });
+  await page.evaluate(() => [...window.__terminals.values()][0].scrollToTop());
+  const before = await state();
+  expect(before.y).toBeLessThan(before.base);
+  await termWrite(page, lines(200, 260));
+  const after = await state();
+  expect(after.base).toBeGreaterThan(before.base);
+  expect(after.y).toBe(before.y);
+});

@@ -604,7 +604,7 @@ function App() {
       <TerminalSquare size={14} />
     );
   const tabLabel = (t: TerminalTab) =>
-    t.name ?? (t.layout ? "Workspace" : t.title);
+    t.name ?? (t.layout ? "Workspace" : t.termTitle || t.title);
   const clearDnd = () => {
     clearSpring();
     setDrag(undefined);
@@ -1135,6 +1135,12 @@ function App() {
     });
   const lockVault = () =>
     void run(async () => {
+  const tabTitle = (id: string, termTitle?: string) =>
+    setTabs((old) =>
+      old.some((t) => t.id === id && t.termTitle !== termTitle)
+        ? old.map((t) => (t.id === id ? { ...t, termTitle } : t))
+        : old,
+    );
       epoch.current++;
       resetWorkspace(await invokeScoped<View>("lock"));
       setPendingLock(false);
@@ -2781,6 +2787,7 @@ function App() {
                     top: `${box.y * 100}%`,
                     width: `${box.w * 100}%`,
                     height: `${box.h * 100}%`,
+                onTitle={tabTitle}
                   }}
                   onDragOver={(e) => {
                     e.preventDefault();

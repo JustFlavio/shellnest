@@ -53,6 +53,8 @@ const searchDecorations = {
 export const DEFAULT_FONT_SIZE = 13;
 // Live terminals by tab id, so global shortcuts can reach the focused one.
 export const terminalHandles = new Map<string, Terminal>();
+// The browser preview has no backend: tests drive the demo terminals through this.
+if (!isTauri()) (window as unknown as { __terminals: unknown }).__terminals = terminalHandles;
 type Status = "connecting" | "connected" | "closed" | "failed";
 export function TerminalPane({
   tab,
@@ -66,6 +68,7 @@ export function TerminalPane({
   onDragPane,
   onError,
   onStatus,
+  onTitle,
   onMetadata,
   onClose,
   onRetry,
@@ -87,6 +90,8 @@ export function TerminalPane({
   onDragPane?: (dragging: boolean) => void;
   onError: (error: string) => void;
   onStatus: (id: string, status: Status) => void;
+  // title set by the terminal (OSC 0/2); undefined when the session ends
+  onTitle: (id: string, title?: string) => void;
   onMetadata: (vaultId: string) => void;
   onClose: () => void;
   onRetry: () => void;
@@ -111,8 +116,8 @@ export function TerminalPane({
   const sizeRef = useRef(fontSize),
     refit = useRef<() => void>(() => {});
   sizeRef.current = fontSize;
-  const callbacks = useRef({ onError, onStatus, onMetadata });
-  callbacks.current = { onError, onStatus, onMetadata };
+  const callbacks = useRef({ onError, onStatus, onTitle, onMetadata });
+  callbacks.current = { onError, onStatus, onTitle, onMetadata };
   useEffect(() => {
     if (!terminal.current || terminal.current.options.fontSize === fontSize)
       return;
@@ -236,7 +241,16 @@ export function TerminalPane({
       return false;
     });
     // A dead session must not leave bracketed paste, mouse tracking or the alternate screen on.
-    const resetModes = () => term.write(RESET_MODES);
+    const resetModes = () => {
+      term.write(RESET_MODES);
+      callbacks.current.onTitle(tab.id, undefined);
+    };
+    const titleChange = term.onTitleChange((title) =>
+      callbacks.current.onTitle(
+        tab.id,
+        title.replace(/[\x00-\x1f\x7f-\x9f]/g, "").slice(0, 100) || undefined,
+      ),
+    );
     const observer = new ResizeObserver(resize);
     observer.observe(el.current!);
     const input = term.onData((data) => {
@@ -322,6 +336,7 @@ export function TerminalPane({
         timers.forEach(window.clearTimeout);
         observer.disconnect();
         input.dispose();
+        titleChange.dispose();
         terminalHandles.delete(tab.id);
         term.dispose();
       };
@@ -359,6 +374,7 @@ export function TerminalPane({
       disposed = true;
       observer.disconnect();
       input.dispose();
+      titleChange.dispose();
       terminalHandles.delete(tab.id);
       term.dispose();
       void invoke("disconnect", {
@@ -469,7 +485,7 @@ export function TerminalPane({
             />
           )}
           <span className="truncate text-[13px] text-foreground">
-            {tab.title}
+            {tab.termTitle || tab.title}
           </span>
           {tab.kind !== "local" && (
             <span className="truncate font-mono text-[11px]">{endpoint}</span>
