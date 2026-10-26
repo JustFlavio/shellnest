@@ -9,10 +9,14 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { terminalInputChunks } from "./workbench-state.mjs";
 import {
+  LINE_KILL,
   RESET_MODES,
+  WORD_BACK,
+  WORD_FORWARD,
   needsPasteConfirm,
   pasteLineCount,
   sanitizePaste,
+  terminalKeyAction,
 } from "./terminal-input.mjs";
 import { Panel } from "./Editors";
 import { AlertDialogDescription } from "./components/ui/alert-dialog";
@@ -20,6 +24,7 @@ import type { TerminalTab, Output } from "./types";
 import "@xterm/xterm/css/xterm.css";
 import { help } from "./editor-ui";
 
+const mac = /Mac/i.test(navigator.platform);
 export const DEFAULT_FONT_SIZE = 13;
 // Live terminals by tab id, so global shortcuts can reach the focused one.
 export const terminalHandles = new Map<string, Terminal>();
@@ -163,6 +168,30 @@ export function TerminalPane({
       paste(e.clipboardData?.getData("text/plain") ?? "");
     };
     term.element!.addEventListener("paste", onPaste, true);
+    const pasteClipboard = () =>
+      void navigator.clipboard
+        .readText()
+        .then(paste)
+        .catch(() => {});
+    // Right click pastes (there is no context menu on the terminal).
+    term.element!.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      pasteClipboard();
+    });
+    // Option stays a normal modifier (Italian layouts type @ # [ ] with it): only the
+    // arrows are mapped here, never macOptionIsMeta.
+    term.attachCustomKeyEventHandler((e) => {
+      const action = terminalKeyAction(e, mac, term.hasSelection());
+      if (!action) return true;
+      e.preventDefault();
+      if (action === "copy")
+        void navigator.clipboard.writeText(term.getSelection()).catch(() => {});
+      else if (action === "paste") pasteClipboard();
+      else if (action === "line-kill") term.input(LINE_KILL);
+      else if (action === "word-back") term.input(WORD_BACK);
+      else if (action === "word-forward") term.input(WORD_FORWARD);
+      return false;
+    });
     // A dead session must not leave bracketed paste, mouse tracking or the alternate screen on.
     const resetModes = () => term.write(RESET_MODES);
     const observer = new ResizeObserver(resize);

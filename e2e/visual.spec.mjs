@@ -281,3 +281,29 @@ test("big paste asks for confirmation", async ({ page }) => {
   await page.getByRole("button", { name: "Incolla", exact: true }).click();
   await expect.poll(() => termText(page)).toContain("riga24");
 });
+
+test("Cmd+K clears screen and scrollback", async ({ page }) => {
+  await openFromLauncher(page, /api-01/);
+  await page.locator(".xterm").first().click();
+  await page.keyboard.type("echo ciao");
+  await page.keyboard.press("Enter");
+  await expect.poll(() => termText(page)).toContain("echo ciao");
+  await page.keyboard.press("Meta+k");
+  await expect.poll(() => termText(page)).not.toContain("echo ciao");
+});
+
+test("Cmd+C copies the selection, right click pastes", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await openFromLauncher(page, /api-01/);
+  const term = page.locator(".xterm").first();
+  await term.click();
+  await page.keyboard.type("echo ciao");
+  await page.getByText("Sessione dimostrativa", { exact: false }).first().click({ clickCount: 3 });
+  await page.keyboard.press("Meta+c");
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toContain("Sessione dimostrativa");
+  await page.evaluate(() => navigator.clipboard.writeText("incollato\x1b[31m"));
+  await term.click({ button: "right", position: { x: 300, y: 300 } });
+  await expect.poll(() => termText(page)).toContain("incollato[31m");
+});
