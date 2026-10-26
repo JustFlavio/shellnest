@@ -21,6 +21,18 @@ body {
 }
 body {
   margin: 0;
+  /* Interface text is not content: dragging the mouse across it must not paint a selection. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+input,
+textarea,
+code,
+pre,
+[role="alert"],
+[role="status"] {
+  -webkit-user-select: text;
+  user-select: text;
 }
 button,
 input,
