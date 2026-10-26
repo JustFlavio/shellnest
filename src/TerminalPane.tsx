@@ -34,6 +34,8 @@ import { AlertDialogDescription } from "./components/ui/alert-dialog";
 import type { TerminalTab, Output } from "./types";
 import "@xterm/xterm/css/xterm.css";
 import { help } from "./editor-ui";
+import { fontStack, terminalTheme } from "./settings.mjs";
+import type { AppSettings } from "./settings.mjs";
 
 const mac = /Mac/i.test(navigator.platform);
 // Cmd/Ctrl+click on a link: the system browser (the webview itself must never navigate away).
@@ -50,17 +52,17 @@ const searchDecorations = {
   activeMatchBackground: "#f5a524",
   activeMatchColorOverviewRuler: "#f5a524",
 };
-export const DEFAULT_FONT_SIZE = 13;
 // Live terminals by tab id, so global shortcuts can reach the focused one.
 export const terminalHandles = new Map<string, Terminal>();
 // The browser preview has no backend: tests drive the demo terminals through this.
-if (!isTauri()) (window as unknown as { __terminals: unknown }).__terminals = terminalHandles;
+if (!isTauri())
+  (window as unknown as { __terminals: unknown }).__terminals = terminalHandles;
 type Status = "connecting" | "connected" | "closed" | "failed";
 export function TerminalPane({
   tab,
   active,
   box,
-  fontSize,
+  settings,
   focused,
   ghost,
   animate,
@@ -78,7 +80,7 @@ export function TerminalPane({
   active: boolean;
   // fractions of the terminals area when the tab is split; undefined = fill
   box?: { x: number; y: number; w: number; h: number };
-  fontSize: number;
+  settings: AppSettings;
   // undefined when the tab is not split
   focused?: boolean;
   // being dragged away: stays as a faint trace while the others take its place
@@ -113,32 +115,37 @@ export function TerminalPane({
   const el = useRef<HTMLDivElement>(null),
     fit = useRef<FitAddon | null>(null),
     terminal = useRef<Terminal | null>(null);
-  const sizeRef = useRef(fontSize),
+  const settingsRef = useRef(settings),
     refit = useRef<() => void>(() => {});
-  sizeRef.current = fontSize;
+  settingsRef.current = settings;
   const callbacks = useRef({ onError, onStatus, onTitle, onMetadata });
   callbacks.current = { onError, onStatus, onTitle, onMetadata };
   useEffect(() => {
-    if (!terminal.current || terminal.current.options.fontSize === fontSize)
-      return;
-    terminal.current.options.fontSize = fontSize;
-    refit.current();
-  }, [fontSize]);
+    const term = terminal.current;
+    if (!term) return;
+    const o = term.options;
+    const family = fontStack(settings.fontFamily);
+    const resized = o.fontSize !== settings.fontSize || o.fontFamily !== family;
+    o.fontSize = settings.fontSize;
+    o.fontFamily = family;
+    o.scrollback = settings.scrollback;
+    o.macOptionIsMeta = settings.optionAsMeta;
+    o.drawBoldTextInBrightColors = settings.brightBold;
+    o.theme = { ...terminalTheme(settings.terminalTheme).colors };
+    if (resized) refit.current();
+  }, [settings]);
   useEffect(() => {
     if (pendingTrust) return;
     setPhase("Avvio della connessione");
     const term = new Terminal({
-      fontFamily: '"Cascadia Code", "SFMono-Regular", Consolas, monospace',
-      fontSize: sizeRef.current,
+      fontFamily: fontStack(settingsRef.current.fontFamily),
+      fontSize: settingsRef.current.fontSize,
       cursorBlink: true,
       allowProposedApi: true,
-      scrollback: 5000,
-      theme: {
-        background: "#17140f",
-        foreground: "#f4efe6",
-        cursor: "#f5a524",
-        selectionBackground: "#f5a52433",
-      },
+      scrollback: settingsRef.current.scrollback,
+      macOptionIsMeta: settingsRef.current.optionAsMeta,
+      drawBoldTextInBrightColors: settingsRef.current.brightBold,
+      theme: { ...terminalTheme(settingsRef.current.terminalTheme).colors },
     });
     terminal.current = term;
     terminalHandles.set(tab.id, term);
@@ -219,10 +226,27 @@ export function TerminalPane({
     // Right click pastes (there is no context menu on the terminal).
     term.element!.addEventListener("contextmenu", (e) => {
       e.preventDefault();
-      pasteClipboard();
+      if (settingsRef.current.rightClickPaste) pasteClipboard();
     });
-    // Option stays a normal modifier (Italian layouts type @ # [ ] with it): only the
-    // arrows are mapped here, never macOptionIsMeta.
+    const copied = term.onSelectionChange(() => {
+      if (settingsRef.current.copyOnSelect && term.hasSelection())
+        void navigator.clipboard.writeText(term.getSelection()).catch(() => {});
+    });
+    // A short beep; the bell stays silent unless the setting is on.
+    const bell = term.onBell(() => {
+      if (!settingsRef.current.bell) return;
+      try {
+        const audio = new AudioContext();
+        const osc = audio.createOscillator();
+        osc.frequency.value = 880;
+        osc.connect(audio.destination);
+        osc.start();
+        osc.stop(audio.currentTime + 0.08);
+        osc.onended = () => void audio.close();
+      } catch {}
+    });
+    // Option stays a normal modifier by default (Italian layouts type @ # [ ] with it):
+    // only the arrows are mapped here; macOptionIsMeta is an opt-in setting.
     term.attachCustomKeyEventHandler((e) => {
       const action = terminalKeyAction(e, mac, term.hasSelection());
       if (!action) return true;
@@ -234,8 +258,7 @@ export function TerminalPane({
         setSearching(true);
         searchInput.current?.focus();
         searchInput.current?.select();
-      }
-      else if (action === "line-kill") term.input(LINE_KILL);
+      } else if (action === "line-kill") term.input(LINE_KILL);
       else if (action === "word-back") term.input(WORD_BACK);
       else if (action === "word-forward") term.input(WORD_FORWARD);
       return false;
@@ -338,6 +361,8 @@ export function TerminalPane({
         timers.forEach(window.clearTimeout);
         observer.disconnect();
         input.dispose();
+        copied.dispose();
+        bell.dispose();
         titleChange.dispose();
         terminalHandles.delete(tab.id);
         term.dispose();
@@ -376,6 +401,8 @@ export function TerminalPane({
       disposed = true;
       observer.disconnect();
       input.dispose();
+      copied.dispose();
+      bell.dispose();
       titleChange.dispose();
       terminalHandles.delete(tab.id);
       term.dispose();

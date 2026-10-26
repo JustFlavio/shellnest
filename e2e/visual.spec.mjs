@@ -56,10 +56,25 @@ test("narrow window collapses the sidebar", async ({ page }) => {
   await shot(page, "narrow");
 });
 
-test("shortcuts dialog", async ({ page }) => {
+const openSettings = async (page, section) => {
   await page.getByRole("button", { name: "Menu applicazione" }).click();
-  await page.getByRole("menuitem", { name: "Scorciatoie da tastiera" }).click();
-  await page.getByRole("heading", { name: "Scorciatoie da tastiera" }).waitFor();
+  await page.getByRole("menuitem", { name: /Impostazioni/ }).click();
+  await page.getByRole("heading", { name: "Impostazioni" }).waitFor();
+  if (section) await page.getByRole("button", { name: section }).click();
+};
+
+test("settings: vault", async ({ page }) => {
+  await openSettings(page);
+  await shot(page, "settings-vault");
+});
+
+test("settings: terminal", async ({ page }) => {
+  await openSettings(page, "Terminale");
+  await shot(page, "settings-terminal");
+});
+
+test("shortcuts dialog", async ({ page }) => {
+  await openSettings(page, "Scorciatoie");
   await shot(page, "shortcuts");
 });
 

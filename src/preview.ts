@@ -43,6 +43,7 @@ export function createPreviewBackend() {
         "unlock",
         "create_vault",
         "rename_vault",
+        "delete_vault",
       ].includes(command)
     )
       requireValue(next.unlocked, "Sblocca prima il vault");
@@ -78,6 +79,22 @@ export function createPreviewBackend() {
         selected = id;
         return snapshot() as T;
       }
+      case "delete_vault":
+        requireValue(
+          selected !== "personal",
+          "Il vault Personale non può essere eliminato",
+        );
+        requireValue(
+          !current.hosts.length &&
+            !current.identities.length &&
+            !current.keys.length &&
+            !current.groups.length &&
+            !current.workspaces.length,
+          "Il vault non è vuoto: eliminane prima il contenuto",
+        );
+        vaults.delete(selected);
+        selected = "personal";
+        return snapshot() as T;
       case "rename_vault":
         requireValue(
           typeof args.name === "string" &&

@@ -13,7 +13,7 @@ import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { PasswordInput } from "./PasswordInput";
 import { Textarea } from "./components/ui/textarea";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   X,
   Plus,
@@ -105,6 +105,10 @@ const panelStyles = {
   },
 } as const;
 
+// Sheets reserve a grid column through a body class: WebKit does not reliably
+// re-evaluate a `body:has(.side-sheet)` rule once the portalled sheet is removed.
+let openSheets = 0;
+
 export function Panel({
   title,
   onClose,
@@ -132,6 +136,14 @@ export function Panel({
   const popup = useRef<HTMLDivElement>(null);
   const opener = useRef<HTMLElement | null>(currentOpener());
   const styles = panelStyles[variant];
+  useEffect(() => {
+    if (variant !== "sheet") return;
+    openSheets++;
+    document.body.classList.add("sheet-open");
+    return () => {
+      if (!--openSheets) document.body.classList.remove("sheet-open");
+    };
+  }, [variant]);
   const Root = variant === "alert" ? AlertDialog : Dialog;
   const requestClose = () => {
     if (busy) return;

@@ -32,7 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuShortcut,
 } from "./components/ui/dropdown-menu";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { invoke, isTauri } from "@tauri-apps/api/core";
@@ -62,17 +62,27 @@ import {
   ArrowRight,
   Menu,
   RefreshCw,
-  Keyboard,
 } from "lucide-react";
 import { createPreviewBackend } from "./preview";
 import { WindowControls } from "./WindowControls";
+import { TerminalPane, terminalHandles } from "./TerminalPane";
+import { SettingsDialog, type SettingsSection } from "./SettingsDialog";
+import { VaultSettings } from "./VaultSettings";
 import {
-  TerminalPane,
   DEFAULT_FONT_SIZE,
-  terminalHandles,
-} from "./TerminalPane";
-import { SHORTCUTS, actionFor, format, hint } from "./shortcuts.mjs";
+  DEFAULT_SETTINGS,
+  clampFontSize,
+  parseSettings,
+  type AppSettings,
+} from "./settings.mjs";
 import { useCloseGuard } from "./CloseGuard";
+import {
+  actionFor,
+  hint as shortcutHint,
+  parseOverrides,
+  resolve,
+  type Combo,
+} from "./shortcuts.mjs";
 import { OsIcon } from "./OsIcon";
 import { HostEditor, IdentityEditor, KeyEditor, Panel } from "./Editors";
 import { HostsView } from "./HostsView";
@@ -114,7 +124,7 @@ import type {
 } from "./types";
 import type { SavedNode } from "./workbench-state.mjs";
 import "./theme.css";
-import { callout, fingerprint, help, muted, shortcutList } from "./editor-ui";
+import { callout, fingerprint, help, muted } from "./editor-ui";
 
 if (import.meta.env.MODE === "desktop-e2e") {
   void import("@wdio/tauri-plugin");
@@ -167,7 +177,8 @@ function App() {
   useEffect(() => {
     clearSelection();
   }, [group, query, page, view.vaultId]);
-  const [settings, setSettings] = useState(false),
+  const [settingsSection, setSettingsSection] =
+      useState<SettingsSection | null>(null),
     [trust, setTrust] = useState<{
       host?: Host;
       quick?: QuickConnection;
@@ -207,16 +218,49 @@ function App() {
   const [syncState, setSyncState] = useState<"idle" | "syncing" | "error">(
     "idle",
   );
-  const [shortcuts, setShortcuts] = useState(false);
-  const [fontSize, setFontSize] = useState(() => {
+  const [appSettings, setAppSettings] = useState<AppSettings>(() => {
     try {
-      return (
-        Number(localStorage.getItem("shellnest.fontSize")) || DEFAULT_FONT_SIZE
-      );
+      const stored = localStorage.getItem("shellnest.settings");
+      if (stored) return parseSettings(stored);
+      // Before the settings dialog the zoom shortcuts kept the size on its own.
+      const legacy = Number(localStorage.getItem("shellnest.fontSize"));
+      return legacy
+        ? { ...DEFAULT_SETTINGS, fontSize: clampFontSize(legacy) }
+        : DEFAULT_SETTINGS;
     } catch {
-      return DEFAULT_FONT_SIZE;
+      return DEFAULT_SETTINGS;
     }
   });
+  // Creating, switching or locking leaves the unlock screen; settings must not reappear on the next unlock.
+  useEffect(() => {
+    if (!view.unlocked) setSettingsSection(null);
+  }, [view.unlocked]);
+  const openSettings = (section: SettingsSection = "vault") => {
+    setSyncUrl(view.syncUrl);
+    setError("");
+    setSettingsSection(section);
+  };
+  const saveSettings = (next: AppSettings) => {
+    setAppSettings(next);
+    try {
+      localStorage.setItem("shellnest.settings", JSON.stringify(next));
+    } catch {}
+  };
+  const [overrides, setOverrides] = useState<Record<string, Combo[]>>(() => {
+    try {
+      return parseOverrides(localStorage.getItem("shellnest.shortcuts") ?? "");
+    } catch {
+      return {};
+    }
+  });
+  const bindings = useMemo(() => resolve(overrides), [overrides]);
+  const hint = (id: string) => shortcutHint(id, mac, bindings);
+  const saveOverrides = (next: Record<string, Combo[]>) => {
+    setOverrides(next);
+    try {
+      localStorage.setItem("shellnest.shortcuts", JSON.stringify(next));
+    } catch {}
+  };
   const closedTabs = useRef<TerminalTab[]>([]);
   const [usage, setUsage] = useState<{ ids: string[]; label: string } | null>(
     null,
@@ -239,6 +283,7 @@ function App() {
   } | null>(null);
   const [pendingSwitch, setPendingSwitch] = useState<string | null>(null);
   const [pendingClose, setPendingClose] = useState<string[] | null>(null);
+  const closeGuard = useCloseGuard();
   const [pendingLock, setPendingLock] = useState(false);
   const previewBackend = useRef<ReturnType<typeof createPreviewBackend> | null>(
     null,
@@ -261,7 +306,6 @@ function App() {
         `server-manager.layout.${view.vaultId}`,
       );
       setLayout(saved === "list" ? "list" : "cards");
-  const closeGuard = useCloseGuard();
     } catch {
       setLayout("cards");
     }
@@ -430,18 +474,18 @@ function App() {
         hostForm ||
         identityForm ||
         keyForm ||
-        settings ||
+        settingsSection ||
         bulkOpen ||
         deletion ||
         trust ||
         vaultDialog ||
         pendingSwitch ||
         pendingClose ||
-        pendingLock ||
-        shortcuts
+        closeGuard.open ||
+        pendingLock
       )
         return;
-      const action = actionFor(e, mac);
+      const action = actionFor(e, mac, bindings);
       if (!action) {
         if (e.key === "Escape" && active === "vault") clearSelection();
         return;
@@ -459,7 +503,6 @@ function App() {
       };
       const stepPane = (step: number) => {
         if (!leader?.layout) return false;
-        closeGuard.open ||
         const ids = leafIds(leader.layout);
         setFocusedPane(
           ids[(ids.indexOf(focusOf(leader)) + step + ids.length) % ids.length],
@@ -471,13 +514,8 @@ function App() {
         if (leader && to) setTabs((old) => reorderTabs(old, leader.id, to.id));
         return !!leader;
       };
-      const zoom = (to: number) => {
-        const size = Math.min(32, Math.max(8, to));
-        setFontSize(size);
-        try {
-          localStorage.setItem("shellnest.fontSize", String(size));
-        } catch {}
-      };
+      const zoom = (to: number) =>
+        saveSettings({ ...appSettings, fontSize: clampFontSize(to) });
       const handled: Record<string, () => boolean | void> = {
         quickConnect: openLauncher,
         newHost: () => {
@@ -496,16 +534,12 @@ function App() {
           if (tabs.length) setPendingLock(true);
           else lockVault();
         },
-        openSettings: () => {
-          setSyncUrl(view.syncUrl);
-          setSettings(true);
-          setError("");
-        },
+        openSettings: () => openSettings(),
         closePane: () => leader && askClosePane(focusOf(leader)),
         closeWorkspace: () => leader && askCloseTab(leader.id),
         reopenTab: reopenTab,
         gotoTab: () => {
-          const n = +e.key;
+          const n = +(e.code.startsWith("Digit") ? e.code.slice(5) : e.key);
           setActive(
             n === 9 ? items[items.length - 1] : (items[n - 1] ?? active),
           );
@@ -520,8 +554,8 @@ function App() {
         nextPane: () => stepPane(1),
         clearTerminal: () =>
           leader && terminalHandles.get(focusOf(leader))?.clear(),
-        zoomIn: () => zoom(fontSize + 1),
-        zoomOut: () => zoom(fontSize - 1),
+        zoomIn: () => zoom(appSettings.fontSize + 1),
+        zoomOut: () => zoom(appSettings.fontSize - 1),
         zoomReset: () => zoom(DEFAULT_FONT_SIZE),
       };
       // Pane stepping falls through to the terminal when the tab is not split.
@@ -536,7 +570,7 @@ function App() {
     hostForm,
     identityForm,
     keyForm,
-    settings,
+    settingsSection,
     bulkOpen,
     deletion,
     trust,
@@ -545,12 +579,13 @@ function App() {
     vaultDialog,
     pendingSwitch,
     pendingClose,
+    closeGuard.open,
     pendingLock,
-    shortcuts,
     tabs,
     focusedPane,
     launcherOpen,
-    fontSize,
+    appSettings,
+    bindings,
   ]);
   useEffect(() => {
     if (!desktop || !view.unlocked || !tabs.length) return;
@@ -567,7 +602,6 @@ function App() {
   }, [tabs, active, view.vaultId, view.unlocked]);
   useEffect(() => {
     document
-    closeGuard.open,
       .querySelector(".tab.selected")
       ?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [active, tabs.length]);
@@ -834,6 +868,14 @@ function App() {
     if (active === moved.leader.id) setActive(moved.next);
     setFocusedPane(moved.next);
   };
+  const isLive = (ids: string[]) =>
+    tabs.some((t) => ids.includes(t.id) && t.status === "connected");
+  const askClosePane = (id: string) =>
+    closeGuard.ask(isLive([id]), () => closePane(id));
+  const askCloseTab = (id: string) => {
+    const layout = tabs.find((t) => t.id === id)?.layout;
+    closeGuard.ask(isLive(layout ? leafIds(layout) : [id]), () => closeTab(id));
+  };
   const detachPane = (id: string) => {
     if (!unlinkPane(id, true)) return;
     setActive(id);
@@ -857,14 +899,6 @@ function App() {
     identityName: "",
     status: "connecting",
   });
-  const isLive = (ids: string[]) =>
-    tabs.some((t) => ids.includes(t.id) && t.status === "connected");
-  const askClosePane = (id: string) =>
-    closeGuard.ask(isLive([id]), () => closePane(id));
-  const askCloseTab = (id: string) => {
-    const layout = tabs.find((t) => t.id === id)?.layout;
-    closeGuard.ask(isLive(layout ? leafIds(layout) : [id]), () => closeTab(id));
-  };
   // Recreate every session of the given layouts, one tab bar entry each. Hosts not trusted yet are
   // verified first through the usual fingerprint dialog, which calls this again once approved.
   const openWorkspaces = async (
@@ -1112,6 +1146,12 @@ function App() {
     id: string,
     status: "connecting" | "connected" | "closed" | "failed",
   ) => setTabs((old) => old.map((t) => (t.id === id ? { ...t, status } : t)));
+  const tabTitle = (id: string, termTitle?: string) =>
+    setTabs((old) =>
+      old.some((t) => t.id === id && t.termTitle !== termTitle)
+        ? old.map((t) => (t.id === id ? { ...t, termTitle } : t))
+        : old,
+    );
   const resetWorkspace = (next: View) => {
     setLauncherOpen(false);
     setSavingWs(null);
@@ -1147,12 +1187,6 @@ function App() {
     });
   const lockVault = () =>
     void run(async () => {
-  const tabTitle = (id: string, termTitle?: string) =>
-    setTabs((old) =>
-      old.some((t) => t.id === id && t.termTitle !== termTitle)
-        ? old.map((t) => (t.id === id ? { ...t, termTitle } : t))
-        : old,
-    );
       epoch.current++;
       resetWorkspace(await invokeScoped<View>("lock"));
       setPendingLock(false);
@@ -1260,15 +1294,14 @@ function App() {
     groupForm ||
     identityForm ||
     keyForm ||
-    settings ||
+    settingsSection ||
     trust ||
     deletion ||
     bulkOpen ||
     vaultDialog ||
     pendingSwitch ||
     pendingClose ||
-    pendingLock ||
-    shortcuts
+    pendingLock
   );
   panelOpen.current = anyPanel;
   const alert =
@@ -1464,6 +1497,7 @@ function App() {
           </footer>
         </Panel>
       )}
+      {closeGuard.dialog}
       {pendingLock && (
         <Panel
           variant="alert"
@@ -1487,7 +1521,6 @@ function App() {
               Chiudi sessioni e blocca
             </Button>
           </footer>
-      {closeGuard.dialog}
         </Panel>
       )}
     </>
@@ -1717,7 +1750,7 @@ function App() {
       className={cn(
         "app grid h-dvh grid-rows-[46px_minmax(0,1fr)] overflow-hidden [--sidebar-width:196px] max-[1100px]:[--sidebar-width:180px] max-[760px]:[--sidebar-width:60px]",
         active === "vault"
-          ? "grid-cols-[var(--sidebar-width)_minmax(0,1fr)] [body:has(.side-sheet[data-open])_&]:grid-cols-[var(--sidebar-width)_minmax(0,1fr)_var(--sheet-width)] max-[1100px]:[body:has(.side-sheet[data-open])_&]:grid-cols-[var(--sidebar-width)_minmax(0,1fr)]"
+          ? "grid-cols-[var(--sidebar-width)_minmax(0,1fr)] [body.sheet-open_&]:grid-cols-[var(--sidebar-width)_minmax(0,1fr)_var(--sheet-width)] max-[1100px]:[body.sheet-open_&]:grid-cols-[var(--sidebar-width)_minmax(0,1fr)]"
           : "no-sidebar grid-cols-[minmax(0,1fr)]",
       )}
     >
@@ -1774,34 +1807,20 @@ function App() {
             </DropdownMenuItem>
             <DropdownMenuItem disabled={busy} onClick={openLauncher}>
               <Plus size={15} />
-              Nuova tab <kbd>{hint("quickConnect", mac)}</kbd>
+              Nuova tab{" "}
+              {hint("quickConnect") && <kbd>{hint("quickConnect")}</kbd>}
             </DropdownMenuItem>
             <DropdownMenuItem disabled={busy} onClick={openLocal}>
               <TerminalSquare size={15} />
               Terminale locale
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => changeLayout("cards")}>
-              Vista a card
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => changeLayout("list")}>
-              Vista a lista
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              disabled={busy}
-              onClick={() => {
-                setSyncUrl(view.syncUrl);
-                setSettings(true);
-                setError("");
-              }}
-            >
+            <DropdownMenuItem disabled={busy} onClick={() => openSettings()}>
               <Settings2 size={15} />
               Impostazioni
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShortcuts(true)}>
-              <Keyboard size={15} />
-              Scorciatoie da tastiera
+              {hint("openSettings") && (
+                <kbd className="ml-auto">{hint("openSettings")}</kbd>
+              )}
             </DropdownMenuItem>
             <DropdownMenuItem
               disabled={busy || !tabs.length}
@@ -2066,7 +2085,9 @@ function App() {
             type="button"
             className="size-[30px] shrink-0 rounded-[9px] p-0 text-muted-foreground"
             aria-label="Nuova connessione"
-            title={`Nuova connessione · ${hint("quickConnect", mac)}`}
+            title={["Nuova connessione", hint("quickConnect")]
+              .filter(Boolean)
+              .join(" · ")}
             onClick={openLauncher}
           >
             <Plus size={18} />
@@ -2089,11 +2110,7 @@ function App() {
             disabled={busy || syncState === "syncing" || preview}
             onClick={() => {
               if (view.syncConfigured) void synchronize(true);
-              else {
-                setSyncUrl(view.syncUrl);
-                setSettings(true);
-                setError("");
-              }
+              else openSettings("vault");
             }}
             aria-live="polite"
           >
@@ -2203,6 +2220,7 @@ function App() {
         )}
         {active === "launcher" && (
           <ConnectionLauncher
+            shortcut={hint("quickConnect")}
             key={`${view.vaultId}-${launcherKey}`}
             vaultName={view.vaultName}
             groups={view.groups}
@@ -2273,7 +2291,7 @@ function App() {
                   variant="ghost"
                   type="button"
                   onClick={openLauncher}
-                  title={hint("quickConnect", mac)}
+                  title={hint("quickConnect") || undefined}
                 >
                   <TerminalSquare size={15} />
                   Connessione rapida
@@ -2319,7 +2337,9 @@ function App() {
                   )}
                   disabled={busy}
                   onClick={onNew}
-                  title={page === "hosts" ? hint("newHost", mac) : undefined}
+                  title={
+                    page === "hosts" ? hint("newHost") || undefined : undefined
+                  }
                 >
                   <Plus size={15} />
                   {page === "hosts"
@@ -2348,14 +2368,14 @@ function App() {
                         <Plus size={14} />
                         Nuovo host
                         <DropdownMenuShortcut>
-                          {hint("newHost", mac)}
+                          {hint("newHost")}
                         </DropdownMenuShortcut>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={newFolder}>
                         <FolderPlus size={14} />
                         Nuova cartella
                         <DropdownMenuShortcut>
-                          {hint("newFolder", mac)}
+                          {hint("newFolder")}
                         </DropdownMenuShortcut>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -2750,7 +2770,7 @@ function App() {
                 }
                 ghost={tab.id === dragPane && reflow}
                 animate={settling}
-                fontSize={fontSize}
+                settings={appSettings}
                 focused={geo ? focus === tab.id : undefined}
                 onFocus={geo ? () => setFocusedPane(tab.id) : undefined}
                 onDragPane={
@@ -2758,6 +2778,7 @@ function App() {
                 }
                 onError={setError}
                 onStatus={tabStatus}
+                onTitle={tabTitle}
                 onMetadata={metadataUpdated}
                 onClose={() => askClosePane(tab.id)}
                 onRetry={() => {
@@ -2800,7 +2821,6 @@ function App() {
                     top: `${box.y * 100}%`,
                     width: `${box.w * 100}%`,
                     height: `${box.h * 100}%`,
-                onTitle={tabTitle}
                   }}
                   onDragOver={(e) => {
                     e.preventDefault();
@@ -3154,142 +3174,68 @@ function App() {
           </footer>
         </Panel>
       )}
-      {settings && (
-        <Panel
-          title="Sincronizzazione"
-          footer={
-            <footer>
-              <Button
-                variant="ghost"
-                disabled={busy}
-                type="button"
-                onClick={() => {
-                  setSettings(false);
-                  setSyncToken("");
-                }}
-              >
-                Annulla
-              </Button>
-              <Button
-                variant="default"
-                type="submit"
-                form="sync-settings-form"
-                className="primary"
-                disabled={busy}
-              >
-                Salva configurazione
-              </Button>
-            </footer>
-          }
-          busy={busy}
-          error={error}
+      {settingsSection && (
+        <SettingsDialog
+          section={settingsSection}
+          onSection={(next) => {
+            setError("");
+            setSettingsSection(next);
+          }}
           onClose={() => {
-            setSettings(false);
+            setSettingsSection(null);
             setSyncToken("");
             setError("");
           }}
-        >
-          <form
-            id="sync-settings-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void run(async () => {
-                update(
-                  await invokeScoped<View>("configure_sync", {
-                    url: syncUrlForVault(syncUrl, view.vaultId),
-                    token: syncToken,
-                  }),
-                );
-                setSyncToken("");
-                setSettings(false);
-                setNotice("Configurazione salvata");
-              });
-            }}
-          >
-            <p className={muted}>
-              La sync è opzionale. Host, identità e chiavi vengono sincronizzati
-              insieme, cifrati.
-            </p>
-            <label>
-              URL servizio
-              <Input
-                autoFocus
-                required
-                type="url"
-                placeholder="https://sync.example.com"
-                value={syncUrl}
-                onChange={(e) => setSyncUrl(e.target.value)}
-              />
-            </label>
-            <p className={help}>
-              {view.vaultId === "personal"
-                ? "Il vault Personale conserva l’endpoint compatibile /vault."
-                : `Inserendo l’indirizzo del servizio verrà usato /vaults/${view.vaultId}. Per collegare un altro dispositivo copia l’URL completo dopo il salvataggio.`}
-            </p>
-            <label>
-              Token
-              <PasswordInput
-                autoComplete="off"
-                required={!view.syncConfigured}
-                minLength={syncToken ? 32 : undefined}
-                placeholder={
-                  view.syncConfigured
-                    ? "Vuoto per mantenere il token esistente"
-                    : "Almeno 32 caratteri"
-                }
-                value={syncToken}
-                onChange={(e) => setSyncToken(e.target.value)}
-              />
-            </label>
-            <p className={help}>
-              Controllo ogni 30 secondi a vault sbloccato. In caso di modifiche
-              concorrenti, la sync si ferma e conserva i dati locali.
-            </p>
-          </form>
-        </Panel>
-      )}
-      {shortcuts && (
-        <Panel
-          variant="dialog"
-          title="Scorciatoie da tastiera"
-          busy={false}
-          error=""
-          onClose={() => setShortcuts(false)}
-        >
-          <p className={muted}>
-            {mac
-              ? "Le scorciatoie usano ⌘."
-              : "Le scorciatoie con una lettera usano Ctrl+Maiusc (e Alt se già con Maiusc) per lasciare liberi i comandi del terminale."}
-          </p>
-          <dl className={shortcutList}>
-            {SHORTCUTS.map((s) => (
-              <div key={s.id}>
-                <dt>{s.label}</dt>
-                <dd>
-                  <kbd>{s.combos.map((c) => format(c, mac)).join(" / ")}</kbd>
-                </dd>
-              </div>
-            ))}
-            <div>
-              <dt>Connetti dalla scheda host</dt>
-              <dd>
-                <kbd>Invio</kbd>
-              </dd>
-            </div>
-            <div>
-              <dt>Seleziona host</dt>
-              <dd>
-                <kbd>Spazio / Ctrl/Cmd clic</kbd>
-              </dd>
-            </div>
-            <div>
-              <dt>Annulla selezione o chiudi pannello</dt>
-              <dd>
-                <kbd>Esc</kbd>
-              </dd>
-            </div>
-          </dl>
-        </Panel>
+          error={error}
+          busy={busy}
+          settings={appSettings}
+          onSettings={saveSettings}
+          bindings={bindings}
+          overrides={overrides}
+          onOverrides={saveOverrides}
+          mac={mac}
+          vault={
+            <VaultSettings
+              view={view}
+              busy={busy}
+              syncUrl={syncUrl}
+              syncToken={syncToken}
+              syncing={syncState === "syncing"}
+              lastSync={lastSync}
+              onSyncUrl={setSyncUrl}
+              onSyncToken={setSyncToken}
+              onSaveSync={() =>
+                void run(async () => {
+                  update(
+                    await invokeScoped<View>("configure_sync", {
+                      url: syncUrlForVault(syncUrl, view.vaultId),
+                      token: syncToken,
+                    }),
+                  );
+                  setSyncToken("");
+                  setNotice("Configurazione salvata");
+                })
+              }
+              onSyncNow={() => void synchronize(true)}
+              onSwitch={requestSwitch}
+              onCreate={() => {
+                setError("");
+                setVaultDialog({ mode: "create", name: "" });
+              }}
+              onRename={() => {
+                setError("");
+                setVaultDialog({ mode: "rename", name: view.vaultName });
+              }}
+              onDelete={() =>
+                void run(async () => {
+                  epoch.current++;
+                  setSettingsSection(null);
+                  resetWorkspace(await invokeScoped<View>("delete_vault"));
+                })
+              }
+            />
+          }
+        />
       )}
       {savingWs && (
         <Panel

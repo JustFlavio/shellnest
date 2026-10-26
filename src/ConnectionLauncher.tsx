@@ -16,7 +16,6 @@ import { parseConnectionTarget } from "./connection-target.mjs";
 import type { ConnectionTarget } from "./connection-target.mjs";
 import { OsIcon } from "./OsIcon";
 import { cn } from "./lib/utils";
-import { hint } from "./shortcuts.mjs";
 import { help, muted } from "./editor-ui";
 
 type RecentHost = Host & {
@@ -42,6 +41,8 @@ export type ConnectionLauncherProps = {
   onLocalTerminal: () => void;
   onQuickConnect: (target: QuickConnection) => void;
   preview: boolean;
+  // formatted binding of the quick-connect shortcut; empty when unbound
+  shortcut: string;
   busy: boolean;
 };
 
@@ -70,6 +71,7 @@ export function ConnectionLauncher({
   onLocalTerminal,
   onQuickConnect,
   preview,
+  shortcut,
   busy,
 }: ConnectionLauncherProps) {
   const [query, setQuery] = useState("");
@@ -299,9 +301,9 @@ export function ConnectionLauncher({
             }
           }}
         />
-        <kbd className="text-[12px] whitespace-nowrap">
-          {hint("quickConnect", /Mac/.test(navigator.userAgent))}
-        </kbd>
+        {shortcut && (
+          <kbd className="text-[12px] whitespace-nowrap">{shortcut}</kbd>
+        )}
       </div>
       <div
         id="connection-results"
