@@ -1,4 +1,4 @@
-# Server Manager
+# Shellnest
 
 <!-- impeccable:product-schema 1 -->
 
@@ -42,7 +42,7 @@ Riunire organizzazione degli host, credenziali riutilizzabili e terminali SSH in
 
 ## Brand Commitments
 
-Server Manager è il nome provvisorio documentato. Il progetto è open source con licenza MIT e l'interfaccia attuale è in italiano. Il client è implementato indipendentemente da un altro client SSH: i riferimenti di prodotto non implicano integrazione con il suo cloud o importazione del suo vault.
+Shellnest è il nome dell’app (il logo è provvisorio). Il progetto è open source con licenza MIT e l'interfaccia attuale è in italiano. Il client è implementato indipendentemente da un altro client SSH: i riferimenti di prodotto non implicano integrazione con il suo cloud o importazione del suo vault.
 
 ## Evidence on Hand
 

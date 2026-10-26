@@ -2,7 +2,7 @@
 
 Client SSH open source per utenti individuali su Windows e macOS, con sincronizzazione self-hosted opzionale. Nasce come alternativa a un altro client SSH: nessun account necessario per l'uso locale. Nome provvisorio e versione di sviluppo; implementato indipendentemente, senza analizzare o copiare artefatti un altro client SSH.
 
-Il repository si chiama Shellnest. L’app usa ancora il nome interno Server Manager e il suo identificativo esistente, per conservare la compatibilità con i vault locali durante il cambio di nome.
+L’app si chiama Shellnest. L’identificativo `dev.servermanager.desktop` resta invariato per conservare i vault locali già creati (la cartella dati dipende da esso).
 
 ## Avvio
 

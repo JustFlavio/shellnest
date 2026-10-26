@@ -164,7 +164,7 @@ if (
   const port = Number(process.env.SYNC_PORT ?? 8787);
   server.listen(port, host, () =>
     console.log(
-      `Server Manager Sync: http://${host}:${port} — configurare HTTPS per accesso remoto`,
+      `Shellnest Sync: http://${host}:${port} — configurare HTTPS per accesso remoto`,
     ),
   );
 }

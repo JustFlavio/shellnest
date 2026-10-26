@@ -48,7 +48,18 @@ import { VaultPicker } from "./VaultPicker";
 import { ActionMenu } from "./ActionMenu";
 import { ConnectionLauncher } from "./ConnectionLauncher";
 import type { QuickConnection } from "./ConnectionLauncher";
-import { reorderTabs, syncUrlForVault } from "./workbench-state.mjs";
+import type { Edge } from "./workbench-state.mjs";
+import {
+  dropEdge,
+  insertLeaf,
+  layoutRects,
+  leafIds,
+  removeLeaf,
+  replaceLeaf,
+  reorderTabs,
+  setRatio,
+  syncUrlForVault,
+} from "./workbench-state.mjs";
 import { emptyView, newHost, newIdentity, newKey } from "./types";
 import type {
   Host,
@@ -119,6 +130,15 @@ function App() {
       ids?: string[];
     } | null>(null);
   const [tabs, setTabs] = useState<TerminalTab[]>([]),
+    [drag, setDrag] = useState<{
+      id: string;
+      over?: string;
+      after?: boolean;
+    }>(),
+    [focusedPane, setFocusedPane] = useState(""),
+    [renaming, setRenaming] = useState<string>(),
+    [dragPane, setDragPane] = useState<string>(),
+    [dropHint, setDropHint] = useState<{ paneId: string; edge: Edge | null }>(),
     [active, setActive] = useState("vault"),
     [lastSync, setLastSync] = useState(""),
     [preview, setPreview] = useState(false);
@@ -365,6 +385,72 @@ function App() {
         if (tabs.length) setPendingLock(true);
         else lockVault();
       }
+      const leader = tabs.find((t) => t.id === active);
+      const mod = e.metaKey || (e.ctrlKey && e.shiftKey),
+        key = e.key.toLowerCase();
+      if (leader && mod && key === "d") {
+        e.preventDefault();
+        e.stopPropagation();
+        splitTab(leader.id, e.metaKey && e.shiftKey ? "col" : "row");
+      }
+      if (leader && mod && key === "w") {
+        e.preventDefault();
+        e.stopPropagation();
+        closePane(focusOf(leader));
+      }
+      const order = tabs.filter((t) => !t.parent);
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        !e.shiftKey &&
+        !e.altKey &&
+        /^[1-9]$/.test(e.key) &&
+        order[+e.key - 1]
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        setActive(order[+e.key - 1].id);
+      }
+      if (
+        e.metaKey &&
+        e.shiftKey &&
+        !e.altKey &&
+        (e.code === "BracketLeft" || e.code === "BracketRight") &&
+        order.length
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        const at = order.findIndex((t) => t.id === active),
+          step = e.code === "BracketLeft" ? -1 : 1;
+        setActive(order[(at + step + order.length) % order.length].id);
+      }
+      if (
+        leader &&
+        e.metaKey &&
+        e.shiftKey &&
+        e.altKey &&
+        ["ArrowLeft", "ArrowRight"].includes(e.key)
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        const to =
+          order[order.indexOf(leader) + (e.key === "ArrowLeft" ? -1 : 1)];
+        if (to) setTabs((old) => reorderTabs(old, leader.id, to.id));
+      }
+      if (
+        leader?.layout &&
+        e.metaKey &&
+        e.altKey &&
+        !e.shiftKey &&
+        e.key.startsWith("Arrow")
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        const ids = leafIds(leader.layout),
+          step = ["ArrowLeft", "ArrowUp"].includes(e.key) ? -1 : 1;
+        setFocusedPane(
+          ids[(ids.indexOf(focusOf(leader)) + step + ids.length) % ids.length],
+        );
+      }
       if (e.key === "Escape" && active === "vault") {
         clearSelection();
       }
@@ -387,7 +473,14 @@ function App() {
     pendingClose,
     pendingLock,
     shortcuts,
+    tabs,
+    focusedPane,
   ]);
+  useEffect(() => {
+    document
+      .querySelector(".tab.selected")
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [active, tabs.length]);
   const navigate = (next: Page) => {
     setPage(next);
     setActive("vault");
@@ -399,6 +492,111 @@ function App() {
   };
   const identity = (host: Host) =>
     view.identities.find((i) => i.id === host.identityId);
+  type Dir = "row" | "col";
+  const terminals = useRef<HTMLDivElement>(null);
+  const addTab = (tab: TerminalTab) => {
+    setTabs((old) => [...old, tab]);
+    setActive(tab.id);
+  };
+  const spring = useRef<{ id: string; timer: number } | undefined>(undefined);
+  const clearSpring = () => {
+    window.clearTimeout(spring.current?.timer);
+    spring.current = undefined;
+  };
+  const tabLabel = (t: TerminalTab) =>
+    t.name ?? (t.layout ? "Workspace" : t.title);
+  const clearDnd = () => {
+    clearSpring();
+    setDrag(undefined);
+    setDragPane(undefined);
+    setDropHint(undefined);
+  };
+  const focusOf = (leader: TerminalTab) =>
+    leader.layout && leafIds(leader.layout).includes(focusedPane)
+      ? focusedPane
+      : leader.id;
+  // Shortcut: clone the focused pane's session beside it.
+  const splitTab = (leaderId: string, dir: Dir) => {
+    const leader = tabs.find((t) => t.id === leaderId);
+    if (!leader) return;
+    const paneId = focusOf(leader),
+      src = tabs.find((t) => t.id === paneId) ?? leader,
+      host =
+        src.kind === "ssh"
+          ? view.hosts.find((h) => h.id === src.host.id)
+          : null;
+    if (src.kind === "ssh" && !host?.fingerprint) return;
+    const clone: TerminalTab = {
+      ...src,
+      id: crypto.randomUUID(),
+      error: undefined,
+      status: "connecting",
+      parent: leaderId,
+      layout: undefined,
+    };
+    if (clone.kind === "ssh" && host) clone.host = host;
+    const edge = dir === "row" ? "right" : "bottom";
+    setTabs((old) => [
+      ...old.map((t) =>
+        t.id === leaderId
+          ? {
+              ...t,
+              layout: insertLeaf(
+                t.layout ?? { id: paneId },
+                paneId,
+                { id: clone.id },
+                edge,
+              ),
+            }
+          : t,
+      ),
+      clone,
+    ]);
+    setFocusedPane(clone.id);
+  };
+  // Drop on a pane edge of the active workspace: a tab's sessions join it, or a pane is rearranged.
+  const dropOnPane = (targetId: string, edge: Edge) => {
+    const leader = tabs.find((t) => t.id === active);
+    const srcId = dragPane ?? drag?.id;
+    if (
+      !leader ||
+      !srcId ||
+      srcId === targetId ||
+      (srcId === leader.id && !dragPane)
+    )
+      return;
+    if (dragPane) {
+      const rest = leader.layout && removeLeaf(leader.layout, dragPane);
+      if (!rest) return;
+      const layout = insertLeaf(rest, targetId, { id: dragPane }, edge);
+      setTabs((old) =>
+        old.map((t) => (t.id === leader.id ? { ...t, layout } : t)),
+      );
+    } else {
+      const src = tabs.find((t) => t.id === srcId);
+      if (!src) return;
+      const node = src.layout ?? { id: src.id },
+        ids = leafIds(node),
+        layout = insertLeaf(
+          leader.layout ?? { id: leader.id },
+          targetId,
+          node,
+          edge,
+        );
+      setTabs((old) =>
+        old.map((t) =>
+          t.id === leader.id
+            ? { ...t, layout }
+            : t.id === src.id
+              ? { ...t, layout: undefined, parent: leader.id }
+              : ids.includes(t.id)
+                ? { ...t, parent: leader.id }
+                : t,
+        ),
+      );
+    }
+    setFocusedPane(srcId);
+  };
   const openTab = (host: Host) => {
     const i = identity(host);
     if (!i && !(host.username && host.hasPassword))
@@ -415,8 +613,7 @@ function App() {
       username: i?.username ?? host.username!,
       identityName: i?.name ?? "Credenziali dell’host",
     };
-    setTabs((t) => [...t, tab]);
-    setActive(tab.id);
+    addTab(tab);
     return tab.id;
   };
   const continueConnections = async () => {
@@ -468,11 +665,54 @@ function App() {
   const connect = (host: Host) => connectHosts([host]);
   const closeTab = (id: string) => {
     if (pendingVerification.current.delete(id)) connectionQueue.current = [];
-    setTabs((t) => t.filter((t) => t.id !== id));
+    const gone = tabs.find((t) => t.id === id)?.layout;
+    const ids = gone ? leafIds(gone) : [id];
+    setTabs((t) => t.filter((t) => !ids.includes(t.id)));
     if (active === id) {
-      const index = tabs.findIndex((t) => t.id === id);
-      setActive(tabs[index + 1]?.id ?? tabs[index - 1]?.id ?? "vault");
+      const bar = tabs.filter((t) => !t.parent),
+        index = bar.findIndex((t) => t.id === id);
+      setActive(bar[index + 1]?.id ?? bar[index - 1]?.id ?? "vault");
     }
+  };
+  // Takes a pane out of its workspace (keep: it stays as its own tab). A pane is promoted if the leader goes.
+  const unlinkPane = (id: string, keep: boolean) => {
+    const tab = tabs.find((t) => t.id === id);
+    const leader = tab?.parent ? tabs.find((t) => t.id === tab.parent) : tab;
+    const rest = leader?.layout && removeLeaf(leader.layout, id);
+    if (!leader || !rest) return null;
+    const ids = leafIds(rest),
+      next = id === leader.id ? ids[0] : leader.id;
+    setTabs((old) =>
+      old.flatMap((t) =>
+        t.id === id
+          ? keep
+            ? [{ ...t, parent: undefined, layout: undefined }]
+            : []
+          : t.id === next
+            ? [
+                {
+                  ...t,
+                  name: id === leader.id ? leader.name : t.name,
+                  parent: undefined,
+                  layout: ids.length > 1 ? rest : undefined,
+                },
+              ]
+            : [ids.includes(t.id) ? { ...t, parent: next } : t],
+      ),
+    );
+    return { leader, next };
+  };
+  const closePane = (id: string) => {
+    const moved = unlinkPane(id, false);
+    if (!moved) return closeTab(id);
+    pendingVerification.current.delete(id);
+    if (active === moved.leader.id) setActive(moved.next);
+    setFocusedPane(moved.next);
+  };
+  const detachPane = (id: string) => {
+    if (!unlinkPane(id, true)) return;
+    setActive(id);
+    setFocusedPane(id);
   };
   const openLauncher = () => {
     setActive("launcher");
@@ -492,8 +732,7 @@ function App() {
       identityName: "",
       status: "connecting",
     };
-    setTabs((old) => [...old, tab]);
-    setActive(tab.id);
+    addTab(tab);
   };
   const openQuick = (target: QuickTarget) => {
     const i = view.identities.find((i) => i.id === target.identityId);
@@ -508,8 +747,7 @@ function App() {
       target,
       status: "connecting",
     };
-    setTabs((old) => [...old, tab]);
-    setActive(tab.id);
+    addTab(tab);
   };
   const quickConnect = (target: QuickConnection) =>
     void run(async () => {
@@ -521,23 +759,51 @@ function App() {
       });
       setTrust({ quick: target, fingerprint });
     });
+  // New session in place of `id` (same slot in the tab bar or split layout).
+  const reconnectPane = (id: string) => {
+    const old = tabs.find((t) => t.id === id);
+    if (!old) return;
+    const next: TerminalTab = {
+      ...old,
+      id: crypto.randomUUID(),
+      error: undefined,
+      status: "connecting",
+    };
+    if (old.layout) next.layout = replaceLeaf(old.layout, id, next.id);
+    if (next.kind === "ssh")
+      next.host = view.hosts.find((h) => h.id === next.host.id) ?? next.host;
+    setTabs((list) =>
+      list.map((t) =>
+        t.id === id
+          ? next
+          : t.parent === id
+            ? { ...t, parent: next.id }
+            : t.layout && leafIds(t.layout).includes(id)
+              ? { ...t, layout: replaceLeaf(t.layout, id, next.id) }
+              : t,
+      ),
+    );
+    if (active === id) setActive(next.id);
+    if (focusedPane === id) setFocusedPane(next.id);
+  };
+  // On a split tab both actions apply to its focused pane.
   const duplicateTab = (tab: TerminalTab, reconnect = false) => {
-    if (tab.kind === "ssh") {
-      const host = view.hosts.find((h) => h.id === tab.host.id);
-      if (reconnect) closeTab(tab.id);
+    if (!reconnect && tab.layout) return splitTab(tab.id, "row");
+    const target = tabs.find((t) => t.id === focusOf(tab)) ?? tab;
+    if (target.kind === "ssh") {
+      const host = view.hosts.find((h) => h.id === target.host.id);
+      if (reconnect && host?.fingerprint) return reconnectPane(target.id);
+      if (reconnect) closePane(target.id);
       if (host) connect(host);
       return;
     }
-    const next = {
-      ...tab,
+    if (reconnect) return reconnectPane(target.id);
+    addTab({
+      ...target,
       error: undefined,
       id: crypto.randomUUID(),
-      status: "connecting" as const,
-    };
-    setTabs((old) =>
-      reconnect ? old.map((t) => (t.id === tab.id ? next : t)) : [...old, next],
-    );
-    setActive(next.id);
+      status: "connecting",
+    });
   };
   const metadataUpdated = (vaultId: string) => {
     if (vaultId !== currentVault.current) return;
@@ -547,6 +813,12 @@ function App() {
       })
       .catch((e) => setError(String(e)));
   };
+  const bar = tabs.filter((t) => !t.parent);
+  const geos = new Map(
+    tabs.flatMap((t) =>
+      t.layout ? [[t.id, layoutRects(t.layout)] as const] : [],
+    ),
+  );
   const tabStatus = (
     id: string,
     status: "connecting" | "connected" | "closed" | "failed",
@@ -931,7 +1203,7 @@ function App() {
     return (
       <main className="gate">
         <header className="gate-titlebar" data-tauri-drag-region>
-          <span data-tauri-drag-region>Server Manager</span>
+          <span data-tauri-drag-region>Shellnest</span>
           <WindowControls onError={setError} />
         </header>
         <p>Apertura vault…</p>
@@ -941,7 +1213,7 @@ function App() {
     return (
       <main className="gate">
         <header className="gate-titlebar" data-tauri-drag-region>
-          <span data-tauri-drag-region>Server Manager</span>
+          <span data-tauri-drag-region>Shellnest</span>
           <WindowControls onError={setError} />
         </header>
         <section className="login">
@@ -949,7 +1221,7 @@ function App() {
             <span className="brand-icon">
               <TerminalSquare size={18} />
             </span>
-            Server Manager
+            Shellnest
             <span>{desktop ? "0.3 · In sviluppo" : "Anteprima browser"}</span>
           </div>
           {(desktop || preview) && vaultPicker}
@@ -960,7 +1232,7 @@ function App() {
                 ? "Collega dispositivo"
                 : desktop || preview
                   ? "Crea vault locale"
-                  : "Esplora Server Manager"}
+                  : "Esplora Shellnest"}
           </h1>
           <p className="muted">
             {!desktop && !preview
@@ -1131,7 +1403,7 @@ function App() {
             <TerminalSquare size={18} />
           </span>
           <span className="brand-name" data-tauri-drag-region>
-            Server Manager
+            Shellnest
           </span>
         </div>
         <DropdownMenu>
@@ -1249,28 +1521,70 @@ function App() {
         </DropdownMenu>
         <div
           className="tabbar"
+          onDragOver={(e) => {
+            if (dragPane) e.preventDefault();
+            const r = e.currentTarget.getBoundingClientRect();
+            if (e.clientX - r.left < 48) e.currentTarget.scrollLeft -= 14;
+            else if (r.right - e.clientX < 48) e.currentTarget.scrollLeft += 14;
+          }}
+          onDragLeave={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node))
+              clearSpring();
+          }}
+          onDrop={(e) => {
+            if (!dragPane) return;
+            e.preventDefault();
+            detachPane(dragPane);
+            clearDnd();
+          }}
           role="navigation"
           aria-label="Sessioni e connessioni"
           data-tauri-drag-region
         >
-          {tabs.map((tab) => (
+          {bar.map((tab) => (
             <div
               key={tab.id}
-              className={active === tab.id ? "tab selected" : "tab"}
+              className={[
+                "tab",
+                active === tab.id && "selected",
+                drag?.id === tab.id && "dragging",
+                drag?.over === tab.id &&
+                  (drag.after ? "drop-after" : "drop-before"),
+              ]
+                .filter(Boolean)
+                .join(" ")}
               draggable
-              onDragStart={(e) =>
+              onDragStart={(e) => {
                 e.dataTransfer.setData(
                   "application/x-server-manager-tab",
                   tab.id,
-                )
-              }
+                );
+                setDrag({ id: tab.id });
+              }}
+              onDragEnd={clearDnd}
               onDragOver={(e) => {
                 if (
-                  e.dataTransfer.types.includes(
+                  !e.dataTransfer.types.includes(
                     "application/x-server-manager-tab",
                   )
                 )
-                  e.preventDefault();
+                  return;
+                e.preventDefault();
+                // Hover a dragged tab over another one to open it, so it can be dropped on its panes.
+                if (drag?.id !== tab.id && spring.current?.id !== tab.id) {
+                  clearSpring();
+                  spring.current = {
+                    id: tab.id,
+                    timer: window.setTimeout(() => setActive(tab.id), 500),
+                  };
+                }
+                const r = e.currentTarget.getBoundingClientRect();
+                const after = e.clientX > r.left + r.width / 2;
+                setDrag((d) =>
+                  d && (d.over !== tab.id || d.after !== after)
+                    ? { ...d, over: tab.id, after }
+                    : d,
+                );
               }}
               onDrop={(e) => {
                 e.preventDefault();
@@ -1278,19 +1592,55 @@ function App() {
                   "application/x-server-manager-tab",
                 );
                 setTabs((old) => reorderTabs(old, moving, tab.id));
+                clearDnd();
               }}
             >
-              <Button
-                variant="ghost"
-                type="button"
-                aria-current={active === tab.id ? "page" : undefined}
-                onClick={() => setActive(tab.id)}
-              >
-                <TerminalSquare size={14} />
-                <span className={`session-dot ${tab.status ?? "connecting"}`} />
-                {tab.title}
-              </Button>
+              {renaming === tab.id ? (
+                <input
+                  className="tab-rename"
+                  autoFocus
+                  defaultValue={tabLabel(tab)}
+                  aria-label="Nome scheda"
+                  onFocus={(e) => e.currentTarget.select()}
+                  onBlur={(e) => {
+                    const name = e.currentTarget.value.trim();
+                    setTabs((old) =>
+                      old.map((t) =>
+                        t.id === tab.id ? { ...t, name: name || undefined } : t,
+                      ),
+                    );
+                    setRenaming(undefined);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") e.currentTarget.blur();
+                    if (e.key === "Escape") setRenaming(undefined);
+                  }}
+                />
+              ) : (
+                <Button
+                  variant="ghost"
+                  type="button"
+                  aria-current={active === tab.id ? "page" : undefined}
+                  title={tabLabel(tab)}
+                  onClick={() => setActive(tab.id)}
+                  onDoubleClick={() => setRenaming(tab.id)}
+                >
+                  <TerminalSquare size={14} />
+                  <span
+                    className={`session-dot ${tab.status ?? "connecting"}`}
+                  />
+                  {tabLabel(tab)}
+                </Button>
+              )}
               <ActionMenu label={`Azioni scheda ${tab.title}`}>
+                {tab.layout && (
+                  <DropdownMenuItem onClick={() => closePane(focusOf(tab))}>
+                    Chiudi pannello attivo
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => setRenaming(tab.id)}>
+                  Rinomina
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => duplicateTab(tab)}>
                   Duplica sessione
                 </DropdownMenuItem>
@@ -1298,21 +1648,23 @@ function App() {
                   Riconnetti
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  disabled={tabs.length < 2}
+                  disabled={bar.length < 2}
                   onClick={() =>
                     setPendingClose(
-                      tabs.filter((t) => t.id !== tab.id).map((t) => t.id),
+                      tabs
+                        .filter((t) => t.id !== tab.id && t.parent !== tab.id)
+                        .map((t) => t.id),
                     )
                   }
                 >
                   Chiudi altre sessioni
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  disabled={tabs[0].id === tab.id}
+                  disabled={bar[0].id === tab.id}
                   onClick={() => {
-                    const index = tabs.findIndex((t) => t.id === tab.id);
+                    const index = bar.findIndex((t) => t.id === tab.id);
                     setTabs((old) =>
-                      reorderTabs(old, tab.id, old[index - 1].id),
+                      reorderTabs(old, tab.id, bar[index - 1].id),
                     );
                   }}
                 >
@@ -1320,11 +1672,11 @@ function App() {
                   Sposta a sinistra
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  disabled={tabs[tabs.length - 1].id === tab.id}
+                  disabled={bar[bar.length - 1].id === tab.id}
                   onClick={() => {
-                    const index = tabs.findIndex((t) => t.id === tab.id);
+                    const index = bar.findIndex((t) => t.id === tab.id);
                     setTabs((old) =>
-                      reorderTabs(old, tab.id, old[index + 1].id),
+                      reorderTabs(old, tab.id, bar[index + 1].id),
                     );
                   }}
                 >
@@ -1390,7 +1742,7 @@ function App() {
                     : lastSync
                       ? `Sync ${lastSync}`
                       : "Sync configurata"
-                  : "Locale"}
+                  : null}
           </Button>
         </div>
         <WindowControls onError={setError} />
@@ -1483,7 +1835,7 @@ function App() {
             key={`${view.vaultId}-${launcherKey}`}
             hosts={view.hosts}
             identities={view.identities}
-            tabs={tabs.map((t) => ({
+            tabs={bar.map((t) => ({
               id: t.id,
               title: t.title,
               subtitle:
@@ -1494,7 +1846,9 @@ function App() {
                     : `${t.username}@${t.target.address}`,
             }))}
             onConnect={connect}
-            onActivateTab={setActive}
+            onActivateTab={(id) => {
+              setActive(id);
+            }}
             onLocalTerminal={openLocal}
             onQuickConnect={quickConnect}
             preview={preview}
@@ -2015,36 +2369,143 @@ function App() {
             </div>
           </section>
         )}
-        {tabs.map((tab) => (
-          <TerminalPane
-            key={tab.id}
-            tab={tab}
-            active={active === tab.id}
-            onError={setError}
-            onStatus={tabStatus}
-            onMetadata={metadataUpdated}
-            onClose={() => closeTab(tab.id)}
-            onRetry={() => {
-              closeTab(tab.id);
-              if (tab.kind === "ssh") {
-                const host = view.hosts.find((h) => h.id === tab.host.id);
-                if (host) connect(host);
-              } else if (tab.kind === "local") openLocal();
-              else openQuick(tab.target);
-            }}
-            onEdit={
-              tab.kind === "ssh"
-                ? () => {
+        <div
+          ref={terminals}
+          className="terminals"
+          style={{
+            display: bar.some((t) => t.id === active) ? "block" : "none",
+          }}
+        >
+          {tabs.map((tab) => {
+            const leader = tab.parent ?? tab.id,
+              geo = geos.get(leader),
+              focus = focusOf(tabs.find((t) => t.id === leader) ?? tab);
+            return (
+              <TerminalPane
+                key={tab.id}
+                tab={tab}
+                active={active === leader}
+                box={geo?.panes[tab.id]}
+                focused={geo ? focus === tab.id : undefined}
+                onFocus={geo ? () => setFocusedPane(tab.id) : undefined}
+                onDragPane={
+                  geo ? (on) => setDragPane(on ? tab.id : undefined) : undefined
+                }
+                onError={setError}
+                onStatus={tabStatus}
+                onMetadata={metadataUpdated}
+                onClose={() => closePane(tab.id)}
+                onRetry={() => {
+                  if (geo) return reconnectPane(tab.id);
+                  closePane(tab.id);
+                  if (tab.kind === "ssh") {
                     const host = view.hosts.find((h) => h.id === tab.host.id);
-                    if (host) {
-                      setActive("vault");
-                      setHostForm({ ...host });
+                    if (host) connect(host);
+                  } else if (tab.kind === "local") openLocal();
+                  else openQuick(tab.target);
+                }}
+                onEdit={
+                  tab.kind === "ssh"
+                    ? () => {
+                        const host = view.hosts.find(
+                          (h) => h.id === tab.host.id,
+                        );
+                        if (host) {
+                          setActive("vault");
+                          setHostForm({ ...host });
+                        }
+                      }
+                    : undefined
+                }
+              />
+            );
+          })}
+          {(dragPane || (drag?.id && drag.id !== active)) &&
+            Object.entries(
+              geos.get(active)?.panes ?? {
+                [active]: { x: 0, y: 0, w: 1, h: 1 },
+              },
+            ).map(([id, box]) =>
+              id === dragPane ? null : (
+                <div
+                  key={id}
+                  className="drop-zone"
+                  style={{
+                    left: `${box.x * 100}%`,
+                    top: `${box.y * 100}%`,
+                    width: `${box.w * 100}%`,
+                    height: `${box.h * 100}%`,
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    const r = e.currentTarget.getBoundingClientRect(),
+                      edge = dropEdge(
+                        e.clientX - r.left,
+                        e.clientY - r.top,
+                        r.width,
+                        r.height,
+                      );
+                    setDropHint((h) =>
+                      h?.paneId === id && h.edge === edge
+                        ? h
+                        : { paneId: id, edge },
+                    );
+                  }}
+                  onDragLeave={() => setDropHint(undefined)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (dropHint?.paneId === id && dropHint.edge)
+                      dropOnPane(id, dropHint.edge);
+                    clearDnd();
+                  }}
+                >
+                  {dropHint?.paneId === id && dropHint.edge && (
+                    <div className={`drop-preview ${dropHint.edge}`} />
+                  )}
+                </div>
+              ),
+            )}
+          {geos.get(active)?.dividers.map((d) => (
+            <div
+              key={d.path}
+              className={`pane-divider ${d.dir}`}
+              style={
+                d.dir === "row"
+                  ? {
+                      left: `${d.at * 100}%`,
+                      top: `${d.box.y * 100}%`,
+                      height: `${d.box.h * 100}%`,
                     }
-                  }
-                : undefined
-            }
-          />
-        ))}
+                  : {
+                      top: `${d.at * 100}%`,
+                      left: `${d.box.x * 100}%`,
+                      width: `${d.box.w * 100}%`,
+                    }
+              }
+              onPointerDown={(e) =>
+                e.currentTarget.setPointerCapture(e.pointerId)
+              }
+              onPointerMove={(e) => {
+                if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+                const r = terminals.current!.getBoundingClientRect(),
+                  row = d.dir === "row",
+                  pos = row
+                    ? (e.clientX - r.left) / r.width
+                    : (e.clientY - r.top) / r.height,
+                  ratio =
+                    (pos - (row ? d.box.x : d.box.y)) /
+                    (row ? d.box.w : d.box.h);
+                setTabs((old) =>
+                  old.map((t) =>
+                    t.id === active && t.layout
+                      ? { ...t, layout: setRatio(t.layout, d.path, ratio) }
+                      : t,
+                  ),
+                );
+              }}
+            />
+          ))}
+        </div>
       </main>
       {hostForm && !identityForm && !keyForm && (
         <HostEditor
@@ -2530,4 +2991,6 @@ function App() {
     </div>
   );
 }
+if (isTauri() && /Mac/.test(navigator.userAgent))
+  document.documentElement.classList.add("mac");
 createRoot(document.getElementById("root")!).render(<App />);

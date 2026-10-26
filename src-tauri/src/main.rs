@@ -551,7 +551,7 @@ fn claim_instance(path: &std::path::Path) -> Result<std::fs::File, String> {
         .map_err(|e| e.to_string())?;
     file.try_lock().map_err(|e| {
         format!(
-            "Impossibile aprire il vault locale: chiudi le altre istanze di Server Manager. {e}"
+            "Impossibile aprire il vault locale: chiudi le altre istanze di Shellnest. {e}"
         )
     })?;
     Ok(file)
@@ -574,6 +574,52 @@ fn main() {
                 }
                 path
             };
+            // The default macOS menu binds Cmd+W to "Close Window", which would swallow the pane-close shortcut.
+            #[cfg(target_os = "macos")]
+            {
+                use tauri::menu::{Menu, PredefinedMenuItem as P, Submenu};
+                let h = app.handle();
+                let menu = Menu::with_items(
+                    h,
+                    &[
+                        &Submenu::with_items(
+                            h,
+                            "Shellnest",
+                            true,
+                            &[
+                                &P::about(h, None, None)?,
+                                &P::separator(h)?,
+                                &P::hide(h, None)?,
+                                &P::hide_others(h, None)?,
+                                &P::show_all(h, None)?,
+                                &P::separator(h)?,
+                                &P::quit(h, None)?,
+                            ],
+                        )?,
+                        &Submenu::with_items(
+                            h,
+                            "Modifica",
+                            true,
+                            &[
+                                &P::undo(h, None)?,
+                                &P::redo(h, None)?,
+                                &P::separator(h)?,
+                                &P::cut(h, None)?,
+                                &P::copy(h, None)?,
+                                &P::paste(h, None)?,
+                                &P::select_all(h, None)?,
+                            ],
+                        )?,
+                        &Submenu::with_items(
+                            h,
+                            "Finestra",
+                            true,
+                            &[&P::minimize(h, None)?, &P::maximize(h, None)?],
+                        )?,
+                    ],
+                )?;
+                app.set_menu(menu)?;
+            }
             std::fs::create_dir_all(&dir)?;
             // Retain the OS file lock for the app lifetime to prevent two processes writing one vault.
             app.manage(claim_instance(&dir.join("instance.lock")).map_err(std::io::Error::other)?);

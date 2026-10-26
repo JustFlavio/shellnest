@@ -12,6 +12,10 @@ type Status = "connecting" | "connected" | "closed" | "failed";
 export function TerminalPane({
   tab,
   active,
+  box,
+  focused,
+  onFocus,
+  onDragPane,
   onError,
   onStatus,
   onMetadata,
@@ -21,6 +25,13 @@ export function TerminalPane({
 }: {
   tab: TerminalTab;
   active: boolean;
+  // fractions of the terminals area when the tab is split; undefined = fill
+  box?: { x: number; y: number; w: number; h: number };
+  // undefined when the tab is not split
+  focused?: boolean;
+  onFocus?: () => void;
+  // set when split: the header can be dragged to move the pane
+  onDragPane?: (dragging: boolean) => void;
   onError: (error: string) => void;
   onStatus: (id: string, status: Status) => void;
   onMetadata: (vaultId: string) => void;
@@ -199,19 +210,35 @@ export function TerminalPane({
     if (active)
       requestAnimationFrame(() => {
         fit.current?.fit();
-        terminal.current?.focus();
+        if (focused !== false) terminal.current?.focus();
       });
-  }, [active]);
+  }, [active, focused]);
   const endpoint =
     tab.kind === "local"
       ? "Shell del dispositivo"
       : `${tab.username}@${tab.kind === "ssh" ? tab.host.address : tab.target.address}:${tab.kind === "ssh" ? tab.host.port : tab.target.port}`;
   return (
     <div
-      className="terminal-pane"
-      style={{ display: active ? "flex" : "none" }}
+      className={`terminal-pane${focused === undefined ? "" : focused ? " split focused" : " split"}`}
+      style={{
+        display: active ? "flex" : "none",
+        left: `${(box?.x ?? 0) * 100}%`,
+        top: `${(box?.y ?? 0) * 100}%`,
+        width: `${(box?.w ?? 1) * 100}%`,
+        height: `${(box?.h ?? 1) * 100}%`,
+      }}
+      onFocus={onFocus}
+      onMouseDown={onFocus}
     >
-      <div className="terminal-info">
+      <div
+        className="terminal-info"
+        draggable={!!onDragPane}
+        onDragStart={(e) => {
+          e.dataTransfer.setData("application/x-server-manager-pane", tab.id);
+          onDragPane?.(true);
+        }}
+        onDragEnd={() => onDragPane?.(false)}
+      >
         <span className={`session-dot ${tab.status ?? "connecting"}`} />
         {endpoint}
         <span>

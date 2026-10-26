@@ -1,3 +1,4 @@
+import type { LayoutNode } from "./workbench-state.mjs";
 export type Host = {
   id: string;
   name: string;
@@ -69,6 +70,11 @@ export type TerminalTab = {
   identityName: string;
   status?: "connecting" | "connected" | "closed" | "failed";
   error?: string;
+  // pane of another tab's split workspace; hidden from the tab bar
+  // user-chosen tab name; overrides the title (or "Workspace" when split)
+  name?: string;
+  parent?: string;
+  layout?: LayoutNode;
 } & (
   | { kind: "ssh"; host: Host }
   | { kind: "quick"; target: QuickTarget }

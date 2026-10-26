@@ -352,18 +352,20 @@ export function HostsView(p: Props) {
           </div>
         </section>
       )}
-      <section aria-label="Host">
-        {p.layout === "cards" && <h2>{p.group || "Host"}</h2>}
-        {hosts.length > 0 ? (
-          p.layout === "cards" ? (
-            <div className="host-cards">{hosts.map(tile)}</div>
+      {(hosts.length > 0 || groups.length > 0) && (
+        <section aria-label="Host">
+          {p.layout === "cards" && <h2>{p.group || "Host"}</h2>}
+          {hosts.length > 0 ? (
+            p.layout === "cards" ? (
+              <div className="host-cards">{hosts.map(tile)}</div>
+            ) : (
+              table(hosts)
+            )
           ) : (
-            table(hosts)
-          )
-        ) : (
-          <p className="muted">Nessun host fuori dalle cartelle.</p>
-        )}
-      </section>
+            <p className="muted">Nessun host fuori dalle cartelle.</p>
+          )}
+        </section>
+      )}
     </CollectionSelection>
   );
 }

@@ -827,9 +827,20 @@ tbody tr.checked {
   display: flex;
   align-items: center;
   flex-direction: column;
-  padding: 70px 24px;
+  flex: 1;
+  justify-content: center;
+  padding: 24px 24px 8vh;
   text-align: center;
   color: var(--muted-foreground);
+}
+.collection-content:has(.empty) {
+  display: flex;
+  flex-direction: column;
+}
+.table-wrap:has(> .empty) {
+  display: flex;
+  flex: 1;
+  border: 0;
 }
 .empty h2 {
   color: var(--foreground);
@@ -2043,4 +2054,162 @@ tr:focus-within .host-edit {
 }
 .centered-panel .fingerprint {
   overflow-wrap: anywhere;
+}
+
+/* Tab: one hover surface for the whole tab */
+.tab {
+  position: relative;
+  cursor: pointer;
+  padding: 0 3px 0 0;
+  transition:
+    background-color 0.12s,
+    color 0.12s,
+    border-color 0.12s;
+}
+.tab:hover:not(.selected),
+.tab:focus-within:not(.selected) {
+  color: var(--foreground);
+  background: color-mix(in oklab, var(--accent) 70%, transparent);
+  border-color: var(--border);
+}
+.tab > button,
+.tab > button:hover {
+  background: transparent !important;
+  color: inherit;
+}
+.tab > button:first-child {
+  flex: 1;
+  height: 100%;
+  padding: 0 4px 0 10px;
+  justify-content: flex-start;
+}
+.tab > button:not(:first-child),
+.tab .action-menu-trigger {
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.tab:hover > button:not(:first-child),
+.tab:hover .action-menu-trigger,
+.tab:focus-within > button:not(:first-child),
+.tab:focus-within .action-menu-trigger,
+.tab.selected > button:not(:first-child),
+.tab.selected .action-menu-trigger,
+.tab .action-menu-trigger[data-popup-open] {
+  opacity: 1;
+}
+.tab > button:not(:first-child):hover,
+.tab .action-menu-trigger:hover {
+  background: var(--accent) !important;
+  border-radius: 5px;
+}
+.tab.dragging {
+  opacity: 0.45;
+}
+.tab.drop-before::before,
+.tab.drop-after::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--primary);
+}
+.tab.drop-before::before {
+  left: -3px;
+}
+.tab.drop-after::after {
+  right: -3px;
+}
+
+/* Split terminals: panes stay mounted (keyed by session) and are positioned by layout rects */
+.terminals {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.terminals > .terminal-pane {
+  position: absolute;
+  flex: none;
+  box-sizing: border-box;
+}
+.terminals > .terminal-pane.split {
+  padding: 0 10px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background-clip: padding-box;
+}
+.terminals > .terminal-pane.split.focused {
+  border-color: var(--primary);
+}
+.pane-divider {
+  position: absolute;
+  z-index: 2;
+  background: transparent;
+}
+.pane-divider.row {
+  width: 8px;
+  margin-left: -4px;
+  cursor: col-resize;
+}
+.pane-divider.col {
+  height: 8px;
+  margin-top: -4px;
+  cursor: row-resize;
+}
+.pane-divider:hover,
+.pane-divider.dragging {
+  background: color-mix(in oklab, var(--primary) 35%, transparent);
+}
+
+/* Drag a tab or pane header over the terminals to split by edge */
+.drop-zone {
+  position: absolute;
+  z-index: 3;
+}
+.drop-preview {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 8px;
+  border: 2px solid var(--primary);
+  background: color-mix(in oklab, var(--primary) 22%, transparent);
+}
+.drop-preview.left {
+  inset: 0 50% 0 0;
+}
+.drop-preview.right {
+  inset: 0 0 0 50%;
+}
+.drop-preview.top {
+  inset: 0 0 50% 0;
+}
+.drop-preview.bottom {
+  inset: 50% 0 0 0;
+}
+.tab-rename {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  margin-left: 8px;
+  padding: 0 6px;
+  font: inherit;
+  color: var(--foreground);
+  background: var(--background);
+  border: 1px solid var(--primary);
+  border-radius: 5px;
+  outline: none;
+}
+
+/* macOS: native rounded window; traffic lights overlay the header's left edge */
+.mac .window-controls,
+.mac .brand-name,
+.mac .gate-titlebar > span,
+.mac .app-header > .app-name .brand-icon {
+  display: none;
+}
+.mac .app-header > .app-name {
+  width: 82px;
+}
+.hosts-wrap:has(> .empty) > .host-collection {
+  display: none;
 }

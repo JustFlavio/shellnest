@@ -1,6 +1,6 @@
 {
   "identifier": "dev.servermanager.e2e",
-  "productName": "Server Manager E2E",
+  "productName": "Shellnest E2E",
   "build": {
     "beforeBuildCommand": "npm run build -- --mode desktop-e2e"
   },

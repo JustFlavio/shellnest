@@ -1,0 +1,17 @@
+{
+  "app": {
+    "windows": [
+      {
+        "title": "Shellnest",
+        "width": 1280,
+        "height": 840,
+        "minWidth": 480,
+        "minHeight": 360,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": { "x": 16, "y": 23 }
+      }
+    ]
+  }
+}
