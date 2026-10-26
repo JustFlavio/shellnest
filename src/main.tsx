@@ -2249,7 +2249,10 @@ function App() {
                 <Button
                   variant="default"
                   type="button"
-                  className={`h-[30px] bg-clip-border ${page === "hosts" ? "rounded-r-none" : ""}`}
+                  className={cn(
+                    "h-[30px] bg-clip-border",
+                    page === "hosts" && "rounded-r-none",
+                  )}
                   disabled={busy}
                   onClick={onNew}
                   title={page === "hosts" ? "Ctrl/Cmd N" : undefined}
@@ -2264,7 +2267,13 @@ function App() {
                 {page === "hosts" && (
                   <DropdownMenu>
                     <DropdownMenuTrigger
-                      className="grid h-[30px] w-7 place-items-center rounded-r-lg bg-primary font-semibold text-primary-foreground hover:brightness-110 shadow-[inset_1px_0_0_rgb(0_0_0/0.22)] outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 data-popup-open:brightness-110"
+                      render={
+                        <Button
+                          variant="default"
+                          type="button"
+                          className="h-[30px] w-[28px] rounded-l-none bg-clip-border px-0 shadow-[inset_1px_0_0_rgb(0_0_0/0.22)] aria-expanded:brightness-110"
+                        />
+                      }
                       aria-label="Altre azioni di creazione"
                       disabled={busy}
                     >
