@@ -94,3 +94,67 @@ test("format", () => {
   assert.equal(format(closePane, true), "⌘W");
   assert.equal(format(closePane, false), "Ctrl+Maiusc+W");
 });
+
+import {
+  comboFromEvent,
+  findConflict,
+  parseOverrides,
+  reservedReason,
+  resolve,
+} from "./shortcuts.mjs";
+
+test("comboFromEvent round-trips through matching", () => {
+  for (const mac of [true, false])
+    for (const s of SHORTCUTS)
+      for (const c of s.combos) {
+        if (c.key === "1-9") continue;
+        // Build the event a user would press for this combo.
+        const shiftLetter = !mac && !!c.mod && /^[a-z]$/.test(c.key);
+        const e = ev(
+          c.shift && !shiftLetter && c.key.length === 1
+            ? c.key.toUpperCase()
+            : c.key,
+          {
+            metaKey: mac && !!c.mod,
+            ctrlKey: (!mac && !!c.mod) || !!c.ctrl,
+            shiftKey: !!c.shift || shiftLetter,
+            altKey: !!c.alt || (shiftLetter && !!c.shift),
+          },
+          c.key === "[" ? "BracketLeft" : c.key === "]" ? "BracketRight" : "",
+        );
+        assert.equal(format(comboFromEvent(e, mac, s.id), mac), format(c, mac));
+        assert.equal(actionFor(e, mac), s.id);
+      }
+});
+
+test("comboFromEvent rejects lone modifiers and unmodified keys", () => {
+  assert.equal(comboFromEvent(ev("Meta", { metaKey: true }), true, "x"), null);
+  assert.equal(comboFromEvent(ev("a"), true, "x"), null);
+  assert.equal(comboFromEvent(ev("A", { shiftKey: true }), true, "x"), null);
+  assert.deepEqual(
+    comboFromEvent(ev("5", { metaKey: true }), true, "gotoTab"),
+    { key: "1-9", mod: true },
+  );
+});
+
+test("reserved combos", () => {
+  assert.ok(reservedReason({ key: "q", mod: true }, true));
+  assert.ok(reservedReason({ key: "c", ctrl: true }, true));
+  assert.equal(reservedReason({ key: "j", mod: true }, true), "");
+});
+
+test("overrides replace defaults, bad input falls back", () => {
+  const b = resolve({ closePane: [{ key: "x", mod: true }] });
+  assert.equal(actionFor(ev("x", { metaKey: true }), true, b), "closePane");
+  assert.equal(actionFor(ev("w", { metaKey: true }), true, b), undefined);
+  assert.deepEqual(parseOverrides("nope"), {});
+  assert.deepEqual(
+    parseOverrides('{"closePane":[{"nokey":1}],"ghost":[]}'),
+    {},
+  );
+  assert.deepEqual(parseOverrides('{"closePane":[]}'), { closePane: [] });
+  assert.equal(
+    findConflict(resolve(), "closePane", { key: "t", mod: true }, true).id,
+    "quickConnect",
+  );
+});

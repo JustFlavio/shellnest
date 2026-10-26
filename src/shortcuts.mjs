@@ -122,13 +122,20 @@ export const SHORTCUTS = [
   },
 ];
 
-const keyMatches = (e, key) => {
-  if (key === "1-9") return /^[1-9]$/.test(e.key);
-  if (key === "[" || key === "]")
-    return e.code === (key === "[" ? "BracketLeft" : "BracketRight");
-  if (key === "+") return e.key === "+" || e.key === "=";
-  return e.key.toLowerCase() === key.toLowerCase();
+// Normalised key of an event: the typed character when it is a letter or digit, else the physical key (Option and Shift change e.key).
+const keyOf = (e) => {
+  const k = e.key.toLowerCase();
+  if (/^[a-z0-9]$/.test(k)) return k;
+  if (k === "=" || k === "+") return "+";
+  const c = /^(?:Key|Digit)(.)$/.exec(e.code);
+  if (c) return c[1].toLowerCase();
+  if (e.code === "BracketLeft") return "[";
+  if (e.code === "BracketRight") return "]";
+  return e.key.length === 1 ? k : e.key;
 };
+
+const keyMatches = (e, key) =>
+  key === "1-9" ? /^[1-9]$/.test(keyOf(e)) : keyOf(e).toLowerCase() === key.toLowerCase();
 
 export function matches(e, combo, mac) {
   const letter = /^[a-z]$/i.test(combo.key);
@@ -146,8 +153,8 @@ export function matches(e, combo, mac) {
   );
 }
 
-export function actionFor(e, mac) {
-  return SHORTCUTS.find((s) => s.combos.some((c) => matches(e, c, mac)))?.id;
+export function actionFor(e, mac, bindings = SHORTCUTS) {
+  return bindings.find((s) => s.combos.some((c) => matches(e, c, mac)))?.id;
 }
 
 const names = { ArrowLeft: "←", ArrowRight: "→", ArrowUp: "↑", ArrowDown: "↓" };
@@ -174,5 +181,70 @@ export function format(combo, mac) {
     .join("+");
 }
 
-export const hint = (id, mac) =>
-  format(SHORTCUTS.find((s) => s.id === id).combos[0], mac);
+export const hint = (id, mac, bindings = SHORTCUTS) => {
+  const combo = bindings.find((s) => s.id === id).combos[0];
+  return combo ? format(combo, mac) : "";
+};
+
+export const resolve = (overrides = {}) =>
+  SHORTCUTS.map((s) => ({ ...s, combos: overrides[s.id] ?? s.combos }));
+
+const flags = ["mod", "ctrl", "shift", "alt"];
+// Ignores unknown actions and malformed combos, so a corrupt or outdated store falls back to the defaults.
+export function parseOverrides(text) {
+  const out = {};
+  try {
+    const raw = JSON.parse(text);
+    for (const s of SHORTCUTS) {
+      if (!Array.isArray(raw[s.id])) continue;
+      const combos = raw[s.id]
+        .filter((c) => c && typeof c.key === "string" && c.key)
+        .map((c) => ({
+          key: c.key,
+          ...Object.fromEntries(
+            flags.filter((f) => c[f] === true).map((f) => [f, true]),
+          ),
+        }));
+      if (combos.length === raw[s.id].length) out[s.id] = combos;
+    }
+  } catch {}
+  return out;
+}
+
+// The combo the user just pressed, in registry form; null for a lone modifier or a key without Cmd/Ctrl/Alt.
+export function comboFromEvent(e, mac, id) {
+  if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return null;
+  let key = keyOf(e);
+  if (id === "gotoTab" && /^[1-9]$/.test(key)) key = "1-9";
+  const letter = /^[a-z]$/.test(key);
+  let c;
+  if (mac)
+    c = { mod: e.metaKey, ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey };
+  else if (e.metaKey) return null;
+  else if (!e.ctrlKey) c = { shift: e.shiftKey, alt: e.altKey };
+  else if (!letter) c = { mod: true, shift: e.shiftKey, alt: e.altKey };
+  else if (e.shiftKey) c = { mod: true, shift: e.altKey };
+  else c = { ctrl: true, alt: e.altKey };
+  if (!c.mod && !c.ctrl && !c.alt) return null;
+  return { key, ...Object.fromEntries(Object.entries(c).filter(([, v]) => v)) };
+}
+
+// Why a combo cannot be bound, or "" when it can.
+export function reservedReason(combo, mac) {
+  const letter = /^[a-z]$/.test(combo.key);
+  if (combo.ctrl && letter && !combo.shift && !combo.alt)
+    return "è riservata ai comandi del terminale";
+  if (mac && combo.mod && !combo.alt) {
+    if (!combo.shift && "cvxazqhm".includes(combo.key) && letter)
+      return "è riservata al sistema";
+    if (combo.shift && combo.key === "z") return "è riservata al sistema";
+  }
+  return "";
+}
+
+export const findConflict = (bindings, id, combo, mac) =>
+  bindings.find(
+    (s) =>
+      s.id !== id &&
+      s.combos.some((c) => format(c, mac) === format(combo, mac)),
+  );
