@@ -303,7 +303,7 @@ export function TerminalPane({
       />
       {!opened && (
         <div className="grid min-h-0 flex-1 place-items-center overflow-auto p-[24px]">
-          <div className="w-[min(100%,460px)] text-center [&>h2]:!text-[18px] [&>h2]:font-semibold [&>p]:my-[10px] [&>p]:[overflow-wrap:anywhere] [&>svg]:mx-auto [&>svg]:mb-[16px] [&>svg]:text-primary">
+          <div className="w-[min(100%,460px)] text-center [&>h2]:text-[18px] [&>h2]:font-semibold [&>p]:my-[10px] [&>p]:[overflow-wrap:anywhere] [&>svg]:mx-auto [&>svg]:mb-[16px] [&>svg]:text-primary">
             {failure || tab.error ? (
               <CircleAlert size={32} />
             ) : pendingTrust ? (

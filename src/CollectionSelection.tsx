@@ -60,7 +60,7 @@ export function CollectionSelection({
   );
   return (
     <div
-      className="host-collection"
+      className="host-collection grid min-h-full flex-1 content-start gap-[28px] [&_h2]:mb-[12px] [&_h2]:text-[13px]"
       onPointerDown={(e) => {
         // Portaled menus bubble through React: their clicks must reach them.
         if (
@@ -137,7 +137,7 @@ export function CollectionSelection({
       {box && (
         <div
           aria-hidden="true"
-          className="selection-box"
+          className="pointer-events-none fixed z-20 border border-primary bg-[color-mix(in_srgb,var(--primary)_14%,transparent)]"
           style={{
             left: box.left,
             top: box.top,

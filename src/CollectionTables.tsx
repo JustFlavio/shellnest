@@ -93,7 +93,7 @@ function Row({
 }
 
 const nameButton =
-  "h-auto justify-start gap-2 p-0 text-[13px] font-medium text-foreground hover:bg-transparent hover:text-primary";
+  "h-auto justify-start gap-2 p-0 text-[13px] text-foreground hover:bg-transparent hover:text-primary";
 const linkButton =
   "h-auto justify-start p-0 text-[13px] text-muted-foreground hover:bg-transparent hover:text-foreground";
 

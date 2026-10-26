@@ -83,7 +83,7 @@ export function TabLead({
     >
       <span
         className={cn(
-          "grid place-items-center [&_.os-icon]:!size-[18px] [&_.os-icon]:!rounded-[4px] [&_.os-icon_svg]:!size-[12px]",
+          "grid place-items-center",
           onClose && swap,
         )}
       >

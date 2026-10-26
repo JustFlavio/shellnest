@@ -51,7 +51,7 @@ export function HostCredentialsField({
             onChange({ ...value, identityId: identity.id });
         }}
       >
-        <div className="sheet-control sheet-field">
+        <div className="sheet-control sheet-field [&_[data-slot=input]]:pl-[38px]">
           <UserRound className="field-icon" aria-hidden="true" />
           <Combobox.Input
             render={<Input />}
@@ -90,7 +90,7 @@ export function HostCredentialsField({
                 <Button
                   variant="ghost"
                   type="button"
-                  className="create-shared-identity"
+                  className="mt-[4px] w-full text-[12px] text-primary"
                   onClick={onNewIdentity}
                 >
                   Crea identità condivisa

@@ -3,7 +3,7 @@ import { defineConfig } from "@playwright/test";
 // Visual regression on the browser preview (synthetic data, no SSH).
 export default defineConfig({
   testDir: ".",
-  testMatch: "visual.spec.mjs",
+  testMatch: "visual*.spec.mjs",
   snapshotPathTemplate: "{testDir}/visual-snapshots/{arg}{ext}",
   use: {
     baseURL: "http://127.0.0.1:5173",

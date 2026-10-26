@@ -60,7 +60,7 @@ const panelStyles = {
       "[&_[data-slot=input]]:rounded-[10px] [&_[data-slot=input]]:text-[14px] [&_[data-slot=select-trigger]]:rounded-[10px] [&_[data-slot=select-trigger]]:text-[14px] [&_footer_button]:h-[34px] [&_footer_button]:rounded-[10px] [&_footer_button]:px-[13px] [&_footer_button]:text-[14px] [&_footer_.primary]:flex-1 " +
       "[&_[data-slot=input]:hover]:border-[color-mix(in_srgb,var(--input),var(--muted-foreground)_35%)] [&_[data-slot=select-trigger]:hover]:border-[color-mix(in_srgb,var(--input),var(--muted-foreground)_35%)]",
     header: "bg-sidebar px-[18px] shadow-[0_1px_0_var(--border)]",
-    title: "!text-[14px] leading-[1.4]",
+    title: "text-[14px] leading-[1.4]",
     body: panelBodyBase + " [&>form]:min-h-0 [&>form]:gap-[16px]",
   },
   dialog: {
@@ -69,7 +69,7 @@ const panelStyles = {
     content:
       "centered-panel flex w-[480px] max-w-[calc(100vw-32px)] max-h-[calc(100dvh-32px)] flex-col gap-0 bg-sidebar p-0 sm:max-w-[calc(100vw-32px)] [&_.fingerprint]:[overflow-wrap:anywhere]",
     header: "",
-    title: "!text-[13px]",
+    title: "text-[13px]",
     body:
       panelBodyBase +
       " flex-[0_1_auto] [&>form]:min-h-0 [&>footer]:static [&>footer]:mt-[20px] [&>footer]:flex-wrap [&>form>footer]:static [&>form>footer]:mt-[20px] [&>form>footer]:flex-wrap",
@@ -79,11 +79,11 @@ const panelStyles = {
     content:
       "centered-panel alert-panel flex w-[440px] max-w-[calc(100vw-32px)] max-h-[calc(100dvh-32px)] flex-col gap-0 overflow-hidden rounded-[16px] border border-border bg-background p-0 shadow-[0_24px_64px_#0008] ring-0 sm:max-w-[calc(100vw-32px)]",
     header: "min-h-[60px] bg-card px-[20px] [&_button]:size-[32px] [&_button]:text-foreground [&_button_svg]:!size-[20px]",
-    title: "!text-[17px]",
+    title: "text-[17px]",
     body:
       "flex-[0_1_auto] px-[20px] pt-[24px] pb-[20px] min-h-0 overflow-auto [&_p]:text-[14px] [&_p]:leading-[1.7] [&_p]:text-foreground [&>[data-slot]]:text-[14px] [&>[data-slot]]:text-foreground " +
-      "[&>footer]:mt-[18px] [&>footer]:flex [&>footer]:justify-end [&>footer]:gap-[8px] [&_footer_button]:h-[38px] [&_footer_button]:px-[18px] [&_footer_button]:font-semibold [&_footer_button]:!text-[14px] " +
-      "[&_footer_.danger]:!border-0 [&_footer_.danger]:!bg-destructive [&_footer_.danger]:!text-[#1a0f0d] [&_footer_.danger:hover:not(:disabled)]:!bg-[color-mix(in_srgb,var(--destructive),white_12%)] [&_footer_.primary]:!border-0",
+      "[&>footer]:mt-[18px] [&>footer]:flex [&>footer]:justify-end [&>footer]:gap-[8px] [&_footer_button]:h-[38px] [&_footer_button]:px-[18px] [&_footer_button]:font-semibold [&_footer_button]:text-[14px] " +
+      "[&_footer_.danger]:border-0 [&_footer_.danger]:bg-destructive [&_footer_.danger]:text-[#1a0f0d] [&_footer_.danger:hover:not(:disabled)]:bg-[color-mix(in_srgb,var(--destructive),white_12%)] [&_footer_.primary]:border-0",
   },
 } as const;
 
@@ -344,7 +344,7 @@ export function HostEditor({
         <EditorSection title="Indirizzo">
           <div className="host-address">
             {value.os ? (
-              <OsIcon os={value.os} />
+              <OsIcon os={value.os} size="field" />
             ) : (
               <span className="address-icon">
                 <Server className="size-5" aria-hidden="true" />
@@ -383,7 +383,7 @@ export function HostEditor({
         </EditorSection>
         <fieldset className="editor-section host-connection">
           <legend className="visually-hidden">Accesso SSH</legend>
-          <label className="port-inline">
+          <label className="port-inline [&_[data-slot=input]]:h-[30px] [&_[data-slot=input]]:w-[78px]">
             Porta SSH
             <Input
               type="number"
@@ -420,6 +420,7 @@ export function HostEditor({
               <Button
                 variant="ghost"
                 type="button"
+                className="shrink-0 text-[12px] text-primary"
                 onClick={() => onChange({ ...value, inheritIdentity: false })}
               >
                 Usa credenziali proprie
@@ -438,6 +439,7 @@ export function HostEditor({
                   <Button
                     variant="ghost"
                     type="button"
+                    className="shrink-0 text-[12px] text-primary"
                     onClick={() =>
                       onChange({
                         ...value,
@@ -624,8 +626,8 @@ export function IdentityEditor({
                 />
               </label>
               <Button
-                variant="ghost"
-                className="link"
+                variant="link"
+                className="mt-[10px]"
                 type="button"
                 onClick={onNewKey}
               >

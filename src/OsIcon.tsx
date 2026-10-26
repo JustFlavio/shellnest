@@ -1,11 +1,32 @@
 
 import { Apple, Monitor, TerminalSquare } from "lucide-react";
-export function OsIcon({ os }: { os?: string | null }) {
+import { cn } from "./lib/utils";
+
+// Box and glyph size per context, in px (the root font is 14px, so no rem units).
+const sizes = {
+  default: { box: "size-[44px] rounded-[11px]", glyph: "size-[28px]" },
+  row: { box: "size-[28px] rounded-[6px]", glyph: "size-[20px]" },
+  field: { box: "size-[36px] rounded-[9px]", glyph: "size-[24px]" },
+  launch: { box: "size-[24px] rounded-[11px]", glyph: "size-[16px]" },
+  tab: { box: "size-[18px] rounded-[4px]", glyph: "size-[12px]" },
+};
+const base =
+  "inline-flex shrink-0 items-center justify-center bg-muted text-muted-foreground";
+
+export function OsIcon({
+  os,
+  size = "default",
+}: {
+  os?: string | null;
+  size?: keyof typeof sizes;
+}) {
   const name = (os ?? "").toLowerCase();
+  const box = cn(base, sizes[size].box);
+  const glyph = sizes[size].glyph;
   if (name.includes("ubuntu"))
     return (
-      <span className="os-icon ubuntu" title="Ubuntu">
-        <svg viewBox="0 0 32 32" aria-label="Ubuntu">
+      <span className={cn(box, "bg-[#e95420] text-white")} title="Ubuntu">
+        <svg viewBox="0 0 32 32" aria-label="Ubuntu" className={glyph}>
           <circle
             cx="16"
             cy="16"
@@ -27,8 +48,8 @@ export function OsIcon({ os }: { os?: string | null }) {
     );
   if (name.includes("debian"))
     return (
-      <span className="os-icon debian" title="Debian">
-        <svg viewBox="0 0 32 32" aria-label="Debian">
+      <span className={cn(box, "bg-[#c90050] text-white")} title="Debian">
+        <svg viewBox="0 0 32 32" aria-label="Debian" className={glyph}>
           <path
             d="M22 8c-7-7-18 2-13 10 3 5 12 4 12-2 0-6-9-6-9-1 0 3 5 4 6 1M9 18c0 5 5 8 12 8"
             fill="none"
@@ -46,10 +67,10 @@ export function OsIcon({ os }: { os?: string | null }) {
       : TerminalSquare;
   return (
     <span
-      className={`os-icon ${name ? "detected" : ""}`}
+      className={cn(box, name && "text-foreground")}
       title={os || "Sistema non ancora rilevato"}
     >
-      <Icon size={22} />
+      <Icon className={glyph} />
     </span>
   );
 }

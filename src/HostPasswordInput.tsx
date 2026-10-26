@@ -48,7 +48,7 @@ export function HostPasswordInput({
   };
   return (
     <>
-      <div className="sheet-control password-control">
+      <div className="sheet-control password-control [&_[data-slot=input]]:pr-[42px] [&_[data-slot=input]]:pl-[38px]">
         <KeyRound className="field-icon" aria-hidden="true" />
         <Input
           {...props}

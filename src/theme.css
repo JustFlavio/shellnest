@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
+@import "./style.css" layer(components);
 
 @custom-variant dark (&:is(.dark *));
 
@@ -36,6 +37,8 @@
   --font-sans: var(--font-ui);
   --font-mono: var(--font-mono);
   --color-background: var(--background);
+  --color-field: var(--field);
+  --color-header: var(--header);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-foreground: var(--foreground);

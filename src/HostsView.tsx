@@ -54,6 +54,14 @@ type Props = {
   onError: (error: string) => void;
   busy: boolean;
 };
+const tableClass = cn(
+  "w-full border-separate border-spacing-0 text-left text-[13px]",
+  "[&_thead]:sticky [&_thead]:top-0 [&_thead]:z-1",
+  "[&_th]:h-[30px] [&_th]:border-b [&_th]:border-border [&_th]:bg-sidebar [&_th]:px-[12px] [&_th]:text-[12px] [&_th]:font-medium [&_th]:whitespace-nowrap [&_th]:text-muted-foreground",
+  "[&_td]:h-[40px] [&_td]:border-b [&_td]:border-border [&_td]:px-[12px] [&_td]:py-[3px] [&_td]:align-middle [&_td]:whitespace-nowrap",
+  "[&_tbody_tr:last-child_td]:border-b-0 [&_tbody_tr]:animate-[rise_0.28s_cubic-bezier(0.2,0.7,0.2,1)_backwards] [&_tbody_tr:hover]:bg-card",
+  "[&_tbody_tr.checked]:bg-accent [&_tbody_tr.checked]:outline [&_tbody_tr.checked]:-outline-offset-1 [&_tbody_tr.checked]:outline-primary",
+);
 const cardsGrid =
   "grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-[10px]";
 export function HostsView(p: Props) {
@@ -240,7 +248,7 @@ export function HostsView(p: Props) {
           <td>
             <Button
               variant="ghost"
-              className="host-name"
+              className="h-auto justify-start gap-[10px] p-0 text-[13px] text-foreground"
               disabled={p.busy}
               aria-label={"Seleziona " + h.name}
               aria-pressed={p.selected.has(h.id)}
@@ -250,16 +258,16 @@ export function HostsView(p: Props) {
               }}
               onKeyDown={(e) => keyboard(h, e)}
             >
-              <OsIcon os={h.os} />
+              <OsIcon os={h.os} size="row" />
               {h.name}
             </Button>
           </td>
-          <td className="mono">{endpoint(h)}</td>
+          <td className="font-mono">{endpoint(h)}</td>
           <td>
             {i ? (
               <Button
                 variant="ghost"
-                className="cell-link"
+                className="h-auto justify-start gap-[7px] px-0 py-[3px] text-left text-muted-foreground hover:bg-transparent hover:text-foreground disabled:opacity-100"
                 disabled={p.busy}
                 onClick={() => p.onEditIdentity(i)}
               >
@@ -270,7 +278,7 @@ export function HostsView(p: Props) {
                 )}
                 <span>
                   {i.name}
-                  <small className="identity-username"> · {i.username}</small>
+                  <small className="text-[12px]"> · {i.username}</small>
                 </span>
               </Button>
             ) : h.username ? (
@@ -284,7 +292,7 @@ export function HostsView(p: Props) {
             )}
           </td>
           <td>
-            <div className="row-actions">
+            <div className="flex items-center justify-end gap-[3px] [&_button]:size-[28px] [&_button]:p-0 [&_button]:text-muted-foreground">
               {edit(h)}
               <ActionMenu label={"Azioni " + h.name}>{actions(h)}</ActionMenu>
             </div>
@@ -300,13 +308,13 @@ export function HostsView(p: Props) {
     );
   };
   const table = (items: Host[]) => (
-    <table className="host-table">
+    <table className={tableClass}>
       <thead>
         <tr>
           <th>Nome</th>
           <th>Indirizzo</th>
           <th>Accesso</th>
-          <th className="actions-col">
+          <th className="min-w-[88px] text-right">
             <span className="visually-hidden">Azioni</span>
           </th>
         </tr>

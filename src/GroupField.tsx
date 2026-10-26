@@ -112,7 +112,7 @@ export function GroupField({
         else pick(item.kind === "none" ? "" : (item.id ?? ""));
       }}
     >
-      <div className="sheet-control sheet-field">
+      <div className="sheet-control sheet-field [&_[data-slot=input]]:pl-[38px]">
         <Folder className="field-icon" aria-hidden="true" />
         <Combobox.Input
           render={<Input />}

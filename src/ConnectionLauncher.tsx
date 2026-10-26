@@ -15,6 +15,7 @@ import { groupPath } from "./groups.mjs";
 import { parseConnectionTarget } from "./connection-target.mjs";
 import type { ConnectionTarget } from "./connection-target.mjs";
 import { OsIcon } from "./OsIcon";
+import { cn } from "./lib/utils";
 
 type RecentHost = Host & {
   lastConnectedAt?: number | null;
@@ -159,18 +160,25 @@ export function ConnectionLauncher({
   const selected = Math.min(selection, Math.max(0, results.length - 1));
   useEffect(() => {
     document
-      .querySelector(".launch-row.selected")
+      .querySelector("[data-launch-selected]")
       ?.scrollIntoView({ block: "nearest" });
   }, [selected]);
   const row = (result: (typeof results)[number], index: number) => (
     <div
       key={result.key}
-      className={`launch-row${selected === index ? " selected" : ""}`}
+      data-launch-selected={selected === index ? "" : undefined}
+      className={cn(
+        "group relative flex items-center rounded-[8px]",
+        selected === index
+          ? "bg-accent"
+          : "odd:bg-[color-mix(in_oklab,var(--accent)_38%,transparent)]",
+      )}
     >
       <Button
         variant="ghost"
         type="button"
         id={`connection-${result.key}`}
+        className="h-[42px] min-w-0 flex-1 justify-start gap-[11px] bg-transparent px-[10px] text-left hover:bg-transparent"
         role="option"
         aria-selected={selected === index}
         aria-checked={
@@ -184,27 +192,37 @@ export function ConnectionLauncher({
       >
         {selecting && result.hostId && (
           <span
-            className={`launch-check${picked.includes(result.hostId) ? " on" : ""}`}
+            className={cn(
+              "grid size-[16px] shrink-0 place-items-center rounded-[4px] border border-input text-primary-foreground",
+              picked.includes(result.hostId) && "border-primary bg-primary",
+            )}
             aria-hidden
           >
             {picked.includes(result.hostId) && <Check size={11} />}
           </span>
         )}
         {result.kind === "workspace" ? (
-          <span className="launch-workspace-icon">
+          <span className="grid size-[24px] shrink-0 place-items-center rounded-[6px] bg-[color-mix(in_oklab,#76c5a0_16%,transparent)] text-[#76c5a0]">
             <LayoutGrid size={14} />
           </span>
         ) : (
-          <OsIcon os={result.os} />
+          <OsIcon os={result.os} size="launch" />
         )}
-        <span className="launch-row-name">{result.title}</span>
-        <span className="launch-row-path">{result.path}</span>
+        <span className="min-w-0 flex-1 truncate text-[13px]">
+          {result.title}
+        </span>
+        <span className="shrink-0 text-[12px] font-normal text-muted-foreground">
+          {result.path}
+        </span>
       </Button>
       {result.workspace && (
         <Button
           variant="ghost"
           type="button"
-          className={`launch-row-delete${armed === result.workspace.id ? " armed" : ""}`}
+          className={cn(
+            "mr-[6px] h-[28px] px-[8px] text-[12px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100",
+            armed === result.workspace.id && "text-destructive opacity-100",
+          )}
           aria-label={`Elimina workspace ${result.title}`}
           disabled={busy}
           onClick={() => {
@@ -225,10 +243,14 @@ export function ConnectionLauncher({
   const workspaceRows = section(["workspace"]),
     otherRows = section(["tab", "host"]);
   return (
-    <section className="launch" aria-label="Nuova scheda">
-      <div className="launch-search">
+    <section
+      className="mx-auto min-h-0 w-full max-w-[760px] flex-1 overflow-auto px-[24px] pt-[40px] pb-[56px]"
+      aria-label="Nuova scheda"
+    >
+      <div className="mb-[20px] flex items-center gap-[10px] rounded-[9px] border border-input bg-field px-[12px] text-muted-foreground focus-within:border-ring">
         <Search size={16} />
         <Input
+          className="h-[40px] min-w-0 flex-1 rounded-none border-0 bg-transparent p-0 shadow-none outline-none focus-visible:border-0 focus-visible:outline-none"
           autoFocus
           aria-label="Cerca host o schede"
           placeholder="Cerca host o schede · ssh utente@host -p 22"
@@ -275,7 +297,9 @@ export function ConnectionLauncher({
             }
           }}
         />
-        <kbd>{/Mac/.test(navigator.userAgent) ? "⌘K" : "Ctrl K"}</kbd>
+        <kbd className="text-[12px] whitespace-nowrap">
+          {/Mac/.test(navigator.userAgent) ? "⌘K" : "Ctrl K"}
+        </kbd>
       </div>
       <div
         id="connection-results"
@@ -283,16 +307,16 @@ export function ConnectionLauncher({
         aria-label={text ? "Risultati ricerca" : "Connessioni disponibili"}
       >
         {!selecting && workspaceRows.length > 0 && (
-          <div className="launch-card">
-            <div className="launch-card-head">
-              <h2>Workspace</h2>
+          <div className="mb-[18px] rounded-[12px] border border-border bg-card p-[6px]">
+            <div className="flex min-h-[38px] items-center justify-between pr-[6px] pl-[10px]">
+              <h2 className="m-0 text-[13px]">Workspace</h2>
             </div>
             {workspaceRows.map(({ result, index }) => row(result, index))}
           </div>
         )}
-        <div className="launch-card">
-          <div className="launch-card-head">
-            <h2>
+        <div className="mb-[18px] rounded-[12px] border border-border bg-card p-[6px]">
+          <div className="flex min-h-[38px] items-center justify-between pr-[6px] pl-[10px]">
+            <h2 className="m-0 text-[13px]">
               {selecting
                 ? "Scegli gli host"
                 : text
@@ -301,15 +325,16 @@ export function ConnectionLauncher({
                     ? "Connessioni recenti"
                     : "Host salvati"}
             </h2>
-            <div className="launch-card-actions">
+            <div className="flex items-center gap-[2px]">
               {selecting ? (
                 <>
-                  <span className="launch-count">
+                  <span className="mr-[8px] text-[12px] text-muted-foreground">
                     {picked.length}/{MAX_WORKSPACE_HOSTS}
                   </span>
                   <Button
                     variant="ghost"
                     type="button"
+                    className="h-[28px] text-[12px] text-muted-foreground"
                     onClick={() => setPicked(null)}
                   >
                     Annulla
@@ -317,7 +342,7 @@ export function ConnectionLauncher({
                   <Button
                     variant="default"
                     type="button"
-                    className="primary"
+                    className="h-[28px] text-[12px]"
                     disabled={busy || picked.length < 2}
                     onClick={() => {
                       onCreateWorkspace(picked);
@@ -332,6 +357,7 @@ export function ConnectionLauncher({
                   <Button
                     variant="ghost"
                     type="button"
+                    className="h-[28px] text-[12px] text-muted-foreground"
                     disabled={busy || preview}
                     onClick={onLocalTerminal}
                   >
@@ -341,6 +367,7 @@ export function ConnectionLauncher({
                   <Button
                     variant="ghost"
                     type="button"
+                    className="h-[28px] text-[12px] text-muted-foreground"
                     disabled={busy || hosts.length < 2}
                     onClick={() => setPicked([])}
                   >
@@ -351,6 +378,7 @@ export function ConnectionLauncher({
                     <Button
                       variant="ghost"
                       type="button"
+                      className="h-[28px] text-[12px] text-muted-foreground"
                       disabled={busy}
                       title="Riapre le schede dell’ultima sessione su questo dispositivo"
                       onClick={onRestore}
@@ -365,7 +393,7 @@ export function ConnectionLauncher({
           </div>
           {otherRows.map(({ result, index }) => row(result, index))}
           {!otherRows.length && (
-            <p className="launch-empty">
+            <p className="px-[10px] pt-[18px] pb-[14px] text-[13px] text-muted-foreground">
               {text
                 ? "Nessun host o scheda corrisponde alla ricerca."
                 : "Nessun host salvato. Aggiungine uno dal Vault o digita un indirizzo SSH."}
@@ -375,7 +403,7 @@ export function ConnectionLauncher({
       </div>
       {target && (
         <form
-          className="launcher-quick"
+          className="mt-[18px] rounded-[9px] border border-input bg-card p-[18px] [&_h2]:mb-[9px]"
           onSubmit={(event) => {
             event.preventDefault();
             if (
@@ -396,7 +424,7 @@ export function ConnectionLauncher({
               :{target.port}
             </code>
           </p>
-          <div className="launcher-quick-fields">
+          <div className="flex items-end gap-[12px] [&>button]:h-[36px] [&_label]:mb-0 [&_label]:min-w-0 [&_label]:flex-1">
             <label>
               Identità
               <SelectField
@@ -415,7 +443,6 @@ export function ConnectionLauncher({
             <Button
               variant="default"
               type="submit"
-              className="primary"
               disabled={
                 busy ||
                 preview ||
@@ -434,7 +461,7 @@ export function ConnectionLauncher({
         </form>
       )}
       {preview && (
-        <p className="launch-preview help">
+        <p className="help mt-[16px]">
           Anteprima: connessioni SSH e terminale locale sono disponibili
           nell’app desktop.
         </p>

@@ -14,6 +14,10 @@ import { AlertDialogDescription } from "./components/ui/alert-dialog";
 import { SelectField } from "./SelectField";
 import { IdentitiesTable, KeysTable } from "./CollectionTables";
 import { NavItem } from "./NavItem";
+import { BrandIcon } from "./BrandIcon";
+
+const filterTrigger =
+  "h-[30px] gap-[7px] border-input bg-card pr-[8px] pl-[10px] text-[12px] hover:border-[color-mix(in_srgb,var(--primary)_40%,var(--input))] hover:bg-accent [&>svg:first-child]:text-muted-foreground";
 import { cn } from "./lib/utils";
 import { TabShell, TabLead, TabMain, tabRenameClass } from "./Tab";
 import { Button } from "./components/ui/button";
@@ -102,7 +106,6 @@ import type {
 } from "./types";
 import type { SavedNode } from "./workbench-state.mjs";
 import "./theme.css";
-import "./style.css";
 
 if (import.meta.env.MODE === "desktop-e2e") {
   void import("@wdio/tauri-plugin");
@@ -588,6 +591,7 @@ function App() {
       <LayoutGrid size={14} />
     ) : t.kind === "ssh" ? (
       <OsIcon
+        size="tab"
         os={view.hosts.find((h) => h.id === t.host.id)?.os ?? t.host.os}
       />
     ) : (
@@ -1207,12 +1211,16 @@ function App() {
   panelOpen.current = anyPanel;
   const alert =
     error && !anyPanel ? (
-      <div className="error-bar" role="alert">
+      <div
+        className="flex shrink-0 items-center gap-[10px] px-[22px] py-[10px] text-[13px] border-b border-destructive/20 bg-destructive/[0.07] [overflow-wrap:anywhere] text-destructive"
+        role="alert"
+      >
         <span>{error}</span>
         <Button
           variant="ghost"
           type="button"
           aria-label="Chiudi errore"
+          className="ml-auto w-[25px] p-0"
           onClick={() => setError("")}
         >
           <X size={16} />
@@ -1423,12 +1431,20 @@ function App() {
   );
   if (loading)
     return (
-      <main className="gate">
-        <header className="gate-titlebar" data-tauri-drag-region>
-          <span data-tauri-drag-region>Shellnest</span>
+      <main className="relative grid min-h-dvh place-items-center overflow-auto px-[20px] pt-[64px] pb-[24px]">
+        <header
+          className="absolute inset-x-0 top-0 flex h-[46px] items-stretch justify-between bg-header select-none"
+          data-tauri-drag-region
+        >
+          <span
+            className="flex-1 px-[18px] py-[14px] text-[13px] text-muted-foreground [.mac_&]:hidden"
+            data-tauri-drag-region
+          >
+            Shellnest
+          </span>
           <WindowControls onError={setError} />
         </header>
-        <div className="gate-skeleton" role="status" aria-label="Apertura vault">
+        <div className="m-auto grid w-[min(420px,80vw)] gap-[12px] [&>.skeleton]:h-[56px] [&>.skeleton:first-child]:h-[72px]" role="status" aria-label="Apertura vault">
           <span className="skeleton" />
           <span className="skeleton" />
           <span className="skeleton" />
@@ -1437,23 +1453,31 @@ function App() {
     );
   if (!view.unlocked)
     return (
-      <main className="gate">
-        <header className="gate-titlebar" data-tauri-drag-region>
-          <span data-tauri-drag-region>Shellnest</span>
+      <main className="relative grid min-h-dvh place-items-center overflow-auto px-[20px] pt-[64px] pb-[24px]">
+        <header
+          className="absolute inset-x-0 top-0 flex h-[46px] items-stretch justify-between bg-header select-none"
+          data-tauri-drag-region
+        >
+          <span
+            className="flex-1 px-[18px] py-[14px] text-[13px] text-muted-foreground [.mac_&]:hidden"
+            data-tauri-drag-region
+          >
+            Shellnest
+          </span>
           <WindowControls onError={setError} />
         </header>
-        <section className="login">
-          <div className="app-name">
-            <span className="brand-icon">
-              <TerminalSquare size={18} />
-            </span>
+        <section className="w-[370px] max-w-full [&_.full]:mt-[8px] [&_.full]:h-[40px] [&_form]:mt-[25px] [&_input]:h-[40px]">
+          <div className="mb-[32px] flex items-center gap-[9px] text-[13px] font-semibold whitespace-nowrap">
+            <BrandIcon />
             Shellnest
-            <span>{desktop ? "0.3 · In sviluppo" : "Anteprima browser"}</span>
+            <span className="ml-auto text-[12px] font-normal text-muted-foreground">
+              {desktop ? "0.3 · In sviluppo" : "Anteprima browser"}
+            </span>
           </div>
           {(desktop || preview) && (
             <div className="[&>button]:mb-[24px]">{vaultPicker}</div>
           )}
-          <h1>
+          <h1 className="mb-[12px] text-[22px]">
             {view.exists
               ? "Sblocca vault"
               : restore
@@ -1597,9 +1621,9 @@ function App() {
           )}
           {desktop && !view.exists && (
             <Button
-              variant="ghost"
+              variant="link"
               type="button"
-              className="link login-link"
+              className="mx-auto my-[18px] flex"
               onClick={() => {
                 setRestore(!restore);
                 setError("");
@@ -1609,7 +1633,7 @@ function App() {
               {restore ? "Crea un vault locale" : "Collega un vault esistente"}
             </Button>
           )}
-          <p className="login-note">
+          <p className="mt-[28px] text-[12px] leading-[1.7] text-muted-foreground">
             La sincronizzazione è opzionale. Nessun account necessario per l’uso
             locale.
           </p>
@@ -1625,18 +1649,25 @@ function App() {
     );
   return (
     <div className={active === "vault" ? "app" : "app no-sidebar"}>
-      <header className="app-header" data-tauri-drag-region>
-        <div className="app-name" data-tauri-drag-region>
-          <span className="brand-icon">
-            <TerminalSquare size={18} />
-          </span>
-          <span className="brand-name" data-tauri-drag-region>
+      <header
+        className="col-span-full flex min-w-0 items-stretch border-b border-border bg-header select-none"
+        data-tauri-drag-region
+      >
+        <div
+          className="flex w-[var(--sidebar-width)] shrink-0 items-center gap-[9px] px-[16px] text-[13px] font-semibold whitespace-nowrap [.mac_&]:w-[82px]"
+          data-tauri-drag-region
+        >
+          <BrandIcon className="[.mac_&]:hidden" />
+          <span
+            className="overflow-hidden text-[13px] text-ellipsis max-[760px]:hidden [.mac_&]:hidden"
+            data-tauri-drag-region
+          >
             Shellnest
           </span>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger
-            className="app-menu-trigger"
+            className="mx-[6px] inline-flex size-[30px] shrink-0 items-center justify-center self-center rounded-[9px] border-0 bg-transparent p-0 text-muted-foreground hover:bg-accent hover:text-foreground"
             aria-label="Menu applicazione"
             title="Menu applicazione"
           >
@@ -1970,7 +2001,7 @@ function App() {
           <Button
             variant="ghost"
             type="button"
-            className="h-[28px] shrink-0 gap-[6px] px-[8px] !text-[12px] text-muted-foreground disabled:opacity-70 max-[760px]:hidden"
+            className="h-[28px] shrink-0 gap-[6px] px-[8px] text-[12px] text-muted-foreground disabled:opacity-70 max-[760px]:hidden"
             title={
               view.syncConfigured
                 ? lastSync
@@ -2044,7 +2075,7 @@ function App() {
             className="mt-[24px] min-h-0 overflow-y-auto max-[760px]:hidden"
             aria-label="Cartelle host"
           >
-            <h2 className="px-[11px] pb-[8px] !text-[12px] text-muted-foreground">
+            <h2 className="px-[11px] pb-[8px] text-[12px] text-muted-foreground">
               Cartelle
             </h2>
             {childGroups(view.groups, "").map((g) => {
@@ -2073,14 +2104,17 @@ function App() {
       </aside>
       <main className="main">
         {preview && (
-          <div className="preview-bar">
+          <div className="border-b border-[#c99b4920] bg-[#c99b4910] px-[22px] py-[6px] text-[12px] text-[#c4af83]">
             Anteprima interattiva · Usa dati fittizi · Modifiche azzerate al
             ricaricamento
           </div>
         )}
         {alert}
         {notice && (
-          <div className="notice" role="status">
+          <div
+            className="flex shrink-0 items-center gap-[10px] px-[22px] py-[10px] text-[13px] border-b border-[#76c5a025] bg-[#76c5a012] text-[#9dd5b9]"
+            role="status"
+          >
             <Check size={14} />
             {notice}
           </div>
@@ -2132,16 +2166,19 @@ function App() {
           />
         )}
         {active === "vault" && (
-          <section className="workspace">
-            <header className="page-heading">
-              <div className="page-title">
-                <h1>
+          <section className="relative flex min-h-0 flex-1 flex-col">
+            <header className="flex items-center gap-[16px] px-[22px] pt-[24px] max-[1100px]:px-[18px] max-[760px]:flex-wrap max-[760px]:gap-[8px] max-[760px]:pt-[12px]">
+              <div className="flex min-w-0 flex-1 items-baseline gap-[10px]">
+                <h1 className="overflow-hidden text-[22px] text-ellipsis whitespace-nowrap">
                   {page === "hosts" && group
                     ? (view.groups.find((g) => g.id === group)?.name ??
                       labels[page])
                     : labels[page]}
                 </h1>
-                <span className="result-count" role="status">
+                <span
+                  className="text-[12px] whitespace-nowrap text-muted-foreground"
+                  role="status"
+                >
                   {page === "hosts"
                     ? hostRows.length
                     : page === "identities"
@@ -2161,11 +2198,12 @@ function App() {
                 </Button>
               )}
             </header>
-            <div className="workspace-search">
-              <div className="search">
+            <div className="px-[22px] py-[14px] max-[1100px]:px-[18px]">
+              <div className="flex w-full items-center gap-[9px] rounded-[7px] border border-border bg-field px-[12px] text-muted-foreground focus-within:border-ring">
                 <Search size={16} />
                 <Input
                   ref={search}
+                  className="h-[36px] flex-1 rounded-none border-0 bg-transparent px-0 py-[7px] shadow-none outline-none focus-visible:border-0 focus-visible:outline-none"
                   aria-label="Cerca"
                   placeholder={
                     page === "hosts"
@@ -2188,7 +2226,7 @@ function App() {
                 )}
               </div>
             </div>
-            <div className="toolbar">
+            <div className="mt-[14px] flex shrink-0 items-center gap-[8px] border-b border-border px-[22px] pb-[14px] max-[1100px]:px-[18px] max-[760px]:flex-wrap">
               <div className="inline-flex items-stretch">
                 <Button
                   variant="default"
@@ -2208,7 +2246,7 @@ function App() {
                 {page === "hosts" && (
                   <DropdownMenu>
                     <DropdownMenuTrigger
-                      className="primary grid h-[30px] w-7 place-items-center rounded-r-lg shadow-[inset_1px_0_0_rgb(0_0_0/0.22)] outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 data-popup-open:brightness-110"
+                      className="grid h-[30px] w-7 place-items-center rounded-r-lg bg-primary font-semibold text-primary-foreground hover:brightness-110 shadow-[inset_1px_0_0_rgb(0_0_0/0.22)] outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 data-popup-open:brightness-110"
                       aria-label="Altre azioni di creazione"
                       disabled={busy}
                     >
@@ -2233,7 +2271,7 @@ function App() {
                 <Button
                   variant="ghost"
                   type="button"
-                  className="local-terminal-button"
+                  className="h-[30px] gap-[6px] px-[10px] text-muted-foreground max-[760px]:w-[30px] max-[760px]:text-[0px]"
                   disabled={busy || preview}
                   onClick={openLocal}
                 >
@@ -2241,11 +2279,11 @@ function App() {
                   Terminale locale
                 </Button>
               )}
-              <span className="toolbar-spacer" />
+              <span className="flex-1 max-[760px]:min-w-[20px]" />
               {page === "hosts" && (
                 <>
                   <SelectField
-                    className="hidden h-[30px] w-[160px] max-[760px]:flex"
+                    className={cn(filterTrigger, "hidden w-[160px] max-[760px]:flex")}
                     icon={<Folder size={14} />}
                     aria-label="Filtra per cartella"
                     placeholder="Tutte le cartelle"
@@ -2263,7 +2301,7 @@ function App() {
                     ]}
                   />
                   <SelectField
-                    className="sort-select"
+                    className={cn(filterTrigger, "w-auto min-w-[150px]")}
                     icon={<ArrowUpDown size={14} />}
                     aria-label="Ordina host"
                     value={sort}
@@ -2276,13 +2314,14 @@ function App() {
                     ]}
                   />
                   <div
-                    className="view-toggle"
+                    className="flex items-center gap-[2px] rounded-[6px] border border-border p-[2px]"
                     role="group"
                     aria-label="Visualizzazione host"
                   >
                     <Button
                       variant="ghost"
                       type="button"
+                      className="h-[26px] w-[27px] rounded-[4px] p-0 text-muted-foreground aria-pressed:bg-accent aria-pressed:text-foreground"
                       title="Schede"
                       aria-label="Schede"
                       aria-pressed={layout === "cards"}
@@ -2293,6 +2332,7 @@ function App() {
                     <Button
                       variant="ghost"
                       type="button"
+                      className="h-[26px] w-[27px] rounded-[4px] p-0 text-muted-foreground aria-pressed:bg-accent aria-pressed:text-foreground"
                       title="Lista"
                       aria-label="Lista"
                       aria-pressed={layout === "list"}
@@ -2305,12 +2345,13 @@ function App() {
               )}
             </div>
             {usage && page === "hosts" && (
-              <div className="filter-bar">
+              <div className="mx-[22px] mt-[12px] flex shrink-0 items-center gap-[10px] rounded-[7px] border border-input bg-card px-[10px] py-[6px] text-[12px]">
                 Host collegati a: <strong>{usage.label}</strong>
                 <Button
                   variant="ghost"
                   type="button"
                   aria-label="Rimuovi filtro identità"
+                  className="ml-auto size-[25px] p-0"
                   onClick={() => setUsage(null)}
                 >
                   <X size={14} />
@@ -2319,7 +2360,7 @@ function App() {
             )}
             {page === "hosts" && selected.size > 0 && (
               <div
-                className="selection-bar"
+                className="absolute bottom-[20px] left-1/2 z-2 flex w-max max-w-[calc(100%-32px)] animate-[selection-enter_180ms_cubic-bezier(0.16,1,0.3,1)] flex-wrap items-center justify-center gap-[6px] rounded-[12px] border border-input bg-card px-[8px] py-[6px] text-[12px] shadow-[0_8px_28px_#0006] [transform:translateX(-50%)] [&_button]:text-[12px] [&_strong]:mr-auto [&_strong]:font-medium"
                 role="toolbar"
                 aria-label="Azioni host selezionati"
               >
@@ -2351,9 +2392,8 @@ function App() {
                   Assegna identità
                 </Button>
                 <Button
-                  variant="ghost"
+                  variant="destructive"
                   disabled={busy}
-                  className="danger"
                   onClick={() => {
                     setDeletion({
                       kind: "hosts",
@@ -2378,13 +2418,18 @@ function App() {
                 </Button>
               </div>
             )}
-            <div className="collection-content">
+            <div
+              className={cn(
+                "flex min-h-0 flex-1 flex-col overflow-auto p-[22px] max-[1100px]:p-[18px]",
+                page === "hosts" && selected.size > 0 && "pb-[100px]",
+              )}
+            >
               {page === "hosts" && group && (
-                <div className="collection-heading">
+                <div className="mb-[16px] flex items-center justify-start gap-[6px] [&>span]:text-muted-foreground">
                   <Button
-                    variant="ghost"
+                    variant="link"
                     type="button"
-                    className="link"
+                    className="text-[12px]"
                     onClick={() => {
                       setGroup("");
                       clearSelection();
@@ -2399,9 +2444,9 @@ function App() {
                       <Fragment key={g.id}>
                         <span aria-hidden="true">/</span>
                         <Button
-                          variant="ghost"
+                          variant="link"
                           type="button"
-                          className="link"
+                          className="text-[12px]"
                           aria-current={g.id === group ? "page" : undefined}
                           onClick={() => {
                             setGroup(g.id);
@@ -2416,11 +2461,9 @@ function App() {
               )}
               <div
                 className={
-                  page === "hosts" && layout === "cards"
-                    ? "table-wrap hosts-wrap cards-wrap"
-                    : page === "hosts"
-                      ? "table-wrap hosts-wrap"
-                      : "table-wrap"
+                  page === "hosts"
+                    ? "hosts-wrap flex w-full min-w-0 flex-[1_0_auto] overflow-visible [&:has(>.empty)>*:not(.empty)]:hidden"
+                    : "w-full min-w-0 overflow-auto rounded-[9px] border border-border has-[>.empty]:flex has-[>.empty]:flex-1 has-[>.empty]:border-0"
                 }
               >
                 {page === "hosts" ? (
@@ -2523,7 +2566,7 @@ function App() {
                   )) ||
                   (page === "identities" && !identityRows.length) ||
                   (page === "keys" && !keyRows.length)) && (
-                  <div className="empty">
+                  <div className="empty flex flex-1 flex-col items-center justify-center px-[24px] pt-[24px] pb-[8vh] text-center text-muted-foreground [&_button]:border [&_button]:border-input [&_h2]:text-foreground [&_p]:mt-[12px] [&_p]:mb-[20px] [&_p]:max-w-[390px] [&_p]:text-[13px] [&_p]:leading-[1.7]">
                     <h2>
                       {query || usage
                         ? "Nessun risultato"
