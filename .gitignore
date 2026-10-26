@@ -1,0 +1,37 @@
+node_modules/
+.npm-cache/
+dist/
+src-tauri/target/
+src-tauri/gen/
+sync/data/
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.log
+
+# Local vaults, backups and signing material
+vault.json
+vault.catalog.json
+vault-vaults/
+*.bak
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local agent tooling and generated review/test output
+.agents/
+.claude/
+.codex/
+.impeccable/
+skills-lock.json
+artifacts/
+
+# OS and editor files
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/

@@ -1,0 +1,20 @@
+{
+  "identifier": "dev.servermanager.e2e",
+  "productName": "Server Manager E2E",
+  "build": {
+    "beforeBuildCommand": "npm run build -- --mode desktop-e2e"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "security": {
+      "capabilities": [
+        "default",
+        {
+          "identifier": "desktop-e2e",
+          "windows": ["main"],
+          "permissions": ["wdio:default"]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,33 @@
+import { OsIcon } from "./OsIcon";
+import type { Host, Identity } from "./types";
+
+export function HostSummary({
+  hosts,
+  identities,
+}: {
+  hosts: Host[];
+  identities: Identity[];
+}) {
+  return (
+    <ul className="host-summary" aria-label="Host coinvolti">
+      {hosts.map((host) => {
+        const identity = identities.find((item) => item.id === host.identityId);
+        return (
+          <li key={host.id}>
+            <OsIcon os={host.os} />
+            <span>
+              <strong>{host.name}</strong>
+              <small>
+                {identity?.username || host.username
+                  ? `${identity?.username ?? host.username}@`
+                  : ""}
+                {host.address}
+                {host.port === 22 ? "" : `:${host.port}`}
+              </small>
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
