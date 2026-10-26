@@ -251,7 +251,7 @@ export function ConnectionLauncher({
       <div className="mb-[20px] flex items-center gap-[10px] rounded-[9px] border border-input bg-field px-[12px] text-muted-foreground focus-within:border-ring">
         <Search size={16} />
         <Input
-          className="h-[40px] min-w-0 flex-1 rounded-none border-0 bg-transparent p-0 shadow-none outline-none focus-visible:border-0 focus-visible:ring-0 focus-visible:outline-none"
+          className="h-[40px] min-w-0 flex-1 rounded-none border-0 bg-transparent p-0 shadow-none outline-none focus-visible:border-0 focus-visible:outline-none"
           autoFocus
           aria-label="Cerca host o schede"
           placeholder="Cerca host o schede · ssh utente@host -p 22"
