@@ -1457,7 +1457,7 @@ function App() {
   );
   if (loading)
     return (
-      <main className="relative grid min-h-dvh place-items-center overflow-auto px-[20px] pt-[64px] pb-[24px]">
+      <main className="relative grid h-dvh place-items-center overflow-auto px-[20px] pt-[64px] pb-[24px]">
         <header
           className="absolute inset-x-0 top-0 flex h-[46px] items-stretch justify-between bg-header select-none"
           data-tauri-drag-region
@@ -1483,7 +1483,7 @@ function App() {
     );
   if (!view.unlocked)
     return (
-      <main className="relative grid min-h-dvh place-items-center overflow-auto px-[20px] pt-[64px] pb-[24px]">
+      <main className="relative grid h-dvh place-items-center overflow-auto px-[20px] pt-[64px] pb-[24px]">
         <header
           className="absolute inset-x-0 top-0 flex h-[46px] items-stretch justify-between bg-header select-none"
           data-tauri-drag-region

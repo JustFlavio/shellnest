@@ -12,6 +12,13 @@
 * {
   box-sizing: border-box;
 }
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  /* An app window, not a page: no rubber-band scrolling of the whole UI under the fixed title bar. */
+  overscroll-behavior: none;
+}
 body {
   margin: 0;
 }
