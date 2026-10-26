@@ -2222,7 +2222,7 @@ function App() {
                 <Search size={16} />
                 <Input
                   ref={search}
-                  className="h-[36px] flex-1 rounded-none border-0 bg-transparent px-0 py-[7px] shadow-none outline-none focus-visible:border-0 focus-visible:outline-none"
+                  className="h-[36px] flex-1 rounded-none border-0 bg-transparent px-0 py-[7px] shadow-none outline-none focus-visible:border-0 focus-visible:ring-0 focus-visible:outline-none"
                   aria-label="Cerca"
                   placeholder={
                     page === "hosts"
