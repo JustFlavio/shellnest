@@ -3393,4 +3393,11 @@ function App() {
 }
 if (isTauri() && /Mac/.test(navigator.userAgent))
   document.documentElement.classList.add("mac");
+// Safari/WebKit does not focus a button on click, so a panel opened from it would hand focus
+// back to whatever held it last. Focusing the clicked button keeps that return trip honest.
+document.addEventListener("click", (event) => {
+  const button = (event.target as Element | null)?.closest?.("button");
+  if (button && !button.disabled && document.activeElement !== button)
+    button.focus({ preventScroll: true });
+});
 createRoot(document.getElementById("root")!).render(<App />);

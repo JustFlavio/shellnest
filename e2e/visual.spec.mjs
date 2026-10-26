@@ -189,3 +189,11 @@ test("password fields can be shown and hidden", async ({ page }) => {
   await page.getByRole("button", { name: "Nascondi password" }).click();
   await expect(input).toHaveAttribute("type", "password");
 });
+
+test("closing the editor returns focus to the button that opened it", async ({ page }) => {
+  const button = page.getByRole("button", { name: "Nuovo host", exact: true });
+  await button.click();
+  await page.getByRole("dialog").waitFor();
+  await page.keyboard.press("Escape");
+  await expect(button).toBeFocused();
+});
