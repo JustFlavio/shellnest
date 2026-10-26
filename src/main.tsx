@@ -14,6 +14,7 @@ import { AlertDialogDescription } from "./components/ui/alert-dialog";
 import { SelectField } from "./SelectField";
 import { IdentitiesTable, KeysTable } from "./CollectionTables";
 import { NavItem } from "./NavItem";
+import { cn } from "./lib/utils";
 import { TabShell, TabLead, TabMain, tabRenameClass } from "./Tab";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -107,6 +108,12 @@ if (import.meta.env.MODE === "desktop-e2e") {
   void import("@wdio/tauri-plugin");
 }
 
+const dropPreviewEdge = {
+  left: "inset-y-0 right-1/2 left-0",
+  right: "inset-y-0 right-0 left-1/2",
+  top: "inset-x-0 top-0 bottom-1/2",
+  bottom: "inset-x-0 top-1/2 bottom-0",
+} as const;
 const desktop = isTauri();
 type Page = "hosts" | "identities" | "keys";
 const labels: Record<Page, string> = {
@@ -2576,7 +2583,7 @@ function App() {
         )}
         <div
           ref={terminals}
-          className="terminals"
+          className="relative min-h-0 flex-1"
           style={{
             display: bar.some((t) => t.id === active) ? "block" : "none",
           }}
@@ -2634,7 +2641,7 @@ function App() {
               id === dragPane ? null : (
                 <div
                   key={id}
-                  className="drop-zone"
+                  className="absolute z-3"
                   style={{
                     left: `${box.x * 100}%`,
                     top: `${box.y * 100}%`,
@@ -2665,7 +2672,12 @@ function App() {
                   }}
                 >
                   {dropHint?.paneId === id && dropHint.edge && (
-                    <div className={`drop-preview ${dropHint.edge}`} />
+                    <div
+                      className={cn(
+                        "pointer-events-none absolute rounded-[8px] border-2 border-primary bg-[color-mix(in_oklab,var(--primary)_22%,transparent)]",
+                        dropPreviewEdge[dropHint.edge],
+                      )}
+                    />
                   )}
                 </div>
               ),
@@ -2673,7 +2685,12 @@ function App() {
           {geos.get(active)?.dividers.map((d) => (
             <div
               key={d.path}
-              className={`pane-divider ${d.dir}`}
+              className={cn(
+                "absolute z-2 bg-transparent hover:bg-[color-mix(in_oklab,var(--primary)_35%,transparent)]",
+                d.dir === "row"
+                  ? "-ml-[4px] w-[8px] cursor-col-resize"
+                  : "-mt-[4px] h-[8px] cursor-row-resize",
+              )}
               style={
                 d.dir === "row"
                   ? {

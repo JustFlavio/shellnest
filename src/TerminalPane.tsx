@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { LoaderCircle, CircleAlert, TerminalSquare } from "lucide-react";
 import { Button } from "./components/ui/button";
 import { StatusDot } from "./Tab";
+import { cn } from "./lib/utils";
 import { invoke, Channel, isTauri } from "@tauri-apps/api/core";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
@@ -253,7 +254,12 @@ export function TerminalPane({
       : `${tab.username}@${tab.kind === "ssh" ? tab.host.address : tab.target.address}:${tab.kind === "ssh" ? tab.host.port : tab.target.port}`;
   return (
     <div
-      className={`terminal-pane${focused === undefined ? "" : focused ? " split focused" : " split"}`}
+      className={cn(
+        "absolute box-border min-h-0 flex-none flex-col bg-background px-[16px] pb-[12px]",
+        focused !== undefined &&
+          "rounded-[8px] border border-border bg-clip-padding px-[10px] pb-[8px]",
+        focused && "border-primary",
+      )}
       style={{
         display: active ? "flex" : "none",
         left: `${(box?.x ?? 0) * 100}%`,
@@ -265,7 +271,7 @@ export function TerminalPane({
       onMouseDown={onFocus}
     >
       <div
-        className="terminal-info"
+        className="mb-[8px] flex h-[38px] shrink-0 items-center gap-[9px] border-b border-border font-mono text-[12px] text-muted-foreground [&>span:last-child]:ml-auto"
         draggable={!!onDragPane}
         onDragStart={(e) => {
           e.dataTransfer.setData("application/x-server-manager-pane", tab.id);
@@ -288,7 +294,7 @@ export function TerminalPane({
       </div>
       <div
         ref={el}
-        className="terminal-screen"
+        className="min-h-0 flex-1"
         style={
           !opened
             ? { position: "absolute", visibility: "hidden", inset: 0 }
@@ -296,8 +302,8 @@ export function TerminalPane({
         }
       />
       {!opened && (
-        <div className="connection-progress">
-          <div className="connection-card">
+        <div className="grid min-h-0 flex-1 place-items-center overflow-auto p-[24px]">
+          <div className="w-[min(100%,460px)] text-center [&>h2]:!text-[18px] [&>h2]:font-semibold [&>p]:my-[10px] [&>p]:[overflow-wrap:anywhere] [&>svg]:mx-auto [&>svg]:mb-[16px] [&>svg]:text-primary">
             {failure || tab.error ? (
               <CircleAlert size={32} />
             ) : pendingTrust ? (
@@ -314,12 +320,12 @@ export function TerminalPane({
               {showLogs ? "Nascondi dettagli" : "Mostra dettagli"}
             </Button>
             {showLogs && (
-              <pre className="connection-logs">
+              <pre className="max-h-[240px] overflow-auto rounded-[10px] bg-muted p-[14px] text-left text-[12px] whitespace-pre-wrap [overflow-wrap:anywhere]">
                 {[...logs, ...(tab.error ? [tab.error] : [])].join("\n") ||
                   phase}
               </pre>
             )}
-            <div className="connection-actions">
+            <div className="mt-[20px] flex flex-wrap justify-center gap-[8px]">
               <Button variant="outline" onClick={onClose}>
                 Chiudi
               </Button>

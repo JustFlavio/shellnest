@@ -115,3 +115,39 @@ test("several tabs and the new-tab launcher", async ({ page }) => {
   await page.mouse.move(1275, 795);
   await shot(page, "tabs");
 });
+
+test("dragging the divider resizes split panes", async ({ page }) => {
+  await openFromLauncher(page, /Produzione.*connessioni/);
+  const divider = page.locator(".cursor-col-resize");
+  await divider.waitFor();
+  const first = page.locator(".xterm").first();
+  const before = (await first.boundingBox()).width;
+  const box = await divider.boundingBox();
+  const x = box.x + box.width / 2,
+    y = box.y + 200;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 150, y, { steps: 6 });
+  await page.mouse.up();
+  const after = (await first.boundingBox()).width;
+  expect(after).toBeGreaterThan(before + 100);
+});
+
+test("dragging a tab reorders the bar", async ({ page }) => {
+  await openFromLauncher(page, /api-01/);
+  await page.getByRole("button", { name: "Nuova connessione" }).click();
+  await page.getByRole("option", { name: /database-01/ }).click();
+  await page.locator(".xterm").nth(1).waitFor();
+  const nav = page.getByRole("navigation", { name: "Sessioni e connessioni" });
+  const labels = () =>
+    nav.locator("[draggable=true]").evaluateAll((els) =>
+      els.map((el) => el.textContent.trim()),
+    );
+  expect(await labels()).toEqual(["api-01", "database-01"]);
+  const [a, b] = await nav.locator("[draggable=true]").all();
+  const target = await b.boundingBox();
+  await a.dragTo(b, {
+    targetPosition: { x: target.width - 8, y: target.height / 2 },
+  });
+  expect(await labels()).toEqual(["database-01", "api-01"]);
+});

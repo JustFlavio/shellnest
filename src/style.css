@@ -1015,77 +1015,6 @@ body:has(.side-sheet[data-open]) .app {
 .launcher-quick-fields > button {
   height: 36px;
 }
-.terminal-pane {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  flex-direction: column;
-  padding: 0 16px 12px;
-  background: var(--background);
-}
-.terminal-info {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  height: 38px;
-  gap: 9px;
-  font:
-    12px Consolas,
-    monospace;
-  color: var(--muted-foreground);
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 8px;
-}
-.terminal-info > span:last-child {
-  margin-left: auto;
-  font-size: 12px;
-}
-.terminal-screen {
-  flex: 1;
-  min-height: 0;
-}
-.connection-progress {
-  display: grid;
-  place-items: center;
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: 24px;
-}
-.connection-card {
-  width: min(100%, 460px);
-  text-align: center;
-}
-.connection-card > svg {
-  color: var(--primary);
-  margin: 0 auto 16px;
-}
-.connection-card h2 {
-  font-size: 18px;
-  font-weight: 600;
-}
-.connection-card > p {
-  margin: 10px 0;
-  overflow-wrap: anywhere;
-}
-.connection-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 20px;
-}
-.connection-logs {
-  max-height: 240px;
-  overflow: auto;
-  text-align: left;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  padding: 14px;
-  border-radius: 10px;
-  background: var(--muted);
-  font-size: 12px;
-}
 .xterm {
   height: 100%;
 }
@@ -1364,69 +1293,8 @@ textarea {
 /* Tab: one hover surface for the whole tab */
 
 /* Split terminals: panes stay mounted (keyed by session) and are positioned by layout rects */
-.terminals {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-}
-.terminals > .terminal-pane {
-  position: absolute;
-  flex: none;
-  box-sizing: border-box;
-}
-.terminals > .terminal-pane.split {
-  padding: 0 10px 8px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background-clip: padding-box;
-}
-.terminals > .terminal-pane.split.focused {
-  border-color: var(--primary);
-}
-.pane-divider {
-  position: absolute;
-  z-index: 2;
-  background: transparent;
-}
-.pane-divider.row {
-  width: 8px;
-  margin-left: -4px;
-  cursor: col-resize;
-}
-.pane-divider.col {
-  height: 8px;
-  margin-top: -4px;
-  cursor: row-resize;
-}
-.pane-divider:hover,
-.pane-divider.dragging {
-  background: color-mix(in oklab, var(--primary) 35%, transparent);
-}
 
 /* Drag a tab or pane header over the terminals to split by edge */
-.drop-zone {
-  position: absolute;
-  z-index: 3;
-}
-.drop-preview {
-  position: absolute;
-  pointer-events: none;
-  border-radius: 8px;
-  border: 2px solid var(--primary);
-  background: color-mix(in oklab, var(--primary) 22%, transparent);
-}
-.drop-preview.left {
-  inset: 0 50% 0 0;
-}
-.drop-preview.right {
-  inset: 0 0 0 50%;
-}
-.drop-preview.top {
-  inset: 0 0 50% 0;
-}
-.drop-preview.bottom {
-  inset: 50% 0 0 0;
-}
 
 /* macOS: native rounded window; traffic lights overlay the header's left edge */
 .mac .window-controls,
