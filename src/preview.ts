@@ -463,7 +463,8 @@ export function previewView(): View {
       identityId: i < 20 ? "identity-deploy" : "identity-admin",
       effectiveIdentityId: i < 20 ? "identity-deploy" : "identity-admin",
       identitySource: "",
-      fingerprint: "",
+      // The last host stays unverified to exercise the trust dialog.
+      fingerprint: i === 33 ? "" : "SHA256:impronta-dimostrativa",
       os: i % 5 === 0 ? "debian" : "ubuntu",
       lastConnectedAt: Date.now() - i * 300000,
     })),

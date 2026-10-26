@@ -84,3 +84,34 @@ test("delete host confirmation", async ({ page }) => {
   await page.getByRole("heading", { name: "Elimina host" }).waitFor();
   await shot(page, "delete-host");
 });
+
+async function openFromLauncher(page, name) {
+  await page.getByRole("button", { name: "Connessione rapida" }).click();
+  await page.getByRole("option", { name }).click();
+  await page.locator(".xterm").first().waitFor();
+  // Let the scripted session reach its prompt.
+  await page.waitForTimeout(700);
+}
+
+test("session tab with terminal", async ({ page }) => {
+  await openFromLauncher(page, /api-01/);
+  await page.mouse.move(1275, 795);
+  await shot(page, "session");
+});
+
+test("split workspace", async ({ page }) => {
+  await openFromLauncher(page, /Produzione.*connessioni/);
+  await page.mouse.move(1275, 795);
+  await shot(page, "split");
+});
+
+test("several tabs and the new-tab launcher", async ({ page }) => {
+  await openFromLauncher(page, /api-01/);
+  await page.getByRole("button", { name: "Nuova connessione" }).click();
+  await page.getByRole("option", { name: /database-01/ }).click();
+  await page.waitForTimeout(700);
+  await page.getByRole("button", { name: "Nuova connessione" }).click();
+  await page.getByRole("combobox", { name: "Cerca host o schede" }).waitFor();
+  await page.mouse.move(1275, 795);
+  await shot(page, "tabs");
+});

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { LoaderCircle, CircleAlert, TerminalSquare } from "lucide-react";
 import { Button } from "./components/ui/button";
-import { invoke, Channel } from "@tauri-apps/api/core";
+import { StatusDot } from "./Tab";
+import { invoke, Channel, isTauri } from "@tauri-apps/api/core";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { terminalInputChunks } from "./workbench-state.mjs";
@@ -60,10 +61,10 @@ export function TerminalPane({
       cursorBlink: true,
       scrollback: 5000,
       theme: {
-        background: "#1c1e2d",
-        foreground: "#eef0fa",
-        cursor: "#91b9ff",
-        selectionBackground: "#91b9ff33",
+        background: "#17140f",
+        foreground: "#f4efe6",
+        cursor: "#f5a524",
+        selectionBackground: "#f5a52433",
       },
     });
     terminal.current = term;
@@ -78,7 +79,16 @@ export function TerminalPane({
       inputQueue = Promise.resolve();
     let pendingInput = "";
     let pendingOverflow = false;
+    // The browser preview has no backend: a scripted shell stands in for the session.
+    const demo = !isTauri();
+    const prompt = `\x1b[32m${tab.kind === "ssh" ? tab.host.username || "root" : "demo"}@${tab.kind === "ssh" ? tab.host.name : "locale"}\x1b[0m:\x1b[34m~\x1b[0m$ `;
     const send = (data: string) => {
+      if (demo) {
+        term.write(
+          data.replace(/\r/g, "\r\n" + prompt).replace(/\x7f/g, "\b \b"),
+        );
+        return;
+      }
       inputQueue = inputQueue
         .then(async () => {
           for (const chunk of terminalInputChunks(data)) {
@@ -97,7 +107,7 @@ export function TerminalPane({
     const resize = () => {
       if (disposed || !el.current?.offsetWidth) return;
       addon.fit();
-      if (ready)
+      if (ready && !demo)
         void invoke("terminal_resize", {
           vaultId: tab.vaultId,
           sessionId: tab.id,
@@ -120,8 +130,7 @@ export function TerminalPane({
         }
       }
     });
-    const output = new Channel<Output>();
-    output.onmessage = (event) => {
+    const handle = (event: Output) => {
       if (disposed) return;
       if (event.type === "data") term.write(new Uint8Array(event.data));
       if (event.type === "status") {
@@ -169,6 +178,31 @@ export function TerminalPane({
         }).catch(() => {});
       }
     };
+    if (demo) {
+      const timers = [
+        window.setTimeout(
+          () => handle({ type: "status", data: "Connesso" }),
+          250,
+        ),
+        window.setTimeout(
+          () =>
+            term.write(
+              "\x1b[90mSessione dimostrativa: nessuna connessione reale.\x1b[0m\r\n" +
+                prompt,
+            ),
+          300,
+        ),
+      ];
+      return () => {
+        disposed = true;
+        timers.forEach(window.clearTimeout);
+        observer.disconnect();
+        input.dispose();
+        term.dispose();
+      };
+    }
+    const output = new Channel<Output>();
+    output.onmessage = handle;
     const base = { vaultId: tab.vaultId, sessionId: tab.id, output };
     let request: Promise<void>;
     if (tab.kind === "local")
@@ -239,7 +273,7 @@ export function TerminalPane({
         }}
         onDragEnd={() => onDragPane?.(false)}
       >
-        <span className={`session-dot ${tab.status ?? "connecting"}`} />
+        <StatusDot status={tab.status ?? "connecting"} />
         {endpoint}
         <span>
           {tab.kind === "local" ? "PTY locale" : tab.identityName} ·{" "}

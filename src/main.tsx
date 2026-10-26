@@ -14,6 +14,7 @@ import { AlertDialogDescription } from "./components/ui/alert-dialog";
 import { SelectField } from "./SelectField";
 import { IdentitiesTable, KeysTable } from "./CollectionTables";
 import { NavItem } from "./NavItem";
+import { TabShell, TabLead, TabMain, tabRenameClass } from "./Tab";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import {
@@ -575,26 +576,6 @@ function App() {
     window.clearTimeout(spring.current?.timer);
     spring.current = undefined;
   };
-  // Left slot of a tab: its icon, replaced by a close X on hover and on the selected tab.
-  const tabLead = (
-    icon: ReactNode,
-    onClose?: () => void,
-    label = "",
-    status?: string,
-  ) => (
-    <Button
-      variant="ghost"
-      type="button"
-      className={`tab-lead${onClose ? " closable" : ""}`}
-      aria-label={onClose ? `Chiudi ${label}` : undefined}
-      tabIndex={onClose ? 0 : -1}
-      onClick={onClose}
-    >
-      <span className="tab-icon">{icon}</span>
-      {onClose && <X className="tab-x" size={14} />}
-      {status && <span className={`session-dot ${status}`} />}
-    </Button>
-  );
   const tabIcon = (t: TerminalTab) =>
     t.layout ? (
       <LayoutGrid size={14} />
@@ -756,8 +737,6 @@ function App() {
   };
   const connectHosts = (hosts: Host[]) =>
     void run(async () => {
-      if (preview)
-        throw new Error("Le connessioni funzionano nell’app desktop.");
       if (
         hosts.some(
           (host) => !identity(host) && !(host.username && host.hasPassword),
@@ -844,7 +823,6 @@ function App() {
     hosts: Host[] = view.hosts,
     activeIndex = 0,
   ) => {
-    if (preview) throw new Error("Le connessioni funzionano nell’app desktop.");
     if (!list.length) return;
     const built = list.map((item) => {
       const { layout, leaves } = fromTemplate(item.layout, () =>
@@ -1763,7 +1741,7 @@ function App() {
           </DropdownMenuContent>
         </DropdownMenu>
         <div
-          className="tabbar"
+          className="flex min-w-0 flex-1 items-center gap-[4px] overflow-x-auto px-[8px] py-[5px]"
           onDragOver={(e) => {
             if (dragPane) e.preventDefault();
             const r = e.currentTarget.getBoundingClientRect();
@@ -1784,32 +1762,30 @@ function App() {
           aria-label="Sessioni e connessioni"
           data-tauri-drag-region
         >
-          <div
-            className={active === "vault" ? "tab fixed selected" : "tab fixed"}
+          <TabShell
+            fixed
+            selected={active === "vault"}
           >
-            {tabLead(<Server size={14} />)}
-            <Button
-              variant="ghost"
-              type="button"
-              className="tab-main"
+            <TabLead icon={<Server size={14} />} />
+            <TabMain
               aria-current={active === "vault" ? "page" : undefined}
               onClick={() => setActive("vault")}
             >
               Vault
-            </Button>
-          </div>
+            </TabMain>
+          </TabShell>
           {bar.map((tab) => (
-            <div
+            <TabShell
               key={tab.id}
-              className={[
-                "tab",
-                active === tab.id && "selected",
-                drag?.id === tab.id && "dragging",
-                drag?.over === tab.id &&
-                  (drag.after ? "drop-after" : "drop-before"),
-              ]
-                .filter(Boolean)
-                .join(" ")}
+              selected={active === tab.id}
+              dragging={drag?.id === tab.id}
+              drop={
+                drag?.over === tab.id
+                  ? drag.after
+                    ? "after"
+                    : "before"
+                  : undefined
+              }
               draggable
               onDragStart={(e) => {
                 e.dataTransfer.setData(
@@ -1852,15 +1828,15 @@ function App() {
                 clearDnd();
               }}
             >
-              {tabLead(
-                tabIcon(tab),
-                () => closeTab(tab.id),
-                tabLabel(tab),
-                tab.status ?? "connecting",
-              )}
+              <TabLead
+                icon={tabIcon(tab)}
+                onClose={() => closeTab(tab.id)}
+                label={tabLabel(tab)}
+                status={tab.status ?? "connecting"}
+              />
               {renaming === tab.id ? (
                 <input
-                  className="tab-rename"
+                  className={tabRenameClass}
                   autoFocus
                   autoCapitalize="off"
                   autoCorrect="off"
@@ -1883,17 +1859,14 @@ function App() {
                   }}
                 />
               ) : (
-                <Button
-                  variant="ghost"
-                  type="button"
-                  className="tab-main"
+                <TabMain
                   aria-current={active === tab.id ? "page" : undefined}
                   title={tabLabel(tab)}
                   onClick={() => setActive(tab.id)}
                   onDoubleClick={() => setRenaming(tab.id)}
                 >
                   {tabLabel(tab)}
-                </Button>
+                </TabMain>
               )}
               <ActionMenu label={`Azioni scheda ${tab.title}`} className="size-[24px]">
                 {tab.layout && (
@@ -1956,37 +1929,41 @@ function App() {
                   Sposta a destra
                 </DropdownMenuItem>
               </ActionMenu>
-            </div>
+            </TabShell>
           ))}
           {launcherOpen && (
-            <div className={active === "launcher" ? "tab selected" : "tab"}>
-              {tabLead(<SquarePlus size={15} />, closeLauncher, "nuova scheda")}
-              <Button
-                variant="ghost"
-                type="button"
-                className="tab-main"
+            <TabShell selected={active === "launcher"}>
+              <TabLead
+                icon={<SquarePlus size={15} />}
+                onClose={closeLauncher}
+                label="nuova scheda"
+              />
+              <TabMain
                 aria-current={active === "launcher" ? "page" : undefined}
                 onClick={() => setActive("launcher")}
               >
                 Nuova scheda
-              </Button>
-            </div>
+              </TabMain>
+            </TabShell>
           )}
           <Button
             variant="ghost"
             type="button"
-            className="new-tab"
+            className="size-[30px] shrink-0 rounded-[9px] p-0 text-muted-foreground"
             aria-label="Nuova connessione"
             title="Nuova connessione · Ctrl/Cmd K"
             onClick={openLauncher}
           >
             <Plus size={18} />
           </Button>
-          <span className="tab-spacer" data-tauri-drag-region />
+          <span
+            className="min-w-[28px] flex-1 self-stretch"
+            data-tauri-drag-region
+          />
           <Button
             variant="ghost"
             type="button"
-            className="sync-status"
+            className="h-[28px] shrink-0 gap-[6px] px-[8px] !text-[12px] text-muted-foreground disabled:opacity-70 max-[760px]:hidden"
             title={
               view.syncConfigured
                 ? lastSync
