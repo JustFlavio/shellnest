@@ -16,6 +16,7 @@
         "width": 1280,
         "height": 840,
         "decorations": false,
+        "dragDropEnabled": false,
         "shadow": true,
         "minWidth": 480,
         "minHeight": 360

@@ -258,15 +258,16 @@ export function TerminalPane({
       className={cn(
         "absolute box-border min-h-0 flex-none flex-col bg-background px-[16px] pb-[12px]",
         focused !== undefined &&
-          "rounded-[8px] border border-border bg-clip-padding px-[10px] pb-[8px]",
+          "m-[4px] rounded-[12px] border border-border bg-clip-padding px-[10px] pb-[8px]",
         focused && "border-primary",
       )}
       style={{
         display: active ? "flex" : "none",
         left: `${(box?.x ?? 0) * 100}%`,
         top: `${(box?.y ?? 0) * 100}%`,
-        width: `${(box?.w ?? 1) * 100}%`,
-        height: `${(box?.h ?? 1) * 100}%`,
+        // A split pane keeps a 4px margin on each side, so the grid leaves 8px between panes.
+        width: `calc(${(box?.w ?? 1) * 100}% - ${focused === undefined ? 0 : 8}px)`,
+        height: `calc(${(box?.h ?? 1) * 100}% - ${focused === undefined ? 0 : 8}px)`,
       }}
       onFocus={onFocus}
       onMouseDown={onFocus}

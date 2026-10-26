@@ -2659,7 +2659,10 @@ function App() {
         )}
         <div
           ref={terminals}
-          className="relative min-h-0 flex-1"
+          className={cn(
+            "relative min-h-0 flex-1",
+            geos.get(active) && "mx-[4px] mb-[4px]",
+          )}
           style={{
             display: bar.some((t) => t.id === active) ? "block" : "none",
           }}
