@@ -166,3 +166,12 @@ test("editor beside the content at medium width", async ({ page }) => {
   await page.mouse.move(5, 695);
   await shot(page, "editor-medium");
 });
+
+test("empty identities page shows only the empty state", async ({ page }) => {
+  await page.getByRole("button", { name: "Identità" }).first().click();
+  await page.getByRole("textbox", { name: "Cerca" }).fill("zzzz-nessuna");
+  await page.getByRole("heading", { name: "Nessun risultato" }).waitFor();
+  await expect(page.locator("table")).toBeHidden();
+  await page.mouse.move(1275, 795);
+  await shot(page, "empty-identities");
+});

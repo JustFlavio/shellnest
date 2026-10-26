@@ -2485,7 +2485,7 @@ function App() {
                 className={
                   page === "hosts"
                     ? "hosts-wrap flex w-full min-w-0 flex-[1_0_auto] overflow-visible [&:has(>.empty)>*:not(.empty)]:hidden"
-                    : "w-full min-w-0 overflow-auto rounded-[9px] border border-border has-[>.empty]:flex has-[>.empty]:flex-1 has-[>.empty]:border-0"
+                    : "w-full min-w-0 overflow-auto rounded-[9px] border border-border has-[>.empty]:flex has-[>.empty]:flex-1 has-[>.empty]:border-0 [&:has(>.empty)>table]:hidden"
                 }
               >
                 {page === "hosts" ? (
