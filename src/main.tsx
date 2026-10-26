@@ -22,6 +22,7 @@ import { cn } from "./lib/utils";
 import { TabShell, TabLead, TabMain, tabRenameClass } from "./Tab";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
+import { PasswordInput } from "./PasswordInput";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -1547,8 +1548,7 @@ function App() {
                   </label>
                   <label>
                     Token
-                    <Input
-                      type="password"
+                    <PasswordInput
                       autoComplete="off"
                       required
                       value={syncToken}
@@ -1565,9 +1565,9 @@ function App() {
               )}
               <label>
                 Password principale
-                <Input
+                <PasswordInput
                   autoFocus
-                  type="password"
+
                   autoComplete={
                     view.exists ? "current-password" : "new-password"
                   }
@@ -1580,8 +1580,7 @@ function App() {
               {!view.exists && !restore && (
                 <label>
                   Conferma password
-                  <Input
-                    type="password"
+                  <PasswordInput
                     autoComplete="new-password"
                     required
                     value={confirmPassword}
@@ -3139,8 +3138,7 @@ function App() {
             </p>
             <label>
               Token
-              <Input
-                type="password"
+              <PasswordInput
                 autoComplete="off"
                 required={!view.syncConfigured}
                 minLength={syncToken ? 32 : undefined}

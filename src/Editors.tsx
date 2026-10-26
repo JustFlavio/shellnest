@@ -11,6 +11,7 @@ import {
 import { SelectField } from "./SelectField";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
+import { PasswordInput } from "./PasswordInput";
 import { Textarea } from "./components/ui/textarea";
 import { useRef, useState } from "react";
 import {
@@ -659,8 +660,7 @@ export function IdentityEditor({
           ) : (
             <label>
               Password
-              <Input
-                type="password"
+              <PasswordInput
                 autoComplete="new-password"
                 required={!existing?.hasPassword}
                 value={value.password}
@@ -840,8 +840,7 @@ export function KeyEditor({
           </label>
           <label>
             Passphrase della chiave
-            <Input
-              type="password"
+            <PasswordInput
               autoComplete="new-password"
               value={value.passphrase}
               onChange={(e) =>

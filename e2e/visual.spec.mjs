@@ -175,3 +175,17 @@ test("empty identities page shows only the empty state", async ({ page }) => {
   await page.mouse.move(1275, 795);
   await shot(page, "empty-identities");
 });
+
+test("password fields can be shown and hidden", async ({ page }) => {
+  await page.getByRole("button", { name: "Identità" }).first().click();
+  await page.getByRole("button", { name: "Nuova identità" }).click();
+  await page.getByRole("combobox").first().click();
+  await page.getByRole("option", { name: "Password" }).click();
+  const input = page.locator('input[autocomplete="new-password"]');
+  await input.fill("segreta");
+  await expect(input).toHaveAttribute("type", "password");
+  await page.getByRole("button", { name: "Mostra password" }).click();
+  await expect(input).toHaveAttribute("type", "text");
+  await page.getByRole("button", { name: "Nascondi password" }).click();
+  await expect(input).toHaveAttribute("type", "password");
+});
