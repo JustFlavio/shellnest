@@ -264,10 +264,12 @@ export function TerminalPane({
         : tab.status === "connected"
           ? "Connessa"
           : "Connessione…";
-  const endpoint =
-    tab.kind === "local"
-      ? "Shell del dispositivo"
-      : `${tab.username}@${tab.kind === "ssh" ? tab.host.address : tab.target.address}:${tab.kind === "ssh" ? tab.host.port : tab.target.port}`;
+  const target =
+    tab.kind === "ssh" ? tab.host : tab.kind === "quick" ? tab.target : null;
+  // The standard SSH port is noise: only a different one is worth showing.
+  const endpoint = target
+    ? `${tab.username}@${target.address}${target.port === 22 ? "" : `:${target.port}`}`
+    : "Shell del dispositivo";
   return (
     <div
       className={cn(
