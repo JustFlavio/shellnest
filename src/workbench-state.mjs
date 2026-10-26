@@ -46,14 +46,15 @@ export function insertLeaf(layout, targetId, node, edge) {
       : { ...n, a: walk(n.a), b: walk(n.b) };
   return walk(layout);
 }
-// Drop zone under the cursor: the nearest edge when within 25% of it, null in the middle.
+// Drop zone under the cursor: the nearest edge, anywhere but the small middle square
+// (within 40% of the edge counts, so there is no need to reach the border).
 export function dropEdge(x, y, w, h) {
   const dist = { left: x / w, right: 1 - x / w, top: y / h, bottom: 1 - y / h };
   const edge = Object.keys(dist).reduce(
     (m, k) => (dist[k] < dist[m] ? k : m),
     "left",
   );
-  return dist[edge] < 0.25 ? edge : null;
+  return dist[edge] < 0.4 ? edge : null;
 }
 export function replaceLeaf(node, oldId, newId) {
   return node.id !== undefined

@@ -94,6 +94,10 @@ test("dropping on an edge nests a subtree on that side; the middle is no drop", 
   assert.equal(dropEdge(5, 50, 100, 100), "left");
   assert.equal(dropEdge(50, 95, 100, 100), "bottom");
   assert.equal(dropEdge(50, 50, 100, 100), null);
+  // A generous zone: well short of the border still picks the nearest edge.
+  assert.equal(dropEdge(35, 50, 100, 100), "left");
+  assert.equal(dropEdge(50, 62, 100, 100), "bottom");
+  assert.equal(dropEdge(45, 55, 100, 100), null);
 });
 test("replacing a leaf keeps the layout shape", () => {
   const l = insertLeaf({ id: "a" }, "a", { id: "b" }, "right");
