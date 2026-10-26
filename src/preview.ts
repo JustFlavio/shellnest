@@ -452,13 +452,14 @@ export function previewView(): View {
         },
       },
     ],
-    hosts: Array.from({ length: 30 }, (_, i) => ({
+    hosts: Array.from({ length: 34 }, (_, i) => ({
       id: `preview-${i}`,
       name: `${["api", "database", "worker", "web", "monitoring"][i % 5]}-${String(Math.floor(i / 5) + 1).padStart(2, "0")}`,
       address: `192.0.2.${i + 10}`,
       port: 22,
       ownPort: 22,
-      groupId: groups[Math.floor(i / 10)].id,
+      // The last four hosts stay outside any folder.
+      groupId: i < 30 ? groups[Math.floor(i / 10)].id : "",
       identityId: i < 20 ? "identity-deploy" : "identity-admin",
       effectiveIdentityId: i < 20 ? "identity-deploy" : "identity-admin",
       identitySource: "",

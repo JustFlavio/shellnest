@@ -580,7 +580,7 @@ test("preview CRUD uses isolated snapshots, preserves references and discards se
   assert.ok(!view.identities.some((i) => i.id === identity.id));
   view = await invoke("delete_key", { id: "demo-key" });
   assert.ok(!view.keys.some((k) => k.id === "demo-key"));
-  assert.equal((await createPreviewBackend()("status")).hosts.length, 30);
+  assert.equal((await createPreviewBackend()("status")).hosts.length, 34);
 });
 
 test("preview vaults switch, lock and unlock without losing or mixing data", async () => {
@@ -599,11 +599,11 @@ test("preview vaults switch, lock and unlock without losing or mixing data", asy
   assert.equal(view.vaultName, "Test");
   await assert.rejects(invoke("status", { vaultId: "personal" }), /non attivo/);
   view = await invoke("select_vault", { vaultId: "personal" });
-  assert.equal(view.hosts.length, 30);
+  assert.equal(view.hosts.length, 34);
   view = await invoke("lock");
   assert.equal(view.hosts.length, 0);
   view = await invoke("unlock", { password: "fittizia" });
-  assert.equal(view.hosts.length, 30);
+  assert.equal(view.hosts.length, 34);
   view = await invoke("select_vault", { vaultId });
   assert.equal(view.hosts.length, 0);
   assert.equal(view.vaultName, "Test");
