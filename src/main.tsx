@@ -1892,7 +1892,7 @@ function App() {
                   {tabLabel(tab)}
                 </Button>
               )}
-              <ActionMenu label={`Azioni scheda ${tab.title}`}>
+              <ActionMenu label={`Azioni scheda ${tab.title}`} className="size-[24px]">
                 {tab.layout && (
                   <DropdownMenuItem
                     onClick={() =>
@@ -2061,8 +2061,13 @@ function App() {
           })}
         </nav>
         {view.groups.length > 0 && (
-          <nav className="folder-nav" aria-label="Cartelle host">
-            <h2>Cartelle</h2>
+          <nav
+            className="mt-[24px] min-h-0 overflow-y-auto max-[760px]:hidden"
+            aria-label="Cartelle host"
+          >
+            <h2 className="px-[11px] pb-[8px] !text-[12px] text-muted-foreground">
+              Cartelle
+            </h2>
             {childGroups(view.groups, "").map((g) => {
               const current =
                 page === "hosts" &&
@@ -2265,7 +2270,7 @@ function App() {
               {page === "hosts" && (
                 <>
                   <SelectField
-                    className="folder-filter"
+                    className="hidden h-[30px] w-[160px] max-[760px]:flex"
                     icon={<Folder size={14} />}
                     aria-label="Filtra per cartella"
                     placeholder="Tutte le cartelle"

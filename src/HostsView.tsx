@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
 } from "./components/ui/dropdown-menu";
 import { Button } from "./components/ui/button";
+import { cn } from "./lib/utils";
 import {
   ChevronRight,
   KeyRound,
@@ -53,6 +54,8 @@ type Props = {
   onError: (error: string) => void;
   busy: boolean;
 };
+const cardsGrid =
+  "grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-[10px]";
 export function HostsView(p: Props) {
   const identity = (h: Host) =>
     p.identities.find((i) => i.id === (h.effectiveIdentityId || h.identityId));
@@ -92,10 +95,13 @@ export function HostsView(p: Props) {
   const folders = p.searching ? [] : childGroups(p.groups, p.group ?? "");
   const hosts =
     p.group || p.searching ? p.hosts : p.hosts.filter((h) => !h.groupId);
-  const edit = (h: Host) => (
+  const edit = (h: Host, floating = false) => (
     <Button
       variant="ghost"
-      className="host-edit"
+      className={cn(
+        "size-[30px] p-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100",
+        floating && "absolute top-1/2 right-[8px] -translate-y-1/2",
+      )}
       disabled={p.busy}
       aria-label={"Modifica " + h.name}
       title={"Modifica " + h.name}
@@ -158,7 +164,7 @@ export function HostsView(p: Props) {
       </DropdownMenuItem>
     </>
   );
-  const tile = (h: Host) => {
+  const tile = (h: Host, index: number) => {
     const i = identity(h);
     return (
       <ContextMenu key={h.id}>
@@ -166,17 +172,18 @@ export function HostsView(p: Props) {
           render={
             <Card
               data-selection-id={h.id}
-              className={
-                "host-tile" +
-                (p.selected.has(h.id) ? " checked" : "") +
-                (p.editingId === h.id ? " editing" : "")
-              }
+              style={{ animationDelay: `${Math.min(index, 4) * 30}ms` }}
+              className={cn(
+                "group relative h-[64px] min-w-0 flex-row items-center gap-0 border border-transparent p-0 shadow-none ring-0 animate-[rise_0.28s_cubic-bezier(0.2,0.7,0.2,1)_backwards] transition hover:-translate-y-px hover:border-input hover:bg-accent focus-within:border-input focus-within:bg-accent",
+                (p.selected.has(h.id) || p.editingId === h.id) &&
+                  "border-primary bg-card hover:border-primary hover:bg-card focus-within:border-primary focus-within:bg-card",
+              )}
             />
           }
         >
           <Button
             variant="ghost"
-            className="tile-select"
+            className="h-full w-full min-w-0 justify-start gap-[10px] rounded-[11px] py-[9px] pr-[46px] pl-[10px] text-left hover:bg-transparent"
             disabled={p.busy}
             aria-label={"Seleziona " + h.name}
             aria-pressed={p.selected.has(h.id)}
@@ -188,20 +195,22 @@ export function HostsView(p: Props) {
             title={"Doppio clic per connettere a " + endpoint(h)}
           >
             <OsIcon os={h.os} />
-            <span>
-              <strong>{h.name}</strong>
-              <small className="mono">
+            <span className="min-w-0">
+              <strong className="block truncate text-[13px] leading-normal font-semibold">
+                {h.name}
+              </strong>
+              <small className="mt-[3px] block truncate font-mono text-xs text-muted-foreground">
                 {i?.username || h.username
                   ? (i?.username ?? h.username) + "@"
                   : ""}
                 {endpoint(h)}
               </small>
               {!i && !h.username && (
-                <small className="invalid">Credenziali mancanti</small>
+                <small className="invalid mt-[3px] block truncate text-[12px]">Credenziali mancanti</small>
               )}
             </span>
           </Button>
-          {edit(h)}
+          {edit(h, true)}
         </ContextMenuTrigger>
         <ContextMenuContent
           className="host-context-menu"
@@ -219,7 +228,7 @@ export function HostsView(p: Props) {
         <ContextMenuTrigger
           render={<tr />}
           data-selection-id={h.id}
-          className={p.selected.has(h.id) ? "checked" : ""}
+          className={cn("group", p.selected.has(h.id) && "checked")}
           onClick={(e) => {
             if (!(e.target as HTMLElement).closest("button")) select(h, e);
           }}
@@ -317,14 +326,20 @@ export function HostsView(p: Props) {
       {folders.length > 0 && (
         <section aria-label="Cartelle">
           <h2>Cartelle</h2>
-          <div className={p.layout === "cards" ? "host-cards" : "folder-rows"}>
+          <div className={p.layout === "cards" ? cardsGrid : "grid gap-[6px]"}>
             {folders.map((g) => {
               const subfolders = p.groups.filter((o) => o.parentId === g.id);
               return (
-                <div className="folder-item" key={g.id}>
+                <div
+                  className="group relative min-w-0 animate-[rise_0.28s_cubic-bezier(0.2,0.7,0.2,1)_backwards]"
+                  key={g.id}
+                >
                   <Button
                     variant="ghost"
-                    className="folder-tile"
+                    className={cn(
+                      "flex w-full min-w-0 justify-start gap-[12px] rounded-xl border border-transparent bg-card px-[10px] text-left hover:bg-accent aria-pressed:border-primary",
+                      p.layout === "cards" ? "h-[64px] py-[9px]" : "h-[48px] py-[5px]",
+                    )}
                     data-selection-id={g.id}
                     data-selection-kind="folder"
                     aria-label={`Seleziona cartella ${g.name}`}
@@ -346,19 +361,27 @@ export function HostsView(p: Props) {
                       }
                     }}
                   >
-                    <span className="folder-icon">
-                      <Folder className="size-6" />
+                    <span
+                      className={cn(
+                        "grid shrink-0 place-items-center rounded-[11px] bg-accent text-primary",
+                        p.layout === "cards" ? "size-[44px]" : "size-[36px]",
+                      )}
+                    >
+                      <Folder className="size-[24px]" />
                     </span>
-                    <span>
-                      <strong>{g.name}</strong>
-                      <small>
+                    <span className="min-w-0 flex-1">
+                      <strong className="block truncate">{g.name}</strong>
+                      <small className="mt-[3px] block truncate text-[11px] font-normal text-muted-foreground">
                         {p.hostCount(g.id)} host
                         {subfolders.length > 0 &&
                           ` · ${subfolders.length} ${subfolders.length === 1 ? "sottogruppo" : "sottogruppi"}`}
                       </small>
                     </span>
                   </Button>
-                  <ActionMenu label={`Azioni cartella ${g.name}`}>
+                  <ActionMenu
+                    label={`Azioni cartella ${g.name}`}
+                    className="absolute top-1/2 right-[10px] -translate-y-1/2 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 data-popup-open:opacity-100"
+                  >
                     <DropdownMenuItem
                       disabled={p.busy}
                       onClick={() => p.onOpenGroup(g.id)}
@@ -403,7 +426,7 @@ export function HostsView(p: Props) {
           )}
           {hosts.length > 0 ? (
             p.layout === "cards" ? (
-              <div className="host-cards">{hosts.map(tile)}</div>
+              <div className={cardsGrid}>{hosts.map(tile)}</div>
             ) : (
               table(hosts)
             )

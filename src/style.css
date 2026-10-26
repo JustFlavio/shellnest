@@ -293,10 +293,6 @@ button[data-slot="button"] {
 .tab > button:last-child {
   padding: 0 4px;
 }
-.tab .action-menu-trigger {
-  width: 24px;
-  height: 24px;
-}
 .new-tab {
   width: 30px;
   height: 30px;
@@ -536,69 +532,6 @@ button[data-slot="button"] {
   border-radius: 0;
   overflow: visible;
 }
-.host-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
-  gap: 10px;
-}
-.host-tile {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  position: relative;
-  gap: 0;
-  height: 64px;
-  min-width: 0;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  background: var(--card);
-  box-shadow: none;
-}
-.host-tile:hover,
-.host-tile:focus-within {
-  background: var(--accent);
-  border-color: var(--input);
-}
-.host-tile.checked,
-.host-tile.editing {
-  background: var(--card);
-  border-color: var(--primary);
-}
-.tile-select {
-  height: 100% !important;
-  width: 100%;
-  min-width: 0;
-  justify-content: flex-start;
-  text-align: left;
-  gap: 10px;
-  padding: 9px 46px 9px 10px;
-  border-radius: 11px;
-}
-.tile-select:hover {
-  background: transparent;
-}
-.tile-select > span:last-child {
-  min-width: 0;
-}
-.tile-select strong {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.5;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tile-select small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: block;
-  margin-top: 3px;
-  color: var(--muted-foreground);
-  font-size: 12px;
-}
 .os-icon {
   display: inline-flex;
   align-items: center;
@@ -636,28 +569,7 @@ button[data-slot="button"] {
   width: 20px;
   height: 20px;
 }
-.host-tile > .action-menu-trigger {
-  position: absolute;
-  right: 10px;
-  top: 12px;
-}
 
-.action-menu-trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  color: var(--muted-foreground);
-  border-radius: 5px;
-  flex-shrink: 0;
-}
-.action-menu-trigger:hover,
-.action-menu-trigger[aria-expanded="true"] {
-  background: var(--muted);
-  color: var(--foreground);
-}
 .host-context-menu {
   min-width: 230px;
 }
@@ -1685,22 +1597,7 @@ body:has(.side-sheet):not(:has(.centered-panel)) [data-slot="dialog-overlay"] {
 }
 
 /* Folder navigation complements the grouped collection. */
-.folder-nav {
-  min-height: 0;
-  overflow-y: auto;
-  margin-top: 24px;
-}
-.folder-nav h2 {
-  padding: 0 11px 8px;
-  font-size: 12px;
-  color: var(--muted-foreground);
-}
 
-.folder-filter[data-slot="select-trigger"] {
-  display: none;
-  width: 160px;
-  height: 30px;
-}
 
 .shortcut-list {
   margin: 24px 0;
@@ -1733,12 +1630,6 @@ textarea {
   caret-color: var(--primary);
 }
 @media (max-width: 760px) {
-  .folder-nav {
-    display: none;
-  }
-  .folder-filter[data-slot="select-trigger"] {
-    display: flex;
-  }
   .page-heading {
     flex-wrap: wrap;
     gap: 8px;
@@ -1803,81 +1694,6 @@ textarea {
   margin-bottom: 12px;
   font-size: 13px;
 }
-.folder-tile[data-slot="button"] {
-  display: flex;
-  width: 100%;
-  height: 64px;
-  padding: 9px 10px;
-  gap: 12px;
-  justify-content: flex-start;
-  background: var(--card);
-  border-radius: 12px;
-  min-width: 0;
-  text-align: left;
-  border: 1px solid transparent;
-}
-.folder-tile[data-slot="button"][aria-pressed="true"] {
-  border-color: var(--primary);
-}
-.folder-rows {
-  display: grid;
-  gap: 6px;
-}
-.folder-rows .folder-tile {
-  height: 48px;
-  padding: 5px 10px;
-}
-.folder-rows .folder-icon {
-  width: 36px;
-  height: 36px;
-}
-.folder-tile > span:nth-child(2) {
-  min-width: 0;
-  flex: 1;
-}
-.folder-tile strong,
-.folder-tile small {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.folder-tile small {
-  color: var(--muted-foreground);
-  margin-top: 3px;
-  font-weight: 400;
-}
-.folder-icon {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border-radius: 11px;
-  color: var(--primary);
-  background: var(--accent);
-}
-.host-edit {
-  opacity: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-}
-.host-tile > .host-edit {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.host-tile:hover .host-edit,
-.host-tile:focus-within .host-edit,
-tr:hover .host-edit,
-tr:focus-within .host-edit {
-  opacity: 1;
-}
 .host-table tr.checked {
   outline: 1px solid var(--primary);
   outline-offset: -1px;
@@ -1897,9 +1713,6 @@ tr:focus-within .host-edit {
   color: var(--muted-foreground);
 }
 @media (hover: none) {
-  .host-edit {
-    opacity: 1;
-  }
 }
 
 .panel.centered-panel[data-slot="dialog-content"] {
@@ -2010,20 +1823,6 @@ tr:focus-within .host-edit {
   justify-content: flex-start;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.tab .action-menu-trigger {
-  opacity: 0;
-  transition: opacity 0.12s;
-}
-.tab:hover .action-menu-trigger,
-.tab:focus-within .action-menu-trigger,
-.tab.selected .action-menu-trigger,
-.tab .action-menu-trigger[data-popup-open] {
-  opacity: 1;
-}
-.tab .action-menu-trigger:hover {
-  background: var(--accent) !important;
-  border-radius: 5px;
 }
 .tab.dragging {
   opacity: 0.45;
@@ -2388,23 +2187,6 @@ body:has(.alert-panel) [data-slot="dialog-overlay"] {
 }
 
 /* Folders: tile with its own menu, breadcrumb, inherited-identity notices */
-.folder-item {
-  position: relative;
-  min-width: 0;
-}
-.folder-item > .action-menu-trigger {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0;
-  transition: opacity 0.12s;
-}
-.folder-item:hover > .action-menu-trigger,
-.folder-item:focus-within > .action-menu-trigger,
-.folder-item > .action-menu-trigger[data-popup-open] {
-  opacity: 1;
-}
 .collection-heading.breadcrumb,
 .collection-heading {
   gap: 6px;
@@ -2483,23 +2265,8 @@ body:has(.alert-panel) [data-slot="dialog-overlay"] {
     background-position: -200% 0;
   }
 }
-.host-tile,
-.folder-item,
 .host-table tbody tr {
   animation: rise 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
-}
-.host-cards > :nth-child(2) { animation-delay: 30ms; }
-.host-cards > :nth-child(3) { animation-delay: 60ms; }
-.host-cards > :nth-child(4) { animation-delay: 90ms; }
-.host-cards > :nth-child(n + 5) { animation-delay: 120ms; }
-.host-tile {
-  transition:
-    background-color 0.15s,
-    border-color 0.15s,
-    transform 0.15s;
-}
-.host-tile:hover {
-  transform: translateY(-1px);
 }
 .skeleton {
   display: block;
