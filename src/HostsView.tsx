@@ -109,7 +109,7 @@ export function HostsView(p: Props) {
       variant="ghost"
       className={cn(
         "size-[30px] p-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100",
-        floating && "absolute top-1/2 right-[8px] -translate-y-1/2",
+        floating && "absolute inset-y-0 right-[8px] my-auto",
       )}
       disabled={p.busy}
       aria-label={"Modifica " + h.name}
@@ -393,7 +393,7 @@ export function HostsView(p: Props) {
                   </Button>
                   <ActionMenu
                     label={`Azioni cartella ${g.name}`}
-                    className="absolute top-1/2 right-[10px] -translate-y-1/2 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 data-popup-open:opacity-100"
+                    className="absolute inset-y-0 right-[10px] my-auto opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 data-popup-open:opacity-100"
                   >
                     <DropdownMenuItem
                       disabled={p.busy}

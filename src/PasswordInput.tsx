@@ -22,7 +22,7 @@ export function PasswordInput({
         variant="ghost"
         type="button"
         size="icon-sm"
-        className="absolute top-1/2 right-[5px] -translate-y-1/2 text-muted-foreground"
+        className="absolute inset-y-0 right-[5px] my-auto text-muted-foreground"
         aria-label={visible ? "Nascondi password" : "Mostra password"}
         aria-pressed={visible}
         disabled={props.disabled}
