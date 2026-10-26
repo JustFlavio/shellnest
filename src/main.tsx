@@ -66,7 +66,12 @@ import {
 } from "lucide-react";
 import { createPreviewBackend } from "./preview";
 import { WindowControls } from "./WindowControls";
-import { TerminalPane } from "./TerminalPane";
+import {
+  TerminalPane,
+  DEFAULT_FONT_SIZE,
+  terminalHandles,
+} from "./TerminalPane";
+import { SHORTCUTS, actionFor, format, hint } from "./shortcuts.mjs";
 import { OsIcon } from "./OsIcon";
 import { HostEditor, IdentityEditor, KeyEditor, Panel } from "./Editors";
 import { HostsView } from "./HostsView";
@@ -123,6 +128,7 @@ const dropPreviewEdge = {
   bottom: "inset-x-0 top-1/2 bottom-0",
 } as const;
 const desktop = isTauri();
+const mac = /Mac/i.test(navigator.platform);
 type Page = "hosts" | "identities" | "keys";
 const labels: Record<Page, string> = {
   hosts: "Host",
@@ -201,6 +207,16 @@ function App() {
     "idle",
   );
   const [shortcuts, setShortcuts] = useState(false);
+  const [fontSize, setFontSize] = useState(() => {
+    try {
+      return (
+        Number(localStorage.getItem("shellnest.fontSize")) || DEFAULT_FONT_SIZE
+      );
+    } catch {
+      return DEFAULT_FONT_SIZE;
+    }
+  });
+  const closedTabs = useRef<TerminalTab[]>([]);
   const [usage, setUsage] = useState<{ ids: string[]; label: string } | null>(
     null,
   );
@@ -423,111 +439,92 @@ function App() {
         shortcuts
       )
         return;
-      if (
-        (e.ctrlKey || e.metaKey) &&
-        ["k", "t"].includes(e.key.toLowerCase())
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        openLauncher();
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n") {
-        e.preventDefault();
-        setActive("vault");
-        if (e.shiftKey) newFolder();
-        else setHostForm(draftFor());
-      }
-      if (
-        (e.ctrlKey || e.metaKey) &&
-        e.shiftKey &&
-        e.key.toLowerCase() === "f"
-      ) {
-        e.preventDefault();
-        setActive("vault");
-        requestAnimationFrame(() => search.current?.focus());
-      }
-      if (
-        (e.ctrlKey || e.metaKey) &&
-        e.shiftKey &&
-        e.key.toLowerCase() === "l"
-      ) {
-        e.preventDefault();
-        if (tabs.length) setPendingLock(true);
-        else lockVault();
+      const action = actionFor(e, mac);
+      if (!action) {
+        if (e.key === "Escape" && active === "vault") clearSelection();
+        return;
       }
       const leader = tabs.find((t) => t.id === active);
-      const mod = e.metaKey || (e.ctrlKey && e.shiftKey),
-        key = e.key.toLowerCase();
-      if (leader && mod && key === "d") {
-        e.preventDefault();
-        e.stopPropagation();
-        splitTab(leader.id, e.metaKey && e.shiftKey ? "col" : "row");
-      }
-      if (leader && mod && key === "w") {
-        e.preventDefault();
-        e.stopPropagation();
-        closePane(focusOf(leader));
-      }
       const order = tabs.filter((t) => !t.parent),
         items = [
           "vault",
           ...order.map((t) => t.id),
           ...(launcherOpen ? ["launcher"] : []),
         ];
-      if (
-        (e.metaKey || e.ctrlKey) &&
-        !e.shiftKey &&
-        !e.altKey &&
-        /^[1-9]$/.test(e.key) &&
-        items[+e.key - 1]
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        setActive(items[+e.key - 1]);
-      }
-      if (
-        e.metaKey &&
-        e.shiftKey &&
-        !e.altKey &&
-        (e.code === "BracketLeft" || e.code === "BracketRight")
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        const at = Math.max(0, items.indexOf(active)),
-          step = e.code === "BracketLeft" ? -1 : 1;
+      const cycle = (step: number) => {
+        const at = Math.max(0, items.indexOf(active));
         setActive(items[(at + step + items.length) % items.length]);
-      }
-      if (
-        leader &&
-        e.metaKey &&
-        e.shiftKey &&
-        e.altKey &&
-        ["ArrowLeft", "ArrowRight"].includes(e.key)
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        const to =
-          order[order.indexOf(leader) + (e.key === "ArrowLeft" ? -1 : 1)];
-        if (to) setTabs((old) => reorderTabs(old, leader.id, to.id));
-      }
-      if (
-        leader?.layout &&
-        e.metaKey &&
-        e.altKey &&
-        !e.shiftKey &&
-        e.key.startsWith("Arrow")
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        const ids = leafIds(leader.layout),
-          step = ["ArrowLeft", "ArrowUp"].includes(e.key) ? -1 : 1;
+      };
+      const stepPane = (step: number) => {
+        if (!leader?.layout) return false;
+        const ids = leafIds(leader.layout);
         setFocusedPane(
           ids[(ids.indexOf(focusOf(leader)) + step + ids.length) % ids.length],
         );
-      }
-      if (e.key === "Escape" && active === "vault") {
-        clearSelection();
-      }
+        return true;
+      };
+      const moveTab = (step: number) => {
+        const to = leader && order[order.indexOf(leader) + step];
+        if (leader && to) setTabs((old) => reorderTabs(old, leader.id, to.id));
+        return !!leader;
+      };
+      const zoom = (to: number) => {
+        const size = Math.min(32, Math.max(8, to));
+        setFontSize(size);
+        try {
+          localStorage.setItem("shellnest.fontSize", String(size));
+        } catch {}
+      };
+      const handled: Record<string, () => boolean | void> = {
+        quickConnect: openLauncher,
+        newHost: () => {
+          setActive("vault");
+          setHostForm(draftFor());
+        },
+        newFolder: () => {
+          setActive("vault");
+          newFolder();
+        },
+        searchVault: () => {
+          setActive("vault");
+          requestAnimationFrame(() => search.current?.focus());
+        },
+        lockVault: () => {
+          if (tabs.length) setPendingLock(true);
+          else lockVault();
+        },
+        openSettings: () => {
+          setSyncUrl(view.syncUrl);
+          setSettings(true);
+          setError("");
+        },
+        closePane: () => leader && closePane(focusOf(leader)),
+        closeWorkspace: () => leader && closeTab(leader.id),
+        reopenTab: reopenTab,
+        gotoTab: () => {
+          const n = +e.key;
+          setActive(
+            n === 9 ? items[items.length - 1] : (items[n - 1] ?? active),
+          );
+        },
+        prevTab: () => cycle(-1),
+        nextTab: () => cycle(1),
+        moveTabLeft: () => moveTab(-1),
+        moveTabRight: () => moveTab(1),
+        splitRight: () => leader && splitTab(leader.id, "row"),
+        splitDown: () => leader && splitTab(leader.id, "col"),
+        prevPane: () => stepPane(-1),
+        nextPane: () => stepPane(1),
+        clearTerminal: () =>
+          leader && terminalHandles.get(focusOf(leader))?.clear(),
+        zoomIn: () => zoom(fontSize + 1),
+        zoomOut: () => zoom(fontSize - 1),
+        zoomReset: () => zoom(DEFAULT_FONT_SIZE),
+      };
+      // Pane stepping falls through to the terminal when the tab is not split.
+      if (handled[action]() === false) return;
+      e.preventDefault();
+      e.stopPropagation();
     };
     window.addEventListener("keydown", listener, true);
     return () => window.removeEventListener("keydown", listener, true);
@@ -550,6 +547,7 @@ function App() {
     tabs,
     focusedPane,
     launcherOpen,
+    fontSize,
   ]);
   useEffect(() => {
     if (!desktop || !view.unlocked || !tabs.length) return;
@@ -766,10 +764,29 @@ function App() {
       await continueConnections();
     });
   const connect = (host: Host) => connectHosts([host]);
+  const rememberClosed = (ids: string[]) =>
+    closedTabs.current.push(
+      ...tabs
+        .filter((t) => ids.includes(t.id))
+        .map(({ parent, layout, ...t }) => t as TerminalTab),
+    );
+  const reopenTab = () => {
+    const tab = closedTabs.current.pop();
+    if (!tab) return;
+    if (tab.kind === "ssh") connect(tab.host);
+    else if (tab.kind === "quick") {
+      try {
+        openQuick(tab.target);
+      } catch (e) {
+        setError(String(e));
+      }
+    } else openLocal();
+  };
   const closeTab = (id: string) => {
     if (pendingVerification.current.delete(id)) connectionQueue.current = [];
     const gone = tabs.find((t) => t.id === id)?.layout;
     const ids = gone ? leafIds(gone) : [id];
+    rememberClosed(ids);
     setTabs((t) => t.filter((t) => !ids.includes(t.id)));
     if (active === id) {
       const bar = tabs.filter((t) => !t.parent),
@@ -808,6 +825,7 @@ function App() {
   const closePane = (id: string) => {
     const moved = unlinkPane(id, false);
     if (!moved) return closeTab(id);
+    rememberClosed([id]);
     pendingVerification.current.delete(id);
     if (active === moved.leader.id) setActive(moved.next);
     setFocusedPane(moved.next);
@@ -1737,7 +1755,7 @@ function App() {
             </DropdownMenuItem>
             <DropdownMenuItem disabled={busy} onClick={openLauncher}>
               <Plus size={15} />
-              Nuova tab <kbd>Ctrl/Cmd T</kbd>
+              Nuova tab <kbd>{hint("quickConnect", mac)}</kbd>
             </DropdownMenuItem>
             <DropdownMenuItem disabled={busy} onClick={openLocal}>
               <TerminalSquare size={15} />
@@ -2029,7 +2047,7 @@ function App() {
             type="button"
             className="size-[30px] shrink-0 rounded-[9px] p-0 text-muted-foreground"
             aria-label="Nuova connessione"
-            title="Nuova connessione · Ctrl/Cmd K"
+            title={`Nuova connessione · ${hint("quickConnect", mac)}`}
             onClick={openLauncher}
           >
             <Plus size={18} />
@@ -2236,7 +2254,7 @@ function App() {
                   variant="ghost"
                   type="button"
                   onClick={openLauncher}
-                  title="Ctrl/Cmd K"
+                  title={hint("quickConnect", mac)}
                 >
                   <TerminalSquare size={15} />
                   Connessione rapida
@@ -2282,7 +2300,7 @@ function App() {
                   )}
                   disabled={busy}
                   onClick={onNew}
-                  title={page === "hosts" ? "Ctrl/Cmd N" : undefined}
+                  title={page === "hosts" ? hint("newHost", mac) : undefined}
                 >
                   <Plus size={15} />
                   {page === "hosts"
@@ -2310,12 +2328,16 @@ function App() {
                       <DropdownMenuItem onClick={onNew}>
                         <Plus size={14} />
                         Nuovo host
-                        <DropdownMenuShortcut>⌘N</DropdownMenuShortcut>
+                        <DropdownMenuShortcut>
+                          {hint("newHost", mac)}
+                        </DropdownMenuShortcut>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={newFolder}>
                         <FolderPlus size={14} />
                         Nuova cartella
-                        <DropdownMenuShortcut>⇧⌘N</DropdownMenuShortcut>
+                        <DropdownMenuShortcut>
+                          {hint("newFolder", mac)}
+                        </DropdownMenuShortcut>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -2709,6 +2731,7 @@ function App() {
                 }
                 ghost={tab.id === dragPane && reflow}
                 animate={settling}
+                fontSize={fontSize}
                 focused={geo ? focus === tab.id : undefined}
                 onFocus={geo ? () => setFocusedPane(tab.id) : undefined}
                 onDragPane={
@@ -2798,10 +2821,11 @@ function App() {
             <div
               key={d.path}
               className={cn(
-                "absolute z-2 bg-transparent hover:bg-[color-mix(in_oklab,var(--primary)_35%,transparent)]",
+                // A wide invisible hit area; on hover a small grip appears in the gap.
+                "absolute z-2 after:absolute after:top-1/2 after:left-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-foreground/70 after:opacity-0 after:transition-opacity after:duration-150 after:content-[''] hover:after:opacity-100 active:after:opacity-100 active:after:bg-primary",
                 d.dir === "row"
-                  ? "-ml-[4px] w-[8px] cursor-col-resize"
-                  : "-mt-[4px] h-[8px] cursor-row-resize",
+                  ? "-ml-[6px] w-[12px] cursor-col-resize after:h-[44px] after:w-[4px]"
+                  : "-mt-[6px] h-[12px] cursor-row-resize after:h-[4px] after:w-[44px]",
               )}
               style={
                 d.dir === "row"
@@ -3213,40 +3237,19 @@ function App() {
           onClose={() => setShortcuts(false)}
         >
           <p className={muted}>
-            Su macOS usa ⌘ al posto di Ctrl. Le scorciatoie di ricerca e blocco
-            usano anche Maiusc per lasciare liberi i comandi del terminale.
+            {mac
+              ? "Le scorciatoie usano ⌘."
+              : "Le scorciatoie con una lettera usano Ctrl+Maiusc (e Alt se già con Maiusc) per lasciare liberi i comandi del terminale."}
           </p>
           <dl className={shortcutList}>
-            <div>
-              <dt>Connessione rapida</dt>
-              <dd>
-                <kbd>Ctrl/Cmd K / Ctrl/Cmd T</kbd>
-              </dd>
-            </div>
-            <div>
-              <dt>Nuovo host</dt>
-              <dd>
-                <kbd>Ctrl N</kbd>
-              </dd>
-            </div>
-            <div>
-              <dt>Nuova cartella</dt>
-              <dd>
-                <kbd>Ctrl/Cmd Maiusc N</kbd>
-              </dd>
-            </div>
-            <div>
-              <dt>Cerca nella raccolta</dt>
-              <dd>
-                <kbd>Ctrl Maiusc F</kbd>
-              </dd>
-            </div>
-            <div>
-              <dt>Blocca vault</dt>
-              <dd>
-                <kbd>Ctrl Maiusc L</kbd>
-              </dd>
-            </div>
+            {SHORTCUTS.map((s) => (
+              <div key={s.id}>
+                <dt>{s.label}</dt>
+                <dd>
+                  <kbd>{s.combos.map((c) => format(c, mac)).join(" / ")}</kbd>
+                </dd>
+              </div>
+            ))}
             <div>
               <dt>Connetti dalla scheda host</dt>
               <dd>

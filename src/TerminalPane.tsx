@@ -12,11 +12,15 @@ import type { TerminalTab, Output } from "./types";
 import "@xterm/xterm/css/xterm.css";
 import { help } from "./editor-ui";
 
+export const DEFAULT_FONT_SIZE = 13;
+// Live terminals by tab id, so global shortcuts can reach the focused one.
+export const terminalHandles = new Map<string, Terminal>();
 type Status = "connecting" | "connected" | "closed" | "failed";
 export function TerminalPane({
   tab,
   active,
   box,
+  fontSize,
   focused,
   ghost,
   animate,
@@ -33,6 +37,7 @@ export function TerminalPane({
   active: boolean;
   // fractions of the terminals area when the tab is split; undefined = fill
   box?: { x: number; y: number; w: number; h: number };
+  fontSize: number;
   // undefined when the tab is not split
   focused?: boolean;
   // being dragged away: stays as a faint trace while the others take its place
@@ -59,14 +64,23 @@ export function TerminalPane({
   const el = useRef<HTMLDivElement>(null),
     fit = useRef<FitAddon | null>(null),
     terminal = useRef<Terminal | null>(null);
+  const sizeRef = useRef(fontSize),
+    refit = useRef<() => void>(() => {});
+  sizeRef.current = fontSize;
   const callbacks = useRef({ onError, onStatus, onMetadata });
   callbacks.current = { onError, onStatus, onMetadata };
+  useEffect(() => {
+    if (!terminal.current || terminal.current.options.fontSize === fontSize)
+      return;
+    terminal.current.options.fontSize = fontSize;
+    refit.current();
+  }, [fontSize]);
   useEffect(() => {
     if (pendingTrust) return;
     setPhase("Avvio della connessione");
     const term = new Terminal({
       fontFamily: '"Cascadia Code", "SFMono-Regular", Consolas, monospace',
-      fontSize: 13,
+      fontSize: sizeRef.current,
       cursorBlink: true,
       scrollback: 5000,
       theme: {
@@ -77,6 +91,7 @@ export function TerminalPane({
       },
     });
     terminal.current = term;
+    terminalHandles.set(tab.id, term);
     const addon = new FitAddon();
     fit.current = addon;
     term.loadAddon(addon);
@@ -124,6 +139,7 @@ export function TerminalPane({
           rows: term.rows,
         }).catch(() => {});
     };
+    refit.current = resize;
     const observer = new ResizeObserver(resize);
     observer.observe(el.current!);
     const input = term.onData((data) => {
@@ -207,6 +223,7 @@ export function TerminalPane({
         timers.forEach(window.clearTimeout);
         observer.disconnect();
         input.dispose();
+        terminalHandles.delete(tab.id);
         term.dispose();
       };
     }
@@ -242,6 +259,7 @@ export function TerminalPane({
       disposed = true;
       observer.disconnect();
       input.dispose();
+      terminalHandles.delete(tab.id);
       term.dispose();
       void invoke("disconnect", {
         vaultId: tab.vaultId,

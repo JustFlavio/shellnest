@@ -16,6 +16,7 @@ import { parseConnectionTarget } from "./connection-target.mjs";
 import type { ConnectionTarget } from "./connection-target.mjs";
 import { OsIcon } from "./OsIcon";
 import { cn } from "./lib/utils";
+import { hint } from "./shortcuts.mjs";
 import { help, muted } from "./editor-ui";
 
 type RecentHost = Host & {
@@ -299,7 +300,7 @@ export function ConnectionLauncher({
           }}
         />
         <kbd className="text-[12px] whitespace-nowrap">
-          {/Mac/.test(navigator.userAgent) ? "⌘K" : "Ctrl K"}
+          {hint("quickConnect", /Mac/.test(navigator.userAgent))}
         </kbd>
       </div>
       <div

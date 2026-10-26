@@ -237,3 +237,14 @@ test("pane close button only shows on hover", async ({ page }) => {
   await page.locator(".xterm").first().hover();
   await expect(close).toHaveCSS("opacity", "1");
 });
+
+test("pane divider shows a grip on hover", async ({ page }) => {
+  await openFromLauncher(page, /Produzione.*connessioni/);
+  const divider = page.locator(".cursor-col-resize");
+  const box = await divider.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + 300);
+  await page.waitForTimeout(300);
+  await expect(page).toHaveScreenshot("divider-hover.png", {
+    clip: { x: box.x - 60, y: box.y + 200, width: 120 + box.width, height: 200 },
+  });
+});
