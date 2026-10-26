@@ -72,6 +72,7 @@ import {
   terminalHandles,
 } from "./TerminalPane";
 import { SHORTCUTS, actionFor, format, hint } from "./shortcuts.mjs";
+import { useCloseGuard } from "./CloseGuard";
 import { OsIcon } from "./OsIcon";
 import { HostEditor, IdentityEditor, KeyEditor, Panel } from "./Editors";
 import { HostsView } from "./HostsView";
@@ -260,6 +261,7 @@ function App() {
         `server-manager.layout.${view.vaultId}`,
       );
       setLayout(saved === "list" ? "list" : "cards");
+  const closeGuard = useCloseGuard();
     } catch {
       setLayout("cards");
     }
@@ -457,6 +459,7 @@ function App() {
       };
       const stepPane = (step: number) => {
         if (!leader?.layout) return false;
+        closeGuard.open ||
         const ids = leafIds(leader.layout);
         setFocusedPane(
           ids[(ids.indexOf(focusOf(leader)) + step + ids.length) % ids.length],
@@ -498,8 +501,8 @@ function App() {
           setSettings(true);
           setError("");
         },
-        closePane: () => leader && closePane(focusOf(leader)),
-        closeWorkspace: () => leader && closeTab(leader.id),
+        closePane: () => leader && askClosePane(focusOf(leader)),
+        closeWorkspace: () => leader && askCloseTab(leader.id),
         reopenTab: reopenTab,
         gotoTab: () => {
           const n = +e.key;
@@ -564,6 +567,7 @@ function App() {
   }, [tabs, active, view.vaultId, view.unlocked]);
   useEffect(() => {
     document
+    closeGuard.open,
       .querySelector(".tab.selected")
       ?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [active, tabs.length]);
@@ -853,6 +857,14 @@ function App() {
     identityName: "",
     status: "connecting",
   });
+  const isLive = (ids: string[]) =>
+    tabs.some((t) => ids.includes(t.id) && t.status === "connected");
+  const askClosePane = (id: string) =>
+    closeGuard.ask(isLive([id]), () => closePane(id));
+  const askCloseTab = (id: string) => {
+    const layout = tabs.find((t) => t.id === id)?.layout;
+    closeGuard.ask(isLive(layout ? leafIds(layout) : [id]), () => closeTab(id));
+  };
   // Recreate every session of the given layouts, one tab bar entry each. Hosts not trusted yet are
   // verified first through the usual fingerprint dialog, which calls this again once approved.
   const openWorkspaces = async (
@@ -1475,6 +1487,7 @@ function App() {
               Chiudi sessioni e blocca
             </Button>
           </footer>
+      {closeGuard.dialog}
         </Panel>
       )}
     </>
@@ -1929,7 +1942,7 @@ function App() {
             >
               <TabLead
                 icon={tabIcon(tab)}
-                onClose={() => closeTab(tab.id)}
+                onClose={() => askCloseTab(tab.id)}
                 label={tabLabel(tab)}
                 status={tab.status ?? "connecting"}
               />
@@ -1981,7 +1994,7 @@ function App() {
                   </DropdownMenuItem>
                 )}
                 {tab.layout && (
-                  <DropdownMenuItem onClick={() => closePane(focusOf(tab))}>
+                  <DropdownMenuItem onClick={() => askClosePane(focusOf(tab))}>
                     Chiudi pannello attivo
                   </DropdownMenuItem>
                 )}
@@ -2746,7 +2759,7 @@ function App() {
                 onError={setError}
                 onStatus={tabStatus}
                 onMetadata={metadataUpdated}
-                onClose={() => closePane(tab.id)}
+                onClose={() => askClosePane(tab.id)}
                 onRetry={() => {
                   if (geo) return reconnectPane(tab.id);
                   closePane(tab.id);

@@ -388,3 +388,22 @@ test("scrolled-up viewport stays put when new output arrives", async ({ page }) 
   expect(after.base).toBeGreaterThan(before.base);
   expect(after.y).toBe(before.y);
 });
+
+test("closing a connected session asks first, and can be silenced", async ({ page }) => {
+  await openFromLauncher(page, /api-01/);
+  const dialog = page.getByRole("heading", { name: "Interrompere la sessione?" });
+  await page.getByRole("button", { name: "Chiudi api-01" }).click();
+  await dialog.waitFor();
+  await shot(page, "close-confirm");
+  await page.getByRole("button", { name: "Annulla" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.locator(".xterm")).toHaveCount(1);
+  await page.getByRole("button", { name: "Chiudi api-01" }).click();
+  await page.getByRole("checkbox", { name: "Non chiedermelo più" }).check();
+  await page.getByRole("button", { name: "Interrompi" }).click();
+  await expect(page.locator(".xterm")).toHaveCount(0);
+  await openFromLauncher(page, /api-01/);
+  await page.getByRole("button", { name: "Chiudi api-01" }).click();
+  await expect(page.locator(".xterm")).toHaveCount(0);
+  await expect(dialog).toHaveCount(0);
+});
