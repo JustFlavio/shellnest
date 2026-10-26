@@ -1473,7 +1473,7 @@ function App() {
           </span>
           <WindowControls onError={setError} />
         </header>
-        <section className="w-[370px] max-w-full [&_form]:mt-[25px] [&_input]:h-[40px]">
+        <section className="w-[370px] max-w-full [&_form]:mt-[25px] [&_input]:h-[40px] [&_input]:text-[15px]">
           <div className="mb-[32px] flex items-center gap-[9px] text-[13px] font-semibold whitespace-nowrap">
             <BrandIcon />
             Shellnest
