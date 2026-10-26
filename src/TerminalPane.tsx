@@ -1,13 +1,23 @@
 import { useEffect, useRef, useState } from "react";
-import { LoaderCircle, CircleAlert, TerminalSquare, X } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  LoaderCircle,
+  CircleAlert,
+  TerminalSquare,
+  X,
+} from "lucide-react";
 import { OsIcon } from "./OsIcon";
 import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
 import { StatusDot } from "./Tab";
 import { cn } from "./lib/utils";
 import { invoke, Channel, isTauri } from "@tauri-apps/api/core";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
+import { SearchAddon } from "@xterm/addon-search";
+import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { terminalInputChunks } from "./workbench-state.mjs";
 import {
   LINE_KILL,
@@ -33,6 +43,13 @@ function openLink(event: MouseEvent, uri: string) {
   if (isTauri()) void invoke("open_url", { url: uri }).catch(() => {});
   else window.open(uri, "_blank", "noopener,noreferrer");
 }
+// Search highlights (the addon only accepts #RRGGBB).
+const searchDecorations = {
+  matchBackground: "#5a4311",
+  matchOverviewRuler: "#f5a524",
+  activeMatchBackground: "#f5a524",
+  activeMatchColorOverviewRuler: "#f5a524",
+};
 export const DEFAULT_FONT_SIZE = 13;
 // Live terminals by tab id, so global shortcuts can reach the focused one.
 export const terminalHandles = new Map<string, Terminal>();
@@ -81,6 +98,11 @@ export function TerminalPane({
   const [failure, setFailure] = useState("");
   const [showLogs, setShowLogs] = useState(false);
   const [copyError, setCopyError] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [query, setQuery] = useState("");
+  const [noMatch, setNoMatch] = useState(false);
+  const search = useRef<SearchAddon | null>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
   const [pendingPaste, setPendingPaste] = useState<string | null>(null);
   const pendingTrust = tab.kind === "ssh" && !tab.host.fingerprint;
   const el = useRef<HTMLDivElement>(null),
@@ -104,6 +126,7 @@ export function TerminalPane({
       fontFamily: '"Cascadia Code", "SFMono-Regular", Consolas, monospace',
       fontSize: sizeRef.current,
       cursorBlink: true,
+      allowProposedApi: true,
       scrollback: 5000,
       theme: {
         background: "#17140f",
@@ -118,6 +141,12 @@ export function TerminalPane({
     fit.current = addon;
     term.loadAddon(addon);
     term.loadAddon(new WebLinksAddon(openLink));
+    // Wide characters and emoji keep the columns aligned.
+    term.loadAddon(new Unicode11Addon());
+    term.unicode.activeVersion = "11";
+    const finder = new SearchAddon();
+    search.current = finder;
+    term.loadAddon(finder);
     term.open(el.current!);
     addon.fit();
     let disposed = false,
@@ -196,6 +225,11 @@ export function TerminalPane({
       if (action === "copy")
         void navigator.clipboard.writeText(term.getSelection()).catch(() => {});
       else if (action === "paste") pasteClipboard();
+      else if (action === "search") {
+        setSearching(true);
+        searchInput.current?.focus();
+        searchInput.current?.select();
+      }
       else if (action === "line-kill") term.input(LINE_KILL);
       else if (action === "word-back") term.input(WORD_BACK);
       else if (action === "word-forward") term.input(WORD_FORWARD);
@@ -340,6 +374,30 @@ export function TerminalPane({
         if (focused !== false) terminal.current?.focus();
       });
   }, [active, focused]);
+  const find = (forward: boolean, incremental = false) => {
+    if (!query) {
+      search.current?.clearDecorations();
+      setNoMatch(false);
+      return;
+    }
+    const options = { incremental, decorations: searchDecorations };
+    setNoMatch(
+      !(forward
+        ? search.current?.findNext(query, options)
+        : search.current?.findPrevious(query, options)),
+    );
+  };
+  useEffect(() => {
+    if (searching) find(true, true);
+  }, [query]);
+  const closeSearch = () => {
+    setSearching(false);
+    search.current?.clearDecorations();
+    terminal.current?.focus();
+  };
+  useEffect(() => {
+    if (searching) searchInput.current?.focus();
+  }, [searching]);
   const statusLabel =
     tab.status === "closed"
       ? "Terminata"
@@ -441,6 +499,59 @@ export function TerminalPane({
             : undefined
         }
       />
+      {searching && (
+        <div
+          role="search"
+          className="absolute top-[48px] right-[20px] z-10 flex items-center gap-[4px] rounded-[10px] border border-border bg-card p-[4px] shadow-lg"
+        >
+          <Input
+            ref={searchInput}
+            value={query}
+            placeholder="Cerca nel terminale"
+            aria-label="Cerca nel terminale"
+            aria-invalid={noMatch || undefined}
+            className="h-[30px] w-[200px]"
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.preventDefault();
+                e.stopPropagation();
+                closeSearch();
+              } else if (e.key === "Enter") {
+                e.preventDefault();
+                find(!e.shiftKey);
+              }
+            }}
+          />
+          <Button
+            variant="ghost"
+            type="button"
+            size="icon-sm"
+            aria-label="Risultato precedente"
+            onClick={() => find(false)}
+          >
+            <ChevronUp size={15} />
+          </Button>
+          <Button
+            variant="ghost"
+            type="button"
+            size="icon-sm"
+            aria-label="Risultato successivo"
+            onClick={() => find(true)}
+          >
+            <ChevronDown size={15} />
+          </Button>
+          <Button
+            variant="ghost"
+            type="button"
+            size="icon-sm"
+            aria-label="Chiudi ricerca"
+            onClick={closeSearch}
+          >
+            <X size={15} />
+          </Button>
+        </div>
+      )}
       {pendingPaste !== null && (
         <Panel
           variant="alert"

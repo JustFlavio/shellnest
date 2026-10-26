@@ -334,3 +334,22 @@ test("Cmd+click opens a terminal link, plain click does not", async ({ page }) =
   await page.keyboard.up("Meta");
   expect(await (await popup).url()).toContain("example.com/prova");
 });
+
+test("Cmd+F opens the terminal search, Esc closes it and refocuses", async ({ page }) => {
+  await openFromLauncher(page, /api-01/);
+  await page.locator(".xterm").first().click();
+  await page.keyboard.press("Meta+f");
+  const box = page.getByRole("textbox", { name: "Cerca nel terminale" });
+  await expect(box).toBeFocused();
+  await expect(box).toHaveAttribute("placeholder", "Cerca nel terminale");
+  await box.fill("dimostrativa");
+  await page.mouse.move(1275, 795);
+  await shot(page, "terminal-search");
+  await page.getByRole("button", { name: "Risultato successivo" }).click();
+  await box.press("Shift+Enter");
+  await box.fill("zzzz");
+  await expect(box).toHaveAttribute("aria-invalid", "true");
+  await box.press("Escape");
+  await expect(box).toHaveCount(0);
+  await expect(page.locator(".xterm-helper-textarea").first()).toBeFocused();
+});
