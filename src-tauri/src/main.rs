@@ -445,6 +445,57 @@ fn rename_vault(state: State<AppState>, vault_id: String, name: String) -> Resul
     drop(guard);
     view(&state)
 }
+#[tauri::command]
+fn delete_vault(state: State<AppState>, vault_id: String) -> Result<View, String> {
+    delete(&state, &vault_id)
+}
+// Only the active vault, only when empty (or never created on disk), never the default one.
+fn delete(state: &AppState, id: &str) -> Result<View, String> {
+    if id == "personal" {
+        return Err("Il vault Personale non può essere eliminato".into());
+    }
+    let mut guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
+    state.ensure_vault(id)?;
+    let path = state.active_path()?;
+    match guard.as_ref() {
+        Some(v) => {
+            let d = &v.data;
+            if !(d.hosts.is_empty()
+                && d.identities.is_empty()
+                && d.keys.is_empty()
+                && d.groups.is_empty()
+                && d.workspaces.is_empty())
+            {
+                return Err("Il vault non è vuoto: eliminane prima il contenuto".into());
+            }
+        }
+        None if path.exists() => return Err("Sblocca il vault per eliminarlo".into()),
+        None => {}
+    }
+    let mut catalog = state
+        .catalog
+        .lock()
+        .map_err(|_| "Registro vault non disponibile")?;
+    let mut next = catalog.clone();
+    next.vaults.retain(|v| v.id != id);
+    next.selected = "personal".into();
+    let mut sessions = state
+        .sessions
+        .lock()
+        .map_err(|_| "Sessioni non disponibili")?;
+    next.persist(&state.path)?;
+    for (_, tx) in sessions.drain() {
+        let _ = tx.send(terminal::Input::Close);
+    }
+    *catalog = next;
+    *guard = None;
+    drop(sessions);
+    drop(catalog);
+    drop(guard);
+    // The catalog no longer lists it; a leftover file is harmless.
+    let _ = std::fs::remove_file(path);
+    view(state)
+}
 // Persist a candidate before replacing the in-memory data, so write failures do not lose edits.
 pub fn commit(s: &AppState, v: &mut OpenVault, data: vault::Data) -> Result<(), String> {
     data.validate()?;
@@ -706,6 +757,7 @@ fn main() {
             select_vault,
             create_vault,
             rename_vault,
+            delete_vault,
             unlock,
             lock,
             save_host,
@@ -1024,6 +1076,40 @@ mod tests {
         assert_eq!(view(&reloaded).unwrap().vault_id, work.vault_id);
         assert!(work_path.exists());
         assert_eq!(std::fs::read(&state.path).unwrap(), personal_bytes);
+    }
+    #[test]
+    fn only_empty_non_default_vaults_can_be_deleted() {
+        let fixture = VaultFixture::new();
+        let state = fixture.state();
+        open_selected(&state, "personal", "personal test password", true).unwrap();
+        assert!(delete(&state, "personal").is_err());
+        let work = create(&state, "personal", "Lavoro").unwrap();
+        open_selected(&state, &work.vault_id, "work test password", true).unwrap();
+        mutate(&state, &work.vault_id, |data| {
+            data.upsert_identity(Identity {
+                id: "login".into(),
+                name: "Login".into(),
+                username: "root".into(),
+                auth: "password".into(),
+                key_id: String::new(),
+                password: "secret".into(),
+            })
+        })
+        .unwrap();
+        assert!(delete(&state, &work.vault_id).is_err());
+        assert_eq!(view(&state).unwrap().vaults.len(), 2);
+        mutate(&state, &work.vault_id, |data| {
+            data.delete_identity("login")
+        })
+        .unwrap();
+        let path = state.active_path().unwrap();
+        let after = delete(&state, &work.vault_id).unwrap();
+        assert_eq!(after.vault_id, "personal");
+        assert_eq!(after.vaults.len(), 1);
+        assert!(!path.exists());
+        let never_opened = create(&state, "personal", "Vuoto").unwrap();
+        assert!(!never_opened.exists);
+        assert_eq!(delete(&state, &never_opened.vault_id).unwrap().vaults.len(), 1);
     }
     #[test]
     fn switching_closes_sessions_and_catalog_failure_preserves_open_vault() {
