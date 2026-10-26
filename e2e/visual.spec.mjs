@@ -248,3 +248,36 @@ test("pane divider shows a grip on hover", async ({ page }) => {
     clip: { x: box.x - 60, y: box.y + 200, width: 120 + box.width, height: 200 },
   });
 });
+
+const termText = (page) => page.locator(".xterm-rows").first().innerText();
+const pasteInto = (page, text) =>
+  page.evaluate((value) => {
+    const data = new DataTransfer();
+    data.setData("text/plain", value);
+    document.querySelector(".xterm-helper-textarea").dispatchEvent(
+      new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }),
+    );
+  }, text);
+
+test("paste strips control characters", async ({ page }) => {
+  await openFromLauncher(page, /api-01/);
+  await page.locator(".xterm").first().click();
+  await pasteInto(page, "echo a\x1b[201~b\x07c");
+  await expect.poll(() => termText(page)).toContain("echo a[201~bc");
+});
+
+test("big paste asks for confirmation", async ({ page }) => {
+  await openFromLauncher(page, /api-01/);
+  await page.locator(".xterm").first().click();
+  const lines = Array.from({ length: 25 }, (_, i) => "riga" + i).join("\n");
+  await pasteInto(page, lines);
+  await page.getByRole("heading", { name: "Incollare più righe?" }).waitFor();
+  expect(await termText(page)).not.toContain("riga3");
+  await shot(page, "paste-confirm");
+  await page.getByRole("button", { name: "Annulla" }).click();
+  await expect(page.getByRole("heading", { name: "Incollare più righe?" })).toHaveCount(0);
+  expect(await termText(page)).not.toContain("riga3");
+  await pasteInto(page, lines);
+  await page.getByRole("button", { name: "Incolla", exact: true }).click();
+  await expect.poll(() => termText(page)).toContain("riga24");
+});

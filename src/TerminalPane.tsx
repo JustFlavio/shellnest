@@ -8,6 +8,14 @@ import { invoke, Channel, isTauri } from "@tauri-apps/api/core";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { terminalInputChunks } from "./workbench-state.mjs";
+import {
+  RESET_MODES,
+  needsPasteConfirm,
+  pasteLineCount,
+  sanitizePaste,
+} from "./terminal-input.mjs";
+import { Panel } from "./Editors";
+import { AlertDialogDescription } from "./components/ui/alert-dialog";
 import type { TerminalTab, Output } from "./types";
 import "@xterm/xterm/css/xterm.css";
 import { help } from "./editor-ui";
@@ -60,6 +68,7 @@ export function TerminalPane({
   const [failure, setFailure] = useState("");
   const [showLogs, setShowLogs] = useState(false);
   const [copyError, setCopyError] = useState("");
+  const [pendingPaste, setPendingPaste] = useState<string | null>(null);
   const pendingTrust = tab.kind === "ssh" && !tab.host.fingerprint;
   const el = useRef<HTMLDivElement>(null),
     fit = useRef<FitAddon | null>(null),
@@ -140,6 +149,22 @@ export function TerminalPane({
         }).catch(() => {});
     };
     refit.current = resize;
+    // Untrusted clipboard text: strip control characters (ESC could end bracketed paste
+    // and run what follows) and confirm big pastes before they reach the shell.
+    const paste = (raw: string) => {
+      const text = sanitizePaste(raw);
+      if (!text) return;
+      if (needsPasteConfirm(text)) setPendingPaste(text);
+      else term.paste(text);
+    };
+    const onPaste = (e: ClipboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      paste(e.clipboardData?.getData("text/plain") ?? "");
+    };
+    term.element!.addEventListener("paste", onPaste, true);
+    // A dead session must not leave bracketed paste, mouse tracking or the alternate screen on.
+    const resetModes = () => term.write(RESET_MODES);
     const observer = new ResizeObserver(resize);
     observer.observe(el.current!);
     const input = term.onData((data) => {
@@ -182,6 +207,7 @@ export function TerminalPane({
         setFailure(event.data);
         setLogs((old) => [...old, event.data]);
         callbacks.current.onStatus(tab.id, "failed");
+        resetModes();
         term.writeln(`\r\n\x1b[31m${event.data}\x1b[0m`);
         callbacks.current.onError(event.data);
       }
@@ -194,6 +220,7 @@ export function TerminalPane({
         ready = false;
         pendingInput = "";
         if (!failed) callbacks.current.onStatus(tab.id, "closed");
+        resetModes();
         term.writeln(
           "\r\n\x1b[90mSessione terminata. Usa Riconnetti dal menu della scheda.\x1b[0m",
         );
@@ -251,6 +278,7 @@ export function TerminalPane({
         setFailure(String(e));
         setLogs((old) => [...old, String(e)]);
         callbacks.current.onStatus(tab.id, "failed");
+        resetModes();
         term.writeln(`\r\n\x1b[31m${String(e)}\x1b[0m`);
         callbacks.current.onError(String(e));
       }
@@ -375,6 +403,50 @@ export function TerminalPane({
             : undefined
         }
       />
+      {pendingPaste !== null && (
+        <Panel
+          variant="alert"
+          title="Incollare più righe?"
+          busy={false}
+          error=""
+          onClose={() => {
+            setPendingPaste(null);
+            terminal.current?.focus();
+          }}
+        >
+          <AlertDialogDescription>
+            Stai per incollare {pasteLineCount(pendingPaste)} righe nel
+            terminale. Ogni riga verrà eseguita dalla shell.
+          </AlertDialogDescription>
+          <pre className="max-h-[160px] overflow-auto rounded-[10px] bg-muted p-[14px] text-left font-mono text-[12px] whitespace-pre-wrap [overflow-wrap:anywhere]">
+            {pendingPaste.slice(0, 600)}
+            {pendingPaste.length > 600 && "…"}
+          </pre>
+          <footer>
+            <Button
+              type="button"
+              variant="outline"
+              data-alert-cancel
+              onClick={() => {
+                setPendingPaste(null);
+                terminal.current?.focus();
+              }}
+            >
+              Annulla
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                terminal.current?.paste(pendingPaste);
+                setPendingPaste(null);
+                terminal.current?.focus();
+              }}
+            >
+              Incolla
+            </Button>
+          </footer>
+        </Panel>
+      )}
       {!opened && (
         <div className="grid min-h-0 flex-1 place-items-center overflow-auto p-[24px]">
           <div className="w-[min(100%,460px)] text-center [&>h2]:text-[18px] [&>h2]:font-semibold [&>p]:my-[10px] [&>p]:[overflow-wrap:anywhere] [&>svg]:mx-auto [&>svg]:mb-[16px] [&>svg]:text-primary">
