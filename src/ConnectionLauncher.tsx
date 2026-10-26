@@ -16,6 +16,7 @@ import { parseConnectionTarget } from "./connection-target.mjs";
 import type { ConnectionTarget } from "./connection-target.mjs";
 import { OsIcon } from "./OsIcon";
 import { cn } from "./lib/utils";
+import { help, muted } from "./editor-ui";
 
 type RecentHost = Host & {
   lastConnectedAt?: number | null;
@@ -415,7 +416,7 @@ export function ConnectionLauncher({
           }}
         >
           <h2>Connessione rapida</h2>
-          <p className="muted">
+          <p className={muted}>
             <code>
               {target.username ? `${target.username}@` : ""}
               {target.address.includes(":")
@@ -452,7 +453,7 @@ export function ConnectionLauncher({
               Connetti
             </Button>
           </div>
-          <p className="help">
+          <p className={help}>
             Usa le credenziali dell’identità scelta senza salvare un host.
             {target.username
               ? " L’utente indicato vale solo per questa connessione."

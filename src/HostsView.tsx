@@ -27,6 +27,7 @@ import { ActionMenu } from "./ActionMenu";
 import type { Group, Host, Identity } from "./types";
 import { childGroups } from "./groups.mjs";
 import { CollectionSelection } from "./CollectionSelection";
+import { muted } from "./editor-ui";
 type Props = {
   hosts: Host[];
   editingId?: string;
@@ -214,14 +215,16 @@ export function HostsView(p: Props) {
                 {endpoint(h)}
               </small>
               {!i && !h.username && (
-                <small className="invalid mt-[3px] block truncate text-[12px]">Credenziali mancanti</small>
+                <small className="mt-[3px] text-destructive block truncate text-[12px]">
+                  Credenziali mancanti
+                </small>
               )}
             </span>
           </Button>
           {edit(h, true)}
         </ContextMenuTrigger>
         <ContextMenuContent
-          className="host-context-menu"
+          className="min-w-[230px]"
           aria-label={"Azioni " + h.name}
         >
           {actions(h)}
@@ -282,13 +285,13 @@ export function HostsView(p: Props) {
                 </span>
               </Button>
             ) : h.username ? (
-              <span className="inline">
+              <span className="inline-flex items-center gap-[6px]">
                 <UserRound size={14} />
                 {h.username}
-                <span className="dim">· host</span>
+                <span className="text-muted-foreground">· host</span>
               </span>
             ) : (
-              <span className="invalid">Identità mancante</span>
+              <span className="text-destructive">Identità mancante</span>
             )}
           </td>
           <td>
@@ -299,7 +302,7 @@ export function HostsView(p: Props) {
           </td>
         </ContextMenuTrigger>
         <ContextMenuContent
-          className="host-context-menu"
+          className="min-w-[230px]"
           aria-label={"Azioni " + h.name}
         >
           {actions(h)}
@@ -315,7 +318,7 @@ export function HostsView(p: Props) {
           <th>Indirizzo</th>
           <th>Accesso</th>
           <th className="min-w-[88px] text-right">
-            <span className="visually-hidden">Azioni</span>
+            <span className="sr-only">Azioni</span>
           </th>
         </tr>
       </thead>
@@ -346,7 +349,9 @@ export function HostsView(p: Props) {
                     variant="ghost"
                     className={cn(
                       "flex w-full min-w-0 justify-start gap-[12px] rounded-xl border border-transparent bg-card px-[10px] text-left hover:bg-accent aria-pressed:border-primary",
-                      p.layout === "cards" ? "h-[64px] py-[9px]" : "h-[48px] py-[5px]",
+                      p.layout === "cards"
+                        ? "h-[64px] py-[9px]"
+                        : "h-[48px] py-[5px]",
                     )}
                     data-selection-id={g.id}
                     data-selection-kind="folder"
@@ -439,7 +444,7 @@ export function HostsView(p: Props) {
               table(hosts)
             )
           ) : (
-            <p className="muted">
+            <p className={muted}>
               {p.group
                 ? "Nessun host in questa cartella."
                 : "Nessun host fuori dalle cartelle."}

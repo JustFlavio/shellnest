@@ -151,3 +151,18 @@ test("dragging a tab reorders the bar", async ({ page }) => {
   });
   expect(await labels()).toEqual(["database-01", "api-01"]);
 });
+
+test("new key sheet", async ({ page }) => {
+  await page.getByRole("button", { name: "Chiavi SSH" }).first().click();
+  await page.getByRole("button", { name: "Importa chiave" }).click();
+  await page.getByRole("heading", { name: /chiave/i, level: 2 }).waitFor();
+  await shot(page, "key-editor");
+});
+
+test("editor beside the content at medium width", async ({ page }) => {
+  await page.setViewportSize({ width: 1000, height: 700 });
+  await page.getByRole("button", { name: "Nuovo host", exact: true }).click();
+  await page.getByRole("heading", { name: /host/i }).first().waitFor();
+  await page.mouse.move(5, 695);
+  await shot(page, "editor-medium");
+});

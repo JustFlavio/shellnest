@@ -1,5 +1,6 @@
 import { OsIcon } from "./OsIcon";
 import type { Host, Identity } from "./types";
+import { hostSummary, hostSummaryItem } from "./editor-ui";
 
 export function HostSummary({
   hosts,
@@ -9,11 +10,11 @@ export function HostSummary({
   identities: Identity[];
 }) {
   return (
-    <ul className="host-summary" aria-label="Host coinvolti">
+    <ul className={hostSummary} aria-label="Host coinvolti">
       {hosts.map((host) => {
         const identity = identities.find((item) => item.id === host.identityId);
         return (
-          <li key={host.id}>
+          <li key={host.id} className={hostSummaryItem}>
             <OsIcon os={host.os} />
             <span>
               <strong>{host.name}</strong>

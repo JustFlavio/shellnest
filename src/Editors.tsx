@@ -38,6 +38,21 @@ import { HostCredentialsField } from "./HostCredentialsField";
 import { hostDraftIsDirty, hostDraftIsValid } from "./host-draft";
 import { GroupField } from "./GroupField";
 import { groupPath, inheritedIdentity, portSource } from "./groups.mjs";
+import {
+  addressIcon,
+  callout,
+  divider,
+  errorBox,
+  fingerprint,
+  help,
+  inheritedBox,
+  portInline,
+  section,
+  sectionHelp,
+  sheetField,
+  subheading,
+  vaultBar,
+} from "./editor-ui";
 
 // Panel look per variant. Children (forms, footers, paragraphs) are styled from
 // here because the call sites hand over plain markup.
@@ -78,7 +93,8 @@ const panelStyles = {
     overlay: "bg-[#04060c99] supports-backdrop-filter:backdrop-blur-none",
     content:
       "centered-panel alert-panel flex w-[440px] max-w-[calc(100vw-32px)] max-h-[calc(100dvh-32px)] flex-col gap-0 overflow-hidden rounded-[16px] border border-border bg-background p-0 shadow-[0_24px_64px_#0008] ring-0 sm:max-w-[calc(100vw-32px)]",
-    header: "min-h-[60px] bg-card px-[20px] [&_button]:size-[32px] [&_button]:text-foreground [&_button_svg]:!size-[20px]",
+    header:
+      "min-h-[60px] bg-card px-[20px] [&_button]:size-[32px] [&_button]:text-foreground [&_button_svg]:!size-[20px]",
     title: "text-[17px]",
     body:
       "flex-[0_1_auto] px-[20px] pt-[24px] pb-[20px] min-h-0 overflow-auto [&_p]:text-[14px] [&_p]:leading-[1.7] [&_p]:text-foreground [&>[data-slot]]:text-[14px] [&>[data-slot]]:text-foreground " +
@@ -173,7 +189,7 @@ export function Panel({
         </header>
         <div className={styles.body} inert={busy ? true : undefined}>
           {error && (
-            <p className="error" role="alert">
+            <p className={errorBox} role="alert">
               {error}
             </p>
           )}
@@ -216,7 +232,7 @@ export function EditorSection({
   children: ReactNode;
 }) {
   return (
-    <fieldset className="editor-section">
+    <fieldset className={section}>
       <legend>{title}</legend>
       {children}
     </fieldset>
@@ -296,13 +312,18 @@ export function HostEditor({
         saveStatus && saveStatus !== "idle" ? (
           <span
             role="status"
-            className={`sheet-save-state ${saveStatus}`}
+            className={cn(
+              "ml-auto inline-flex items-center text-muted-foreground",
+              (saveStatus === "saving" || saveStatus === "saved") &&
+                "text-primary",
+              saveStatus === "error" && "text-destructive",
+            )}
             title={statusLabel}
           >
             <StatusIcon
               className={`size-4 ${saveStatus === "saving" ? "animate-spin" : ""}`}
             />
-            <span className="visually-hidden">{statusLabel}</span>
+            <span className="sr-only">{statusLabel}</span>
           </span>
         ) : undefined
       }
@@ -337,21 +358,21 @@ export function HostEditor({
           onSubmit();
         }}
       >
-        <div className="editor-vault" aria-label="Vault corrente">
+        <div className={vaultBar} aria-label="Vault corrente">
           <LockKeyhole className="size-5" aria-hidden="true" />
           <strong>{view.vaultName}</strong>
         </div>
         <EditorSection title="Indirizzo">
-          <div className="host-address">
+          <div className="flex items-center gap-[10px]">
             {value.os ? (
               <OsIcon os={value.os} size="field" />
             ) : (
-              <span className="address-icon">
+              <span className={addressIcon}>
                 <Server className="size-5" aria-hidden="true" />
               </span>
             )}
-            <label>
-              <span className="visually-hidden">Indirizzo</span>
+            <label className="m-0! min-w-0 flex-1">
+              <span className="sr-only">Indirizzo</span>
               <Input
                 required
                 value={value.address}
@@ -364,8 +385,8 @@ export function HostEditor({
           </div>
         </EditorSection>
         <EditorSection title="Generale">
-          <label className="sheet-field">
-            <span className="visually-hidden">Nome</span>
+          <label className={sheetField}>
+            <span className="sr-only">Nome</span>
             <Input
               autoFocus
               required
@@ -381,9 +402,9 @@ export function HostEditor({
             onNewGroup={onNewGroup}
           />
         </EditorSection>
-        <fieldset className="editor-section host-connection">
-          <legend className="visually-hidden">Accesso SSH</legend>
-          <label className="port-inline [&_[data-slot=input]]:h-[30px] [&_[data-slot=input]]:w-[78px]">
+        <fieldset className={section}>
+          <legend className="sr-only">Accesso SSH</legend>
+          <label className={cn(portInline, "m-0! text-[14px]! font-semibold")}>
             Porta SSH
             <Input
               type="number"
@@ -403,14 +424,14 @@ export function HostEditor({
             />
           </label>
           {value.ownPort === null && portFrom && (
-            <p className="help">
+            <p className={sectionHelp}>
               Porta ereditata dal gruppo {groupPath(view.groups, portFrom.id)}.
             </p>
           )}
-          <div className="sheet-divider" />
-          <h3 className="credentials-heading">Credenziali</h3>
+          <div className={divider} />
+          <h3 className={subheading}>Credenziali</h3>
           {value.inheritIdentity && folderIdentity ? (
-            <div className="inherited-identity">
+            <div className={inheritedBox}>
               <ContactRound aria-hidden="true" />
               <span>
                 Identità <strong>{inherited?.name ?? "—"}</strong>
@@ -429,7 +450,7 @@ export function HostEditor({
           ) : (
             <>
               {folderIdentity && (
-                <div className="inherited-identity">
+                <div className={inheritedBox}>
                   <ContactRound aria-hidden="true" />
                   <span>
                     Il gruppo{" "}
@@ -462,7 +483,7 @@ export function HostEditor({
             </>
           )}
           {!(value.inheritIdentity && folderIdentity) && (
-            <div className="sheet-field">
+            <div className={sheetField}>
               <HostPasswordInput
                 key={`${view.vaultId}:${value.id}:${value.identityId}`}
                 hasSavedPassword={!!existing?.hasPassword && !value.identityId}
@@ -487,7 +508,7 @@ export function HostEditor({
           {!value.identityId &&
             !value.inheritIdentity &&
             existing?.hasPassword && (
-              <p className="help">
+              <p className={sectionHelp}>
                 Lascia vuoto per mantenere la password salvata.
               </p>
             )}
@@ -562,7 +583,7 @@ export function IdentityEditor({
         }}
       >
         {returnTo && (
-          <p className="help">
+          <p className={help}>
             Stai preparando l’accesso per un nuovo host. Dopo il salvataggio
             tornerai al modulo host, con i dati già inseriti.
           </p>
@@ -655,12 +676,12 @@ export function IdentityEditor({
             </label>
           )}
           {existing && existing.hostCount > 0 && (
-            <div className="callout">
+            <div className={callout}>
               La modifica verrà usata dalle prossime connessioni di{" "}
               {existing.hostCount} host. Le sessioni già aperte restano attive.
             </div>
           )}
-          <p className="help">
+          <p className={sectionHelp}>
             Puoi assegnare questa identità a uno o più host. Identità con utenti
             diversi possono usare la stessa chiave.
           </p>
@@ -734,7 +755,7 @@ export function KeyEditor({
         }}
       >
         {returnTo && (
-          <p className="help">
+          <p className={help}>
             Importa la chiave da usare per questa identità. Il modulo precedente
             conserva i dati già inseriti.
           </p>
@@ -754,12 +775,12 @@ export function KeyEditor({
             <>
               <label>
                 Impronta pubblica
-                <code className="fingerprint">
+                <code className={fingerprint}>
                   {existing.fingerprint ||
                     "Non verificata: reimporta la chiave per validarla"}
                 </code>
               </label>
-              <p className="help">
+              <p className={sectionHelp}>
                 Usata da {existing.identityCount} identità e{" "}
                 {existing.hostCount} host. Per rinominare la chiave, lascia
                 vuoti i campi qui sotto.
@@ -772,7 +793,7 @@ export function KeyEditor({
             ref={file}
             type="file"
             tabIndex={-1}
-            className="visually-hidden"
+            className="sr-only"
             aria-label="File della chiave privata"
             onChange={async (e) => {
               setFileError("");
@@ -831,12 +852,12 @@ export function KeyEditor({
             />
           </label>
           {existing && value.privateKey && (
-            <div className="callout">
+            <div className={callout}>
               Sostituire la chiave modifica le prossime connessioni di tutte le
               identità che la utilizzano.
             </div>
           )}
-          <p className="help">
+          <p className={sectionHelp}>
             La chiave viene importata nel vault cifrato. Il file originale non
             viene modificato.
           </p>

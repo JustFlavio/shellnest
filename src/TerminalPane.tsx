@@ -9,6 +9,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import { terminalInputChunks } from "./workbench-state.mjs";
 import type { TerminalTab, Output } from "./types";
 import "@xterm/xterm/css/xterm.css";
+import { help } from "./editor-ui";
 
 type Status = "connecting" | "connected" | "closed" | "failed";
 export function TerminalPane({
@@ -294,7 +295,7 @@ export function TerminalPane({
       </div>
       <div
         ref={el}
-        className="min-h-0 flex-1"
+        className="min-h-0 flex-1 [&_.xterm]:h-full"
         style={
           !opened
             ? { position: "absolute", visibility: "hidden", inset: 0 }
@@ -312,7 +313,7 @@ export function TerminalPane({
               <LoaderCircle size={32} className="animate-spin" />
             )}
             <h2>{tab.title}</h2>
-            <p className="help">{endpoint}</p>
+            <p className={help}>{endpoint}</p>
             <p role={failure || tab.error ? "alert" : "status"}>
               {failure || tab.error || phase}
             </p>

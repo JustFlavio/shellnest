@@ -3,6 +3,7 @@ import { Eye, EyeOff, KeyRound, LoaderCircle } from "lucide-react";
 import { Input } from "./components/ui/input";
 import { Button } from "./components/ui/button";
 import type { ComponentProps } from "react";
+import { errorBox, fieldIcon } from "./editor-ui";
 
 export function HostPasswordInput({
   hasSavedPassword,
@@ -48,8 +49,8 @@ export function HostPasswordInput({
   };
   return (
     <>
-      <div className="sheet-control password-control [&_[data-slot=input]]:pr-[42px] [&_[data-slot=input]]:pl-[38px]">
-        <KeyRound className="field-icon" aria-hidden="true" />
+      <div className="relative [&_[data-slot=input]]:pr-[42px] [&_[data-slot=input]]:pl-[38px]">
+        <KeyRound className={fieldIcon} aria-hidden="true" />
         <Input
           {...props}
           type={visible ? "text" : "password"}
@@ -69,7 +70,7 @@ export function HostPasswordInput({
           variant="ghost"
           type="button"
           size="icon-sm"
-          className="password-toggle"
+          className="absolute top-1/2 right-[5px] -translate-y-1/2 text-muted-foreground"
           aria-label={visible ? "Nascondi password" : "Mostra password"}
           aria-pressed={visible}
           aria-busy={loading}
@@ -90,7 +91,7 @@ export function HostPasswordInput({
         </Button>
       </div>
       {error && (
-        <p className="error" role="alert">
+        <p className={errorBox} role="alert">
           {error}
         </p>
       )}

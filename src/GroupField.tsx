@@ -2,8 +2,17 @@ import { Combobox } from "@base-ui/react/combobox";
 import { Folder, FolderPlus, FolderX } from "lucide-react";
 import { useState } from "react";
 import { Input } from "./components/ui/input";
+import { cn } from "./lib/utils";
 import { groupOptions, groupPath, inheritedIdentity } from "./groups.mjs";
 import type { Group, HostDraft } from "./types";
+import {
+  fieldIcon,
+  sheetField,
+  suggestion,
+  suggestionEmpty,
+  suggestions,
+  suggestionsPositioner,
+} from "./editor-ui";
 
 type Item = {
   key: string;
@@ -112,8 +121,10 @@ export function GroupField({
         else pick(item.kind === "none" ? "" : (item.id ?? ""));
       }}
     >
-      <div className="sheet-control sheet-field [&_[data-slot=input]]:pl-[38px]">
-        <Folder className="field-icon" aria-hidden="true" />
+      <div
+        className={cn("relative [&_[data-slot=input]]:pl-[38px]", sheetField)}
+      >
+        <Folder className={fieldIcon} aria-hidden="true" />
         <Combobox.Input
           render={<Input />}
           aria-label="Cartella"
@@ -125,15 +136,15 @@ export function GroupField({
         <Combobox.Positioner
           sideOffset={6}
           align="start"
-          className="identity-suggestions-positioner"
+          className={suggestionsPositioner}
         >
-          <Combobox.Popup className="identity-suggestions">
+          <Combobox.Popup className={suggestions}>
             <Combobox.List>
               {(item: Item) => (
                 <Combobox.Item
                   key={item.key}
                   value={item}
-                  className="identity-suggestion"
+                  className={suggestion}
                 >
                   {item.kind === "create" ? (
                     <FolderPlus aria-hidden="true" />
@@ -149,7 +160,7 @@ export function GroupField({
               )}
             </Combobox.List>
             {!items.length && (
-              <p className="identity-suggestion-empty">
+              <p className={suggestionEmpty}>
                 Nessuna cartella. Scrivi un nome per crearne una.
               </p>
             )}

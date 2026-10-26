@@ -106,11 +106,14 @@ import type {
 } from "./types";
 import type { SavedNode } from "./workbench-state.mjs";
 import "./theme.css";
+import { callout, fingerprint, help, muted, shortcutList } from "./editor-ui";
 
 if (import.meta.env.MODE === "desktop-e2e") {
   void import("@wdio/tauri-plugin");
 }
 
+const skeleton =
+  "block animate-[shimmer_1.4s_linear_infinite] rounded-[12px] bg-[length:200%_100%] bg-[linear-gradient(90deg,var(--card)_25%,color-mix(in_srgb,var(--card),white_8%)_50%,var(--card)_75%)]";
 const dropPreviewEdge = {
   left: "inset-y-0 right-1/2 left-0",
   right: "inset-y-0 right-0 left-1/2",
@@ -1306,13 +1309,13 @@ function App() {
             </label>
             {vaultDialog.mode === "create" && (
               <>
-                <p className="help">
+                <p className={help}>
                   Il nuovo vault avrà host, identità, chiavi e password
                   principale propri. Dopo la creazione scegli la sua password
                   oppure collega un vault remoto esistente.
                 </p>
                 {tabs.length > 0 && (
-                  <div className="callout">
+                  <div className={callout}>
                     La creazione seleziona il nuovo vault e chiude tutte le{" "}
                     {tabs.length} sessioni aperte, incluse le shell locali.
                   </div>
@@ -1355,7 +1358,7 @@ function App() {
             </strong>
             ?
           </AlertDialogDescription>
-          <div className="callout">
+          <div className={callout}>
             Verranno chiuse tutte le {tabs.length} sessioni aperte, incluse le
             shell locali. Il vault attuale verrà bloccato.
           </div>
@@ -1444,10 +1447,14 @@ function App() {
           </span>
           <WindowControls onError={setError} />
         </header>
-        <div className="m-auto grid w-[min(420px,80vw)] gap-[12px] [&>.skeleton]:h-[56px] [&>.skeleton:first-child]:h-[72px]" role="status" aria-label="Apertura vault">
-          <span className="skeleton" />
-          <span className="skeleton" />
-          <span className="skeleton" />
+        <div
+          className="m-auto grid w-[min(420px,80vw)] gap-[12px] [&>.skeleton]:h-[56px] [&>.skeleton:first-child]:h-[72px]"
+          role="status"
+          aria-label="Apertura vault"
+        >
+          <span className={skeleton} />
+          <span className={skeleton} />
+          <span className={skeleton} />
         </div>
       </main>
     );
@@ -1466,7 +1473,7 @@ function App() {
           </span>
           <WindowControls onError={setError} />
         </header>
-        <section className="w-[370px] max-w-full [&_.full]:mt-[8px] [&_.full]:h-[40px] [&_form]:mt-[25px] [&_input]:h-[40px]">
+        <section className="w-[370px] max-w-full [&_form]:mt-[25px] [&_input]:h-[40px]">
           <div className="mb-[32px] flex items-center gap-[9px] text-[13px] font-semibold whitespace-nowrap">
             <BrandIcon />
             Shellnest
@@ -1486,7 +1493,7 @@ function App() {
                   ? "Crea vault locale"
                   : "Esplora Shellnest"}
           </h1>
-          <p className="muted">
+          <p className={muted}>
             {!desktop && !preview
               ? "Client SSH open source per Windows e macOS, con sincronizzazione self-hosted opzionale."
               : view.exists
@@ -1496,7 +1503,7 @@ function App() {
                   : "Host, identità e chiavi SSH vengono salvati sul dispositivo, cifrati."}
           </p>
           {preview && (
-            <p className="callout">
+            <p className={callout}>
               Anteprima in memoria: usa una password fittizia. Nessun dato viene
               cifrato o conservato dopo il ricaricamento.
             </p>
@@ -1551,7 +1558,7 @@ function App() {
                 </>
               )}
               {restore && (
-                <p className="help">
+                <p className={help}>
                   Copia l’URL completo dalle impostazioni dell’altro
                   dispositivo, incluso /vaults/… quando presente.
                 </p>
@@ -1585,7 +1592,7 @@ function App() {
               <Button
                 variant="default"
                 type="submit"
-                className="primary full"
+                className="mt-[8px] h-[40px] w-full"
                 disabled={busy}
               >
                 {busy
@@ -1599,14 +1606,14 @@ function App() {
             </form>
           ) : (
             <>
-              <div className="callout">
+              <div className={callout}>
                 Prova gli stessi form e le stesse azioni con dati fittizi in
                 memoria. SSH e cifratura richiedono l’app desktop.
               </div>
               <Button
                 variant="default"
                 type="button"
-                className="primary full"
+                className="mt-[8px] h-[40px] w-full"
                 onClick={() =>
                   void run(async () => {
                     previewBackend.current = createPreviewBackend();
@@ -1638,7 +1645,7 @@ function App() {
             locale.
           </p>
           {(desktop || preview) && !view.exists && !restore && (
-            <p className="help">
+            <p className={help}>
               Usa almeno 12 caratteri. La password principale non è
               recuperabile: conservala in un gestore di password.
             </p>
@@ -1648,7 +1655,14 @@ function App() {
       </main>
     );
   return (
-    <div className={active === "vault" ? "app" : "app no-sidebar"}>
+    <div
+      className={cn(
+        "app grid h-dvh grid-rows-[46px_minmax(0,1fr)] overflow-hidden [--sidebar-width:196px] max-[1100px]:[--sidebar-width:180px] max-[760px]:[--sidebar-width:60px]",
+        active === "vault"
+          ? "grid-cols-[var(--sidebar-width)_minmax(0,1fr)] [body:has(.side-sheet[data-open])_&]:grid-cols-[var(--sidebar-width)_minmax(0,1fr)_var(--sheet-width)] max-[1100px]:[body:has(.side-sheet[data-open])_&]:grid-cols-[var(--sidebar-width)_minmax(0,1fr)]"
+          : "no-sidebar grid-cols-[minmax(0,1fr)]",
+      )}
+    >
       <header
         className="col-span-full flex min-w-0 items-stretch border-b border-border bg-header select-none"
         data-tauri-drag-region
@@ -1800,10 +1814,7 @@ function App() {
           aria-label="Sessioni e connessioni"
           data-tauri-drag-region
         >
-          <TabShell
-            fixed
-            selected={active === "vault"}
-          >
+          <TabShell fixed selected={active === "vault"}>
             <TabLead icon={<Server size={14} />} />
             <TabMain
               aria-current={active === "vault" ? "page" : undefined}
@@ -1906,7 +1917,10 @@ function App() {
                   {tabLabel(tab)}
                 </TabMain>
               )}
-              <ActionMenu label={`Azioni scheda ${tab.title}`} className="size-[24px]">
+              <ActionMenu
+                label={`Azioni scheda ${tab.title}`}
+                className="size-[24px]"
+              >
                 {tab.layout && (
                   <DropdownMenuItem
                     onClick={() =>
@@ -2040,7 +2054,12 @@ function App() {
         </div>
         <WindowControls onError={setError} />
       </header>
-      <aside className="sidebar">
+      <aside
+        className={cn(
+          "flex min-h-0 flex-col border-r border-border bg-sidebar px-[10px] pt-[14px] max-[760px]:px-[8px] max-[760px]:pt-[12px]",
+          active !== "vault" && "hidden",
+        )}
+      >
         {vaultPicker}
         <nav aria-label="Navigazione principale">
           {(["hosts", "identities", "keys"] as Page[]).map((p) => {
@@ -2102,7 +2121,7 @@ function App() {
           </nav>
         )}
       </aside>
-      <main className="main">
+      <main className="flex min-h-0 min-w-0 flex-col overflow-hidden">
         {preview && (
           <div className="border-b border-[#c99b4920] bg-[#c99b4910] px-[22px] py-[6px] text-[12px] text-[#c4af83]">
             Anteprima interattiva · Usa dati fittizi · Modifiche azzerate al
@@ -2283,7 +2302,10 @@ function App() {
               {page === "hosts" && (
                 <>
                   <SelectField
-                    className={cn(filterTrigger, "hidden w-[160px] max-[760px]:flex")}
+                    className={cn(
+                      filterTrigger,
+                      "hidden w-[160px] max-[760px]:flex",
+                    )}
                     icon={<Folder size={14} />}
                     aria-label="Filtra per cartella"
                     placeholder="Tutte le cartelle"
@@ -2549,7 +2571,9 @@ function App() {
                     keys={keyRows}
                     identities={view.identities}
                     busy={busy}
-                    onEdit={(id) => editKey(view.keys.find((k) => k.id === id)!)}
+                    onEdit={(id) =>
+                      editKey(view.keys.find((k) => k.id === id)!)
+                    }
                     onDelete={(id, name) => {
                       setDeletion({ kind: "keys", id, name });
                       setError("");
@@ -2925,7 +2949,7 @@ function App() {
               });
             }}
           >
-            <p className="muted">
+            <p className={muted}>
               Modifica l’identità di {selected.size} host selezionati. Le
               sessioni già aperte restano attive.
             </p>
@@ -2991,7 +3015,7 @@ function App() {
           <AlertDialogDescription>
             Eliminare <strong>{deletion.name}</strong> dal vault?
           </AlertDialogDescription>
-          <p className="help">
+          <p className={help}>
             {deletion.kind === "hosts"
               ? "La chiave e l’identità associate verranno conservate. Il server remoto non viene modificato."
               : deletion.kind === "groups"
@@ -3093,7 +3117,7 @@ function App() {
               });
             }}
           >
-            <p className="muted">
+            <p className={muted}>
               La sync è opzionale. Host, identità e chiavi vengono sincronizzati
               insieme, cifrati.
             </p>
@@ -3108,7 +3132,7 @@ function App() {
                 onChange={(e) => setSyncUrl(e.target.value)}
               />
             </label>
-            <p className="help">
+            <p className={help}>
               {view.vaultId === "personal"
                 ? "Il vault Personale conserva l’endpoint compatibile /vault."
                 : `Inserendo l’indirizzo del servizio verrà usato /vaults/${view.vaultId}. Per collegare un altro dispositivo copia l’URL completo dopo il salvataggio.`}
@@ -3129,7 +3153,7 @@ function App() {
                 onChange={(e) => setSyncToken(e.target.value)}
               />
             </label>
-            <p className="help">
+            <p className={help}>
               Controllo ogni 30 secondi a vault sbloccato. In caso di modifiche
               concorrenti, la sync si ferma e conserva i dati locali.
             </p>
@@ -3144,11 +3168,11 @@ function App() {
           error=""
           onClose={() => setShortcuts(false)}
         >
-          <p className="muted">
+          <p className={muted}>
             Su macOS usa ⌘ al posto di Ctrl. Le scorciatoie di ricerca e blocco
             usano anche Maiusc per lasciare liberi i comandi del terminale.
           </p>
-          <dl className="shortcut-list">
+          <dl className={shortcutList}>
             <div>
               <dt>Connessione rapida</dt>
               <dd>
@@ -3208,13 +3232,13 @@ function App() {
           error={error}
           onClose={() => setSavingWs(null)}
         >
-          <p className="help">
+          <p className={help}>
             {savingWs.hostIds
               ? `${savingWs.hostIds.length} host in griglia: lo salvo e lo apro, poi puoi sistemare i pannelli trascinandoli.`
               : "Salva gli host e la disposizione dei pannelli: potrai riaprirli insieme da una nuova scheda."}
           </p>
           {skippedQuick > 0 && (
-            <p className="help">
+            <p className={help}>
               {skippedQuick === 1
                 ? "1 connessione rapida non verrà salvata: salvala prima come host per includerla."
                 : `${skippedQuick} connessioni rapide non verranno salvate: salvale prima come host per includerle.`}
@@ -3278,11 +3302,11 @@ function App() {
             </strong>
             .
           </p>
-          <p className="help">
+          <p className={help}>
             Confronta questa impronta con quella fornita dall’amministratore o
             dalla console del server prima di inviare le credenziali.
           </p>
-          <code className="fingerprint">{trust.fingerprint}</code>
+          <code className={fingerprint}>{trust.fingerprint}</code>
           <footer>
             <Button
               autoFocus

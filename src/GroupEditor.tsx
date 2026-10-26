@@ -1,5 +1,6 @@
 import { DialogClose } from "./components/ui/dialog";
 import { Button } from "./components/ui/button";
+import { cn } from "./lib/utils";
 import { Input } from "./components/ui/input";
 import { SelectField } from "./SelectField";
 import { EditorSection, Panel } from "./Editors";
@@ -10,6 +11,7 @@ import {
   subtreeIds,
 } from "./groups.mjs";
 import type { GroupForm, View } from "./types";
+import { portInline, sectionHelp, sheetField } from "./editor-ui";
 
 const ROOT = "__root";
 const NONE = "__none";
@@ -78,8 +80,8 @@ export function GroupEditor({
         }}
       >
         <EditorSection title="Generale">
-          <label className="sheet-field">
-            <span className="visually-hidden">Nome</span>
+          <label className={sheetField}>
+            <span className="sr-only">Nome</span>
             <Input
               autoFocus
               required
@@ -90,7 +92,7 @@ export function GroupEditor({
               placeholder="Nome del gruppo"
             />
           </label>
-          <div className="sheet-field">
+          <div className={sheetField}>
             <SelectField
               aria-label="Gruppo padre"
               value={value.parentId || ROOT}
@@ -105,11 +107,11 @@ export function GroupEditor({
           </div>
         </EditorSection>
         <EditorSection title="Predefiniti per gli host">
-          <p className="help">
+          <p className={sectionHelp}>
             Gli host del gruppo, e dei suoi sottogruppi, li usano quando non
             hanno un valore proprio.
           </p>
-          <div className="sheet-field">
+          <div className={sheetField}>
             <SelectField
               aria-label="Identità predefinita"
               value={value.identityId || NONE}
@@ -125,7 +127,7 @@ export function GroupEditor({
               ]}
             />
           </div>
-          <label className="port-inline">
+          <label className={cn(portInline, "mt-[10px] text-[12px]")}>
             Porta SSH
             <Input
               type="number"

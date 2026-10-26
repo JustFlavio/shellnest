@@ -2,8 +2,17 @@ import { Combobox } from "@base-ui/react/combobox";
 import { UserRound, ContactRound, X } from "lucide-react";
 import { Input } from "./components/ui/input";
 import { Button } from "./components/ui/button";
+import { cn } from "./lib/utils";
 import type { HostDraft, Identity } from "./types";
 import { useState } from "react";
+import {
+  fieldIcon,
+  selectedHostIdentity,
+  sheetField,
+  suggestion,
+  suggestions,
+  suggestionsPositioner,
+} from "./editor-ui";
 
 export function HostCredentialsField({
   value,
@@ -51,8 +60,10 @@ export function HostCredentialsField({
             onChange({ ...value, identityId: identity.id });
         }}
       >
-        <div className="sheet-control sheet-field [&_[data-slot=input]]:pl-[38px]">
-          <UserRound className="field-icon" aria-hidden="true" />
+        <div
+          className={cn("relative [&_[data-slot=input]]:pl-[38px]", sheetField)}
+        >
+          <UserRound className={fieldIcon} aria-hidden="true" />
           <Combobox.Input
             render={<Input />}
             aria-label="Utente SSH"
@@ -66,15 +77,15 @@ export function HostCredentialsField({
             <Combobox.Positioner
               sideOffset={6}
               align="start"
-              className="identity-suggestions-positioner"
+              className={suggestionsPositioner}
             >
-              <Combobox.Popup className="identity-suggestions">
+              <Combobox.Popup className={suggestions}>
                 <Combobox.List>
                   {(identity: Identity) => (
                     <Combobox.Item
                       key={identity.id}
                       value={identity}
-                      className="identity-suggestion"
+                      className={suggestion}
                     >
                       <ContactRound aria-hidden="true" />
                       <span>
@@ -101,7 +112,7 @@ export function HostCredentialsField({
         )}
       </Combobox.Root>
       {selected && (
-        <div className="selected-host-identity">
+        <div className={selectedHostIdentity}>
           <ContactRound aria-hidden="true" />
           <span>
             Identità: <strong>{selected.name}</strong>
