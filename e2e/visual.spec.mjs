@@ -307,3 +307,30 @@ test("Cmd+C copies the selection, right click pastes", async ({ page, context })
   await term.click({ button: "right", position: { x: 300, y: 300 } });
   await expect.poll(() => termText(page)).toContain("incollato[31m");
 });
+
+test("Cmd+click opens a terminal link, plain click does not", async ({ page }) => {
+  await openFromLauncher(page, /api-01/);
+  await page.locator(".xterm").first().click();
+  await page.keyboard.type("vai a https://example.com/prova ora");
+  const row = page.locator(".xterm-rows > div", { hasText: "https://example.com" }).first();
+  const box = await row.boundingBox();
+  // the measure element holds 32 characters
+  const cell = await page.evaluate(
+    () => document.querySelector(".xterm-char-measure-element").getBoundingClientRect().width / 32,
+  );
+  const x = box.x + cell * ("root@api-01:~$ vai a ".length + 8);
+  const y = box.y + box.height / 2;
+  let opened = 0;
+  page.on("popup", () => opened++);
+  await page.mouse.move(x - 5, y);
+  await page.mouse.move(x, y);
+  await page.waitForTimeout(300);
+  await page.mouse.click(x, y);
+  await page.waitForTimeout(300);
+  expect(opened).toBe(0);
+  const popup = page.waitForEvent("popup");
+  await page.keyboard.down("Meta");
+  await page.mouse.click(x, y);
+  await page.keyboard.up("Meta");
+  expect(await (await popup).url()).toContain("example.com/prova");
+});

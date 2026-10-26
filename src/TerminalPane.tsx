@@ -7,6 +7,7 @@ import { cn } from "./lib/utils";
 import { invoke, Channel, isTauri } from "@tauri-apps/api/core";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
+import { WebLinksAddon } from "@xterm/addon-web-links";
 import { terminalInputChunks } from "./workbench-state.mjs";
 import {
   LINE_KILL,
@@ -25,6 +26,13 @@ import "@xterm/xterm/css/xterm.css";
 import { help } from "./editor-ui";
 
 const mac = /Mac/i.test(navigator.platform);
+// Cmd/Ctrl+click on a link: the system browser (the webview itself must never navigate away).
+function openLink(event: MouseEvent, uri: string) {
+  if (!(mac ? event.metaKey : event.ctrlKey) || !/^https?:\/\//i.test(uri))
+    return;
+  if (isTauri()) void invoke("open_url", { url: uri }).catch(() => {});
+  else window.open(uri, "_blank", "noopener,noreferrer");
+}
 export const DEFAULT_FONT_SIZE = 13;
 // Live terminals by tab id, so global shortcuts can reach the focused one.
 export const terminalHandles = new Map<string, Terminal>();
@@ -109,6 +117,7 @@ export function TerminalPane({
     const addon = new FitAddon();
     fit.current = addon;
     term.loadAddon(addon);
+    term.loadAddon(new WebLinksAddon(openLink));
     term.open(el.current!);
     addon.fit();
     let disposed = false,
