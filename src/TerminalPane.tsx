@@ -276,7 +276,7 @@ export function TerminalPane({
         "group/pane absolute z-1 box-border min-h-0 flex-none flex-col bg-background px-[16px] pb-[12px]",
         animate &&
           "transition-[left,top,width,height,opacity] duration-200 ease-out",
-        ghost && "pointer-events-none z-0 opacity-40",
+        ghost && "pointer-events-none z-0 opacity-0",
         focused !== undefined &&
           "m-[4px] rounded-[12px] border border-border bg-clip-padding px-[10px] pb-[8px]",
         focused && "border-primary",
@@ -303,6 +303,17 @@ export function TerminalPane({
           onDragStart={(e) => {
             e.dataTransfer.effectAllowed = "move";
             e.dataTransfer.setData("application/x-server-manager-pane", tab.id);
+            // The pane itself fades out while the others close ranks, so the cursor carries a
+            // small card with its name instead of the bare header text.
+            const chip = document.createElement("div");
+            chip.textContent = tab.title;
+            chip.style.cssText =
+              "position:fixed;top:-200px;left:-200px;padding:7px 14px;border-radius:10px;" +
+              "background:#27221a;border:1px solid #f5a524;color:#f4efe6;font:13px sans-serif;" +
+              "box-shadow:0 8px 24px #0008;white-space:nowrap";
+            document.body.appendChild(chip);
+            e.dataTransfer.setDragImage(chip, 16, 14);
+            window.setTimeout(() => chip.remove(), 0);
             onDragPane?.(true);
           }}
           onDragEnd={() => onDragPane?.(false)}
