@@ -15,6 +15,7 @@ import { SelectField } from "./SelectField";
 import { IdentitiesTable, KeysTable } from "./CollectionTables";
 import { NavItem } from "./NavItem";
 import { BrandIcon } from "./BrandIcon";
+import { trackOpener } from "./opener";
 
 const filterTrigger =
   "h-[30px] gap-[7px] border-input bg-card pr-[8px] pl-[10px] text-[12px] hover:border-[color-mix(in_srgb,var(--primary)_40%,var(--input))] hover:bg-accent [&>svg:first-child]:text-muted-foreground";
@@ -3393,11 +3394,5 @@ function App() {
 }
 if (isTauri() && /Mac/.test(navigator.userAgent))
   document.documentElement.classList.add("mac");
-// Safari/WebKit does not focus a button on click, so a panel opened from it would hand focus
-// back to whatever held it last. Focusing the clicked button keeps that return trip honest.
-document.addEventListener("click", (event) => {
-  const button = (event.target as Element | null)?.closest?.("button");
-  if (button && !button.disabled && document.activeElement !== button)
-    button.focus({ preventScroll: true });
-});
+trackOpener();
 createRoot(document.getElementById("root")!).render(<App />);

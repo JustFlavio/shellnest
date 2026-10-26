@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { OsIcon } from "./OsIcon";
 import { cn } from "./lib/utils";
+import { currentOpener } from "./opener";
 import type { HostDraft, View, IdentityForm, KeyForm } from "./types";
 import type { ReactNode } from "react";
 import { HostPasswordInput } from "./HostPasswordInput";
@@ -129,6 +130,7 @@ export function Panel({
 }) {
   const [discarding, setDiscarding] = useState(false);
   const popup = useRef<HTMLDivElement>(null);
+  const opener = useRef<HTMLElement | null>(currentOpener());
   const styles = panelStyles[variant];
   const Root = variant === "alert" ? AlertDialog : Dialog;
   const requestClose = () => {
@@ -158,6 +160,7 @@ export function Panel({
                 ) ?? true
             : undefined
         }
+        finalFocus={() => (opener.current?.isConnected ? opener.current : true)}
         showCloseButton={false}
         aria-busy={busy}
       >

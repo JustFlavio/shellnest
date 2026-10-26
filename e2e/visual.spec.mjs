@@ -197,3 +197,16 @@ test("closing the editor returns focus to the button that opened it", async ({ p
   await page.keyboard.press("Escape");
   await expect(button).toBeFocused();
 });
+
+test("focus goes back to the pressed button even when the browser did not focus it", async ({
+  page,
+}) => {
+  // WebKit leaves focus where it was on a button click: emulate that with synthetic events.
+  await page.getByRole("button", { name: "Altre azioni di creazione" }).focus();
+  const button = page.getByRole("button", { name: "Nuovo host", exact: true });
+  await button.dispatchEvent("pointerdown");
+  await button.dispatchEvent("click");
+  await page.getByRole("dialog").waitFor();
+  await page.keyboard.press("Escape");
+  await expect(button).toBeFocused();
+});
