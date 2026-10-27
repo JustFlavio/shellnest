@@ -16,6 +16,7 @@ const controlComponents = [
 export default tseslint.config(
   {
     ignores: [
+      ".claude/",
       "dist/",
       "node_modules/",
       "src-tauri/",
