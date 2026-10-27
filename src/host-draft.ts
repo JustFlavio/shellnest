@@ -61,3 +61,11 @@ export function hostDraftIsDirty(draft: HostDraft, stored?: Host) {
         ))
   );
 }
+
+export const hostIdentity = <I extends { id: string }>(
+  identities: I[],
+  host: Host,
+) =>
+  identities.find(
+    (i) => i.id === (host.effectiveIdentityId || host.identityId),
+  );

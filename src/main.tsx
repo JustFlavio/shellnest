@@ -1,4 +1,7 @@
 import { HostSummary } from "./HostSummary";
+import { desktop, mac } from "./platform";
+import { useTabs } from "./useTabs";
+import { useTabDrag } from "./useTabDrag";
 import { useHostAutosave } from "./useHostAutosave";
 import { useLatest } from "./useLatest";
 import { hostDraftIsValid, hostInheritsIdentity } from "./host-draft";
@@ -147,8 +150,6 @@ const dropPreviewEdge = {
   top: "inset-x-0 top-0 bottom-1/2",
   bottom: "inset-x-0 top-1/2 bottom-0",
 } as const;
-const desktop = isTauri();
-const mac = /Mac/i.test(navigator.platform);
 type Page = "hosts" | "identities" | "keys";
 const labels: Record<Page, string> = {
   hosts: "Host",
@@ -192,40 +193,13 @@ function App() {
   }, [group, query, page, view.vaultId]);
   const [settingsSection, setSettingsSection] =
       useState<SettingsSection | null>(null),
-    [trust, setTrust] = useState<{
-      host?: Host;
-      quick?: QuickConnection;
-      workspaces?: WorkspaceDraft[];
-      activeIndex?: number;
-      fingerprint: string;
-      tabId?: string;
-    } | null>(null),
     [deletion, setDeletion] = useState<{
       kind: Page | "groups";
       id: string;
       name: string;
       ids?: string[];
     } | null>(null);
-  const [tabs, setTabs] = useState<TerminalTab[]>([]),
-    [drag, setDrag] = useState<{
-      id: string;
-      over?: string;
-      after?: boolean;
-    }>(),
-    [focusedPane, setFocusedPane] = useState(""),
-    [renaming, setRenaming] = useState<string>(),
-    [launcherOpen, setLauncherOpen] = useState(false),
-    [savingWs, setSavingWs] = useState<{
-      tabId?: string;
-      hostIds?: string[];
-      name: string;
-    } | null>(null),
-    [dragPane, setDragPane] = useState<string>(),
-    // While a pane is dragged, the others close ranks after a short delay, as if it had left.
-    [reflow, setReflow] = useState(false),
-    [settling, setSettling] = useState(false),
-    [dropHint, setDropHint] = useState<{ paneId: string; edge: Edge | null }>(),
-    [active, setActive] = useState("vault"),
+  const [renaming, setRenaming] = useState<string>(),
     [lastSync, setLastSync] = useState(""),
     [preview, setPreview] = useState(false);
   const [syncState, setSyncState] = useState<"idle" | "syncing" | "error">(
@@ -274,7 +248,6 @@ function App() {
       localStorage.setItem("shellnest.shortcuts", JSON.stringify(next));
     } catch {}
   };
-  const closedTabs = useRef<TerminalTab[]>([]);
   const [usage, setUsage] = useState<{ ids: string[]; label: string } | null>(
     null,
   );
@@ -284,17 +257,13 @@ function App() {
     epoch = useRef(0),
     search = useRef<HTMLInputElement>(null);
   const currentVault = useLatest(view.vaultId);
-  const connectionQueue = useRef<Host[]>([]);
-  const pendingVerification = useRef(new Set<string>());
   const [layout, setLayout] = useState<"list" | "cards">("cards");
   const [sort, setSort] = useState<"name" | "recent">("name");
-  const [launcherKey, setLauncherKey] = useState(0);
   const [vaultDialog, setVaultDialog] = useState<{
     mode: "create" | "rename";
     name: string;
   } | null>(null);
   const [pendingSwitch, setPendingSwitch] = useState<string | null>(null);
-  const [pendingClose, setPendingClose] = useState<string[] | null>(null);
   const closeGuard = useCloseGuard();
   const [pendingLock, setPendingLock] = useState(false);
   const previewBackend = useRef<ReturnType<typeof createPreviewBackend> | null>(
@@ -314,9 +283,7 @@ function App() {
   ) => invokeCommand<T>(command, { ...args, vaultId: view.vaultId });
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(
-        `shellnest.layout.${view.vaultId}`,
-      );
+      const saved = localStorage.getItem(`shellnest.layout.${view.vaultId}`);
       setLayout(saved === "list" ? "list" : "cards");
     } catch {
       setLayout("cards");
@@ -361,6 +328,81 @@ function App() {
       setBusy(false);
     }
   };
+  const tabsApi = useTabs({
+    view,
+    preview,
+    run,
+    update,
+    invokeScoped,
+    setError,
+    setNotice,
+    closeGuard,
+  });
+  const {
+    tabs,
+    bar,
+    active,
+    setActive,
+    focusedPane,
+    setFocusedPane,
+    focusOf,
+    launcherOpen,
+    launcherKey,
+    savingWs,
+    setSavingWs,
+    trust,
+    pendingClose,
+    setPendingClose,
+    splitTab,
+    detachPane,
+    connect,
+    connectHosts,
+    reopenTab,
+    askClosePane,
+    askCloseTab,
+    activateTab,
+    closeLauncher,
+    openLauncher,
+    openLocal,
+    openQuick,
+    quickConnect,
+    openWorkspaces,
+    lastSession,
+    saveWorkspace,
+    duplicateTab,
+    approveTrust,
+    rejectTrust,
+    closeOthers,
+    reorder,
+    renameTab,
+    resizeActive,
+    tabStatus,
+    tabTitle,
+    closePane,
+    reconnectPane,
+  } = tabsApi;
+  const {
+    drag,
+    setDrag,
+    dragPane,
+    setDragPane,
+    dropHint,
+    setDropHint,
+    reflow,
+    settling,
+    clearSpring,
+    clearDnd,
+    springOpen,
+    dropOn,
+    geos,
+    shown,
+    dragging,
+  } = useTabDrag({
+    tabs,
+    active,
+    setActive,
+    dropOnPane: tabsApi.dropOnPane,
+  });
   useEffect(() => {
     if (desktop)
       void invoke<View>("status")
@@ -547,7 +589,7 @@ function App() {
       };
       const moveTab = (step: number) => {
         const to = leader && order[order.indexOf(leader) + step];
-        if (leader && to) setTabs((old) => reorderTabs(old, leader.id, to.id));
+        if (leader && to) reorder(leader.id, to.id);
         return !!leader;
       };
       const zoom = (to: number) =>
@@ -627,19 +669,6 @@ function App() {
     bindings,
   ]);
   useEffect(() => {
-    if (!desktop || !view.unlocked || !tabs.length) return;
-    try {
-      const snapshot = snapshotSession(tabs, active);
-      if (snapshot.items.length)
-        localStorage.setItem(
-          `shellnest.session.${view.vaultId}`,
-          JSON.stringify(snapshot),
-        );
-    } catch {
-      // Restoring a session is a convenience; storage may be unavailable.
-    }
-  }, [tabs, active, view.vaultId, view.unlocked]);
-  useEffect(() => {
     document
       .querySelector(".tab.selected")
       ?.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -657,18 +686,7 @@ function App() {
     view.identities.find(
       (i) => i.id === (host.effectiveIdentityId || host.identityId),
     );
-  type Dir = "row" | "col";
   const terminals = useRef<HTMLDivElement>(null);
-  const addTab = (tab: TerminalTab) => {
-    if (active === "launcher") setLauncherOpen(false);
-    setTabs((old) => [...old, tab]);
-    setActive(tab.id);
-  };
-  const spring = useRef<{ id: string; timer: number } | undefined>(undefined);
-  const clearSpring = () => {
-    window.clearTimeout(spring.current?.timer);
-    spring.current = undefined;
-  };
   const tabIcon = (t: TerminalTab) =>
     t.layout ? (
       <LayoutGrid size={14} />
@@ -682,465 +700,6 @@ function App() {
     );
   const tabLabel = (t: TerminalTab) =>
     t.name ?? (t.layout ? "Workspace" : t.termTitle || t.title);
-  const clearDnd = () => {
-    clearSpring();
-    setDrag(undefined);
-    setDragPane(undefined);
-    setDropHint(undefined);
-  };
-  const focusOf = (leader: TerminalTab) =>
-    leader.layout && leafIds(leader.layout).includes(focusedPane)
-      ? focusedPane
-      : leader.id;
-  // Shortcut: clone the focused pane's session beside it.
-  const splitTab = (leaderId: string, dir: Dir) => {
-    const leader = tabs.find((t) => t.id === leaderId);
-    if (!leader) return;
-    const paneId = focusOf(leader),
-      src = tabs.find((t) => t.id === paneId) ?? leader,
-      host =
-        src.kind === "ssh"
-          ? view.hosts.find((h) => h.id === src.host.id)
-          : null;
-    if (src.kind === "ssh" && !host?.fingerprint) return;
-    const clone: TerminalTab = {
-      ...src,
-      id: crypto.randomUUID(),
-      error: undefined,
-      status: "connecting",
-      parent: leaderId,
-      layout: undefined,
-    };
-    if (clone.kind === "ssh" && host) clone.host = host;
-    const edge = dir === "row" ? "right" : "bottom";
-    setTabs((old) => [
-      ...old.map((t) =>
-        t.id === leaderId
-          ? {
-              ...t,
-              layout: insertLeaf(
-                t.layout ?? { id: paneId },
-                paneId,
-                { id: clone.id },
-                edge,
-              ),
-            }
-          : t,
-      ),
-      clone,
-    ]);
-    setFocusedPane(clone.id);
-  };
-  // Drop on a pane edge of the active workspace: a tab's sessions join it, or a pane is rearranged.
-  const dropOnPane = (targetId: string, edge: Edge) => {
-    const leader = tabs.find((t) => t.id === active);
-    const srcId = dragPane ?? drag?.id;
-    if (
-      !leader ||
-      !srcId ||
-      srcId === targetId ||
-      (srcId === leader.id && !dragPane)
-    )
-      return;
-    if (dragPane) {
-      const rest = leader.layout && removeLeaf(leader.layout, dragPane);
-      if (!rest) return;
-      const layout = insertLeaf(rest, targetId, { id: dragPane }, edge);
-      setTabs((old) =>
-        old.map((t) => (t.id === leader.id ? { ...t, layout } : t)),
-      );
-    } else {
-      const src = tabs.find((t) => t.id === srcId);
-      if (!src) return;
-      const node = src.layout ?? { id: src.id },
-        ids = leafIds(node),
-        layout = insertLeaf(
-          leader.layout ?? { id: leader.id },
-          targetId,
-          node,
-          edge,
-        );
-      setTabs((old) =>
-        old.map((t) =>
-          t.id === leader.id
-            ? { ...t, layout }
-            : t.id === src.id
-              ? { ...t, layout: undefined, parent: leader.id }
-              : ids.includes(t.id)
-                ? { ...t, parent: leader.id }
-                : t,
-        ),
-      );
-    }
-    setFocusedPane(srcId);
-  };
-  const makeTab = (host: Host, id: string = crypto.randomUUID()) => {
-    const i = identity(host);
-    if (!i && !(host.username && host.hasPassword))
-      throw new Error(
-        "Inserisci le credenziali dell’host o scegli un’identità.",
-      );
-    return {
-      id,
-      kind: "ssh" as const,
-      host,
-      vaultId: view.vaultId,
-      title: host.name,
-      status: "connecting" as const,
-      username: i?.username ?? host.username!,
-      identityName: i?.name ?? "Credenziali dell’host",
-    };
-  };
-  const openTab = (host: Host) => {
-    const tab = makeTab(host);
-    addTab(tab);
-    return tab.id;
-  };
-  const continueConnections = async () => {
-    let pendingTab: string | undefined;
-    try {
-      while (connectionQueue.current.length) {
-        const host = connectionQueue.current[0];
-        const tabId = openTab(host);
-        if (!host.fingerprint) {
-          pendingTab = tabId;
-          pendingVerification.current.add(tabId);
-          const fingerprint = await invokeScoped<string>("probe_host", {
-            id: host.id,
-          });
-          if (!pendingVerification.current.has(tabId)) return;
-          setTrust({ host, fingerprint, tabId });
-          return;
-        }
-        connectionQueue.current.shift();
-      }
-    } catch (e) {
-      connectionQueue.current = [];
-      if (pendingTab) {
-        if (!pendingVerification.current.delete(pendingTab)) return;
-        setTabs((old) =>
-          old.map((tab) =>
-            tab.id === pendingTab
-              ? { ...tab, status: "failed", error: String(e) }
-              : tab,
-          ),
-        );
-      }
-      throw e;
-    }
-  };
-  const connectHosts = (hosts: Host[]) =>
-    void run(async () => {
-      if (
-        hosts.some(
-          (host) => !identity(host) && !(host.username && host.hasPassword),
-        )
-      )
-        throw new Error("Completa le credenziali degli host selezionati.");
-      connectionQueue.current = [...hosts];
-      await continueConnections();
-    });
-  const connect = (host: Host) => connectHosts([host]);
-  const rememberClosed = (ids: string[]) =>
-    closedTabs.current.push(
-      ...tabs
-        .filter((t) => ids.includes(t.id))
-        .map(({ parent, layout, ...t }) => t as TerminalTab),
-    );
-  const reopenTab = () => {
-    const tab = closedTabs.current.pop();
-    if (!tab) return;
-    if (tab.kind === "ssh") connect(tab.host);
-    else if (tab.kind === "quick") {
-      try {
-        openQuick(tab.target);
-      } catch (e) {
-        setError(String(e));
-      }
-    } else openLocal();
-  };
-  const closeTab = (id: string) => {
-    if (pendingVerification.current.delete(id)) connectionQueue.current = [];
-    const gone = tabs.find((t) => t.id === id)?.layout;
-    const ids = gone ? leafIds(gone) : [id];
-    rememberClosed(ids);
-    setTabs((t) => t.filter((t) => !ids.includes(t.id)));
-    if (active === id) {
-      const bar = tabs.filter((t) => !t.parent),
-        index = bar.findIndex((t) => t.id === id);
-      setActive(bar[index + 1]?.id ?? bar[index - 1]?.id ?? "vault");
-    }
-  };
-  // Takes a pane out of its workspace (keep: it stays as its own tab). A pane is promoted if the leader goes.
-  const unlinkPane = (id: string, keep: boolean) => {
-    const tab = tabs.find((t) => t.id === id);
-    const leader = tab?.parent ? tabs.find((t) => t.id === tab.parent) : tab;
-    const rest = leader?.layout && removeLeaf(leader.layout, id);
-    if (!leader || !rest) return null;
-    const ids = leafIds(rest),
-      next = id === leader.id ? ids[0] : leader.id;
-    setTabs((old) =>
-      old.flatMap((t) =>
-        t.id === id
-          ? keep
-            ? [{ ...t, parent: undefined, layout: undefined }]
-            : []
-          : t.id === next
-            ? [
-                {
-                  ...t,
-                  name: id === leader.id ? leader.name : t.name,
-                  parent: undefined,
-                  layout: ids.length > 1 ? rest : undefined,
-                },
-              ]
-            : [ids.includes(t.id) ? { ...t, parent: next } : t],
-      ),
-    );
-    return { leader, next };
-  };
-  const closePane = (id: string) => {
-    const moved = unlinkPane(id, false);
-    if (!moved) return closeTab(id);
-    rememberClosed([id]);
-    pendingVerification.current.delete(id);
-    if (active === moved.leader.id) setActive(moved.next);
-    setFocusedPane(moved.next);
-  };
-  const isLive = (ids: string[]) =>
-    tabs.some((t) => ids.includes(t.id) && t.status === "connected");
-  const askClosePane = (id: string) =>
-    closeGuard.ask(isLive([id]), () => closePane(id));
-  const askCloseTab = (id: string) => {
-    const layout = tabs.find((t) => t.id === id)?.layout;
-    closeGuard.ask(isLive(layout ? leafIds(layout) : [id]), () => closeTab(id));
-  };
-  const detachPane = (id: string) => {
-    if (!unlinkPane(id, true)) return;
-    setActive(id);
-    setFocusedPane(id);
-  };
-  const closeLauncher = () => {
-    setLauncherOpen(false);
-    if (active === "launcher") setActive(bar[bar.length - 1]?.id ?? "vault");
-  };
-  const openLauncher = () => {
-    setLauncherOpen(true);
-    setActive("launcher");
-    setLauncherKey((k) => k + 1);
-  };
-  const makeLocalTab = (id: string = crypto.randomUUID()): TerminalTab => ({
-    id,
-    kind: "local",
-    vaultId: view.vaultId,
-    title: "Terminale locale",
-    username: "",
-    identityName: "",
-    status: "connecting",
-  });
-  // Recreate every session of the given layouts, one tab bar entry each. Hosts not trusted yet are
-  // verified first through the usual fingerprint dialog, which calls this again once approved.
-  const openWorkspaces = async (
-    list: WorkspaceDraft[],
-    hosts: Host[] = view.hosts,
-    activeIndex = 0,
-  ) => {
-    if (!list.length) return;
-    const built = list.map((item) => {
-      const { layout, leaves } = fromTemplate(item.layout, () =>
-        crypto.randomUUID(),
-      );
-      const specs = leaves.map(({ id, spec }) => ({
-        id,
-        local: !("hostId" in spec),
-        host:
-          "hostId" in spec
-            ? hosts.find((h) => h.id === spec.hostId)
-            : undefined,
-      }));
-      return { name: item.name, layout, specs };
-    });
-    const specs = built.flatMap((b) => b.specs);
-    if (specs.some((s) => !s.local && !s.host))
-      throw new Error("Un host da aprire non esiste più.");
-    const untrusted = specs.find((s) => s.host && !s.host.fingerprint);
-    if (untrusted?.host) {
-      const fingerprint = await invokeScoped<string>("probe_host", {
-        id: untrusted.host.id,
-      });
-      setTrust({
-        host: untrusted.host,
-        fingerprint,
-        workspaces: list,
-        activeIndex,
-      });
-      return;
-    }
-    const groups = built.map((b) => {
-      const [leader, ...rest] = b.specs.map((s) =>
-        s.host ? makeTab(s.host, s.id) : makeLocalTab(s.id),
-      );
-      return { leader, rest, layout: b.layout, name: b.name };
-    });
-    setTabs((old) => [
-      ...old,
-      ...groups.flatMap((g) => [
-        {
-          ...g.leader,
-          name: g.name,
-          layout: g.rest.length ? g.layout : undefined,
-        },
-        ...g.rest.map((t) => ({ ...t, parent: g.leader.id })),
-      ]),
-    ]);
-    if (active === "launcher") setLauncherOpen(false);
-    const target = groups[Math.min(activeIndex, groups.length - 1)].leader.id;
-    setActive(target);
-    setFocusedPane(target);
-  };
-  // The tabs open when the app was last used on this device, minus hosts that no longer exist.
-  const lastSession = () => {
-    try {
-      const raw = localStorage.getItem(`shellnest.session.${view.vaultId}`);
-      const saved = raw && JSON.parse(raw);
-      if (!saved || !Array.isArray(saved.items)) return null;
-      const known = new Set(view.hosts.map((h) => h.id));
-      const items = (saved.items as WorkspaceDraft[]).flatMap((item) => {
-        const layout = pruneTemplate(
-          item.layout,
-          (leaf) => !("hostId" in leaf) || known.has(leaf.hostId),
-        );
-        return layout ? [{ name: item.name, layout }] : [];
-      });
-      const count = (n: SavedNode): number =>
-        "dir" in n ? count(n.a) + count(n.b) : 1;
-      return items.length
-        ? {
-            items,
-            active: Number(saved.active) || 0,
-            count: items.reduce((sum, i) => sum + count(i.layout), 0),
-          }
-        : null;
-    } catch {
-      return null;
-    }
-  };
-  const saveWorkspace = () =>
-    void run(async () => {
-      if (!savingWs) return;
-      let layout: SavedNode | null;
-      let leader: TerminalTab | undefined;
-      if (savingWs.hostIds) {
-        layout = gridLayout(savingWs.hostIds.map((hostId) => ({ hostId })));
-      } else {
-        leader = tabs.find((t) => t.id === savingWs.tabId);
-        if (!leader?.layout) return;
-        const byId = new Map(tabs.map((t) => [t.id, t]));
-        layout = toTemplate(leader.layout, (id) => {
-          const t = byId.get(id);
-          return t?.kind === "ssh"
-            ? { hostId: t.host.id }
-            : t?.kind === "local"
-              ? { local: true as const }
-              : null;
-        });
-        if (!layout || !("dir" in layout))
-          throw new Error(
-            "Servono almeno due sessioni salvabili (host o terminale locale): le connessioni rapide non si salvano.",
-          );
-      }
-      const name = savingWs.name.trim(),
-        existing = view.workspaces.find((w) => w.name === name);
-      update(
-        await invokeScoped<View>("save_workspace", {
-          workspace: { id: existing?.id ?? "", name, layout },
-        }),
-      );
-      setSavingWs(null);
-      setNotice(`Workspace “${name}” salvato.`);
-      if (leader) {
-        const id = leader.id;
-        setTabs((old) => old.map((t) => (t.id === id ? { ...t, name } : t)));
-      } else await openWorkspaces([{ name, layout }]);
-    });
-  const openLocal = () => {
-    if (preview) {
-      setError("Il terminale locale funziona nell’app desktop.");
-      return;
-    }
-    addTab(makeLocalTab());
-  };
-  const openQuick = (target: QuickTarget) => {
-    const i = view.identities.find((i) => i.id === target.identityId);
-    if (!i) throw new Error("Identità non disponibile");
-    const tab: TerminalTab = {
-      id: crypto.randomUUID(),
-      kind: "quick",
-      vaultId: view.vaultId,
-      title: target.address,
-      username: target.username ?? i.username,
-      identityName: i.name,
-      target,
-      status: "connecting",
-    };
-    addTab(tab);
-  };
-  const quickConnect = (target: QuickConnection) =>
-    void run(async () => {
-      if (preview)
-        throw new Error("Le connessioni funzionano nell’app desktop.");
-      const fingerprint = await invokeScoped<string>("probe_target", {
-        address: target.address,
-        port: target.port,
-      });
-      setTrust({ quick: target, fingerprint });
-    });
-  // New session in place of `id` (same slot in the tab bar or split layout).
-  const reconnectPane = (id: string) => {
-    const old = tabs.find((t) => t.id === id);
-    if (!old) return;
-    const next: TerminalTab = {
-      ...old,
-      id: crypto.randomUUID(),
-      error: undefined,
-      status: "connecting",
-    };
-    if (old.layout) next.layout = replaceLeaf(old.layout, id, next.id);
-    if (next.kind === "ssh")
-      next.host = view.hosts.find((h) => h.id === next.host.id) ?? next.host;
-    setTabs((list) =>
-      list.map((t) =>
-        t.id === id
-          ? next
-          : t.parent === id
-            ? { ...t, parent: next.id }
-            : t.layout && leafIds(t.layout).includes(id)
-              ? { ...t, layout: replaceLeaf(t.layout, id, next.id) }
-              : t,
-      ),
-    );
-    if (active === id) setActive(next.id);
-    if (focusedPane === id) setFocusedPane(next.id);
-  };
-  // On a split tab both actions apply to its focused pane.
-  const duplicateTab = (tab: TerminalTab, reconnect = false) => {
-    if (!reconnect && tab.layout) return splitTab(tab.id, "row");
-    const target = tabs.find((t) => t.id === focusOf(tab)) ?? tab;
-    if (target.kind === "ssh") {
-      const host = view.hosts.find((h) => h.id === target.host.id);
-      if (reconnect && host?.fingerprint) return reconnectPane(target.id);
-      if (reconnect) closePane(target.id);
-      if (host) connect(host);
-      return;
-    }
-    if (reconnect) return reconnectPane(target.id);
-    addTab({
-      ...target,
-      error: undefined,
-      id: crypto.randomUUID(),
-      status: "connecting",
-    });
-  };
   const metadataUpdated = (vaultId: string) => {
     if (vaultId !== currentVault.current) return;
     void invoke<View>("status")
@@ -1149,7 +708,6 @@ function App() {
       })
       .catch((e) => setError(String(e)));
   };
-  const bar = tabs.filter((t) => !t.parent);
   const skippedQuick = (() => {
     const layout = tabs.find((t) => t.id === savingWs?.tabId)?.layout;
     return layout
@@ -1158,48 +716,10 @@ function App() {
         ).length
       : 0;
   })();
-  useEffect(() => {
-    if (dragPane) {
-      setSettling(true);
-      const timer = window.setTimeout(() => setReflow(true), 150);
-      return () => window.clearTimeout(timer);
-    }
-    setReflow(false);
-    const timer = window.setTimeout(() => setSettling(false), 300);
-    return () => window.clearTimeout(timer);
-  }, [dragPane]);
-  const geos = new Map(
-    tabs.flatMap((t) =>
-      t.layout ? [[t.id, layoutRects(t.layout)] as const] : [],
-    ),
-  );
-  // Geometry on screen: without the dragged pane once the others have closed ranks.
-  const shown = new Map(geos);
-  if (reflow && dragPane) {
-    const leader = tabs.find((t) => t.id === dragPane)?.parent ?? dragPane;
-    const layout = tabs.find((t) => t.id === leader)?.layout;
-    const rest = layout && removeLeaf(layout, dragPane);
-    if (rest) shown.set(leader, layoutRects(rest));
-  }
-  const tabStatus = (
-    id: string,
-    status: "connecting" | "connected" | "closed" | "failed",
-  ) => setTabs((old) => old.map((t) => (t.id === id ? { ...t, status } : t)));
-  const tabTitle = (id: string, termTitle?: string) =>
-    setTabs((old) =>
-      old.some((t) => t.id === id && t.termTitle !== termTitle)
-        ? old.map((t) => (t.id === id ? { ...t, termTitle } : t))
-        : old,
-    );
   const resetWorkspace = (next: View) => {
-    setLauncherOpen(false);
-    setSavingWs(null);
     epoch.current++;
     update(next);
-    setTabs([]);
-    connectionQueue.current = [];
-    pendingVerification.current.clear();
-    setActive("vault");
+    tabsApi.reset();
     setQuery("");
     setGroup("");
     setUsage(null);
@@ -1526,12 +1046,7 @@ function App() {
               type="button"
               disabled={busy}
               className="danger"
-              onClick={() => {
-                setTabs((old) =>
-                  old.filter((t) => !pendingClose.includes(t.id)),
-                );
-                setPendingClose(null);
-              }}
+              onClick={closeOthers}
             >
               Chiudi sessioni
             </Button>
@@ -1978,30 +1493,18 @@ function App() {
               draggable
               onDragStart={(e) => {
                 e.dataTransfer.effectAllowed = "move";
-                e.dataTransfer.setData(
-                  "application/x-shellnest-tab",
-                  tab.id,
-                );
+                e.dataTransfer.setData("application/x-shellnest-tab", tab.id);
                 setDrag({ id: tab.id });
               }}
               onDragEnd={clearDnd}
               onDragOver={(e) => {
                 if (
-                  !e.dataTransfer.types.includes(
-                    "application/x-shellnest-tab",
-                  )
+                  !e.dataTransfer.types.includes("application/x-shellnest-tab")
                 )
                   return;
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "move";
-                // Hover a dragged tab over another one to open it, so it can be dropped on its panes.
-                if (drag?.id !== tab.id && spring.current?.id !== tab.id) {
-                  clearSpring();
-                  spring.current = {
-                    id: tab.id,
-                    timer: window.setTimeout(() => setActive(tab.id), 500),
-                  };
-                }
+                springOpen(tab.id);
                 const r = e.currentTarget.getBoundingClientRect();
                 const after = e.clientX > r.left + r.width / 2;
                 setDrag((d) =>
@@ -2015,7 +1518,7 @@ function App() {
                 const moving = e.dataTransfer.getData(
                   "application/x-shellnest-tab",
                 );
-                setTabs((old) => reorderTabs(old, moving, tab.id));
+                reorder(moving, tab.id);
                 clearDnd();
               }}
             >
@@ -2036,11 +1539,7 @@ function App() {
                   onFocus={(e) => e.currentTarget.select()}
                   onBlur={(e) => {
                     const name = e.currentTarget.value.trim();
-                    setTabs((old) =>
-                      old.map((t) =>
-                        t.id === tab.id ? { ...t, name: name || undefined } : t,
-                      ),
-                    );
+                    renameTab(tab.id, name || undefined);
                     setRenaming(undefined);
                   }}
                   onKeyDown={(e) => {
@@ -2101,9 +1600,7 @@ function App() {
                   disabled={bar[0].id === tab.id}
                   onClick={() => {
                     const index = bar.findIndex((t) => t.id === tab.id);
-                    setTabs((old) =>
-                      reorderTabs(old, tab.id, bar[index - 1].id),
-                    );
+                    reorder(tab.id, bar[index - 1].id);
                   }}
                 >
                   <ArrowLeft size={12} />
@@ -2113,9 +1610,7 @@ function App() {
                   disabled={bar[bar.length - 1].id === tab.id}
                   onClick={() => {
                     const index = bar.findIndex((t) => t.id === tab.id);
-                    setTabs((old) =>
-                      reorderTabs(old, tab.id, bar[index + 1].id),
-                    );
+                    reorder(tab.id, bar[index + 1].id);
                   }}
                 >
                   <ArrowRight size={12} />
@@ -2314,10 +1809,7 @@ function App() {
                 );
               })
             }
-            onActivateTab={(id) => {
-              setLauncherOpen(false);
-              setActive(id);
-            }}
+            onActivateTab={activateTab}
             onLocalTerminal={openLocal}
             onQuickConnect={quickConnect}
             preview={preview}
@@ -2865,7 +2357,7 @@ function App() {
               />
             );
           })}
-          {(dragPane || (drag?.id && drag.id !== active)) &&
+          {dragging &&
             Object.entries(
               shown.get(active)?.panes ?? {
                 [active]: { x: 0, y: 0, w: 1, h: 1 },
@@ -2901,7 +2393,7 @@ function App() {
                   onDrop={(e) => {
                     e.preventDefault();
                     if (dropHint?.paneId === id && dropHint.edge)
-                      dropOnPane(id, dropHint.edge);
+                      dropOn(id, dropHint.edge);
                     clearDnd();
                   }}
                 >
@@ -2952,13 +2444,7 @@ function App() {
                   ratio =
                     (pos - (row ? d.box.x : d.box.y)) /
                     (row ? d.box.w : d.box.h);
-                setTabs((old) =>
-                  old.map((t) =>
-                    t.id === active && t.layout
-                      ? { ...t, layout: setRatio(t.layout, d.path, ratio) }
-                      : t,
-                  ),
-                );
+                resizeActive(d.path, ratio);
               }}
             />
           ))}
@@ -3367,9 +2853,7 @@ function App() {
           busy={busy}
           error={error}
           onClose={() => {
-            connectionQueue.current = [];
-            if (trust.tabId) closeTab(trust.tabId);
-            setTrust(null);
+            rejectTrust();
             setError("");
           }}
         >
@@ -3392,11 +2876,7 @@ function App() {
               variant="ghost"
               type="button"
               disabled={busy}
-              onClick={() => {
-                connectionQueue.current = [];
-                if (trust.tabId) closeTab(trust.tabId);
-                setTrust(null);
-              }}
+              onClick={rejectTrust}
             >
               Annulla
             </Button>
@@ -3405,54 +2885,7 @@ function App() {
               type="button"
               className="primary"
               disabled={busy}
-              onClick={() =>
-                void run(async () => {
-                  if (trust.quick) {
-                    openQuick({
-                      ...trust.quick,
-                      expectedFingerprint: trust.fingerprint,
-                    });
-                  } else if (trust.host) {
-                    await invokeScoped("trust_host", {
-                      id: trust.host.id,
-                      expected: trust.fingerprint,
-                      address: trust.host.address,
-                      port: trust.host.port,
-                    });
-                    const next = await invokeScoped<View>("status");
-                    update(next);
-                    const approved = next.hosts.find(
-                      (h) => h.id === trust.host!.id,
-                    );
-                    if (!approved?.fingerprint)
-                      throw new Error("Impronta non salvata.");
-                    if (trust.workspaces) {
-                      setTrust(null);
-                      await openWorkspaces(
-                        trust.workspaces,
-                        next.hosts,
-                        trust.activeIndex,
-                      );
-                      return;
-                    }
-                    if (
-                      trust.tabId &&
-                      pendingVerification.current.delete(trust.tabId)
-                    ) {
-                      setTabs((tabs) =>
-                        tabs.map((tab) =>
-                          tab.id === trust.tabId && tab.kind === "ssh"
-                            ? { ...tab, host: approved }
-                            : tab,
-                        ),
-                      );
-                    }
-                    connectionQueue.current.shift();
-                  }
-                  setTrust(null);
-                  await continueConnections();
-                })
-              }
+              onClick={approveTrust}
             >
               Impronta verificata, connetti
             </Button>
