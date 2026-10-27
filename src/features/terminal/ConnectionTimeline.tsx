@@ -11,6 +11,7 @@ import { PasswordStep } from "./PasswordStep";
 import { QuickMethodStep } from "./QuickMethodStep";
 import { QuickUserStep } from "./QuickUserStep";
 import type { PasswordAsk } from "./useTerminalSession";
+import type { LogEntry } from "./connection-log.ts";
 import { targetLabel, timelineSteps } from "./connection-steps.ts";
 import { needsMethod } from "./quick-setup.ts";
 import { useQuickSetup } from "./useQuickSetup";
@@ -39,7 +40,7 @@ export function ConnectionTimeline({
 }: {
   tab: TerminalTab;
   phase: string;
-  logs: string[];
+  logs: LogEntry[];
   details: Record<string, StepNote>;
   failure: string;
   password: PasswordAsk | null;
@@ -114,7 +115,7 @@ export function ConnectionTimeline({
           }
         : undefined,
   });
-  const lines = tab.error && !logs.length ? [tab.error] : logs;
+  const lines = tab.error && !logs.length ? [{ text: tab.error, at: 0 }] : logs;
   return (
     <div className="grid min-h-0 flex-1 place-items-center overflow-auto p-[24px]">
       <div className="w-[min(100%,460px)]">

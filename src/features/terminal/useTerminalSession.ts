@@ -3,6 +3,7 @@ import type { RefObject } from "react";
 import { useLatest } from "@/lib/useLatest";
 import type { TerminalTab } from "@/lib/types";
 import type { AppSettings } from "@/features/settings/settings.ts";
+import type { LogEntry } from "./connection-log.ts";
 import type { StepNote } from "./connection-steps.ts";
 import { terminalHandles } from "./terminal-handles";
 import { sendSessionPassword, startSession } from "./terminal-session";
@@ -41,7 +42,7 @@ export function useTerminalSession({
 }) {
   const [opened, setOpened] = useState(false);
   const [phase, setPhase] = useState("Verifica dell’impronta del server");
-  const [logs, setLogs] = useState<string[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const [details, setDetails] = useState<Record<string, StepNote>>({});
   const [failure, setFailure] = useState("");
   // null until the server asks for a password; the password itself never lives here.
@@ -66,12 +67,17 @@ export function useTerminalSession({
     terminalHandles.set(tab.id, instance.term);
     const observer = new ResizeObserver(instance.refit);
     observer.observe(element);
+    const started = performance.now();
+    const entry = (text: string) => ({
+      text,
+      at: Math.round(performance.now() - started),
+    });
     const stop = startSession(
       tabRef.current,
       instance,
       {
         status: setPhase,
-        log: (text) => setLogs((old) => [...old, text]),
+        log: (text) => setLogs((old) => [...old, entry(text)]),
         detail: (step, text, warn) =>
           setDetails((old) => ({ ...old, [step]: { text, warn } })),
         opened: () => setOpened(true),
@@ -83,7 +89,7 @@ export function useTerminalSession({
           })),
         failure: (text, log = true) => {
           setFailure(text);
-          if (log) setLogs((old) => [...old, `Errore: ${text}`]);
+          if (log) setLogs((old) => [...old, entry(`Errore: ${text}`)]);
         },
       },
       callbacksRef,

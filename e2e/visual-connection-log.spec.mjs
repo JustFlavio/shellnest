@@ -108,6 +108,11 @@ test("a wrong password adds a step; three end the attempt with the log and Ricom
   await expect(log).toContainText("Server remoto: SSH-2.0-OpenSSH_9.6");
   await expect(log).toContainText("Tentativo con password 3 di 3");
   await expect(log).toContainText("Errore: Password non accettata dopo 3 tentativi.");
+  // scannable rows: an offset and an icon per line, errors and refusals as alerts of their own kind
+  await expect(log.getByRole("listitem").first()).toContainText(/^\+\d+,\d s/);
+  await expect(log.getByRole("listitem").last().locator("svg.lucide-circle-alert")).toBeVisible();
+  await expect(log.getByRole("listitem").filter({ hasText: "Password rifiutata dal server" })).toHaveCount(3);
+  await expect(log.getByRole("listitem").filter({ hasText: "Algoritmi negoziati" }).locator("svg.lucide-cpu")).toBeVisible();
   await expect(log).not.toContainText("sbagliata");
 
   await page.getByRole("button", { name: "Ricomincia" }).click();
@@ -141,11 +146,25 @@ test("the log toggles, copies and stays out of storage", async ({ page }) => {
   await expect(copy.locator("svg.lucide-check")).toBeVisible();
   await expect(copy.locator("svg.lucide-copy")).toBeVisible({ timeout: 4000 });
   const copied = await page.evaluate(() => window.__copied.join("\n"));
-  expect(copied).toContain("Risoluzione di guasto.fail.test:22");
+  expect(copied).toMatch(/^\+0,\d s {2}Risoluzione di guasto\.fail\.test:22$/m);
+  expect(copied).not.toContain("<");
   expect(copied).toContain("Errore: Autenticazione fallita");
   expect(copied).not.toContain("segreto");
   const stored = await page.evaluate(() =>
     JSON.stringify([localStorage, sessionStorage].map((s) => Object.entries(s))),
   );
   expect(stored).not.toContain("Risoluzione");
+});
+
+test("the log panel snapshot, errors standing out", async ({ page }) => {
+  await addHost(page, "guasto", "guasto.fail.test");
+  await open(page, "guasto");
+  await expect(steps(page).nth(2).getByRole("alert")).toBeVisible();
+  await page.getByRole("button", { name: "Mostra log" }).click();
+  const log = page.getByLabel("Log della connessione");
+  await expect(log.getByRole("listitem")).toHaveCount(9);
+  // the offsets depend on timing: masked
+  await expect(log.locator("xpath=..")).toHaveScreenshot("connection-log.png", {
+    mask: [log.locator("li > span:first-child")],
+  });
 });
