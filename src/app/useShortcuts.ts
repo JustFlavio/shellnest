@@ -5,7 +5,7 @@ import {
   clampFontSize,
 } from "@/features/settings/settings.mjs";
 import { actionFor } from "@/features/settings/shortcuts.mjs";
-import { terminalHandles } from "@/features/terminal/TerminalPane";
+import { terminalHandles } from "@/features/terminal/terminal-handles";
 import type { AppState } from "./useAppState";
 import { useLatest } from "@/lib/useLatest";
 import { leafIds } from "@/features/terminal/workbench-state.mjs";
