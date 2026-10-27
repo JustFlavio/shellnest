@@ -2,6 +2,8 @@
 name = "shellnest"
 version = "0.3.0"
 edition = "2021"
+license = "MIT"
+publish = false
 
 [lib]
 # Not "shellnest": a lib and a bin with one name collide on Windows.
@@ -44,3 +46,8 @@ lto = true
 
 [dev-dependencies]
 rand10 = { package = "rand", version = "0.10" }
+
+[lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"

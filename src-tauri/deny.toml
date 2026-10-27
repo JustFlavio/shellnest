@@ -1,0 +1,52 @@
+# Policy checked by `cargo deny check` (see CONTRIBUTING.md and the CI workflow).
+
+[graph]
+# The shipped targets. Linux-only crates (gtk, webkit2gtk) are not built for them.
+targets = [
+    "x86_64-pc-windows-msvc",
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+]
+
+[advisories]
+version = 2
+yanked = "deny"
+ignore = [
+    # rsa: Marvin attack (timing side channel in RSA private-key operations).
+    # No fixed release exists. It is reached through russh/ssh-key for RSA user
+    # keys, used only on the local machine to sign an SSH challenge, where the
+    # advisory itself says local use is fine. Drop this when russh moves off rsa.
+    { id = "RUSTSEC-2023-0071", reason = "no fix upstream; rsa only signs locally, no remote timing oracle" },
+]
+
+[licenses]
+version = 2
+# Compatible with an MIT-licensed application.
+allow = [
+    "MIT",
+    "MIT-0",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
+    "CC0-1.0",
+    "0BSD",
+    "BSL-1.0",
+    "Unlicense",
+    # webpki-roots: the CA bundle data
+    "CDLA-Permissive-2.0",
+    # cssparser, selectors and others (through Tauri's HTML handling). File-level
+    # copyleft: fine as an unmodified dependency.
+    "MPL-2.0",
+]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
