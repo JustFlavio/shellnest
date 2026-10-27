@@ -17,10 +17,13 @@ jobs:
         run: test "v$(node -p "require('./package.json').version")" = "${{ github.ref_name }}"
       - name: Check that the updater public key is set
         run: |
-          if grep -q REPLACE_WITH src-tauri/tauri.conf.json; then
-            echo "plugins.updater.pubkey in src-tauri/tauri.conf.json is still the placeholder (see docs/releases.md)" >&2
-            exit 1
-          fi
+          node -e '
+            const key = require("./src-tauri/tauri.conf.json").plugins.updater.pubkey;
+            if (Buffer.from(key, "base64").toString().includes("PLACEHOLDER")) {
+              console.error("plugins.updater.pubkey in src-tauri/tauri.conf.json is still the placeholder (see docs/releases.md)");
+              process.exit(1);
+            }
+          '
       - id: create
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

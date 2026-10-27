@@ -4,7 +4,7 @@
 
 1. Set the new version in `package.json` and `src-tauri/Cargo.toml`, move the `CHANGELOG.md` entry from "Unreleased" to the version, and commit.
 2. Tag the commit `vX.Y.Z` (it must equal the `package.json` version, the workflow checks) and push the tag.
-3. `.github/workflows/release.yml` creates **one draft pre-release**, then builds macOS arm64, macOS x64 and Windows in parallel and uploads the installers, their `.sig` signatures and a `latest.json` into it. The build jobs stop at a placeholder updater key (see below).
+3. `.github/workflows/release.yml` creates **one draft pre-release**, then builds macOS arm64, macOS x64 and Windows in parallel and uploads the installers, their `.sig` signatures and a `latest.json` into it. The first job stops while the updater key is still a placeholder (see below).
 4. Open the draft, try an installer, and **publish** it. Publishing is the go-live moment.
 5. Publishing triggers `.github/workflows/updater-manifest.yml`, which copies that release's `latest.json` to the permanent `updater` release. Installed apps read it from there.
 
@@ -26,7 +26,7 @@ The check contacts only GitHub and sends nothing from the vault.
 
 Every update package is signed with a Tauri updater key (minisign). The app only installs packages that verify against the **public** key built into it. This is unrelated to macOS/Windows code signing.
 
-The `pubkey` in `src-tauri/tauri.conf.json` is a placeholder (`REPLACE_WITH_PUBLIC_KEY_FROM_tauri_signer_generate`) until the owner generates the real key. With the placeholder the release workflow stops at its first job, and an app built from it reports the error in the update toast instead of crashing.
+The `pubkey` in `src-tauri/tauri.conf.json` is a placeholder (a well-formed but fake key whose comment reads `PLACEHOLDER`) until the owner generates the real key. With the placeholder the release workflow stops at its first job, and an app built from it reports the error in the update toast instead of crashing.
 
 ### One-time setup
 
