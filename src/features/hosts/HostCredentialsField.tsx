@@ -44,10 +44,7 @@ export function HostCredentialsField({
         filter={null}
         openOnInputClick
         onInputValueChange={(username, details) => {
-          if (
-            details.reason === "input-change" ||
-            details.reason === "input-clear"
-          ) {
+          if (details.reason === "input-change") {
             onChange({
               ...value,
               identityId: "",
