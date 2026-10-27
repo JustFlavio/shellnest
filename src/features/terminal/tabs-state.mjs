@@ -1,9 +1,11 @@
 import {
+  fromTemplate,
   insertLeaf,
   leafIds,
   pruneTemplate,
   removeLeaf,
   replaceLeaf,
+  toTemplate,
 } from "./workbench-state.mjs";
 
 // Tab-list transitions behind the tab bar and split workspaces. A tab with a `layout` leads a
@@ -44,7 +46,7 @@ export function joinWorkspace(tabs, leaderId, srcId, targetId, edge) {
   const src = tabs.find((t) => t.id === srcId);
   if (!leader || !src) return null;
   const node = src.layout ?? { id: src.id },
-    ids = leafIds(node),
+    ids = new Set(leafIds(node)),
     layout = insertLeaf(
       leader.layout ?? { id: leader.id },
       targetId,
@@ -56,7 +58,7 @@ export function joinWorkspace(tabs, leaderId, srcId, targetId, edge) {
       ? { ...t, layout }
       : t.id === src.id
         ? { ...t, layout: undefined, parent: leader.id }
-        : ids.includes(t.id)
+        : ids.has(t.id)
           ? { ...t, parent: leader.id }
           : t,
   );
@@ -70,6 +72,7 @@ export function unlinkPane(tabs, id, keep) {
   const rest = leader?.layout && removeLeaf(leader.layout, id);
   if (!leader || !rest) return null;
   const ids = leafIds(rest),
+    inRest = new Set(ids),
     next = id === leader.id ? ids[0] : leader.id;
   return {
     leader,
@@ -88,7 +91,7 @@ export function unlinkPane(tabs, id, keep) {
                 layout: ids.length > 1 ? rest : undefined,
               },
             ]
-          : [ids.includes(t.id) ? { ...t, parent: next } : t],
+          : [inRest.has(t.id) ? { ...t, parent: next } : t],
     ),
   };
 }
@@ -159,4 +162,54 @@ export function parseSession(raw, knownHostIds) {
   } catch {
     return null;
   }
+}
+
+// A closed session as `reopen` needs it: the tab without its place in a workspace.
+export function closedRecords(tabs, ids) {
+  const gone = new Set(ids);
+  return tabs
+    .filter((t) => gone.has(t.id))
+    .map(({ parent, layout, ...t }) => t);
+}
+
+// Terminal-set title of a tab; the list is returned as is when nothing changes.
+export function setTermTitle(tabs, id, termTitle) {
+  return tabs.some((t) => t.id === id && t.termTitle !== termTitle)
+    ? tabs.map((t) => (t.id === id ? { ...t, termTitle } : t))
+    : tabs;
+}
+
+// The saved form of a split workspace; null unless two or more of its sessions can be saved
+// (host or local shell: quick connections are left out).
+export function workspaceTemplate(tabs, layout) {
+  const byId = new Map(tabs.map((t) => [t.id, t]));
+  const template = toTemplate(layout, (id) => {
+    const t = byId.get(id);
+    return t?.kind === "ssh"
+      ? { hostId: t.host.id }
+      : t?.kind === "local"
+        ? { local: true }
+        : null;
+  });
+  return template && "dir" in template ? template : null;
+}
+
+// Fresh session ids for saved workspaces. `missing`: a saved host is gone; `untrusted`: the
+// first host whose key is not stored yet.
+export function planWorkspaces(list, hostsById, newId) {
+  const built = list.map((item) => {
+    const { layout, leaves } = fromTemplate(item.layout, newId);
+    const specs = leaves.map(({ id, spec }) => ({
+      id,
+      local: !("hostId" in spec),
+      host: "hostId" in spec ? hostsById.get(spec.hostId) : undefined,
+    }));
+    return { name: item.name, layout, specs };
+  });
+  const specs = built.flatMap((b) => b.specs);
+  return {
+    built,
+    missing: specs.some((s) => !s.local && !s.host),
+    untrusted: specs.find((s) => s.host && !s.host.fingerprint)?.host,
+  };
 }

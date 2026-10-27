@@ -27,7 +27,7 @@ export function TabBar() {
       ?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [active, tabs.length]);
   return (
-    <div
+    <nav
       className="flex min-w-0 flex-1 items-center gap-[6px] overflow-x-auto px-[8px] py-[5px]"
       onDragOver={(e) => {
         if (dragPane) {
@@ -47,7 +47,6 @@ export function TabBar() {
         detachPane(dragPane);
         clearDnd();
       }}
-      role="navigation"
       aria-label="Sessioni e connessioni"
       data-tauri-drag-region
     >
@@ -99,6 +98,6 @@ export function TabBar() {
         data-tauri-drag-region
       />
       <SyncButton />
-    </div>
+    </nav>
   );
 }
