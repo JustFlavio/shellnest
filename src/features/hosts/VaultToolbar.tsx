@@ -7,7 +7,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { groupOptions } from "./groups.mjs";
+import { groupOptions } from "./groups.ts";
 import { cn } from "@/lib/utils";
 import {
   ArrowUpDown,

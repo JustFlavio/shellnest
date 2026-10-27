@@ -2,7 +2,7 @@ import {
   depthOf,
   MAX_GROUP_DEPTH,
   subtreeIds,
-} from "@/features/hosts/groups.mjs";
+} from "@/features/hosts/groups.ts";
 import type { View, Group } from "../types";
 import { requireValue } from "./require";
 import type { Args } from "./require";

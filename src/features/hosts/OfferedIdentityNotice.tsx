@@ -1,7 +1,7 @@
 import { ContactRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Group, HostDraft, Identity } from "@/lib/types";
-import { groupPath } from "./groups.mjs";
+import { groupPath } from "./groups.ts";
 import { inheritedBox } from "@/lib/editor-ui";
 
 export function OfferedIdentityNotice({

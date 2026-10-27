@@ -4,9 +4,10 @@ import {
   filterHosts,
   filterIdentities,
   filterKeys,
-} from "./collection-rows.mjs";
+} from "./collection-rows.ts";
+import type { Host } from "../../lib/types.ts";
 
-const host = (id, name, extra = {}) => ({
+const host = (id: string, name: string, extra: Partial<Host> = {}) => ({
   id,
   name,
   address: `${id}.example.com`,
@@ -23,7 +24,7 @@ const base = {
   group: "",
   usageIds: null,
   query: "",
-  sort: "name",
+  sort: "name" as "name" | "recent",
 };
 
 test("hosts match name, address, group path and identity", () => {
@@ -31,7 +32,7 @@ test("hosts match name, address, group path and identity", () => {
     host("a", "Alpha", { groupId: "prod" }),
     host("b", "Beta", { identityId: "adm" }),
   ];
-  const names = (query) =>
+  const names = (query: string) =>
     filterHosts({ ...base, hosts, query }).map((h) => h.name);
   assert.deepEqual(names("produzione"), ["Alpha"]);
   assert.deepEqual(names("root"), ["Beta"]);
@@ -58,7 +59,8 @@ test("hosts sort by name with numbers, or by recent use", () => {
     host("a", "srv10", { lastConnectedAt: 1 }),
     host("b", "srv2", { lastConnectedAt: 5 }),
   ];
-  const ids = (sort) => filterHosts({ ...base, hosts, sort }).map((h) => h.id);
+  const ids = (sort: "name" | "recent") =>
+    filterHosts({ ...base, hosts, sort }).map((h) => h.id);
   assert.deepEqual(ids("name"), ["b", "a"]);
   assert.deepEqual(ids("recent"), ["b", "a"]);
   assert.deepEqual(

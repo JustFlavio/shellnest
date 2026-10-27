@@ -1,9 +1,21 @@
-import { groupPath } from "./groups.mjs";
+import type { Group, Host, Identity, SshKey } from "../../lib/types.ts";
+import { groupPath } from "./groups.ts";
 
-const matches = (text, query) =>
+const matches = (text: string, query: string) =>
   text.toLowerCase().includes(query.toLowerCase());
 
-export function filterHosts({
+type HostRow = Pick<
+  Host,
+  | "name"
+  | "address"
+  | "groupId"
+  | "identityId"
+  | "effectiveIdentityId"
+  | "username"
+  | "lastConnectedAt"
+>;
+
+export function filterHosts<T extends HostRow>({
   hosts,
   groups,
   identities,
@@ -11,7 +23,15 @@ export function filterHosts({
   usageIds,
   query,
   sort,
-}) {
+}: {
+  hosts: T[];
+  groups: Pick<Group, "id" | "name" | "parentId">[];
+  identities: Pick<Identity, "id" | "name" | "username">[];
+  group: string;
+  usageIds: Set<string> | null;
+  query: string;
+  sort: "name" | "recent";
+}): T[] {
   const identitiesById = new Map(identities.map((i) => [i.id, i]));
   return hosts
     .filter((h) => {
@@ -34,7 +54,17 @@ export function filterHosts({
     );
 }
 
-export function filterIdentities({ identities, keys, query }) {
+export function filterIdentities<
+  T extends Pick<Identity, "name" | "username" | "keyId">,
+>({
+  identities,
+  keys,
+  query,
+}: {
+  identities: T[];
+  keys: Pick<SshKey, "id" | "name">[];
+  query: string;
+}): T[] {
   const keysById = new Map(keys.map((k) => [k.id, k]));
   return identities
     .filter((i) =>
@@ -46,7 +76,13 @@ export function filterIdentities({ identities, keys, query }) {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export function filterKeys({ keys, query }) {
+export function filterKeys<T extends Pick<SshKey, "name" | "fingerprint">>({
+  keys,
+  query,
+}: {
+  keys: T[];
+  query: string;
+}): T[] {
   return keys
     .filter((k) => matches(`${k.name} ${k.fingerprint}`, query))
     .sort((a, b) => a.name.localeCompare(b.name));

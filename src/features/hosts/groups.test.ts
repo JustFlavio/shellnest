@@ -9,9 +9,15 @@ import {
   inheritedIdentity,
   resolveHost,
   subtreeIds,
-} from "./groups.mjs";
+} from "./groups.ts";
+import type { Group } from "../../lib/types.ts";
 
-const g = (id, name, parentId = "", extra = {}) => ({
+const g = (
+  id: string,
+  name: string,
+  parentId = "",
+  extra: Partial<Group> = {},
+): Group => ({
   id,
   name,
   parentId,

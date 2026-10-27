@@ -1,4 +1,4 @@
-import { inheritedIdentity } from "@/features/hosts/groups.mjs";
+import { inheritedIdentity } from "@/features/hosts/groups.ts";
 import type { View, Host, HostCredentials } from "../types";
 import { requireValue } from "./require";
 import type { Args } from "./require";

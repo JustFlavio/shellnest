@@ -1,5 +1,5 @@
 import { NavItem } from "@/components/NavItem";
-import { ancestry, childGroups } from "@/features/hosts/groups.mjs";
+import { ancestry, childGroups } from "@/features/hosts/groups.ts";
 import { cn } from "@/lib/utils";
 import { Folder, KeyRound, Server, UserRound } from "lucide-react";
 import { useApp } from "./app-context";

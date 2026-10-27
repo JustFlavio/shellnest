@@ -1,4 +1,4 @@
-import { groupPath } from "../hosts/groups.mjs";
+import { groupPath } from "../hosts/groups.ts";
 
 export const MAX_WORKSPACE_HOSTS = 16;
 

@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { HostDraft, View } from "@/lib/types";
-import { groupPath, portSource } from "./groups.mjs";
+import { groupPath, portSource } from "./groups.ts";
 import { portInline, sectionHelp } from "@/lib/editor-ui";
 
 export function HostPortField({

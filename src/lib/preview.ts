@@ -1,5 +1,5 @@
 import { emptyView } from "./types";
-import { resolveHost } from "@/features/hosts/groups.mjs";
+import { resolveHost } from "@/features/hosts/groups.ts";
 import type { View } from "./types";
 import {
   assignIdentity,

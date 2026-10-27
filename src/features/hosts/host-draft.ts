@@ -1,5 +1,5 @@
 import type { Group, Host, HostDraft } from "@/lib/types";
-import { inheritedIdentity } from "./groups.mjs";
+import { inheritedIdentity } from "./groups.ts";
 
 // A stored host with no identity and no credentials of its own takes its folder's identity.
 export const hostInheritsIdentity = (host: Host) =>

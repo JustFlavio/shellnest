@@ -7,7 +7,7 @@ import {
   filterHosts,
   filterIdentities,
   filterKeys,
-} from "./collection-rows.mjs";
+} from "./collection-rows.ts";
 import type { Host } from "@/lib/types";
 import type { VaultApi } from "@/features/vault/useVault";
 
