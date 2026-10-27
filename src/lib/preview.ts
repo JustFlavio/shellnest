@@ -37,15 +37,9 @@ const editors: Record<string, (next: View, args: Args) => void> = {
 };
 
 // Only UI metadata lives here: passwords, private keys and tokens are discarded.
-export function createPreviewBackend() {
+export function createPreviewBackend(empty = false) {
   const vaults = new Map<string, View>([
-    // `?empty` starts a first-run vault (used by the visual tests).
-    [
-      "personal",
-      new URLSearchParams(location.search).has("empty")
-        ? emptyPreviewView()
-        : previewView(),
-    ],
+    ["personal", empty ? emptyPreviewView() : previewView()],
   ]);
   let selected = "personal";
   return async <T>(

@@ -71,7 +71,10 @@ export function useVault() {
   };
   const startPreview = () =>
     void run(async () => {
-      previewBackend.current = createPreviewBackend();
+      previewBackend.current = createPreviewBackend(
+        // `?empty` starts a first-run vault (used by the visual tests).
+        new URLSearchParams(location.search).has("empty"),
+      );
       update(await previewBackend.current<View>("status"));
       setPreview(true);
     });
