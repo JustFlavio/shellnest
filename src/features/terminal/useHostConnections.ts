@@ -2,9 +2,8 @@ import { useRef } from "react";
 import type { VaultApi } from "@/features/vault/useVault";
 import { hostIdentity } from "@/features/hosts/host-draft";
 import type { Host, QuickTarget } from "@/lib/types";
-import type { QuickConnection } from "./ConnectionLauncher";
 import { localTab, quickTab, sshTab } from "./tab-factory";
-import type { Trust } from "./tabs-types";
+import type { QuickConnection, Trust } from "./tabs-types";
 import type { TabList } from "./useTabList";
 
 /** Opening sessions: hosts one after the other (verifying unknown host keys), local shell, quick connections. */
