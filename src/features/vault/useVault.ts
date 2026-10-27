@@ -5,20 +5,18 @@ import { createPreviewBackend } from "@/lib/preview";
 import { emptyView } from "@/lib/types";
 import type { View } from "@/lib/types";
 import { useLatest } from "@/lib/useLatest";
+import { useVaultStartup } from "./useVaultStartup";
 
 /** The open vault: its decrypted view, backend calls, and the busy/error/notice state around them. */
 export function useVault() {
   const [view, setView] = useState<View>(emptyView),
-    [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
-    [preview, setPreview] = useState(false),
-    [trying, setTrying] = useState(false);
+    [preview, setPreview] = useState(false);
   const busyRef = useRef(false),
     // Bumped whenever the vault is replaced, so results of calls started before are dropped.
     epoch = useRef(0),
-    triedSaved = useRef(new Set<string>()),
     previewBackend = useRef<ReturnType<typeof createPreviewBackend> | null>(
       null,
     );
@@ -77,30 +75,7 @@ export function useVault() {
       update(await previewBackend.current<View>("status"));
       setPreview(true);
     });
-  useEffect(() => {
-    if (desktop)
-      void invoke<View>("status")
-        .then(update)
-        .catch((e) => setError(String(e)))
-        .finally(() => setLoading(false));
-    else setLoading(false);
-  }, []);
-  // Reopens a vault whose key is in the system keychain, once per vault and app run (a manual lock stays locked).
-  const waitingSaved =
-    desktop &&
-    !loading &&
-    !view.unlocked &&
-    view.exists &&
-    !triedSaved.current.has(view.vaultId);
-  useEffect(() => {
-    if (!waitingSaved) return;
-    triedSaved.current.add(view.vaultId);
-    setTrying(true);
-    invoke<View>("unlock_saved", { vaultId: view.vaultId })
-      .then(update)
-      .catch(() => {})
-      .finally(() => setTrying(false));
-  }, [waitingSaved, view.vaultId]);
+  const opening = useVaultStartup(view, update, setError);
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(""), 4500);
@@ -108,7 +83,7 @@ export function useVault() {
   }, [notice]);
   return {
     view,
-    opening: loading || trying || waitingSaved,
+    opening,
     busy,
     setBusy,
     busyRef,

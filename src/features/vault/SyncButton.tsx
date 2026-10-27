@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Cloud, RefreshCw } from "lucide-react";
 import { useApp } from "@/app/app-context";
+import { syncLabel, syncTitle } from "./vault-copy.mjs";
 
 export function SyncButton() {
   const {
@@ -8,18 +9,13 @@ export function SyncButton() {
     sync: { synchronize, syncState, lastSync },
     settings,
   } = useApp();
+  const Icon = syncState === "syncing" ? RefreshCw : Cloud;
   return (
     <Button
       variant="ghost"
       type="button"
       className="h-[28px] shrink-0 gap-[6px] px-[8px] text-[12px] text-muted-foreground disabled:opacity-70 max-[760px]:hidden"
-      title={
-        view.syncConfigured
-          ? lastSync
-            ? `Ultima sincronizzazione riuscita: ${lastSync}`
-            : "Sincronizza ora"
-          : "Configura il tuo servizio di sincronizzazione"
-      }
+      title={syncTitle({ syncConfigured: view.syncConfigured, lastSync })}
       disabled={busy || syncState === "syncing" || preview}
       onClick={() => {
         if (view.syncConfigured) void synchronize(true);
@@ -27,18 +23,13 @@ export function SyncButton() {
       }}
       aria-live="polite"
     >
-      {syncState === "syncing" ? <RefreshCw size={14} /> : <Cloud size={14} />}
-      {syncState === "syncing"
-        ? "Sincronizzazione…"
-        : syncState === "error"
-          ? "Sync non riuscita · Riprova"
-          : view.syncConfigured
-            ? view.dirty
-              ? "Da sincronizzare"
-              : lastSync
-                ? `Sync ${lastSync}`
-                : "Sync configurata"
-            : null}
+      <Icon size={14} />
+      {syncLabel({
+        syncState,
+        syncConfigured: view.syncConfigured,
+        dirty: view.dirty,
+        lastSync,
+      })}
     </Button>
   );
 }

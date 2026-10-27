@@ -79,7 +79,14 @@ export function useVaultSync(
       return;
     const timer = setTimeout(() => void latest.current(), 400);
     return () => clearTimeout(timer);
-  }, [hostSaved, view.dirty, view.syncConfigured, view.vaultId, busy]);
+  }, [
+    hostSaved,
+    view.unlocked,
+    view.dirty,
+    view.syncConfigured,
+    view.vaultId,
+    busy,
+  ]);
   useEffect(() => {
     if (!desktop || !view.unlocked || !view.syncConfigured) return;
     const timer = setInterval(() => void latest.current(), 30000);
