@@ -10,7 +10,7 @@ import { EmptyState } from "./EmptyState";
 
 export function VaultContent() {
   const {
-    vault: { view, busy, setError },
+    vault: { view, busy },
     tabs: { connect },
     library: {
       page,
@@ -111,7 +111,6 @@ export function VaultContent() {
               askDelete({ kind: "hosts", id: host.id, name: host.name })
             }
             onEditIdentity={editIdentity}
-            onError={setError}
             busy={busy}
           />
         ) : page === "identities" ? (

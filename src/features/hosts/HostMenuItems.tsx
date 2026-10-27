@@ -3,6 +3,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { ChevronRight, Pencil, Trash2, Copy, UserRound } from "lucide-react";
+import { notifyError } from "@/lib/notify";
 import type { Host } from "@/lib/types";
 import type { HostActions } from "./host-interaction";
 
@@ -52,7 +53,7 @@ export function HostMenuItems({
         onClick={() =>
           void navigator.clipboard
             .writeText(h.address)
-            .catch((e) => actions.onError(String(e)))
+            .catch((e) => notifyError("Copia non riuscita", e))
         }
       >
         <Copy size={13} />

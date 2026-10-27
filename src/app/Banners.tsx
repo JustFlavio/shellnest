@@ -1,31 +1,5 @@
 import { useApp } from "./app-context";
-import { Button } from "@/components/ui/button";
-import { Check, X } from "lucide-react";
-
-export function ErrorBanner() {
-  const {
-    vault: { error, setError },
-    anyPanel,
-  } = useApp();
-  if (!error || anyPanel) return null;
-  return (
-    <div
-      className="flex shrink-0 items-center gap-[10px] px-[22px] py-[10px] text-[13px] border-b border-destructive/20 bg-destructive/[0.07] [overflow-wrap:anywhere] text-destructive"
-      role="alert"
-    >
-      <span>{error}</span>
-      <Button
-        variant="ghost"
-        type="button"
-        aria-label="Chiudi errore"
-        className="ml-auto w-[25px] p-0"
-        onClick={() => setError("")}
-      >
-        <X size={16} />
-      </Button>
-    </div>
-  );
-}
+import { Check } from "lucide-react";
 
 export function NoticeBanner() {
   const {

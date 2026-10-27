@@ -99,7 +99,6 @@ export function startSession(
     callbacks.current.onStatus(tab.id, "failed");
     resetModes();
     term.writeln(`\r\n\x1b[31m${message}\x1b[0m`);
-    callbacks.current.onError(message);
   };
   const disconnect = () => void invoke("disconnect", session).catch(() => {});
   const handle = (event: Output) => {

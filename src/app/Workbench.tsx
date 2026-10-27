@@ -3,7 +3,7 @@ import { useApp } from "./app-context";
 import { BulkAssignDialog } from "@/features/hosts/BulkAssignDialog";
 import { DeletionDialog } from "@/features/hosts/DeletionDialog";
 import { EditorPanels } from "@/features/hosts/EditorPanels";
-import { ErrorBanner, NoticeBanner, PreviewBanner } from "./Banners";
+import { NoticeBanner, PreviewBanner } from "./Banners";
 import { LauncherPage } from "@/features/terminal/LauncherPage";
 import { cn } from "@/lib/utils";
 import { SettingsPanel } from "@/features/settings/SettingsPanel";
@@ -40,7 +40,6 @@ export function Workbench() {
         aria-hidden={behindSheet || undefined}
       >
         {preview && <PreviewBanner />}
-        <ErrorBanner />
         <NoticeBanner />
         {active === "launcher" && <LauncherPage />}
         {active === "vault" && <VaultPage />}

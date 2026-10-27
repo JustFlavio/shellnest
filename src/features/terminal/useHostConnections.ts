@@ -3,6 +3,7 @@ import type { VaultApi } from "@/features/vault/useVault";
 import { hostIdentity } from "@/features/hosts/host-draft";
 import { hostDraftIsValid } from "@/features/hosts/host-draft";
 import { saveHostCommand } from "@/features/hosts/save-host";
+import { notifyError } from "@/lib/notify";
 import { newHost } from "@/lib/types";
 import type { Host, TerminalTab, View } from "@/lib/types";
 import type { ConnectionTarget } from "./connection-target.ts";
@@ -15,7 +16,7 @@ import type { TabList } from "./useTabList";
 
 /** Opening sessions: hosts one after the other (verifying unknown host keys), local shell, quick connections. */
 export function useHostConnections(
-  { view, preview, run, invokeScoped, setError, update }: VaultApi,
+  { view, preview, run, invokeScoped, update }: VaultApi,
   list: TabList,
   setTrust: (trust: Trust) => void,
 ) {
@@ -57,6 +58,8 @@ export function useHostConnections(
               : tab,
           ),
         );
+        // The tab's timeline shows this failure.
+        return;
       }
       throw e;
     }
@@ -71,11 +74,14 @@ export function useHostConnections(
         throw new Error("Completa le credenziali degli host selezionati.");
       queue.current = [...hosts];
       await continueConnections();
-    });
+    }, "Connessione non riuscita");
   const connect = (host: Host) => connectHosts([host]);
   const openLocal = () => {
     if (preview) {
-      setError("Il terminale locale funziona nell’app desktop.");
+      notifyError(
+        "Terminale locale non disponibile",
+        "Il terminale locale funziona nell’app desktop.",
+      );
       return;
     }
     list.addTab(localTab(view.vaultId));
@@ -150,7 +156,7 @@ export function useHostConnections(
         takeQuickPassword(tab.id);
         patch({ status: "failed", error: String(e) });
       }
-    });
+    }, "Connessione non riuscita");
   return {
     queue,
     verifying,

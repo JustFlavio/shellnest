@@ -40,7 +40,10 @@ const editors: Record<string, (next: View, args: Args) => void> = {
 };
 
 // Only UI metadata lives here: passwords, private keys and tokens are discarded.
-export function createPreviewBackend(empty = false) {
+export function createPreviewBackend(
+  empty = false,
+  failing: ReadonlySet<string> = new Set(),
+) {
   const vaults = new Map<string, View>([
     ["personal", empty ? emptyPreviewView() : previewView()],
   ]);
@@ -54,6 +57,7 @@ export function createPreviewBackend(empty = false) {
         throw new Error("Vault non disponibile");
       selected = String(args.vaultId);
     }
+    if (failing.has(command)) throw new Error(`Errore simulato in ${command}`);
     const current = vaults.get(selected)!;
     if (args.vaultId && args.vaultId !== selected)
       throw new Error("Vault non attivo");

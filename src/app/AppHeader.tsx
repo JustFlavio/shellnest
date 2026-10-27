@@ -1,14 +1,9 @@
 import { BrandIcon } from "./BrandIcon";
 import { WindowControls } from "./WindowControls";
-import { useApp } from "./app-context";
 import { AppMenu } from "./AppMenu";
 import { TabBar } from "@/features/terminal/TabBar";
 
 export function AppHeader() {
-  const {
-    vault: { setError },
-    dnd: {},
-  } = useApp();
   return (
     <header
       className="col-span-full flex min-w-0 items-stretch border-b border-border bg-header select-none"
@@ -29,7 +24,7 @@ export function AppHeader() {
       </div>
       <AppMenu />
       <TabBar />
-      <WindowControls onError={setError} />
+      <WindowControls />
     </header>
   );
 }

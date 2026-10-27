@@ -3,16 +3,16 @@ import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Minus, Square, Copy, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { notifyError } from "@/lib/notify";
 import { cn } from "@/lib/utils";
+
+const onError = (error: unknown) =>
+  notifyError("Operazione sulla finestra non riuscita", error);
 
 const control =
   "h-full w-[42px] rounded-none p-0 text-muted-foreground max-[760px]:w-[36px]";
 
-export function WindowControls({
-  onError,
-}: {
-  onError: (error: string) => void;
-}) {
+export function WindowControls() {
   const [maximized, setMaximized] = useState(false);
   const desktop = isTauri();
   useEffect(() => {
@@ -26,24 +26,19 @@ export function WindowControls({
           if (!disposed) setMaximized(value);
         })
         .catch((error) => {
-          if (!disposed) onError(String(error));
+          if (!disposed) onError(error);
         });
     update();
     const listening = win.onResized(update).catch((error) => {
-      onError(String(error));
+      onError(error);
     });
     return () => {
       disposed = true;
-      void listening
-        .then((unlisten) => unlisten?.())
-        .catch((error) => onError(String(error)));
+      void listening.then((unlisten) => unlisten?.()).catch(onError);
     };
-  }, [desktop, onError]);
+  }, [desktop]);
   const act = (action: "minimize" | "toggleMaximize" | "close") => {
-    if (desktop)
-      void getCurrentWindow()
-        [action]()
-        .catch((error) => onError(String(error)));
+    if (desktop) void getCurrentWindow()[action]().catch(onError);
   };
   return (
     <div

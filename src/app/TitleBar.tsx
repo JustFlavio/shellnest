@@ -1,11 +1,6 @@
 import { WindowControls } from "./WindowControls";
-import { useApp } from "./app-context";
 
 export function TitleBar() {
-  const {
-    vault: { setError },
-    dnd: {},
-  } = useApp();
   return (
     <header
       className="absolute inset-x-0 top-0 flex h-[46px] items-stretch justify-between bg-header select-none"
@@ -17,7 +12,7 @@ export function TitleBar() {
       >
         Shellnest
       </span>
-      <WindowControls onError={setError} />
+      <WindowControls />
     </header>
   );
 }

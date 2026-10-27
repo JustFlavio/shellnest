@@ -6,6 +6,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { desktop } from "@/lib/platform";
+import { notifyError } from "@/lib/notify";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   KeyRound,
@@ -19,9 +20,12 @@ import {
 } from "lucide-react";
 import { useApp } from "./app-context";
 
+const onWindowError = (e: unknown) =>
+  notifyError("Operazione sulla finestra non riuscita", e);
+
 export function AppMenu() {
   const {
-    vault: { busy, setError },
+    vault: { busy },
     preferences: { hint },
     tabs: { tabs, setPendingClose, openLauncher, openLocal },
     library: { group, navigate, newHostIn },
@@ -86,9 +90,7 @@ export function AppMenu() {
         <DropdownMenuItem
           disabled={!desktop}
           onClick={() =>
-            void getCurrentWindow()
-              .minimize()
-              .catch((e) => setError(String(e)))
+            void getCurrentWindow().minimize().catch(onWindowError)
           }
         >
           Riduci a icona
@@ -96,20 +98,14 @@ export function AppMenu() {
         <DropdownMenuItem
           disabled={!desktop}
           onClick={() =>
-            void getCurrentWindow()
-              .toggleMaximize()
-              .catch((e) => setError(String(e)))
+            void getCurrentWindow().toggleMaximize().catch(onWindowError)
           }
         >
           Massimizza / ripristina finestra
         </DropdownMenuItem>
         <DropdownMenuItem
           disabled={!desktop || busy}
-          onClick={() =>
-            void getCurrentWindow()
-              .close()
-              .catch((e) => setError(String(e)))
-          }
+          onClick={() => void getCurrentWindow().close().catch(onWindowError)}
         >
           Esci
         </DropdownMenuItem>

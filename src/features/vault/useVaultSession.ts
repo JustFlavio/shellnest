@@ -36,17 +36,24 @@ export function useVaultSession({
     setVaultDialog(null);
     onReset();
   };
+  // Asked from a confirmation dialog the failure shows in it; from the menu or switcher directly, as a toast.
   const switchVault = (id: string) =>
-    void run(async () => {
-      epoch.current++;
-      leave(await invokeCommand<View>("select_vault", { vaultId: id }));
-    });
+    void run(
+      async () => {
+        epoch.current++;
+        leave(await invokeCommand<View>("select_vault", { vaultId: id }));
+      },
+      pendingSwitch ? undefined : "Cambio vault non riuscito",
+    );
   const lockVault = () =>
-    void run(async () => {
-      epoch.current++;
-      leave(await invokeScoped<View>("lock"));
-      setPendingLock(false);
-    });
+    void run(
+      async () => {
+        epoch.current++;
+        leave(await invokeScoped<View>("lock"));
+        setPendingLock(false);
+      },
+      pendingLock ? undefined : "Blocco del vault non riuscito",
+    );
   const deleteVault = () =>
     void run(async () => {
       epoch.current++;
