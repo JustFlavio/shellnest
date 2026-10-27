@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import type { Group, Host, Identity, Workspace } from "@/lib/types";
 import { quickConnectTarget } from "./connection-target.mjs";
+import {
+  Command,
+  CommandGroup,
+  CommandList,
+} from "@/components/ui/command";
 import { mac } from "@/lib/platform";
 import {
   launcherKeyAction,
@@ -118,6 +123,7 @@ export function ConnectionLauncher({
     host,
     openTab,
   }: LauncherResult) => {
+    if (busy) return;
     if (kind === "workspace") onOpenWorkspace(workspace!);
     else if (kind === "tab") onActivateTab(tab!.id);
     else if (picked) setPicked(togglePicked(picked, host!.id));
@@ -135,7 +141,6 @@ export function ConnectionLauncher({
       }
       armed={!!result.workspace && armed === result.workspace.id}
       busy={busy}
-      onHover={() => setSelection(index)}
       onActivate={() => activate(result)}
       onNewSession={() => onConnect(result.host!)}
       onArmDelete={() => setArmed(result.workspace!.id)}
@@ -173,7 +178,10 @@ export function ConnectionLauncher({
       hasText: !!text,
       ready: hasIdentity,
     });
-    if (!action) return;
+    if (!action) {
+      if (event.key === "Enter") event.preventDefault();
+      return;
+    }
     if (action.type === "clear") {
       setQuery("");
       setRevealed(false);
@@ -202,67 +210,79 @@ export function ConnectionLauncher({
       className="mx-auto min-h-0 w-full max-w-[760px] flex-1 overflow-auto px-[24px] pt-[40px] pb-[56px]"
       aria-label="Nuova scheda"
     >
-      <LauncherSearch
-        value={query}
-        activeKey={results[selected]?.key}
-        shortcut={shortcut}
-        onChange={(value) => {
-          setQuery(value);
-          setRevealed(false);
-          setSelection(0);
+      <Command
+        shouldFilter={false}
+        label="Cerca host o schede"
+        value={results[selected]?.key ?? ""}
+        onValueChange={(key) => {
+          const index = results.findIndex((result) => result.key === key);
+          if (index >= 0) setSelection(index);
         }}
-        onKeyDown={onKeyDown}
-      />
-      <div
-        id="connection-results"
-        role="listbox"
-        aria-label={text ? "Risultati ricerca" : "Connessioni disponibili"}
+        className="h-auto overflow-visible rounded-none! bg-transparent p-0 text-inherit"
       >
-        {workspaceRows.length > 0 && (
+        <LauncherSearch
+          value={query}
+          shortcut={shortcut}
+          onChange={(value) => {
+            setQuery(value);
+            setRevealed(false);
+            setSelection(0);
+          }}
+          onKeyDown={onKeyDown}
+        />
+        <CommandList
+          label={text ? "Risultati ricerca" : "Connessioni disponibili"}
+          className="max-h-none overflow-visible"
+        >
+          {workspaceRows.length > 0 && (
+            <div className={sectionClass}>
+              <div className={headerClass}>
+                <h2 className="m-0 text-[13px]">Workspace</h2>
+              </div>
+              <CommandGroup className="p-0">{workspaceRows}</CommandGroup>
+            </div>
+          )}
           <div className={sectionClass}>
             <div className={headerClass}>
-              <h2 className="m-0 text-[13px]">Workspace</h2>
+              <h2 className="m-0 text-[13px]">
+                {listHeading({ picking: !!picked, text, hasRecent })}
+              </h2>
+              <div
+                className="flex items-center gap-[2px]"
+                onKeyDown={(event) => event.stopPropagation()}
+              >
+                {picked ? (
+                  <PickingActions
+                    count={picked.length}
+                    busy={busy}
+                    onCancel={() => setPicked(null)}
+                    onCreate={() => {
+                      onCreateWorkspace(picked);
+                      setPicked(null);
+                    }}
+                  />
+                ) : (
+                  <LauncherActions
+                    busy={busy}
+                    preview={preview}
+                    canPickHosts={hosts.length >= 2}
+                    session={session}
+                    onLocalTerminal={onLocalTerminal}
+                    onPickHosts={() => setPicked([])}
+                    onRestore={onRestore}
+                  />
+                )}
+              </div>
             </div>
-            {workspaceRows}
+            <CommandGroup className="p-0">{otherRows}</CommandGroup>
+            {!otherRows.length && (
+              <p className="px-[10px] pt-[18px] pb-[14px] text-[13px] text-muted-foreground">
+                {emptyMessage}
+              </p>
+            )}
           </div>
-        )}
-        <div className={sectionClass}>
-          <div className={headerClass}>
-            <h2 className="m-0 text-[13px]">
-              {listHeading({ picking: !!picked, text, hasRecent })}
-            </h2>
-            <div className="flex items-center gap-[2px]">
-              {picked ? (
-                <PickingActions
-                  count={picked.length}
-                  busy={busy}
-                  onCancel={() => setPicked(null)}
-                  onCreate={() => {
-                    onCreateWorkspace(picked);
-                    setPicked(null);
-                  }}
-                />
-              ) : (
-                <LauncherActions
-                  busy={busy}
-                  preview={preview}
-                  canPickHosts={hosts.length >= 2}
-                  session={session}
-                  onLocalTerminal={onLocalTerminal}
-                  onPickHosts={() => setPicked([])}
-                  onRestore={onRestore}
-                />
-              )}
-            </div>
-          </div>
-          {otherRows}
-          {!otherRows.length && (
-            <p className="px-[10px] pt-[18px] pb-[14px] text-[13px] text-muted-foreground">
-              {emptyMessage}
-            </p>
-          )}
-        </div>
-      </div>
+        </CommandList>
+      </Command>
       {target && (
         <QuickConnectForm
           target={target}
