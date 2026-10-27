@@ -30,6 +30,9 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+      - name: Check that the tag matches the app version
+        shell: bash
+        run: test "v$(node -p "require('./package.json').version")" = "${{ github.ref_name }}"
       - run: npm ci
       - uses: tauri-apps/tauri-action@v0
         env:
@@ -37,7 +40,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: Shellnest ${{ github.ref_name }}
-          releaseBody: Alpha build, not code-signed. See the README for first-launch warnings.
+          releaseBody: Alpha build, not code-signed. See CHANGELOG.md for what is in it and the README for first-launch warnings.
           releaseDraft: true
           prerelease: true
           args: ${{ matrix.args }}
