@@ -1,4 +1,5 @@
 import { AppContext } from "./app-context";
+import { Toaster } from "@/components/ui/sonner";
 import { LockScreen } from "@/features/vault/LockScreen";
 import { OpeningScreen } from "./OpeningScreen";
 import { useAppState } from "./useAppState";
@@ -18,6 +19,7 @@ export function App() {
       ) : (
         <LockScreen />
       )}
+      <Toaster />
     </AppContext>
   );
 }
