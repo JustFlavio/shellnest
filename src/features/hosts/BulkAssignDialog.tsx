@@ -1,4 +1,4 @@
-import { Panel } from "./Editors";
+import { Panel } from "./Panel";
 import { HostSummary } from "./HostSummary";
 import { SelectField } from "@/components/SelectField";
 import { Button } from "@/components/ui/button";

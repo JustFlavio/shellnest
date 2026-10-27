@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Minus, Plus } from "lucide-react";
-import { Panel } from "@/features/hosts/Editors";
+import { Panel } from "@/features/hosts/Panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";

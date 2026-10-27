@@ -1,4 +1,4 @@
-import { Panel } from "./Editors";
+import { Panel } from "./Panel";
 import { HostSummary } from "./HostSummary";
 import { AlertDialogDescription } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";

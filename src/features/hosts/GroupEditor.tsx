@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { SelectField } from "@/components/SelectField";
-import { EditorSection, Panel } from "./Editors";
+import { EditorSection } from "./EditorSection";
+import { Panel } from "./Panel";
 import {
   depthOf,
   groupOptions,

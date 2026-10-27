@@ -1,4 +1,6 @@
-import { HostEditor, IdentityEditor, KeyEditor } from "./Editors";
+import { HostEditor } from "./HostEditor";
+import { IdentityEditor } from "./IdentityEditor";
+import { KeyEditor } from "./KeyEditor";
 import { GroupEditor } from "./GroupEditor";
 import { useApp } from "@/app/app-context";
 

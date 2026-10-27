@@ -49,7 +49,8 @@ const { SelectField } = await import("./components/SelectField.tsx");
 const { Button } = await import("./components/ui/button.tsx");
 const { HostsView } = await import("./features/hosts/HostsView.tsx");
 const { WindowControls } = await import("./app/WindowControls.tsx");
-const { HostEditor, IdentityEditor } = await import("./features/hosts/Editors.tsx");
+const { HostEditor } = await import("./features/hosts/HostEditor.tsx");
+const { IdentityEditor } = await import("./features/hosts/IdentityEditor.tsx");
 const { HostPasswordInput } = await import("./features/hosts/HostPasswordInput.tsx");
 
 test("saved host password stays masked without requesting the secret during render", () => {

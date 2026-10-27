@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertDialogDescription } from "@/components/ui/alert-dialog";
-import { Panel } from "@/features/hosts/Editors";
+import { Panel } from "@/features/hosts/Panel";
 
 export const CONFIRM_CLOSE_KEY = "shellnest.confirmClose";
 

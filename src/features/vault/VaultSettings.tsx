@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
-import { Panel } from "@/features/hosts/Editors";
+import { Panel } from "@/features/hosts/Panel";
 import { AlertDialogDescription } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

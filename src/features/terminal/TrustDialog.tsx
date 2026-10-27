@@ -1,4 +1,4 @@
-import { Panel } from "@/features/hosts/Editors";
+import { Panel } from "@/features/hosts/Panel";
 import { Button } from "@/components/ui/button";
 import { fingerprint, help } from "@/lib/editor-ui";
 import { useApp } from "@/app/app-context";
