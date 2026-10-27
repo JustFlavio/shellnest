@@ -93,19 +93,19 @@ export function TerminalPane({
   const pendingTrust = tab.kind === "ssh" && !tab.host.fingerprint;
   const xterm = useRef<Xterm | null>(null);
   const search = useTerminalSearch(xterm);
-  const { opened, phase, logs, failure, password, submitPassword } =
+  const { opened, phase, logs, details, failure, password, submitPassword } =
     useTerminalSession({
-    xterm,
-    tab,
-    container,
-    enabled: !pendingTrust,
-    settings,
-    active,
-    focused,
-    callbacks: { onError, onStatus, onTitle, onMetadata },
-    onSearch: search.open,
-    onConfirmPaste: setPendingPaste,
-  });
+      xterm,
+      tab,
+      container,
+      enabled: !pendingTrust,
+      settings,
+      active,
+      focused,
+      callbacks: { onError, onStatus, onTitle, onMetadata },
+      onSearch: search.open,
+      onConfirmPaste: setPendingPaste,
+    });
   const closePasteConfirm = () => {
     setPendingPaste(null);
     xterm.current?.term.focus();
@@ -152,6 +152,7 @@ export function TerminalPane({
           tab={tab}
           phase={phase}
           logs={logs}
+          details={details}
           failure={failure}
           password={password}
           onPassword={submitPassword}

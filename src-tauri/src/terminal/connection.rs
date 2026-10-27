@@ -8,15 +8,67 @@ use russh::{
 use std::sync::Arc;
 use zeroize::Zeroizing;
 
+/// Passwords the user may type for one connection before it is given up.
+pub(super) const MAX_PASSWORD_ATTEMPTS: usize = 3;
+
+/// What `open` tells the UI along the way.
+pub(super) enum Note {
+    /// The stage that is running, shown under the current step.
+    Stage(&'static str),
+    /// One line of the connection log: plain text, never a password, key or answer.
+    Log(String),
+    /// How a step ended. `warn` is a partial result (a fallback), not a plain success.
+    Detail {
+        step: String,
+        warn: bool,
+        text: String,
+    },
+}
+
 // Only a server that still offers passwords can be asked for one.
 fn accepts_password(auth: &AuthResult) -> bool {
     matches!(auth, AuthResult::Failure { remaining_methods, .. } if remaining_methods.contains(&MethodKind::Password))
 }
+fn methods_of(auth: &AuthResult) -> Vec<&'static str> {
+    match auth {
+        AuthResult::Failure {
+            remaining_methods, ..
+        } => remaining_methods.iter().map(<&str>::from).collect(),
+        AuthResult::Success => vec![],
+    }
+}
+// The timeline step of the n-th password question (1-based).
+fn password_step(n: usize) -> String {
+    if n == 1 {
+        "password".into()
+    } else {
+        format!("password-{n}")
+    }
+}
+fn refusal(auth: &AuthResult) -> String {
+    let methods = methods_of(auth);
+    if methods.is_empty() {
+        return "Autenticazione fallita".into();
+    }
+    let unsupported = methods
+        .iter()
+        .any(|m| !matches!(*m, "password" | "publickey"));
+    format!(
+        "Autenticazione fallita. Metodi accettati dal server: {}.{}",
+        methods.join(", "),
+        if unsupported {
+            " Shellnest supporta solo chiave e password."
+        } else {
+            ""
+        }
+    )
+}
 /// Connects and authenticates. When the key or the stored password is refused (or missing), `ask`
 /// is called with whether a typed password was already refused; `None` means the user gave up.
+/// After `MAX_PASSWORD_ATTEMPTS` refused passwords it stops asking.
 pub(super) async fn open<Ask, Answer>(
     connection: &Connection,
-    report: impl Fn(&str),
+    report: impl Fn(Note),
     mut ask: Ask,
 ) -> Result<
     (
@@ -31,15 +83,52 @@ where
     Answer: std::future::Future<Output = Option<Zeroizing<String>>>,
 {
     let host = &connection.host;
-    report("Connessione al server SSH");
+    let port = host.port.unwrap_or(22);
+    let log = |text: String| report(Note::Log(text));
+    let detail = |step: &str, warn: bool, text: &str| {
+        report(Note::Detail {
+            step: step.into(),
+            warn,
+            text: text.into(),
+        })
+    };
+    report(Note::Stage("Connessione al server SSH"));
+    log(format!("Risoluzione di {}:{port}", host.address));
+    match tokio::net::lookup_host((host.address.as_str(), port)).await {
+        Ok(found) => {
+            let list: Vec<String> = found.map(|a| a.ip().to_string()).collect();
+            log(format!("Indirizzi trovati: {}", list.join(", ")));
+        }
+        Err(e) => log(format!("Risoluzione non riuscita: {e}")),
+    }
     let h = handler(Some(host.fingerprint.clone()));
     let seen = h.seen.clone();
-    let mut session=client::connect(config(),(host.address.as_str(),host.port.unwrap_or(22)),h).await.map_err(|e|{
-        if seen.lock().ok().and_then(|s|s.clone()).is_some_and(|f|f!=host.fingerprint){"Identità del server cambiata. Connessione bloccata: verifica la nuova impronta fuori dall’app.".into()}else{e.to_string()}
+    let info = h.info.clone();
+    let mut session=client::connect(config(),(host.address.as_str(),port),h).await.map_err(|e|{
+        let found = seen.lock().ok().and_then(|s|s.clone());
+        if found.as_ref().is_some_and(|f|*f!=host.fingerprint){
+            log(format!("Impronta del server cambiata: attesa {}, ricevuta {}", host.fingerprint, found.unwrap_or_default()));
+            "Identità del server cambiata. Connessione bloccata: verifica la nuova impronta fuori dall’app.".into()
+        }else{
+            log(format!("Connessione non riuscita: {e}"));
+            e.to_string()
+        }
     })?;
-    report("Impronta del server verificata");
-    report("Autenticazione SSH");
-    let mut auth = if connection.auth == "key" {
+    log("Connessione stabilita".into());
+    let server = info.lock().ok().and_then(|i| i.clone());
+    if let Some(server) = &server {
+        log(format!("Server remoto: {}", server.banner));
+        log(format!("Algoritmi negoziati: {}", server.algorithms));
+        detail("connect", false, &server.banner);
+    }
+    log(format!(
+        "Impronta del server nota e coincidente: {}",
+        host.fingerprint
+    ));
+    report(Note::Stage("Impronta del server verificata"));
+    report(Note::Stage("Autenticazione SSH"));
+    let is_key = connection.auth == "key";
+    let mut auth = if is_key {
         let secret = decode_secret_key(
             &connection.private_key,
             if connection.passphrase.is_empty() {
@@ -54,6 +143,10 @@ where
             .await
             .map_err(|e| e.to_string())?
             .flatten();
+        log(format!(
+            "Autenticazione con chiave per l’utente {}",
+            connection.username
+        ));
         session
             .authenticate_publickey(
                 &connection.username,
@@ -67,30 +160,93 @@ where
             partial_success: false,
         })
     } else {
+        log(format!(
+            "Autenticazione con password salvata per l’utente {}",
+            connection.username
+        ));
         session
             .authenticate_password(&connection.username, &connection.password)
             .await
     }
     .map_err(|e| e.to_string())?;
+    let tried_something = is_key || !connection.password.is_empty();
+    if auth.success() {
+        let how = if is_key { "chiave" } else { "password" };
+        log(format!("Autenticazione con {how} accettata"));
+        detail(
+            "auth",
+            false,
+            &if is_key && !connection.key_name.is_empty() {
+                format!("Autenticato con la chiave “{}”", connection.key_name)
+            } else if is_key {
+                "Autenticato con la chiave".into()
+            } else {
+                "Autenticato con la password".into()
+            },
+        );
+    } else if tried_something {
+        let what = if is_key { "chiave" } else { "password salvata" };
+        log(format!("Autenticazione con {what} rifiutata dal server"));
+        let methods = methods_of(&auth);
+        if !methods.is_empty() {
+            log(format!(
+                "Metodi ancora accettati dal server: {}",
+                methods.join(", ")
+            ));
+        }
+        detail(
+            "auth",
+            true,
+            &if is_key {
+                "Chiave rifiutata dal server".to_string()
+            } else {
+                "Password salvata rifiutata".to_string()
+            },
+        );
+    }
     let mut refused = false;
+    let (mut asked, mut sent) = (0, 0);
     while !auth.success() {
         if !accepts_password(&auth) {
-            return Err("Autenticazione fallita".into());
+            let message = refusal(&auth);
+            log(message.clone());
+            return Err(message);
         }
-        let password = ask(refused)
-            .await
-            .ok_or("Autenticazione annullata".to_string())?;
+        asked += 1;
+        let password = ask(refused).await.ok_or_else(|| {
+            log("Autenticazione annullata dall’utente".into());
+            "Autenticazione annullata".to_string()
+        })?;
         refused = true;
         // Nothing to send: ask again, without bothering the server.
         if password.is_empty() {
             continue;
         }
+        sent += 1;
+        log(format!(
+            "Tentativo con password {sent} di {MAX_PASSWORD_ATTEMPTS}"
+        ));
         auth = session
             .authenticate_password(&connection.username, password.as_str())
             .await
             .map_err(|e| e.to_string())?;
+        let step = password_step(asked);
+        if auth.success() {
+            log("Password accettata".into());
+            detail(&step, false, "Password accettata");
+        } else {
+            log("Password rifiutata dal server".into());
+            detail(&step, true, "Password non accettata");
+            if sent >= MAX_PASSWORD_ATTEMPTS {
+                let message =
+                    format!("Password non accettata dopo {MAX_PASSWORD_ATTEMPTS} tentativi.");
+                log(message.clone());
+                return Err(message);
+            }
+        }
     }
-    report("Apertura del terminale remoto");
+    report(Note::Stage("Apertura del terminale remoto"));
+    log("Apertura di terminale e shell remota".into());
     let mut channel = session
         .channel_open_session()
         .await
@@ -196,6 +352,7 @@ mod tests {
                 password: "test-only-password".into(),
                 private_key: key.to_openssh(Default::default()).unwrap().to_string(),
                 passphrase: String::new(),
+                key_name: "chiave di prova".into(),
             };
             for auth in ["password", "key"] {
                 host.auth = auth.into();
@@ -297,12 +454,111 @@ mod tests {
             let (connection, task) = fixture(false).await;
             let asked = Arc::new(Mutex::new(Vec::new()));
             let result = open(&connection, |_| {}, answers(vec![Some("x")], asked.clone())).await;
-            assert!(matches!(result, Err(e) if e == "Autenticazione fallita"));
+            assert!(matches!(result, Err(e) if e == "Autenticazione fallita. Metodi accettati dal server: publickey."));
             assert!(asked.lock().unwrap().is_empty());
             task.abort();
         })
         .await
         .expect("SSH fixture timed out");
+    }
+    // Notes as one line each: "log: …" or "step <id> <ok|warn>: …".
+    fn collect(notes: &Arc<Mutex<Vec<String>>>) -> impl Fn(Note) {
+        let notes = notes.clone();
+        move |note| {
+            notes.lock().unwrap().push(match note {
+                Note::Stage(s) => format!("stage: {s}"),
+                Note::Log(l) => format!("log: {l}"),
+                Note::Detail { step, warn, text } => {
+                    format!("step {step} {}: {text}", if warn { "warn" } else { "ok" })
+                }
+            })
+        }
+    }
+    #[tokio::test]
+    async fn gives_up_after_three_refused_passwords_and_logs_without_secrets() {
+        tokio::time::timeout(Duration::from_secs(15), async {
+            let (connection, task) = fixture(true).await;
+            let notes = Arc::new(Mutex::new(Vec::new()));
+            let asked = Arc::new(Mutex::new(Vec::new()));
+            let ask = answers(
+                vec![
+                    Some("hunter2-a"),
+                    Some("hunter2-b"),
+                    Some("hunter2-c"),
+                    Some("test-only-password"),
+                ],
+                asked.clone(),
+            );
+            let result = open(&connection, collect(&notes), ask).await;
+            assert!(matches!(result, Err(e) if e == "Password non accettata dopo 3 tentativi."));
+            assert_eq!(*asked.lock().unwrap(), vec![false, true, true]);
+            let notes = notes.lock().unwrap().join("\n");
+            assert!(notes.contains("log: Server remoto: SSH-2.0-"), "{notes}");
+            assert!(
+                notes.contains("log: Algoritmi negoziati: scambio chiavi"),
+                "{notes}"
+            );
+            assert!(
+                notes.contains("log: Metodi ancora accettati dal server: password, publickey"),
+                "{notes}"
+            );
+            assert!(notes.contains("step auth warn: Chiave rifiutata dal server"));
+            assert!(notes.contains("step password warn: Password non accettata"));
+            assert!(notes.contains("step password-3 warn: Password non accettata"));
+            assert!(!notes.contains("password-4"));
+            assert!(!notes.contains("hunter2") && !notes.contains("test-only-password"));
+            task.abort();
+        })
+        .await
+        .expect("SSH fixture timed out");
+    }
+    #[tokio::test]
+    async fn the_log_tells_a_fallback_from_a_plain_success() {
+        tokio::time::timeout(Duration::from_secs(15), async {
+            let (connection, task) = fixture(true).await;
+            let notes = Arc::new(Mutex::new(Vec::new()));
+            let ask = answers(vec![Some("test-only-password")], Arc::default());
+            let (session, _, _) = open(&connection, collect(&notes), ask).await.unwrap();
+            let _ = session
+                .disconnect(Disconnect::ByApplication, "", "en")
+                .await;
+            let notes = notes.lock().unwrap().join("\n");
+            assert!(
+                notes.contains("step auth warn: Chiave rifiutata dal server"),
+                "{notes}"
+            );
+            assert!(
+                notes.contains("step password ok: Password accettata"),
+                "{notes}"
+            );
+            assert!(
+                notes.contains("log: Impronta del server nota e coincidente: SHA256:"),
+                "{notes}"
+            );
+            // A stored password the server accepts is a plain success.
+            let mut known = connection.clone();
+            known.auth = "password".into();
+            known.password = "test-only-password".into();
+            let plain = Arc::new(Mutex::new(Vec::new()));
+            let (session, _, _) = open(&known, collect(&plain), |_| async { None })
+                .await
+                .unwrap();
+            let _ = session
+                .disconnect(Disconnect::ByApplication, "", "en")
+                .await;
+            assert!(plain
+                .lock()
+                .unwrap()
+                .contains(&"step auth ok: Autenticato con la password".to_string()));
+            task.abort();
+        })
+        .await
+        .expect("SSH fixture timed out");
+    }
+    #[test]
+    fn password_steps_are_numbered_from_the_second_question() {
+        assert_eq!(password_step(1), "password");
+        assert_eq!(password_step(3), "password-3");
     }
     #[test]
     fn only_a_refusal_that_offers_passwords_prompts() {

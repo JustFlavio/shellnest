@@ -1,18 +1,20 @@
 import { useState } from "react";
-import { Check, LoaderCircle, X } from "lucide-react";
+import { Check, LoaderCircle, TriangleAlert, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { help } from "@/lib/editor-ui";
 import type { TerminalTab } from "@/lib/types";
 import { useApp } from "@/app/app-context";
+import { ConnectionLog } from "./ConnectionLog";
 import { FingerprintCard } from "./FingerprintCard";
 import { PasswordStep } from "./PasswordStep";
 import type { PasswordAsk } from "./useTerminalSession";
 import { timelineSteps } from "./connection-steps.ts";
-import type { StepState } from "./connection-steps.ts";
+import type { StepNote, StepState } from "./connection-steps.ts";
 
 const dot: Record<StepState, string> = {
   done: "border-primary bg-primary text-primary-foreground",
+  warning: "border-primary bg-background text-primary",
   current: "border-primary text-primary",
   failed: "border-destructive bg-destructive text-background",
   pending: "border-border text-transparent",
@@ -23,6 +25,7 @@ export function ConnectionTimeline({
   tab,
   phase,
   logs,
+  details,
   failure,
   password,
   onPassword,
@@ -33,6 +36,7 @@ export function ConnectionTimeline({
   tab: TerminalTab;
   phase: string;
   logs: string[];
+  details: Record<string, StepNote>;
   failure: string;
   password: PasswordAsk | null;
   onPassword: (password: string) => void;
@@ -45,8 +49,7 @@ export function ConnectionTimeline({
   } = useApp();
   // Whether this pane had to ask for the host key: decided once, when it opened.
   const [askedTrust] = useState(tab.kind === "ssh" && !tab.host.fingerprint);
-  const [showLogs, setShowLogs] = useState(false);
-  const [copyError, setCopyError] = useState("");
+  const [copy, setCopy] = useState("");
   const target =
     tab.kind === "ssh" ? tab.host : tab.kind === "quick" ? tab.target : null;
   const message = failure || tab.error || "";
@@ -59,9 +62,10 @@ export function ConnectionTimeline({
     phase,
     failure: message,
     opened: false,
-    password: password && password.waiting,
+    passwords: password?.asks ?? 0,
+    details,
   });
-  const details = [...logs, ...(tab.error ? [tab.error] : [])].join("\n");
+  const lines = tab.error && !logs.length ? [tab.error] : logs;
   return (
     <div className="grid min-h-0 flex-1 place-items-center overflow-auto p-[24px]">
       <div className="w-[min(100%,460px)]">
@@ -96,6 +100,9 @@ export function ConnectionTimeline({
                   )}
                 >
                   {step.state === "done" && <Check size={12} strokeWidth={3} />}
+                  {step.state === "warning" && (
+                    <TriangleAlert size={12} strokeWidth={3} />
+                  )}
                   {step.state === "failed" && <X size={12} strokeWidth={3} />}
                   {step.state === "current" && (
                     <LoaderCircle
@@ -115,16 +122,29 @@ export function ConnectionTimeline({
                   <span className="sr-only">
                     {step.state === "done"
                       ? " — completato"
-                      : step.state === "failed"
-                        ? " — non riuscito"
-                        : ""}
+                      : step.state === "warning"
+                        ? " — completato con avviso"
+                        : step.state === "failed"
+                          ? " — non riuscito"
+                          : ""}
                   </span>
                 </div>
+                {step.detail && (
+                  <p
+                    className={cn(
+                      help,
+                      "mt-[2px]",
+                      step.state === "warning" && "text-primary",
+                    )}
+                  >
+                    {step.detail}
+                  </p>
+                )}
                 {step.state === "current" &&
-                  step.id === "password" &&
+                  step.id.startsWith("password") &&
                   password?.waiting && (
                     <PasswordStep
-                      key={String(password.refused)}
+                      key={password.asks}
                       refused={password.refused}
                       onSubmit={onPassword}
                       onCancel={onCancel}
@@ -132,7 +152,7 @@ export function ConnectionTimeline({
                   )}
                 {step.state === "current" &&
                   step.id !== "trust" &&
-                  !(step.id === "password" && password?.waiting) && (
+                  !(step.id.startsWith("password") && password?.waiting) && (
                     <p role="status" className={help + " mt-[2px]"}>
                       {phase}
                     </p>
@@ -159,38 +179,35 @@ export function ConnectionTimeline({
           })}
         </ol>
         {message && (
-          <div className="mt-[20px]">
-            <div className="flex flex-wrap gap-[8px]">
-              <Button onClick={onRetry}>Riprova</Button>
-              {onEdit && (
-                <Button variant="outline" onClick={onEdit}>
-                  Modifica host
-                </Button>
-              )}
-              <Button variant="ghost" onClick={() => setShowLogs(!showLogs)}>
-                {showLogs ? "Nascondi dettagli" : "Mostra dettagli"}
+          <div className="mt-[20px] flex flex-wrap gap-[8px]">
+            <Button onClick={onRetry}>Ricomincia</Button>
+            {onEdit && (
+              <Button variant="outline" onClick={onEdit}>
+                Modifica host
               </Button>
-            </div>
-            {showLogs && (
-              <>
-                <pre className="mt-[12px] max-h-[200px] overflow-auto rounded-[10px] bg-muted p-[14px] text-left text-[12px] whitespace-pre-wrap [overflow-wrap:anywhere]">
-                  {details || phase}
-                </pre>
-                <Button
-                  variant="ghost"
-                  onClick={() =>
-                    void navigator.clipboard
-                      .writeText(details)
-                      .catch(() => setCopyError("Copia non riuscita."))
-                  }
-                >
-                  Copia log
-                </Button>
-              </>
             )}
-            {copyError && <p role="alert">{copyError}</p>}
+            <Button variant="outline" onClick={onCancel}>
+              Chiudi
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() =>
+                void navigator.clipboard
+                  .writeText(lines.join("\n"))
+                  .then(() => setCopy("Log copiato."))
+                  .catch(() => setCopy("Copia non riuscita."))
+              }
+            >
+              Copia log
+            </Button>
+            {copy && (
+              <p role="status" className={help + " m-0 self-center"}>
+                {copy}
+              </p>
+            )}
           </div>
         )}
+        <ConnectionLog lines={lines} />
       </div>
     </div>
   );

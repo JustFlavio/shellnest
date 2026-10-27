@@ -107,7 +107,9 @@ export type TerminalTab = {
 );
 export type Output =
   | { type: "data"; data: number[] }
-  | { type: "status" | "error"; data: string }
+  | { type: "status" | "error" | "log"; data: string }
+  // how a timeline step ended; warn = a partial result, such as a fallback
+  | { type: "detail"; data: { step: string; warn: boolean; text: string } }
   // authentication needs a password; data = the previous one was refused
   | { type: "password"; data: boolean }
   | { type: "metadata"; data: { os: string | null; lastConnectedAt: number } }

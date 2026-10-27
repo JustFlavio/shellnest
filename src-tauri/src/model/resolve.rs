@@ -9,6 +9,8 @@ pub(crate) struct Connection {
     pub(crate) password: String,
     pub(crate) private_key: String,
     pub(crate) passphrase: String,
+    // For the connection log and the timeline; not a secret.
+    pub(crate) key_name: String,
 }
 
 impl Data {
@@ -34,6 +36,7 @@ impl Data {
                 password,
                 private_key: String::new(),
                 passphrase: String::new(),
+                key_name: String::new(),
             });
         }
         let identity = self
@@ -58,6 +61,7 @@ impl Data {
             password: identity.password.clone(),
             private_key: key.map(|k| k.private_key.clone()).unwrap_or_default(),
             passphrase: key.map(|k| k.passphrase.clone()).unwrap_or_default(),
+            key_name: key.map(|k| k.name.clone()).unwrap_or_default(),
         })
     }
     pub(crate) fn resolve_target(

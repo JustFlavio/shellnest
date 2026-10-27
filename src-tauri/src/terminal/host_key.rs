@@ -1,16 +1,31 @@
 use russh::{
     client,
     keys::{HashAlg, PublicKeyOrCertificate},
-    Disconnect,
+    Disconnect, Names,
 };
 use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
 
+/// What the server announced during the key exchange, for the connection log.
+#[derive(Clone)]
+pub(super) struct ServerInfo {
+    pub(super) banner: String,
+    pub(super) algorithms: String,
+}
 pub(super) struct Handler {
     expected: Option<String>,
     pub(super) seen: Arc<Mutex<Option<String>>>,
+    pub(super) info: Arc<Mutex<Option<ServerInfo>>>,
+}
+// The identification string comes from the server: keep it to one printable, bounded line.
+fn printable(raw: &[u8]) -> String {
+    String::from_utf8_lossy(raw)
+        .chars()
+        .filter(|c| !c.is_control())
+        .take(200)
+        .collect()
 }
 impl client::Handler for Handler {
     type Error = russh::Error;
@@ -27,11 +42,32 @@ impl client::Handler for Handler {
             .as_ref()
             .is_none_or(|expected| expected == &fingerprint))
     }
+    async fn kex_done(
+        &mut self,
+        _: Option<&[u8]>,
+        names: &Names,
+        session: &mut client::Session,
+    ) -> Result<(), Self::Error> {
+        // Only the first exchange is of interest; later ones are rekeys.
+        if let Ok(mut info) = self.info.lock() {
+            info.get_or_insert_with(|| ServerInfo {
+                banner: printable(session.remote_sshid()),
+                algorithms: format!(
+                    "scambio chiavi {}, chiave host {}, cifrario {}",
+                    names.kex.as_ref(),
+                    names.key,
+                    names.cipher.as_ref()
+                ),
+            });
+        }
+        Ok(())
+    }
 }
 pub(super) fn handler(expected: Option<String>) -> Handler {
     Handler {
         expected,
         seen: Arc::new(Mutex::new(None)),
+        info: Arc::new(Mutex::new(None)),
     }
 }
 pub(super) fn config() -> Arc<client::Config> {

@@ -63,14 +63,15 @@ test("closing the pane while it waits drops the pending verification", async ({ 
   await expect(page.getByRole("option", { name: /nuovo/ })).toBeVisible();
 });
 
-test("failure turns the step red with Riprova and Modifica host", async ({ page }) => {
+test("failure turns the step red with Ricomincia, Modifica host and Chiudi", async ({ page }) => {
   await addHost(page, "guasto", "guasto.fail.test");
   await open(page, "guasto");
   await page.getByRole("button", { name: "Impronta verificata, connetti" }).click();
   await expect(steps(page).nth(2).getByRole("alert")).toHaveText("Autenticazione fallita");
   await expect(steps(page).nth(2)).toContainText("non riuscito");
   await expect(steps(page).nth(1)).toContainText("completato");
-  await expect(page.getByRole("button", { name: "Riprova" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ricomincia" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Chiudi", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Modifica host" }).click();
   await expect(page.getByRole("heading", { name: "Modifica host" })).toBeVisible();
 });
