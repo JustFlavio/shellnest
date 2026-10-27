@@ -1,6 +1,17 @@
+import type { View } from "../../lib/types.ts";
+
 // Texts that depend on the state of the vault; kept apart from the components that show them.
 
-export function syncTitle({ syncConfigured, lastSync }) {
+export type SyncState = "idle" | "syncing" | "error";
+type LockState = { exists: boolean; restore: boolean; interactive: boolean };
+
+export function syncTitle({
+  syncConfigured,
+  lastSync,
+}: {
+  syncConfigured: boolean;
+  lastSync: string;
+}): string {
   if (!syncConfigured) return "Configura il tuo servizio di sincronizzazione";
   return lastSync
     ? `Ultima sincronizzazione riuscita: ${lastSync}`
@@ -8,7 +19,17 @@ export function syncTitle({ syncConfigured, lastSync }) {
 }
 
 // null when sync is not set up: only the icon shows.
-export function syncLabel({ syncState, syncConfigured, dirty, lastSync }) {
+export function syncLabel({
+  syncState,
+  syncConfigured,
+  dirty,
+  lastSync,
+}: {
+  syncState: SyncState;
+  syncConfigured: boolean;
+  dirty?: boolean;
+  lastSync: string;
+}): string | null {
   if (syncState === "syncing") return "Sincronizzazione…";
   if (syncState === "error") return "Sync non riuscita · Riprova";
   if (!syncConfigured) return null;
@@ -17,13 +38,13 @@ export function syncLabel({ syncState, syncConfigured, dirty, lastSync }) {
 }
 
 // `interactive`: the desktop app or the in-memory preview; a plain browser only gets the gate.
-export function lockTitle({ exists, restore, interactive }) {
+export function lockTitle({ exists, restore, interactive }: LockState): string {
   if (exists) return "Sblocca vault";
   if (restore) return "Collega dispositivo";
   return interactive ? "Crea vault locale" : "Esplora Shellnest";
 }
 
-export function lockLead({ exists, restore, interactive }) {
+export function lockLead({ exists, restore, interactive }: LockState): string {
   if (!interactive)
     return "Client SSH open source per Windows e macOS, con sincronizzazione self-hosted opzionale.";
   if (exists) return "Inserisci la password principale.";
@@ -32,14 +53,27 @@ export function lockLead({ exists, restore, interactive }) {
   return "Host, identità e chiavi SSH vengono salvati sul dispositivo, cifrati.";
 }
 
-export function unlockLabel({ busy, exists, restore }) {
+export function unlockLabel({
+  busy,
+  exists,
+  restore,
+}: {
+  busy: boolean;
+  exists: boolean;
+  restore: boolean;
+}): string {
   if (busy) return "Attendi…";
   if (exists) return "Sblocca";
   return restore ? "Collega dispositivo" : "Crea vault";
 }
 
 // Why the active vault cannot be deleted, or "" when it can.
-export function deleteBlock(view) {
+export function deleteBlock(
+  view: Pick<
+    View,
+    "vaultId" | "hosts" | "identities" | "keys" | "groups" | "workspaces"
+  >,
+): string {
   if (view.vaultId === "personal")
     return "Il vault Personale non si può eliminare";
   const empty =

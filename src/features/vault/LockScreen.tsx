@@ -9,7 +9,7 @@ import { BrowserGate } from "./BrowserGate";
 import { UnlockForm } from "./UnlockForm";
 import { VaultPanels } from "./VaultPanels";
 import { VaultSwitcher } from "./VaultSwitcher";
-import { lockLead, lockTitle } from "./vault-copy.mjs";
+import { lockLead, lockTitle } from "./vault-copy.ts";
 
 export function LockScreen() {
   const {

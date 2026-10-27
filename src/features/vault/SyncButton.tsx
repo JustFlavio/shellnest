@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Cloud, RefreshCw } from "lucide-react";
 import { useApp } from "@/app/app-context";
-import { syncLabel, syncTitle } from "./vault-copy.mjs";
+import { syncLabel, syncTitle } from "./vault-copy.ts";
 
 export function SyncButton() {
   const {

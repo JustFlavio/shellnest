@@ -3,6 +3,7 @@ import { desktop } from "@/lib/platform";
 import type { View } from "@/lib/types";
 import { useLatest } from "@/lib/useLatest";
 import type { VaultApi } from "./useVault";
+import type { SyncState } from "./vault-copy.ts";
 
 type SyncOptions = {
   // A host edit has just been saved and is waiting to go out.
@@ -26,9 +27,7 @@ export function useVaultSync(
   }: VaultApi,
   { hostSaved, canAutoSync }: SyncOptions,
 ) {
-  const [syncState, setSyncState] = useState<"idle" | "syncing" | "error">(
-      "idle",
-    ),
+  const [syncState, setSyncState] = useState<SyncState>("idle"),
     [lastSync, setLastSync] = useState("");
   const syncing = useRef(false);
   const canAuto = useLatest(canAutoSync);

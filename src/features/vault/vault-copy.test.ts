@@ -7,7 +7,7 @@ import {
   syncLabel,
   syncTitle,
   unlockLabel,
-} from "./vault-copy.mjs";
+} from "./vault-copy.ts";
 
 const synced = { syncConfigured: true, dirty: false, lastSync: "10:30" };
 
@@ -80,6 +80,13 @@ test("the unlock button reflects busy, existing and linking", () => {
 });
 
 test("only an empty vault other than Personale can be deleted", () => {
+  const key = {
+    id: "k",
+    name: "k",
+    fingerprint: "",
+    identityCount: 0,
+    hostCount: 0,
+  };
   const empty = {
     hosts: [],
     identities: [],
@@ -89,5 +96,8 @@ test("only an empty vault other than Personale can be deleted", () => {
   };
   assert.equal(deleteBlock({ ...empty, vaultId: "work" }), "");
   assert.match(deleteBlock({ ...empty, vaultId: "personal" }), /Personale/);
-  assert.match(deleteBlock({ ...empty, vaultId: "work", keys: [1] }), /Svuota/);
+  assert.match(
+    deleteBlock({ ...empty, vaultId: "work", keys: [key] }),
+    /Svuota/,
+  );
 });

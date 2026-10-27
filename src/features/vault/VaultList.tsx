@@ -5,7 +5,7 @@ import { card, cardTitle } from "@/features/settings/settings-ui";
 import { help } from "@/lib/editor-ui";
 import type { View } from "@/lib/types";
 import { DeleteVaultDialog } from "./DeleteVaultDialog";
-import { deleteBlock } from "./vault-copy.mjs";
+import { deleteBlock } from "./vault-copy.ts";
 
 const badge =
   "rounded-[6px] border border-input px-[6px] py-[1px] text-[11px] text-muted-foreground";
