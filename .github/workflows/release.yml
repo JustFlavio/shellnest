@@ -70,5 +70,5 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
           # Each job merges its platform into latest.json on the release; updater-manifest.yml checks it is complete.
-          includeUpdaterJson: true
+          uploadUpdaterJson: true
           updaterJsonPreferNsis: true
