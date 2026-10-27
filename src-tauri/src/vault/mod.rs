@@ -1,3 +1,9 @@
+//! Vault encryption and files: a password-derived key seals the data into an `Envelope`, which
+//! is written atomically with a `.bak` of the previous version.
+mod catalog;
+
+pub(crate) use catalog::{valid_vault_id, VaultCatalog, VaultEntry};
+
 use crate::model::Data;
 use argon2::Argon2;
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
@@ -10,138 +16,25 @@ use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};
 use zeroize::Zeroizing;
 
-#[derive(Clone, Serialize, Deserialize)]
-pub struct VaultEntry {
-    pub id: String,
-    pub name: String,
-}
-#[derive(Clone, Serialize, Deserialize)]
-pub struct VaultCatalog {
-    pub selected: String,
-    pub vaults: Vec<VaultEntry>,
-}
-impl Default for VaultCatalog {
-    fn default() -> Self {
-        Self {
-            selected: "personal".into(),
-            vaults: vec![VaultEntry {
-                id: "personal".into(),
-                name: "Personale".into(),
-            }],
-        }
-    }
-}
-impl VaultCatalog {
-    pub fn load(legacy: &Path) -> Result<Self, String> {
-        let catalog = match fs::read(legacy.with_extension("catalog.json")) {
-            Ok(bytes) => {
-                serde_json::from_slice::<Self>(&bytes).map_err(|_| "Registro vault non valido")?
-            }
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Self::default(),
-            Err(e) => return Err(e.to_string()),
-        };
-        let mut ids = std::collections::HashSet::new();
-        for entry in &catalog.vaults {
-            if !valid_vault_id(&entry.id) || entry.name.trim().is_empty() || !ids.insert(&entry.id)
-            {
-                return Err("Registro vault non valido".into());
-            }
-        }
-        if !catalog.vaults.iter().any(|v| v.id == "personal")
-            || !catalog.vaults.iter().any(|v| v.id == catalog.selected)
-        {
-            return Err("Registro vault incompleto".into());
-        }
-        Ok(catalog)
-    }
-    pub fn persist(&self, legacy: &Path) -> Result<(), String> {
-        save(&legacy.with_extension("catalog.json"), self)
-    }
-    pub fn path_for(legacy: &Path, id: &str) -> Result<std::path::PathBuf, String> {
-        if !valid_vault_id(id) {
-            return Err("Identificativo vault non valido".into());
-        }
-        if id == "personal" {
-            return Ok(legacy.to_path_buf());
-        }
-        let stem = legacy
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .ok_or("Percorso vault non valido")?;
-        Ok(legacy
-            .with_file_name(format!("{stem}-vaults"))
-            .join(format!("{id}.json")))
-    }
-    pub fn selected_path(&self, legacy: &Path) -> Result<std::path::PathBuf, String> {
-        Self::path_for(legacy, &self.selected)
-    }
-    pub fn validate_name(&self, name: &str, except: Option<&str>) -> Result<String, String> {
-        let name = name.trim();
-        if name.is_empty() || name.chars().count() > 80 || name.chars().any(char::is_control) {
-            return Err("Il nome del vault deve contenere da 1 a 80 caratteri".into());
-        }
-        if self
-            .vaults
-            .iter()
-            .any(|v| Some(v.id.as_str()) != except && v.name.to_lowercase() == name.to_lowercase())
-        {
-            return Err("Esiste già un vault con questo nome".into());
-        }
-        Ok(name.into())
-    }
-}
-pub fn valid_vault_id(id: &str) -> bool {
-    !id.is_empty()
-        && id.len() <= 64
-        && !matches!(
-            id,
-            "con"
-                | "prn"
-                | "aux"
-                | "nul"
-                | "com1"
-                | "com2"
-                | "com3"
-                | "com4"
-                | "com5"
-                | "com6"
-                | "com7"
-                | "com8"
-                | "com9"
-                | "lpt1"
-                | "lpt2"
-                | "lpt3"
-                | "lpt4"
-                | "lpt5"
-                | "lpt6"
-                | "lpt7"
-                | "lpt8"
-                | "lpt9"
-        )
-        && id
-            .bytes()
-            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
-}
-
 // Part of the encryption: never rename it, or existing vaults stop decrypting.
 const AAD: &[u8] = b"server-manager:vault:1";
 #[derive(Clone, Serialize, Deserialize)]
-pub struct Envelope {
-    pub version: u8,
-    pub salt: String,
-    pub nonce: String,
-    pub ciphertext: String,
+pub(crate) struct Envelope {
+    pub(crate) version: u8,
+    pub(crate) salt: String,
+    pub(crate) nonce: String,
+    pub(crate) ciphertext: String,
 }
 #[derive(Clone, Serialize, Deserialize)]
-pub struct Disk {
-    pub envelope: Envelope,
-    pub revision: Option<String>,
-    pub dirty: bool,
+pub(crate) struct Disk {
+    pub(crate) envelope: Envelope,
+    pub(crate) revision: Option<String>,
+    pub(crate) dirty: bool,
 }
-pub struct OpenVault {
-    pub key: Zeroizing<[u8; 32]>,
-    pub data: Data,
-    pub disk: Disk,
+pub(crate) struct OpenVault {
+    pub(crate) key: Zeroizing<[u8; 32]>,
+    pub(crate) data: Data,
+    pub(crate) disk: Disk,
 }
 
 fn derive(password: &str, salt: &[u8]) -> Result<Zeroizing<[u8; 32]>, String> {
@@ -151,7 +44,7 @@ fn derive(password: &str, salt: &[u8]) -> Result<Zeroizing<[u8; 32]>, String> {
         .map_err(|e| e.to_string())?;
     Ok(key)
 }
-pub fn decrypt(key: &[u8; 32], env: &Envelope) -> Result<Data, String> {
+pub(crate) fn decrypt(key: &[u8; 32], env: &Envelope) -> Result<Data, String> {
     if env.version != 1 {
         return Err("Versione vault non supportata".into());
     }
@@ -176,7 +69,7 @@ pub fn decrypt(key: &[u8; 32], env: &Envelope) -> Result<Data, String> {
     serde_json::from_slice(&plain).map_err(|_| "Contenuto vault non valido".into())
 }
 impl OpenVault {
-    pub fn create(password: &str) -> Result<Self, String> {
+    pub(crate) fn create(password: &str) -> Result<Self, String> {
         if password.chars().count() < 12 {
             return Err("Usa almeno 12 caratteri per la password principale".into());
         }
@@ -199,7 +92,7 @@ impl OpenVault {
         v.seal()?;
         Ok(v)
     }
-    pub fn unlock(password: &str, disk: Disk) -> Result<Self, String> {
+    pub(crate) fn unlock(password: &str, disk: Disk) -> Result<Self, String> {
         let salt = B64
             .decode(&disk.envelope.salt)
             .map_err(|_| "Salt non valido")?;
@@ -209,13 +102,13 @@ impl OpenVault {
         Self::unlock_with_key(derive(password, &salt)?, disk)
     }
     // The key a keychain-remembered vault is reopened with, instead of the password.
-    pub fn unlock_with_key(key: Zeroizing<[u8; 32]>, disk: Disk) -> Result<Self, String> {
+    pub(crate) fn unlock_with_key(key: Zeroizing<[u8; 32]>, disk: Disk) -> Result<Self, String> {
         let data = decrypt(&key, &disk.envelope)?;
         let mut disk = disk;
         disk.dirty |= data.migrated;
         Ok(Self { key, data, disk })
     }
-    pub fn seal(&mut self) -> Result<(), String> {
+    pub(crate) fn seal(&mut self) -> Result<(), String> {
         self.data.validate()?;
         let mut nonce = [0; 24];
         OsRng.fill_bytes(&mut nonce);
@@ -235,7 +128,7 @@ impl OpenVault {
         Ok(())
     }
 }
-pub fn save<T: Serialize>(path: &Path, disk: &T) -> Result<(), String> {
+pub(crate) fn save<T: Serialize>(path: &Path, disk: &T) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         if !parent.as_os_str().is_empty() {
             fs::create_dir_all(parent).map_err(|e| e.to_string())?;
@@ -258,21 +151,6 @@ pub fn save<T: Serialize>(path: &Path, disk: &T) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
-    fn vault_paths_and_catalog_names_are_bounded() {
-        let legacy = Path::new("root/vault.json");
-        assert_eq!(VaultCatalog::path_for(legacy, "personal").unwrap(), legacy);
-        assert!(VaultCatalog::path_for(legacy, "../other").is_err());
-        assert!(VaultCatalog::path_for(legacy, "con").is_err());
-        assert_eq!(
-            VaultCatalog::path_for(legacy, "work-1").unwrap(),
-            Path::new("root/vault-vaults/work-1.json")
-        );
-        let catalog = VaultCatalog::default();
-        assert!(catalog.validate_name(" PERSONALE ", None).is_err());
-        assert!(catalog.validate_name("", None).is_err());
-        assert_eq!(catalog.validate_name("  Lavoro  ", None).unwrap(), "Lavoro");
-    }
     #[test]
     fn round_trip_and_wrong_password() {
         let v = OpenVault::create("correct horse battery staple").unwrap();
