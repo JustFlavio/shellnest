@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
 // Worktrees can run side by side: set E2E_PORT so each one serves its own code.
-const port = process.env.E2E_PORT ?? "5173";
+const port = process.env.E2E_PORT ?? "5174";
 
 // Visual regression on the browser preview (synthetic data, no SSH).
 export default defineConfig({
@@ -33,6 +33,7 @@ export default defineConfig({
   webServer: {
     command: `npm run dev -- --port ${port} --strictPort`,
     url: `http://127.0.0.1:${port}`,
-    reuseExistingServer: true,
+    // A leftover server could serve another checkout's code and give a false result.
+    reuseExistingServer: false,
   },
 });
