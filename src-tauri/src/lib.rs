@@ -14,6 +14,7 @@ mod test_support;
 mod vault;
 mod view;
 
+/// Builds and runs the Tauri app. `main.rs` only calls this, so the binary stays a one-liner.
 pub fn run() {
     let builder = tauri::Builder::default();
     #[cfg(feature = "desktop-e2e")]

@@ -16,6 +16,8 @@ use crate::{
     view::{view, View},
 };
 
+/// Applies `operation` to a copy of the open vault and persists it before swapping it in, so a
+/// failed edit or write leaves both memory and disk untouched.
 pub(crate) fn mutate(
     state: &AppState,
     vault_id: &str,
