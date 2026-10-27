@@ -3,16 +3,17 @@ use crate::state::AppState;
 use std::path::Path;
 use tauri::Manager;
 
-fn claim_instance(path: &Path) -> Result<std::fs::File, String> {
+fn claim_instance(path: &Path) -> std::io::Result<std::fs::File> {
     let file = std::fs::OpenOptions::new()
         .create(true)
         .truncate(false)
         .read(true)
         .write(true)
-        .open(path)
-        .map_err(|e| e.to_string())?;
+        .open(path)?;
     file.try_lock().map_err(|e| {
-        format!("Impossibile aprire il vault locale: chiudi le altre istanze di Shellnest. {e}")
+        std::io::Error::other(format!(
+            "Impossibile aprire il vault locale: chiudi le altre istanze di Shellnest. {e}"
+        ))
     })?;
     Ok(file)
 }
@@ -45,8 +46,8 @@ pub(crate) fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Erro
     crate::menu::install(app)?;
     std::fs::create_dir_all(&dir)?;
     // Retain the OS file lock for the app lifetime to prevent two processes writing one vault.
-    app.manage(claim_instance(&dir.join("instance.lock")).map_err(std::io::Error::other)?);
-    app.manage(AppState::new(dir.join("vault.json")).map_err(std::io::Error::other)?);
+    app.manage(claim_instance(&dir.join("instance.lock"))?);
+    app.manage(AppState::new(dir.join("vault.json"))?);
     Ok(())
 }
 

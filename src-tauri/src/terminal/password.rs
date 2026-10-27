@@ -1,3 +1,4 @@
+use crate::locks::MutexExt;
 use std::sync::{Arc, Mutex};
 use tokio::sync::{oneshot, Notify};
 use zeroize::Zeroizing;
@@ -11,14 +12,12 @@ pub(super) struct PasswordPrompt {
 impl PasswordPrompt {
     pub(super) fn ask(&self) -> oneshot::Receiver<Zeroizing<String>> {
         let (tx, rx) = oneshot::channel();
-        if let Ok(mut slot) = self.slot.lock() {
-            *slot = Some(tx);
-        }
+        *self.slot.lock_recovering() = Some(tx);
         self.opened.notify_one();
         rx
     }
     pub(super) fn asking(&self) -> bool {
-        self.slot.lock().is_ok_and(|slot| slot.is_some())
+        self.slot.lock_recovering().is_some()
     }
     /// Completes when a question is opened, so a waiting loop can look again at `asking`.
     pub(super) async fn opened(&self) {
@@ -26,7 +25,7 @@ impl PasswordPrompt {
     }
     // An answer nobody asked for is dropped, and zeroized with it.
     pub(super) fn answer(&self, password: Zeroizing<String>) -> bool {
-        let tx = self.slot.lock().ok().and_then(|mut slot| slot.take());
+        let tx = self.slot.lock_recovering().take();
         tx.is_some_and(|tx| tx.send(password).is_ok())
     }
 }
