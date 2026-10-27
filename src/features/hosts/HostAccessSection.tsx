@@ -5,12 +5,7 @@ import { HostPortField } from "./HostPortField";
 import { InheritedIdentityNotice } from "./InheritedIdentityNotice";
 import { OfferedIdentityNotice } from "./OfferedIdentityNotice";
 import { inheritedIdentity } from "./groups.ts";
-import {
-  divider,
-  section,
-  sheetField,
-  subheading,
-} from "@/lib/editor-ui";
+import { divider, section, sheetField, subheading } from "@/lib/editor-ui";
 
 export function HostAccessSection({
   value,

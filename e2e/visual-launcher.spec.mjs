@@ -145,9 +145,10 @@ test("groups come in order and arrow keys cross them", async ({ page }) => {
   for (let i = 0; i < hostRows; i++) await search(page).press("ArrowDown");
   await expect(selected).toContainText("Terminale locale");
   await search(page).press("ArrowUp");
-  await expect(
-    group(page, "Host").getByRole("option").last(),
-  ).toHaveAttribute("data-selected", "true");
+  await expect(group(page, "Host").getByRole("option").last()).toHaveAttribute(
+    "data-selected",
+    "true",
+  );
 });
 
 test("Cmd+J lists only the open tabs, newest first", async ({ page }) => {

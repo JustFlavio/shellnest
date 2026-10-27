@@ -155,9 +155,9 @@ test("dragging a tab reorders the bar", async ({ page }) => {
   await page.locator(".xterm").nth(1).waitFor();
   const nav = page.getByRole("navigation", { name: "Sessioni e connessioni" });
   const labels = () =>
-    nav.locator("[draggable=true]").evaluateAll((els) =>
-      els.map((el) => el.textContent.trim()),
-    );
+    nav
+      .locator("[draggable=true]")
+      .evaluateAll((els) => els.map((el) => el.textContent.trim()));
   expect(await labels()).toEqual(["api-01", "database-01"]);
   const [a, b] = await nav.locator("[draggable=true]").all();
   const target = await b.boundingBox();
@@ -205,7 +205,9 @@ test("password fields can be shown and hidden", async ({ page }) => {
   await expect(input).toHaveAttribute("type", "password");
 });
 
-test("closing the editor returns focus to the button that opened it", async ({ page }) => {
+test("closing the editor returns focus to the button that opened it", async ({
+  page,
+}) => {
   const button = page.getByRole("button", { name: "Nuovo host", exact: true });
   await button.click();
   await page.getByRole("dialog").waitFor();
@@ -260,7 +262,12 @@ test("pane divider shows a grip on hover", async ({ page }) => {
   await page.mouse.move(box.x + box.width / 2, box.y + 300);
   await page.waitForTimeout(300);
   await expect(page).toHaveScreenshot("divider-hover.png", {
-    clip: { x: box.x - 60, y: box.y + 200, width: 120 + box.width, height: 200 },
+    clip: {
+      x: box.x - 60,
+      y: box.y + 200,
+      width: 120 + box.width,
+      height: 200,
+    },
   });
 });
 
@@ -270,7 +277,11 @@ const pasteInto = (page, text) =>
     const data = new DataTransfer();
     data.setData("text/plain", value);
     document.querySelector(".xterm-helper-textarea").dispatchEvent(
-      new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }),
+      new ClipboardEvent("paste", {
+        clipboardData: data,
+        bubbles: true,
+        cancelable: true,
+      }),
     );
   }, text);
 
@@ -290,7 +301,9 @@ test("big paste asks for confirmation", async ({ page }) => {
   expect(await termText(page)).not.toContain("riga3");
   await shot(page, "paste-confirm");
   await page.getByRole("button", { name: "Annulla" }).click();
-  await expect(page.getByRole("heading", { name: "Incollare più righe?" })).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "Incollare più righe?" }),
+  ).toHaveCount(0);
   expect(await termText(page)).not.toContain("riga3");
   await pasteInto(page, lines);
   await page.getByRole("button", { name: "Incolla", exact: true }).click();
@@ -307,13 +320,19 @@ test("Cmd+K clears screen and scrollback", async ({ page }) => {
   await expect.poll(() => termText(page)).not.toContain("echo ciao");
 });
 
-test("Cmd+C copies the selection, right click pastes", async ({ page, context }) => {
+test("Cmd+C copies the selection, right click pastes", async ({
+  page,
+  context,
+}) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await openFromLauncher(page, /api-01/);
   const term = page.locator(".xterm").first();
   await term.click();
   await page.keyboard.type("echo ciao");
-  await page.getByText("Sessione dimostrativa", { exact: false }).first().click({ clickCount: 3 });
+  await page
+    .getByText("Sessione dimostrativa", { exact: false })
+    .first()
+    .click({ clickCount: 3 });
   await page.keyboard.press("Meta+c");
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
@@ -323,15 +342,22 @@ test("Cmd+C copies the selection, right click pastes", async ({ page, context })
   await expect.poll(() => termText(page)).toContain("incollato[31m");
 });
 
-test("Cmd+click opens a terminal link, plain click does not", async ({ page }) => {
+test("Cmd+click opens a terminal link, plain click does not", async ({
+  page,
+}) => {
   await openFromLauncher(page, /api-01/);
   await page.locator(".xterm").first().click();
   await page.keyboard.type("vai a https://example.com/prova ora");
-  const row = page.locator(".xterm-rows > div", { hasText: "https://example.com" }).first();
+  const row = page
+    .locator(".xterm-rows > div", { hasText: "https://example.com" })
+    .first();
   const box = await row.boundingBox();
   // the measure element holds 32 characters
   const cell = await page.evaluate(
-    () => document.querySelector(".xterm-char-measure-element").getBoundingClientRect().width / 32,
+    () =>
+      document
+        .querySelector(".xterm-char-measure-element")
+        .getBoundingClientRect().width / 32,
   );
   const x = box.x + cell * ("root@api-01:~$ vai a ".length + 8);
   const y = box.y + box.height / 2;
@@ -350,7 +376,9 @@ test("Cmd+click opens a terminal link, plain click does not", async ({ page }) =
   expect(await (await popup).url()).toContain("example.com/prova");
 });
 
-test("Cmd+F opens the terminal search, Esc closes it and refocuses", async ({ page }) => {
+test("Cmd+F opens the terminal search, Esc closes it and refocuses", async ({
+  page,
+}) => {
   await openFromLauncher(page, /api-01/);
   await page.locator(".xterm").first().click();
   await page.keyboard.press("Meta+f");
@@ -372,23 +400,39 @@ test("Cmd+F opens the terminal search, Esc closes it and refocuses", async ({ pa
 const termWrite = (page, data) =>
   page.evaluate((d) => [...window.__terminals.values()][0].write(d), data);
 
-test("OSC title shows in tab and pane header, a renamed tab wins", async ({ page }) => {
+test("OSC title shows in tab and pane header, a renamed tab wins", async ({
+  page,
+}) => {
   await openFromLauncher(page, /api-01/);
   await termWrite(page, "\x1b]0;lavoro in corso\x07");
-  await expect(page.getByRole("button", { name: "lavoro in corso", exact: true })).toBeVisible();
-  await expect(page.locator("span", { hasText: /^lavoro in corso$/ }).first()).toBeVisible();
-  await page.getByRole("button", { name: "lavoro in corso", exact: true }).dblclick();
+  await expect(
+    page.getByRole("button", { name: "lavoro in corso", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator("span", { hasText: /^lavoro in corso$/ }).first(),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "lavoro in corso", exact: true })
+    .dblclick();
   await page.getByRole("textbox", { name: "Nome scheda" }).fill("Fisso");
   await page.keyboard.press("Enter");
   await termWrite(page, "\x1b]2;altro titolo\x07");
-  await expect(page.getByRole("button", { name: "Fisso", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "altro titolo", exact: true })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Fisso", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "altro titolo", exact: true }),
+  ).toHaveCount(0);
 });
 
-test("scrolled-up viewport stays put when new output arrives", async ({ page }) => {
+test("scrolled-up viewport stays put when new output arrives", async ({
+  page,
+}) => {
   await openFromLauncher(page, /api-01/);
   const lines = (from, to) =>
-    Array.from({ length: to - from }, (_, i) => "riga " + (from + i)).join("\r\n") + "\r\n";
+    Array.from({ length: to - from }, (_, i) => "riga " + (from + i)).join(
+      "\r\n",
+    ) + "\r\n";
   await termWrite(page, lines(0, 200));
   const state = () =>
     page.evaluate(() => {
@@ -404,9 +448,13 @@ test("scrolled-up viewport stays put when new output arrives", async ({ page }) 
   expect(after.y).toBe(before.y);
 });
 
-test("closing a connected session asks first, and can be silenced", async ({ page }) => {
+test("closing a connected session asks first, and can be silenced", async ({
+  page,
+}) => {
   await openFromLauncher(page, /api-01/);
-  const dialog = page.getByRole("heading", { name: "Interrompere la sessione?" });
+  const dialog = page.getByRole("heading", {
+    name: "Interrompere la sessione?",
+  });
   await page.getByRole("button", { name: "Chiudi api-01" }).click();
   await dialog.waitFor();
   await shot(page, "close-confirm");

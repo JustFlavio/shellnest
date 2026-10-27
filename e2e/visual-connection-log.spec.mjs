@@ -7,7 +7,9 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     window.__copied = [];
     Object.defineProperty(navigator, "clipboard", {
-      value: { writeText: (text) => (window.__copied.push(text), Promise.resolve()) },
+      value: {
+        writeText: (text) => (window.__copied.push(text), Promise.resolve()),
+      },
     });
   });
   await page.goto("/?empty");
@@ -27,16 +29,22 @@ const addHost = async (page, name, address) => {
 const open = async (page, name) => {
   await page.getByRole("button", { name: "Connessione rapida" }).click();
   await page.getByRole("option", { name: new RegExp(name) }).click();
-  await page.getByRole("button", { name: "Impronta verificata, connetti" }).click();
+  await page
+    .getByRole("button", { name: "Impronta verificata, connetti" })
+    .click();
 };
 const steps = (page) =>
-  page.getByRole("list", { name: "Avanzamento della connessione" }).getByRole("listitem");
+  page
+    .getByRole("list", { name: "Avanzamento della connessione" })
+    .getByRole("listitem");
 const typeWrong = async (page) => {
   await page.getByLabel("Password", { exact: true }).fill("sbagliata");
   await page.keyboard.press("Enter");
 };
 
-test("saved host with a key: only the usual steps, with their outcome", async ({ page }) => {
+test("saved host with a key: only the usual steps, with their outcome", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Esplora interfaccia" }).click();
   await page.getByRole("button", { name: "Connessione rapida" }).click();
@@ -44,9 +52,16 @@ test("saved host with a key: only the usual steps, with their outcome", async ({
   await page.evaluate(() => {
     window.__seen = [];
     new MutationObserver(() => {
-      const list = document.querySelector('[aria-label="Avanzamento della connessione"]');
-      if (list) window.__seen.push([...list.children].map((li) => li.textContent));
-    }).observe(document.body, { subtree: true, childList: true, characterData: true });
+      const list = document.querySelector(
+        '[aria-label="Avanzamento della connessione"]',
+      );
+      if (list)
+        window.__seen.push([...list.children].map((li) => li.textContent));
+    }).observe(document.body, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+    });
   });
   await page.getByRole("option", { name: /api-01/ }).click();
   await expect(page.getByText("Sessione dimostrativa")).toBeVisible();
@@ -61,7 +76,9 @@ test("saved host with a key: only the usual steps, with their outcome", async ({
   expect(text).not.toContain("SSH-2.0");
 });
 
-test("key refused, then the password: warning on the key, one Password step", async ({ page }) => {
+test("key refused, then the password: warning on the key, one Password step", async ({
+  page,
+}) => {
   await addHost(page, "chiave", "chiave.password.test");
   await open(page, "chiave");
   await expect(steps(page)).toHaveText([
@@ -83,7 +100,9 @@ test("key refused, then the password: warning on the key, one Password step", as
   await expect(page.getByText("Sessione dimostrativa")).toBeVisible();
 });
 
-test("a wrong password adds a step; three end the attempt with the log and Ricomincia", async ({ page }) => {
+test("a wrong password adds a step; three end the attempt with the log and Ricomincia", async ({
+  page,
+}) => {
   await addHost(page, "chiave", "chiave.password.test");
   await open(page, "chiave");
   await typeWrong(page);
@@ -96,23 +115,40 @@ test("a wrong password adds a step; three end the attempt with the log and Ricom
 
   const last = steps(page).nth(5);
   await expect(last).toContainText("non riuscito");
-  await expect(last.getByRole("alert")).toHaveText("Password non accettata dopo 3 tentativi.");
+  await expect(last.getByRole("alert")).toHaveText(
+    "Password non accettata dopo 3 tentativi.",
+  );
   await expect(last.getByRole("alert")).toHaveCSS("color", "rgb(255, 107, 97)");
   // no fourth question
   await expect(page.getByLabel("Password", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Ricomincia" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Chiudi", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Chiudi", exact: true }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Mostra log" }).click();
   const log = page.getByLabel("Log della connessione");
   await expect(log).toContainText("Server remoto: SSH-2.0-OpenSSH_9.6");
   await expect(log).toContainText("Tentativo con password 3 di 3");
-  await expect(log).toContainText("Errore: Password non accettata dopo 3 tentativi.");
+  await expect(log).toContainText(
+    "Errore: Password non accettata dopo 3 tentativi.",
+  );
   // scannable rows: an offset and an icon per line, errors and refusals as alerts of their own kind
   await expect(log.getByRole("listitem").first()).toContainText(/^\+\d+,\d s/);
-  await expect(log.getByRole("listitem").last().locator("svg.lucide-circle-alert")).toBeVisible();
-  await expect(log.getByRole("listitem").filter({ hasText: "Password rifiutata dal server" })).toHaveCount(3);
-  await expect(log.getByRole("listitem").filter({ hasText: "Algoritmi negoziati" }).locator("svg.lucide-cpu")).toBeVisible();
+  await expect(
+    log.getByRole("listitem").last().locator("svg.lucide-circle-alert"),
+  ).toBeVisible();
+  await expect(
+    log
+      .getByRole("listitem")
+      .filter({ hasText: "Password rifiutata dal server" }),
+  ).toHaveCount(3);
+  await expect(
+    log
+      .getByRole("listitem")
+      .filter({ hasText: "Algoritmi negoziati" })
+      .locator("svg.lucide-cpu"),
+  ).toBeVisible();
   await expect(log).not.toContainText("sbagliata");
 
   await page.getByRole("button", { name: "Ricomincia" }).click();
@@ -124,14 +160,20 @@ test("Chiudi on the failure closes the tab", async ({ page }) => {
   await addHost(page, "guasto", "guasto.fail.test");
   await open(page, "guasto");
   await page.getByRole("button", { name: "Chiudi", exact: true }).click();
-  await expect(page.getByRole("list", { name: "Avanzamento della connessione" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Chiudi guasto" })).toHaveCount(0);
+  await expect(
+    page.getByRole("list", { name: "Avanzamento della connessione" }),
+  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Chiudi guasto" })).toHaveCount(
+    0,
+  );
 });
 
 test("the log toggles, copies and stays out of storage", async ({ page }) => {
   await addHost(page, "guasto", "guasto.fail.test");
   await open(page, "guasto");
-  await expect(steps(page).nth(2).getByRole("alert")).toHaveText("Autenticazione fallita");
+  await expect(steps(page).nth(2).getByRole("alert")).toHaveText(
+    "Autenticazione fallita",
+  );
   const log = page.getByLabel("Log della connessione");
   await expect(log).toHaveCount(0);
   await page.getByRole("button", { name: "Mostra log" }).click();
@@ -151,7 +193,9 @@ test("the log toggles, copies and stays out of storage", async ({ page }) => {
   expect(copied).toContain("Errore: Autenticazione fallita");
   expect(copied).not.toContain("segreto");
   const stored = await page.evaluate(() =>
-    JSON.stringify([localStorage, sessionStorage].map((s) => Object.entries(s))),
+    JSON.stringify(
+      [localStorage, sessionStorage].map((s) => Object.entries(s)),
+    ),
   );
   expect(stored).not.toContain("Risoluzione");
 });

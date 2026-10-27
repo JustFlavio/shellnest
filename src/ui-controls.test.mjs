@@ -51,7 +51,8 @@ const { HostsView } = await import("./features/hosts/HostsView.tsx");
 const { WindowControls } = await import("./app/WindowControls.tsx");
 const { HostEditor } = await import("./features/hosts/HostEditor.tsx");
 const { IdentityEditor } = await import("./features/hosts/IdentityEditor.tsx");
-const { HostPasswordInput } = await import("./features/hosts/HostPasswordInput.tsx");
+const { HostPasswordInput } =
+  await import("./features/hosts/HostPasswordInput.tsx");
 
 test("saved host password stays masked without requesting the secret during render", () => {
   let reads = 0;
@@ -465,7 +466,8 @@ test("private credentials stay local and omitted passwords survive edits", async
   );
 });
 
-const { hostDraftIsDirty, hostDraftIsValid } = await import("./features/hosts/host-draft.ts");
+const { hostDraftIsDirty, hostDraftIsValid } =
+  await import("./features/hosts/host-draft.ts");
 test("draft validation requires its own password or an explicit shared identity", () => {
   const host = {
     id: "a",
@@ -743,7 +745,8 @@ test("bulk summaries identify every affected host with its login and nondefault 
 });
 
 test("identity and key tables disable deletion while in use", async () => {
-  const { IdentitiesTable, KeysTable } = await import("./features/hosts/CollectionTables.tsx");
+  const { IdentitiesTable, KeysTable } =
+    await import("./features/hosts/CollectionTables.tsx");
   const btn = (html, name) =>
     html.match(new RegExp(`<button[^>]*aria-label="Elimina ${name}"[^>]*>`))[0];
   const noop = () => {};

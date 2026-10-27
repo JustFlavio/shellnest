@@ -92,12 +92,12 @@ export function timelineSteps({
     : setup?.stage
       ? steps.findIndex((s) => s.id === setup.stage)
       : awaitingTrust || changed
-      ? steps.findIndex((s) => s.id === "trust")
-      : !remote
-        ? 0
-        : passwords > 0 && stage === "auth"
-          ? steps.findIndex((s) => s.id === passwordSteps[passwords - 1].id)
-          : steps.findIndex((s) => s.id === stage);
+        ? steps.findIndex((s) => s.id === "trust")
+        : !remote
+          ? 0
+          : passwords > 0 && stage === "auth"
+            ? steps.findIndex((s) => s.id === passwordSteps[passwords - 1].id)
+            : steps.findIndex((s) => s.id === stage);
   return steps.map((step, i): TimelineStep => {
     const note = details[step.id];
     const state: StepState =

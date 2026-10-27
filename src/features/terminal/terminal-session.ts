@@ -189,8 +189,7 @@ export function startSession(
       password: takeQuickPassword(tab.id) ?? null,
       expectedFingerprint,
     });
-  }
-  else request = invoke("connect", { ...base, id: tab.host.id });
+  } else request = invoke("connect", { ...base, id: tab.host.id });
   request.catch((e) => {
     if (!disposed) {
       ready = false;

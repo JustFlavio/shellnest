@@ -33,7 +33,7 @@ describe("Tauri desktop with an isolated real vault", () => {
     await $('[role="combobox"][aria-label="Utente SSH"]').setValue("root");
     await $('[role="option"]*=E2E Login').waitForDisplayed();
     await $('[role="option"]*=E2E Login').click();
-    await $('.sheet-save-state.saved').waitForDisplayed();
+    await $(".sheet-save-state.saved").waitForDisplayed();
     await $('[aria-label="Chiudi pannello"]').click();
     await $('[aria-label="Seleziona E2E Alpha"]').waitForDisplayed();
 
@@ -43,7 +43,7 @@ describe("Tauri desktop with an isolated real vault", () => {
     await $('[role="combobox"][aria-label="Utente SSH"]').setValue("root");
     await $('[role="option"]*=E2E Login').waitForDisplayed();
     await $('[role="option"]*=E2E Login').click();
-    await $('.sheet-save-state.saved').waitForDisplayed();
+    await $(".sheet-save-state.saved").waitForDisplayed();
     await $('[aria-label="Chiudi pannello"]').click();
     await $('[aria-label="Seleziona E2E Beta"]').waitForDisplayed();
 
