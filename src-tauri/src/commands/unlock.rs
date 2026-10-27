@@ -64,7 +64,7 @@ pub(crate) fn set_remembered(
     let guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
     state.ensure_vault(&vault_id)?;
     let v = guard.as_ref().ok_or("Vault bloccato")?;
-    keychain::save(&vault_id, &v.key)
+    Ok(keychain::save(&vault_id, &v.key)?)
 }
 pub(crate) fn open_selected(
     s: &AppState,
