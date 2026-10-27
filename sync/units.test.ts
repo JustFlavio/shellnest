@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { resolve } from "node:path";
 import { createAuthenticator } from "./src/auth.ts";
 import { readConfig } from "./src/config.ts";
 import { isEnvelope } from "./src/envelope.ts";
@@ -84,7 +85,7 @@ test("config defaults to loopback and rejects a bad port", () => {
   });
   assert.deepEqual(
     [custom.host, custom.port, custom.directory],
-    ["0.0.0.0", 9000, "/srv/x"],
+    ["0.0.0.0", 9000, resolve("/srv/x")],
   );
   for (const SYNC_PORT of ["abc", "70000", "-1", "1.5"])
     assert.throws(() => readConfig({ SYNC_PORT }), /SYNC_PORT/);
