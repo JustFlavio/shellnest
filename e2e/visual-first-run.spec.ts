@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 // First run: `?empty` starts the browser preview with no hosts, identities,
 // keys or folders, which the sample data of the other specs never exercise.
@@ -8,13 +9,13 @@ test.beforeEach(async ({ page }) => {
   await page.getByRole("heading", { name: "Host", level: 1 }).waitFor();
 });
 
-const newHost = async (page) => {
+const newHost = async (page: Page) => {
   await page.getByRole("button", { name: "Nuovo host", exact: true }).click();
   await page.getByRole("heading", { name: "Nuovo host" }).waitFor();
 };
 
 // Hosts need credentials to be saved, so each one gets its own user and password.
-const addHost = async (page, name, address) => {
+const addHost = async (page: Page, name: string, address: string) => {
   await newHost(page);
   await page.getByPlaceholder("IP o nome host").fill(address);
   await page.getByPlaceholder("Nome dell’host").fill(name);

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 // Step details, honest status icons, the retry cap and the connection log, on the browser preview.
 // The preview replays a connection: .password.test hosts have the key refused and take
@@ -8,7 +9,10 @@ test.beforeEach(async ({ page }) => {
     window.__copied = [];
     Object.defineProperty(navigator, "clipboard", {
       value: {
-        writeText: (text) => (window.__copied.push(text), Promise.resolve()),
+        writeText: (text: string) => (
+          window.__copied.push(text),
+          Promise.resolve()
+        ),
       },
     });
   });
@@ -17,7 +21,7 @@ test.beforeEach(async ({ page }) => {
   await page.getByRole("heading", { name: "Host", level: 1 }).waitFor();
 });
 
-const addHost = async (page, name, address) => {
+const addHost = async (page: Page, name: string, address: string) => {
   await page.getByRole("button", { name: "Nuovo host", exact: true }).click();
   await page.getByRole("heading", { name: "Nuovo host" }).waitFor();
   await page.getByPlaceholder("IP o nome host").fill(address);
@@ -26,18 +30,18 @@ const addHost = async (page, name, address) => {
   await page.getByPlaceholder("Password", { exact: true }).fill("segreto");
   await page.getByRole("button", { name: "Chiudi pannello" }).click();
 };
-const open = async (page, name) => {
+const open = async (page: Page, name: string) => {
   await page.getByRole("button", { name: "Connessione rapida" }).click();
   await page.getByRole("option", { name: new RegExp(name) }).click();
   await page
     .getByRole("button", { name: "Impronta verificata, connetti" })
     .click();
 };
-const steps = (page) =>
+const steps = (page: Page) =>
   page
     .getByRole("list", { name: "Avanzamento della connessione" })
     .getByRole("listitem");
-const typeWrong = async (page) => {
+const typeWrong = async (page: Page) => {
   await page.getByLabel("Password", { exact: true }).fill("sbagliata");
   await page.keyboard.press("Enter");
 };

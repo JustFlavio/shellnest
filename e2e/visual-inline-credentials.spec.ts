@@ -1,8 +1,9 @@
 import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 // Plain user + password typed on the host (no saved identity) must survive
 // focus changes and the suggestions popup, in an empty and in a sample vault.
-const open = async (page, url) => {
+const open = async (page: Page, url: string) => {
   await page.goto(url);
   await page.getByRole("button", { name: "Esplora interfaccia" }).click();
   await page.getByRole("heading", { name: "Host", level: 1 }).waitFor();

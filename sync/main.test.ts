@@ -6,10 +6,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { once } from "node:events";
 
-const entry = new URL("./server.mjs", import.meta.url).pathname;
+const entry = new URL("./server.ts", import.meta.url).pathname;
 const token = "process-test-token-with-at-least-32-chars";
 
-const start = (env) => {
+const start = (env: Record<string, string | undefined>) => {
   const child = spawn(process.execPath, [entry], {
     env: { PATH: process.env.PATH, ...env },
     stdio: ["ignore", "pipe", "pipe"],
@@ -39,7 +39,7 @@ test("starts on loopback, serves /health, logs no secret, stops on SIGTERM", asy
   try {
     while (!/listening on/.test(output()))
       await new Promise((r) => setTimeout(r, 20));
-    const [, address, port] = /listening on (.+):(\d+),/.exec(output());
+    const [, address, port] = /listening on (.+):(\d+),/.exec(output())!;
     assert.equal(address, "127.0.0.1");
     const res = await fetch(`http://${address}:${port}/health`);
     assert.equal(res.status, 200);
@@ -64,7 +64,7 @@ test("reports a busy port instead of a stack trace", async () => {
   try {
     while (!/listening on/.test(first.output()))
       await new Promise((r) => setTimeout(r, 20));
-    const port = /listening on .+:(\d+),/.exec(first.output())[1];
+    const port = /listening on .+:(\d+),/.exec(first.output())![1];
     const second = start({
       SYNC_TOKEN: token,
       SYNC_PORT: port,

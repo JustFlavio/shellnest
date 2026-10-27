@@ -12,10 +12,18 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { once } from "node:events";
 import net from "node:net";
-import { createSyncServer } from "./server.mjs";
+import type { AddressInfo } from "node:net";
+import { createSyncServer } from "./server.ts";
 
 const token = "test-only-token-with-at-least-32-characters";
-const env = (n) => ({
+type Server = Awaited<ReturnType<typeof createSyncServer>>;
+type RequestHeaders = Record<string, string>;
+
+const portOf = (server: Server) => (server.address() as AddressInfo).port;
+const closeServer = (server: Server) =>
+  new Promise<void>((resolve) => server.close(() => resolve()));
+
+const env = (n: number) => ({
   version: 1,
   salt: Buffer.alloc(16, 1).toString("base64"),
   nonce: Buffer.alloc(24, n).toString("base64"),
@@ -24,13 +32,18 @@ const env = (n) => ({
 
 test("vault namespaces preserve legacy storage and isolate conditional writes", async () => {
   const directory = await mkdtemp(join(tmpdir(), "shellnest-vaults-"));
-  let server;
+  let server: Server | undefined;
   try {
     server = await createSyncServer({ token, directory });
     server.listen(0, "127.0.0.1");
     await once(server, "listening");
-    const base = `http://127.0.0.1:${server.address().port}`;
-    const request = (path, method = "GET", body, headers = {}) =>
+    const base = `http://127.0.0.1:${portOf(server)}`;
+    const request = (
+      path: string,
+      method = "GET",
+      body?: unknown,
+      headers: RequestHeaders = {},
+    ) =>
       fetch(`${base}${path}`, {
         method,
         headers: {
@@ -55,7 +68,7 @@ test("vault namespaces preserve legacy storage and isolate conditional writes", 
     assert.equal(
       (
         await request("/vaults/work", "PUT", env(3), {
-          "If-Match": legacy.headers.get("etag"),
+          "If-Match": legacy.headers.get("etag")!,
         })
       ).status,
       412,
@@ -63,7 +76,7 @@ test("vault namespaces preserve legacy storage and isolate conditional writes", 
     assert.equal(
       (
         await request("/vaults/work", "PUT", env(3), {
-          "If-Match": work.headers.get("etag"),
+          "If-Match": work.headers.get("etag")!,
         })
       ).status,
       200,
@@ -73,22 +86,26 @@ test("vault namespaces preserve legacy storage and isolate conditional writes", 
     assert.equal((await request("/vaults/con")).status, 404);
     assert.equal((await request("/vaults/%2E%2E%2Fsecret")).status, 404);
   } finally {
-    if (server) await new Promise((r) => server.close(r));
+    if (server) await closeServer(server);
     await rm(directory, { recursive: true, force: true });
   }
 });
 test("auth, opaque storage, revision conflicts, concurrent writes, restart", async () => {
   const directory = await mkdtemp(join(tmpdir(), "shellnest-"));
-  let server;
+  let server: Server | undefined;
   try {
     const start = async () => {
       server = await createSyncServer({ token, directory });
       server.listen(0, "127.0.0.1");
       await once(server, "listening");
-      return `http://127.0.0.1:${server.address().port}/vault`;
+      return `http://127.0.0.1:${portOf(server)}/vault`;
     };
     let url = await start();
-    const request = (method = "GET", value, headers = {}) =>
+    const request = (
+      method = "GET",
+      value?: unknown,
+      headers: RequestHeaders = {},
+    ) =>
       fetch(url, {
         method,
         headers: {
@@ -125,25 +142,38 @@ test("auth, opaque storage, revision conflicts, concurrent writes, restart", asy
     const current = await request();
     const expected = await current.json();
     assert.notEqual(current.headers.get("etag"), first);
-    await new Promise((r) => server.close(r));
+    await closeServer(server!);
     url = await start();
     assert.deepEqual(await (await request()).json(), expected);
   } finally {
-    if (server) await new Promise((r) => server.close(r));
+    if (server) await closeServer(server);
     await rm(directory, { recursive: true, force: true });
   }
 });
 
+type RequestOptions = {
+  method?: string;
+  body?: unknown;
+  headers?: RequestHeaders;
+  auth?: boolean;
+};
+
 // What the desktop client relies on (src-tauri/src/sync.rs).
-async function withServer(fn) {
+async function withServer(
+  fn: (context: {
+    request: (path: string, options?: RequestOptions) => Promise<Response>;
+    directory: string;
+    base: string;
+  }) => Promise<void>,
+) {
   const directory = await mkdtemp(join(tmpdir(), "shellnest-"));
   const server = await createSyncServer({ token, directory });
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
-  const base = `http://127.0.0.1:${server.address().port}`;
+  const base = `http://127.0.0.1:${portOf(server)}`;
   const request = (
-    path,
-    { method = "GET", body, headers = {}, auth = true } = {},
+    path: string,
+    { method = "GET", body, headers = {}, auth = true }: RequestOptions = {},
   ) =>
     fetch(`${base}${path}`, {
       method,
@@ -163,19 +193,19 @@ async function withServer(fn) {
     await fn({ request, directory, base });
   } finally {
     server.closeAllConnections();
-    await new Promise((r) => server.close(r));
+    await closeServer(server);
     await rm(directory, { recursive: true, force: true });
   }
 }
 
 // fetch normalizes paths and sets Content-Length itself; a raw socket sends exactly what we want.
-const rawRequest = (base, head, body = "") =>
-  new Promise((resolve) => {
-    const socket = net.connect(new URL(base).port, "127.0.0.1", () =>
+const rawRequest = (base: string, head: string, body = "") =>
+  new Promise<string>((resolve) => {
+    const socket = net.connect(Number(new URL(base).port), "127.0.0.1", () =>
       socket.write(`${head}\r\nHost: x\r\nConnection: close\r\n\r\n${body}`),
     );
     let data = "";
-    socket.on("data", (d) => (data += d));
+    socket.on("data", (d) => (data += d.toString()));
     socket.on("error", () => {});
     socket.on("close", () => resolve(data));
   });
@@ -220,7 +250,7 @@ test("wrong or missing token is 401 on every vault route", () =>
 
 test("create-if-absent: If-None-Match * works once, then conflicts", () =>
   withServer(async ({ request }) => {
-    const put = (n, headers) =>
+    const put = (n: number, headers: RequestHeaders) =>
       request("/vaults/work", { method: "PUT", body: env(n), headers });
     assert.equal((await put(1, {})).status, 412);
     assert.equal((await put(1, { "If-None-Match": "*" })).status, 200);
@@ -230,10 +260,10 @@ test("create-if-absent: If-None-Match * works once, then conflicts", () =>
 
 test("a stale ETag is refused and leaves the stored vault untouched", () =>
   withServer(async ({ request, directory }) => {
-    const put = (n, headers) =>
+    const put = (n: number, headers: RequestHeaders) =>
       request("/vault", { method: "PUT", body: env(n), headers });
-    const first = (await put(1, { "If-None-Match": "*" })).headers.get("etag");
-    const second = (await put(2, { "If-Match": first })).headers.get("etag");
+    const first = (await put(1, { "If-None-Match": "*" })).headers.get("etag")!;
+    const second = (await put(2, { "If-Match": first })).headers.get("etag")!;
     assert.notEqual(first, second);
     assert.equal((await put(3, { "If-Match": first })).status, 412);
     assert.equal((await put(3, {})).status, 412);
@@ -242,7 +272,7 @@ test("a stale ETag is refused and leaves the stored vault untouched", () =>
     assert.deepEqual(await current.json(), env(2));
     // The version before the last write is kept next to it.
     const previous = JSON.parse(
-      await readFile(join(directory, "vault.previous.json")),
+      await readFile(join(directory, "vault.previous.json"), "utf8"),
     );
     assert.deepEqual(previous, env(1));
   }));
@@ -278,7 +308,7 @@ test("bodies over 8 MiB are refused, declared or streamed", () =>
       headers: { Authorization: `Bearer ${token}`, "If-None-Match": "*" },
       body: new Blob([big]).stream(),
       duplex: "half",
-    }).then(
+    } as RequestInit).then(
       (r) => r.status,
       () => "connection closed",
     );
@@ -373,7 +403,7 @@ test("stored files are private and nothing but the envelope is on disk", () =>
 
 test("a corrupt stored file gives 500 and reports the error without its content", async () => {
   const directory = await mkdtemp(join(tmpdir(), "shellnest-"));
-  const errors = [];
+  const errors: unknown[] = [];
   const server = await createSyncServer({
     token,
     directory,
@@ -383,7 +413,7 @@ test("a corrupt stored file gives 500 and reports the error without its content"
     await writeFile(join(directory, "vault.json"), "secret-looking garbage");
     server.listen(0, "127.0.0.1");
     await once(server, "listening");
-    const res = await fetch(`http://127.0.0.1:${server.address().port}/vault`, {
+    const res = await fetch(`http://127.0.0.1:${portOf(server)}/vault`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     assert.equal(res.status, 500);
@@ -391,7 +421,7 @@ test("a corrupt stored file gives 500 and reports the error without its content"
     assert.equal(errors.length, 1);
   } finally {
     server.closeAllConnections();
-    await new Promise((r) => server.close(r));
+    await closeServer(server);
     await rm(directory, { recursive: true, force: true });
   }
 });

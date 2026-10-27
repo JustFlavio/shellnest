@@ -17,7 +17,7 @@ const artifacts = fileURLToPath(
 );
 
 export const config = {
-  specs: ["./desktop.spec.mjs"],
+  specs: ["./desktop.spec.ts"],
   maxInstances: 1,
   services: [
     [
@@ -39,7 +39,11 @@ export const config = {
   connectionRetryCount: 0,
   connectionRetryTimeout: 20000,
   mochaOpts: { timeout: 90000 },
-  async afterTest(_test, _context, { passed }) {
+  async afterTest(
+    _test: unknown,
+    _context: unknown,
+    { passed }: { passed: boolean },
+  ) {
     if (!passed) {
       await mkdir(artifacts, { recursive: true });
       await browser.saveScreenshot(`${artifacts}/failure.png`);

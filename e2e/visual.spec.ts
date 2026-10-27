@@ -1,4 +1,6 @@
 import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { boxOf } from "./box.ts";
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
@@ -8,7 +10,7 @@ test.beforeEach(async ({ page }) => {
   await page.mouse.move(1275, 795);
 });
 
-const shot = (page, name) =>
+const shot = (page: Page, name: string) =>
   expect(page).toHaveScreenshot(name + ".png", { fullPage: false });
 
 test("hosts as cards", async ({ page }) => {
@@ -56,7 +58,7 @@ test("narrow window collapses the sidebar", async ({ page }) => {
   await shot(page, "narrow");
 });
 
-const openSettings = async (page, section) => {
+const openSettings = async (page: Page, section?: string) => {
   await page.getByRole("button", { name: "Menu applicazione" }).click();
   await page.getByRole("menuitem", { name: /Impostazioni/ }).click();
   await page.getByRole("heading", { name: "Impostazioni" }).waitFor();
@@ -100,7 +102,7 @@ test("delete host confirmation", async ({ page }) => {
   await shot(page, "delete-host");
 });
 
-async function openFromLauncher(page, name) {
+async function openFromLauncher(page: Page, name: string | RegExp) {
   await page.getByRole("button", { name: "Connessione rapida" }).click();
   await page.getByRole("option", { name }).click();
   await page.locator(".xterm").first().waitFor();
@@ -136,15 +138,15 @@ test("dragging the divider resizes split panes", async ({ page }) => {
   const divider = page.locator(".cursor-col-resize");
   await divider.waitFor();
   const first = page.locator(".xterm").first();
-  const before = (await first.boundingBox()).width;
-  const box = await divider.boundingBox();
+  const before = (await boxOf(first)).width;
+  const box = await boxOf(divider);
   const x = box.x + box.width / 2,
     y = box.y + 200;
   await page.mouse.move(x, y);
   await page.mouse.down();
   await page.mouse.move(x + 150, y, { steps: 6 });
   await page.mouse.up();
-  const after = (await first.boundingBox()).width;
+  const after = (await boxOf(first)).width;
   expect(after).toBeGreaterThan(before + 100);
 });
 
@@ -157,10 +159,10 @@ test("dragging a tab reorders the bar", async ({ page }) => {
   const labels = () =>
     nav
       .locator("[draggable=true]")
-      .evaluateAll((els) => els.map((el) => el.textContent.trim()));
+      .evaluateAll((els) => els.map((el) => el.textContent?.trim()));
   expect(await labels()).toEqual(["api-01", "database-01"]);
   const [a, b] = await nav.locator("[draggable=true]").all();
-  const target = await b.boundingBox();
+  const target = await boxOf(b);
   await a.dragTo(b, {
     targetPosition: { x: target.width - 8, y: target.height / 2 },
   });
@@ -234,15 +236,15 @@ test("a dragged pane makes room: the others close ranks, then return", async ({
   await openFromLauncher(page, /Produzione.*connessioni/);
   const handles = page.locator('[title="Trascina per spostare il pannello"]');
   const second = page.locator(".xterm").nth(1);
-  const before = (await second.boundingBox()).width;
+  const before = (await boxOf(second)).width;
   const dt = await page.evaluateHandle(() => new DataTransfer());
   await handles.first().dispatchEvent("dragstart", { dataTransfer: dt });
   await expect
-    .poll(async () => (await second.boundingBox()).width)
+    .poll(async () => (await boxOf(second)).width)
     .toBeGreaterThan(before + 100);
   await handles.first().dispatchEvent("dragend", { dataTransfer: dt });
   await expect
-    .poll(async () => Math.abs((await second.boundingBox()).width - before))
+    .poll(async () => Math.abs((await boxOf(second)).width - before))
     .toBeLessThan(2);
 });
 
@@ -258,7 +260,7 @@ test("pane close button only shows on hover", async ({ page }) => {
 test("pane divider shows a grip on hover", async ({ page }) => {
   await openFromLauncher(page, /Produzione.*connessioni/);
   const divider = page.locator(".cursor-col-resize");
-  const box = await divider.boundingBox();
+  const box = await boxOf(divider);
   await page.mouse.move(box.x + box.width / 2, box.y + 300);
   await page.waitForTimeout(300);
   await expect(page).toHaveScreenshot("divider-hover.png", {
@@ -271,12 +273,13 @@ test("pane divider shows a grip on hover", async ({ page }) => {
   });
 });
 
-const termText = (page) => page.locator(".xterm-rows").first().innerText();
-const pasteInto = (page, text) =>
+const termText = (page: Page) =>
+  page.locator(".xterm-rows").first().innerText();
+const pasteInto = (page: Page, text: string) =>
   page.evaluate((value) => {
     const data = new DataTransfer();
     data.setData("text/plain", value);
-    document.querySelector(".xterm-helper-textarea").dispatchEvent(
+    document.querySelector(".xterm-helper-textarea")?.dispatchEvent(
       new ClipboardEvent("paste", {
         clipboardData: data,
         bubbles: true,
@@ -351,12 +354,12 @@ test("Cmd+click opens a terminal link, plain click does not", async ({
   const row = page
     .locator(".xterm-rows > div", { hasText: "https://example.com" })
     .first();
-  const box = await row.boundingBox();
+  const box = await boxOf(row);
   // the measure element holds 32 characters
   const cell = await page.evaluate(
     () =>
       document
-        .querySelector(".xterm-char-measure-element")
+        .querySelector(".xterm-char-measure-element")!
         .getBoundingClientRect().width / 32,
   );
   const x = box.x + cell * ("root@api-01:~$ vai a ".length + 8);
@@ -397,7 +400,7 @@ test("Cmd+F opens the terminal search, Esc closes it and refocuses", async ({
   await expect(page.locator(".xterm-helper-textarea").first()).toBeFocused();
 });
 
-const termWrite = (page, data) =>
+const termWrite = (page: Page, data: string) =>
   page.evaluate((d) => [...window.__terminals.values()][0].write(d), data);
 
 test("OSC title shows in tab and pane header, a renamed tab wins", async ({
@@ -429,7 +432,7 @@ test("scrolled-up viewport stays put when new output arrives", async ({
   page,
 }) => {
   await openFromLauncher(page, /api-01/);
-  const lines = (from, to) =>
+  const lines = (from: number, to: number) =>
     Array.from({ length: to - from }, (_, i) => "riga " + (from + i)).join(
       "\r\n",
     ) + "\r\n";

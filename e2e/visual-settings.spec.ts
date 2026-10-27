@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
@@ -8,7 +9,7 @@ test.beforeEach(async ({ page }) => {
   await page.getByRole("menuitem", { name: /Impostazioni/ }).click();
 });
 
-const stored = (page) =>
+const stored = (page: Page) =>
   page.evaluate(() =>
     JSON.parse(localStorage.getItem("shellnest.settings") ?? "{}"),
   );

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 // Behaviour of the shortcut editor in the browser preview (forced to macOS bindings).
 test.beforeEach(async ({ page }) => {
@@ -13,11 +14,11 @@ test.beforeEach(async ({ page }) => {
   await page.getByRole("button", { name: "Scorciatoie" }).click();
 });
 
-const row = (page, label) =>
+const row = (page: Page, label: string) =>
   page
     .locator("dl > div")
     .filter({ has: page.getByText(label, { exact: true }) });
-const edit = (page, label) =>
+const edit = (page: Page, label: string) =>
   page.getByRole("button", { name: `Modifica “${label}”` }).click();
 
 test("rebind, persist and reset one shortcut", async ({ page }) => {

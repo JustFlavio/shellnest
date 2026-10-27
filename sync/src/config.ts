@@ -4,7 +4,7 @@ import { resolve } from "node:path";
  * Settings from the environment. Defaults are the safe ones: loopback only,
  * data under ./sync/data. The token is validated by `createAuthenticator`.
  */
-export function readConfig(env) {
+export function readConfig(env: NodeJS.ProcessEnv) {
   const port = Number(env.SYNC_PORT ?? 8787);
   if (!Number.isInteger(port) || port < 0 || port > 65535)
     throw new Error(`SYNC_PORT is not a valid port: ${env.SYNC_PORT}`);

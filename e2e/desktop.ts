@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import type { StdioOptions } from "node:child_process";
 import { closeSync, openSync } from "node:fs";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -15,8 +16,8 @@ const env = {
   WEBVIEW2_USER_DATA_FOLDER: join(dataDir, "webview"),
 };
 
-function run(script, args, stdio = "inherit") {
-  return new Promise((resolve, reject) => {
+function run(script: string, args: string[], stdio: StdioOptions = "inherit") {
+  return new Promise<void>((resolve, reject) => {
     const child = spawn(process.execPath, [script, ...args], {
       cwd: root,
       env,
@@ -50,9 +51,9 @@ try {
   } finally {
     closeSync(buildLog);
   }
-  await run("node_modules/@wdio/cli/bin/wdio.js", ["run", "e2e/wdio.conf.mjs"]);
+  await run("node_modules/@wdio/cli/bin/wdio.js", ["run", "e2e/wdio.conf.ts"]);
 } catch (error) {
-  console.error(error.message);
+  console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
 } finally {
   await rm(dataDir, {

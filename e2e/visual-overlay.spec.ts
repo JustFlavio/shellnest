@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 // WebKit (the engine of the macOS app) does not re-evaluate `body:has(...)` rules
 // once a portalled dialog is removed, so a backdrop restyled that way stayed dark.
@@ -10,14 +11,14 @@ test.beforeEach(async ({ page }) => {
   await page.getByPlaceholder("Nome dell’host").fill("uno");
 });
 
-const backdropAlpha = (page) =>
+const backdropAlpha = (page: Page) =>
   page.evaluate(() => {
     const colors = [
       ...document.querySelectorAll("[data-slot=dialog-overlay]"),
     ].map((el) => getComputedStyle(el).backgroundColor);
     // One layer only: stacked layers would compound into a darker screen.
     return colors.length === 1
-      ? Number(colors[0].match(/[\d.]+/g)[3] ?? 1)
+      ? Number(colors[0].match(/[\d.]+/g)?.[3] ?? 1)
       : -1;
   });
 

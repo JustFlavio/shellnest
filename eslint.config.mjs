@@ -78,7 +78,7 @@ export default tseslint.config(
   },
   {
     // Playwright callbacks passed to page.evaluate run in the browser.
-    files: ["e2e/**", "sync/**", "src/**/*.mjs", "*.config.*"],
+    files: ["e2e/**", "sync/**", "*.config.*"],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   {

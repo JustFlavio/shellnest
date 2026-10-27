@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "tsc && vite build",
-    "typecheck": "tsc --noEmit",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
@@ -14,10 +14,10 @@
     "format:check": "prettier --check .",
     "desktop": "tauri dev",
     "desktop:build": "tauri build",
-    "test": "node --test \"src/**/*.test.{ts,mjs}\" \"sync/*.test.mjs\"",
-    "test:desktop": "node e2e/desktop.mjs",
-    "sync": "node sync/server.mjs",
-    "test:visual": "playwright test -c e2e/playwright.config.mjs"
+    "test": "node --test \"src/**/*.test.ts\" \"sync/*.test.ts\"",
+    "test:desktop": "node e2e/desktop.ts",
+    "sync": "node sync/server.ts",
+    "test:visual": "playwright test -c e2e/playwright.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -43,6 +43,8 @@
     "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.3",
     "@tauri-apps/cli": "^2",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@wdio/cli": "^9.32.0",

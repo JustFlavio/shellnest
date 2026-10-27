@@ -6,6 +6,8 @@ import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
+import type { ComponentType, ReactElement } from "react";
+import type { Group, Host, Identity, IdentityForm, View } from "./lib/types";
 
 // The existing Node runner can check TSX controls without another test framework.
 registerHooks({
@@ -44,6 +46,7 @@ registerHooks({
   },
 });
 
+const { emptyView } = await import("./lib/types.ts");
 const { VaultPicker } = await import("./features/vault/VaultPicker.tsx");
 const { SelectField } = await import("./components/SelectField.tsx");
 const { Button } = await import("./components/ui/button.tsx");
@@ -53,6 +56,35 @@ const { HostEditor } = await import("./features/hosts/HostEditor.tsx");
 const { IdentityEditor } = await import("./features/hosts/IdentityEditor.tsx");
 const { HostPasswordInput } =
   await import("./features/hosts/HostPasswordInput.tsx");
+
+// Fixtures give only what a test reads; the rest is filled in here.
+const hostOf = (fields: Partial<Host> = {}): Host => ({
+  id: "host",
+  name: "Host",
+  address: "192.0.2.1",
+  port: 22,
+  ownPort: 22,
+  groupId: "",
+  identityId: "",
+  effectiveIdentityId: "",
+  identitySource: "",
+  fingerprint: "",
+  ...fields,
+});
+const viewOf = (fields: Partial<View> = {}): View => ({
+  ...emptyView,
+  ...fields,
+});
+// Components called as plain functions to inspect the element tree they return.
+type Panel = ReactElement<{
+  children: ReactElement<{ id: string; onSubmit: unknown }>;
+  footer: ReactElement<{
+    children: ReactElement<{ type: string; form: string }>[];
+  }>;
+  dirty: boolean;
+}>;
+const callEditor = (Editor: unknown, props: object) =>
+  (Editor as (props: object) => Panel)(props);
 
 test("saved host password stays masked without requesting the secret during render", () => {
   let reads = 0;
@@ -75,56 +107,35 @@ test("saved host password stays masked without requesting the secret during rend
 });
 
 test("fixed sheet actions remain associated with their validated forms", () => {
-  const view = { hosts: [], identities: [], keys: [] };
+  const view = viewOf();
+  const host = hostOf({ id: "new", name: "", address: "", ownPort: null });
+  const identity: IdentityForm = {
+    id: "new",
+    name: "",
+    username: "root",
+    auth: "key",
+    keyId: "",
+    password: "",
+  };
   for (const [Editor, value] of [
-    [
-      HostEditor,
-      {
-        id: "new",
-        name: "",
-        address: "",
-        port: 22,
-        ownPort: null,
-        groupId: "",
-        identityId: "",
-      },
-    ],
-    [
-      IdentityEditor,
-      {
-        id: "new",
-        name: "",
-        username: "root",
-        auth: "key",
-        keyId: "",
-        password: "",
-      },
-    ],
-  ]) {
-    const panel = Editor({ value, view, busy: false, error: "" });
+    [HostEditor, host],
+    [IdentityEditor, identity],
+  ] as const) {
+    const panel = callEditor(Editor, { value, view, busy: false, error: "" });
     const form = panel.props.children;
     const submit = panel.props.footer.props.children.find(
       (child) => child?.props?.type === "submit",
     );
     assert.equal(form.type, "form");
     assert.ok(form.props.id);
-    assert.equal(submit.props.form, form.props.id);
+    assert.equal(submit?.props.form, form.props.id);
     assert.equal(typeof form.props.onSubmit, "function");
   }
 });
 
 test("discard protection covers changed endpoints, chosen identities and new passwords", () => {
-  const host = {
-    id: "server",
-    name: "Server",
-    address: "192.0.2.1",
-    port: 22,
-    ownPort: 22,
-    groupId: "",
-    identityId: "admin",
-    fingerprint: "",
-  };
-  const identity = {
+  const host = hostOf({ id: "server", name: "Server", identityId: "admin" });
+  const identity: Identity = {
     id: "admin",
     name: "Admin",
     username: "root",
@@ -133,14 +144,9 @@ test("discard protection covers changed endpoints, chosen identities and new pas
     hasPassword: true,
     hostCount: 1,
   };
-  const view = {
-    hosts: [host],
-    identities: [identity],
-    keys: [],
-    groups: [],
-  };
-  const hostDirty = (value, currentView = view) =>
-    HostEditor({ value, view: currentView }).props.dirty;
+  const view = viewOf({ hosts: [host], identities: [identity] });
+  const hostDirty = (value: Host) =>
+    callEditor(HostEditor, { value, view }).props.dirty;
   assert.equal(hostDirty({ ...host }), false);
   assert.equal(hostDirty({ ...host, address: "192.0.2.2" }), true);
   const draft = {
@@ -154,7 +160,7 @@ test("discard protection covers changed endpoints, chosen identities and new pas
   assert.equal(hostDirty(draft), false);
   assert.equal(hostDirty({ ...draft, identityId: "chosen" }), true);
   assert.equal(hostDirty({ ...draft, identityId: "admin" }), true);
-  const form = {
+  const form: IdentityForm = {
     id: identity.id,
     name: identity.name,
     username: identity.username,
@@ -162,9 +168,12 @@ test("discard protection covers changed endpoints, chosen identities and new pas
     keyId: "",
     password: "",
   };
-  assert.equal(IdentityEditor({ value: form, view }).props.dirty, false);
   assert.equal(
-    IdentityEditor({
+    callEditor(IdentityEditor, { value: form, view }).props.dirty,
+    false,
+  );
+  assert.equal(
+    callEditor(IdentityEditor, {
       value: { ...form, password: "synthetic-new-password" },
       view,
     }).props.dirty,
@@ -173,10 +182,11 @@ test("discard protection covers changed endpoints, chosen identities and new pas
 });
 
 test("window controls expose accessible names and only enable inside Tauri", () => {
-  const original = globalThis.isTauri;
+  const tauri = globalThis as { isTauri?: boolean };
+  const original = tauri.isTauri;
   try {
     for (const desktop of [false, true]) {
-      globalThis.isTauri = desktop;
+      tauri.isTauri = desktop;
       const html = renderToStaticMarkup(
         createElement(WindowControls, { onError() {} }),
       );
@@ -191,19 +201,19 @@ test("window controls expose accessible names and only enable inside Tauri", () 
       assert.equal(/ disabled(?:=""|\s|>)/.test(html), !desktop);
     }
   } finally {
-    if (original === undefined) delete globalThis.isTauri;
-    else globalThis.isTauri = original;
+    if (original === undefined) delete tauri.isTauri;
+    else tauri.isTauri = original;
   }
 });
 
 test("vault trigger keeps its accessible name and cannot switch during pending work", () => {
   const props = {
-    view: {
+    view: viewOf({
       vaultId: "personal",
       vaultName: "Personale",
       exists: true,
       vaults: [],
-    },
+    }),
     busy: false,
     disabled: false,
     onSelect() {},
@@ -248,7 +258,7 @@ test("custom selects keep readable labels and required form validation", () => {
 });
 
 test("form actions preserve explicit submit and cancel button types", () => {
-  for (const type of ["submit", "button"]) {
+  for (const type of ["submit", "button"] as const) {
     assert.match(
       renderToStaticMarkup(createElement(Button, { type }, "Azione")),
       new RegExp(`type="${type}"`),
@@ -256,25 +266,13 @@ test("form actions preserve explicit submit and cancel button types", () => {
   }
 });
 
-const groups = [
+const groups: Group[] = [
   { id: "work", name: "Work", parentId: "", identityId: "", port: null },
 ];
 test("folders stay separate from root hosts in both layouts and search reveals matches", () => {
   const hosts = [
-    {
-      id: "a",
-      name: "Grouped",
-      groupId: "work",
-      address: "192.0.2.1",
-      port: 22,
-    },
-    {
-      id: "b",
-      name: "Standalone",
-      groupId: "",
-      address: "192.0.2.2",
-      port: 2222,
-    },
+    hostOf({ id: "a", name: "Grouped", groupId: "work" }),
+    hostOf({ id: "b", name: "Standalone", address: "192.0.2.2", port: 2222 }),
   ];
   const props = {
     hosts,
@@ -286,13 +284,19 @@ test("folders stay separate from root hosts in both layouts and search reveals m
     onOpenGroup() {},
   };
   const cards = renderToStaticMarkup(
-    createElement(HostsView, { ...props, layout: "cards" }),
+    createElement(HostsView as ComponentType<Record<string, unknown>>, {
+      ...props,
+      layout: "cards",
+    }),
   );
   assert.match(cards, /Work/);
   assert.match(cards, /Standalone/);
   assert.doesNotMatch(cards, /Grouped/);
   const list = renderToStaticMarkup(
-    createElement(HostsView, { ...props, layout: "list" }),
+    createElement(HostsView as ComponentType<Record<string, unknown>>, {
+      ...props,
+      layout: "list",
+    }),
   );
   assert.doesNotMatch(list, /<details/);
   assert.match(list, /Seleziona cartella Work/);
@@ -301,9 +305,9 @@ test("folders stay separate from root hosts in both layouts and search reveals m
   assert.match(list, /192.0.2.2:2222/);
   assert.doesNotMatch(list, /192.0.2.1:22/);
   assert.doesNotMatch(list, /type="checkbox"/);
-  for (const layout of ["list", "cards"]) {
+  for (const layout of ["list", "cards"] as const) {
     const html = renderToStaticMarkup(
-      createElement(HostsView, {
+      createElement(HostsView as ComponentType<Record<string, unknown>>, {
         ...props,
         layout,
         group: "work",
@@ -316,40 +320,55 @@ test("folders stay separate from root hosts in both layouts and search reveals m
     assert.match(html, /disabled/);
     assert.doesNotMatch(html, /192.0.2.1:22/);
     const search = renderToStaticMarkup(
-      createElement(HostsView, { ...props, layout, searching: true }),
+      createElement(HostsView as ComponentType<Record<string, unknown>>, {
+        ...props,
+        layout,
+        searching: true,
+      }),
     );
     assert.match(search, /Grouped/);
     assert.match(search, /Standalone/);
   }
 });
 
+const callView = (props: object) =>
+  (HostsView as unknown as (props: object) => Tree)(props);
+
 // Row and card components hold no hooks, so the tree walk can render them in place.
 const rowComponents = new Set(["HostCard", "HostRow", "FolderCard"]);
-const expand = (node) =>
-  rowComponents.has(node.type?.name) ? node.type(node.props) : node;
+type Tree = {
+  type?: { name?: string };
+  props?: { children?: unknown; "aria-label"?: string };
+};
+type Item = {
+  props: {
+    onClick(event: object): void;
+    onDoubleClick(): void;
+    onKeyDown(event: object): void;
+  };
+};
+const expand = (node: Tree): Tree =>
+  rowComponents.has(node.type?.name ?? "")
+    ? (node.type as unknown as (props: unknown) => Tree)(node.props)
+    : node;
 
 test("single click selects, Ctrl and Cmd toggle, double click and Enter connect in both layouts", () => {
-  const host = {
-    id: "a",
-    name: "Server",
-    groupId: "",
-    address: "192.0.2.1",
-    port: 22,
-  };
+  const host = hostOf({ id: "a", name: "Server" });
   const other = { ...host, id: "b", name: "Other" };
-  const find = (node, label) => {
+  const find = (node: unknown, label: string): Item | undefined => {
     if (!node || typeof node !== "object") return;
-    if (node.props?.["aria-label"] === label) return node;
-    return [expand(node).props?.children]
+    const tree = node as Tree;
+    if (tree.props?.["aria-label"] === label) return node as Item;
+    return [expand(tree).props?.children]
       .flat(Infinity)
       .map((child) => find(child, label))
       .find(Boolean);
   };
-  for (const layout of ["cards", "list"]) {
-    let selected = new Set(),
+  for (const layout of ["cards", "list"] as const) {
+    let selected = new Set<string>(),
       connections = 0;
     const tree = (busy = false) =>
-      HostsView({
+      callView({
         hosts: [host, other],
         groups: [],
         hostCount: () => 0,
@@ -357,7 +376,7 @@ test("single click selects, Ctrl and Cmd toggle, double click and Enter connect 
         selected,
         layout,
         busy,
-        onSelect(value) {
+        onSelect(value: Set<string>) {
           selected = value;
         },
         onConnect() {
@@ -365,7 +384,7 @@ test("single click selects, Ctrl and Cmd toggle, double click and Enter connect 
         },
       });
     const item = (name = "Server", busy = false) =>
-      find(tree(busy), "Seleziona " + name);
+      find(tree(busy), "Seleziona " + name) as Item;
     item().props.onClick({});
     assert.deepEqual([...selected], ["a"]);
     assert.equal(connections, 0);
@@ -396,9 +415,14 @@ test("single click selects, Ctrl and Cmd toggle, double click and Enter connect 
 });
 
 const { createPreviewBackend } = await import("./lib/preview.ts");
+const previewInvoke = () => {
+  const backend = createPreviewBackend();
+  return (command: string, args?: Record<string, unknown>) =>
+    backend<View>(command, args);
+};
 
 test("private credentials stay local and omitted passwords survive edits", async () => {
-  const invoke = createPreviewBackend();
+  const invoke = previewInvoke();
   const before = await invoke("status");
   const host = {
     ...before.hosts[0],
@@ -425,7 +449,7 @@ test("private credentials stay local and omitted passwords survive edits", async
     host,
     credentials: { username: " deploy ", password: "synthetic-inline-secret" },
   });
-  const saved = view.hosts.find((h) => h.id === host.id);
+  const saved = view.hosts.find((h) => h.id === host.id)!;
   assert.equal(saved.username, "deploy");
   assert.equal(saved.hasPassword, true);
   assert.equal(saved.identityId, "");
@@ -446,8 +470,8 @@ test("private credentials stay local and omitted passwords survive edits", async
     host: saved,
     credentials: { username: "admin", password: "" },
   });
-  assert.equal(view.hosts.find((h) => h.id === host.id).hasPassword, true);
-  assert.equal(view.hosts.find((h) => h.id === host.id).username, "admin");
+  assert.equal(view.hosts.find((h) => h.id === host.id)!.hasPassword, true);
+  assert.equal(view.hosts.find((h) => h.id === host.id)!.username, "admin");
   assert.deepEqual(
     view.hosts.filter((h) => h.id !== host.id),
     before.hosts,
@@ -456,7 +480,7 @@ test("private credentials stay local and omitted passwords survive edits", async
     ids: [host.id],
     identityId: before.identities[0].id,
   });
-  assert.equal(view.hosts.find((h) => h.id === host.id).hasPassword, false);
+  assert.equal(view.hosts.find((h) => h.id === host.id)!.hasPassword, false);
   await assert.rejects(invoke("reveal_host_password", { id: host.id }));
   await assert.rejects(
     invoke("save_host", {
@@ -469,17 +493,12 @@ test("private credentials stay local and omitted passwords survive edits", async
 const { hostDraftIsDirty, hostDraftIsValid } =
   await import("./features/hosts/host-draft.ts");
 test("draft validation requires its own password or an explicit shared identity", () => {
-  const host = {
+  const host = hostOf({
     id: "a",
     name: "API",
-    address: "192.0.2.1",
-    port: 22,
-    ownPort: 22,
-    groupId: "",
-    identityId: "",
     username: "root",
     hasPassword: true,
-  };
+  });
   assert.equal(hostDraftIsDirty(host, host), false);
   assert.equal(hostDraftIsValid(host, [], host), true);
   assert.equal(hostDraftIsValid(host, []), false);
@@ -513,13 +532,13 @@ test("draft validation requires its own password or an explicit shared identity"
 });
 
 test("preview CRUD uses isolated snapshots, preserves references and discards secrets", async () => {
-  const invoke = createPreviewBackend();
+  const invoke = previewInvoke();
   let view = await invoke("status");
   const host = { ...view.hosts[0], name: "Host modificato" };
   view.hosts[0].name = "Mutazione esterna";
   assert.notEqual((await invoke("status")).hosts[0].name, "Mutazione esterna");
   view = await invoke("save_host", { host });
-  assert.equal(view.hosts.find((h) => h.id === host.id).name, host.name);
+  assert.equal(view.hosts.find((h) => h.id === host.id)!.name, host.name);
   const identity = {
     id: "demo-login",
     name: "Test",
@@ -533,9 +552,9 @@ test("preview CRUD uses isolated snapshots, preserves references and discards se
     ids: [host.id],
     identityId: identity.id,
   });
-  assert.equal(view.identities.find((i) => i.id === identity.id).hostCount, 1);
+  assert.equal(view.identities.find((i) => i.id === identity.id)!.hostCount, 1);
   assert.equal(
-    view.identities.find((i) => i.id === host.identityId).hostCount,
+    view.identities.find((i) => i.id === host.identityId)!.hostCount,
     19,
   );
   await assert.rejects(invoke("delete_identity", { id: identity.id }));
@@ -550,14 +569,14 @@ test("preview CRUD uses isolated snapshots, preserves references and discards se
     }),
   );
   assert.equal(
-    (await invoke("status")).hosts.find((h) => h.id === host.id).identityId,
+    (await invoke("status")).hosts.find((h) => h.id === host.id)!.identityId,
     identity.id,
   );
   view = await invoke("save_identity", {
     identity: { ...identity, password: "", name: "Rinominata" },
   });
   assert.equal(
-    view.identities.find((i) => i.id === identity.id).hasPassword,
+    view.identities.find((i) => i.id === identity.id)!.hasPassword,
     true,
   );
   view = await invoke("save_key", {
@@ -569,13 +588,13 @@ test("preview CRUD uses isolated snapshots, preserves references and discards se
     },
   });
   assert.match(
-    view.keys.find((k) => k.id === "demo-key").fingerprint,
+    view.keys.find((k) => k.id === "demo-key")!.fingerprint,
     /non verificata/,
   );
   view = await invoke("save_key", {
     key: { id: "demo-key", name: "Rinominata", privateKey: "" },
   });
-  assert.equal(view.keys.find((k) => k.id === "demo-key").name, "Rinominata");
+  assert.equal(view.keys.find((k) => k.id === "demo-key")!.name, "Rinominata");
   view = await invoke("configure_sync", {
     url: "https://example.test/vault",
     token: "token-fittizio".repeat(3),
@@ -595,11 +614,11 @@ test("preview CRUD uses isolated snapshots, preserves references and discards se
   assert.ok(!view.identities.some((i) => i.id === identity.id));
   view = await invoke("delete_key", { id: "demo-key" });
   assert.ok(!view.keys.some((k) => k.id === "demo-key"));
-  assert.equal((await createPreviewBackend()("status")).hosts.length, 34);
+  assert.equal((await previewInvoke()("status")).hosts.length, 34);
 });
 
 test("preview vaults switch, lock and unlock without losing or mixing data", async () => {
-  const invoke = createPreviewBackend();
+  const invoke = previewInvoke();
   let view = await invoke("create_vault", { name: "Lavoro" });
   const vaultId = view.vaultId;
   assert.equal(view.unlocked, false);
@@ -631,7 +650,10 @@ const { HostSummary } = await import("./features/hosts/HostSummary.tsx");
 test("rectangle selection works in every direction, intersects items and keeps folders out of host actions", () => {
   const bounds = selectionBounds({ x: 100, y: 100 }, { x: 10, y: 10 });
   assert.deepEqual(bounds, { left: 10, top: 10, right: 100, bottom: 100 });
-  const initial = { hosts: new Set(["earlier"]), folders: new Set() };
+  const initial = {
+    hosts: new Set(["earlier"]),
+    folders: new Set<string>(),
+  };
   const result = selectInRectangle(
     bounds,
     [
@@ -660,22 +682,24 @@ test("rectangle selection works in every direction, intersects items and keeps f
 });
 
 test("folder click selects, Ctrl toggles, double click and Enter open in both layouts", () => {
-  const find = (node) => {
+  const find = (node: unknown): Item | undefined => {
     if (!node || typeof node !== "object") return;
-    if (node.props?.["aria-label"] === "Seleziona cartella Work") return node;
-    return [expand(node).props?.children]
+    const tree = node as Tree;
+    if (tree.props?.["aria-label"] === "Seleziona cartella Work")
+      return node as Item;
+    return [expand(tree).props?.children]
       .flat(Infinity)
       .map(find)
       .find(Boolean);
   };
-  for (const layout of ["cards", "list"]) {
-    let folders = new Set(),
+  for (const layout of ["cards", "list"] as const) {
+    let folders = new Set<string>(),
       hosts = new Set(["a"]),
       opened = 0;
     const item = (busy = false) =>
       find(
-        HostsView({
-          hosts: [{ id: "a", name: "Server", groupId: "work" }],
+        callView({
+          hosts: [hostOf({ id: "a", name: "Server", groupId: "work" })],
           groups,
           hostCount: () => 1,
           identities: [],
@@ -683,18 +707,18 @@ test("folder click selects, Ctrl toggles, double click and Enter open in both la
           selectedFolders: folders,
           layout,
           busy,
-          onSelect(value) {
+          onSelect(value: Set<string>) {
             hosts = value;
           },
-          onSelectFolders(value) {
+          onSelectFolders(value: Set<string>) {
             folders = value;
           },
-          onOpenGroup(id) {
+          onOpenGroup(id: string) {
             assert.equal(id, "work");
             opened++;
           },
         }),
-      );
+      ) as Item;
     item().props.onClick({});
     assert.deepEqual([...folders], ["work"]);
     assert.equal(hosts.size, 0);
@@ -715,7 +739,7 @@ test("folder click selects, Ctrl toggles, double click and Enter open in both la
 
 test("bulk summaries identify every affected host with its login and nondefault port", () => {
   const html = renderToStaticMarkup(
-    createElement(HostSummary, {
+    createElement(HostSummary as ComponentType<Record<string, unknown>>, {
       hosts: [
         {
           id: "a",
@@ -747,8 +771,10 @@ test("bulk summaries identify every affected host with its login and nondefault 
 test("identity and key tables disable deletion while in use", async () => {
   const { IdentitiesTable, KeysTable } =
     await import("./features/hosts/CollectionTables.tsx");
-  const btn = (html, name) =>
-    html.match(new RegExp(`<button[^>]*aria-label="Elimina ${name}"[^>]*>`))[0];
+  const btn = (html: string, name: string) =>
+    html.match(
+      new RegExp(`<button[^>]*aria-label="Elimina ${name}"[^>]*>`),
+    )![0];
   const noop = () => {};
   const shared = { busy: false, onEdit: noop, onDelete: noop, onUsage: noop };
   const keys = [
@@ -778,13 +804,21 @@ test("identity and key tables disable deletion while in use", async () => {
     },
   ];
   const ih = renderToStaticMarkup(
-    createElement(IdentitiesTable, { ...shared, identities, keys }),
+    createElement(IdentitiesTable as ComponentType<Record<string, unknown>>, {
+      ...shared,
+      identities,
+      keys,
+    }),
   );
   assert.ok(btn(ih, "Usata").includes('disabled=""'));
   assert.ok(!btn(ih, "Libera").includes('disabled=""'));
   assert.match(ih, /Chiave/);
   const kh = renderToStaticMarkup(
-    createElement(KeysTable, { ...shared, keys, identities }),
+    createElement(KeysTable as ComponentType<Record<string, unknown>>, {
+      ...shared,
+      keys,
+      identities,
+    }),
   );
   assert.ok(btn(kh, "Chiave").includes('disabled=""'));
   assert.match(kh, /Da verificare/);

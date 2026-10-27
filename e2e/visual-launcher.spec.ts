@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
@@ -6,13 +7,13 @@ test.beforeEach(async ({ page }) => {
   await page.getByRole("heading", { name: "Host", level: 1 }).waitFor();
 });
 
-const search = (page) =>
+const search = (page: Page) =>
   page.getByRole("combobox", { name: "Cerca host o schede" });
-const group = (page, heading) =>
+const group = (page: Page, heading: string) =>
   page.getByRole("group", { name: heading, exact: true });
-const targetRow = (page) => page.getByRole("option", { name: /:\d+$/ });
+const targetRow = (page: Page) => page.getByRole("option", { name: /:\d+$/ });
 
-async function openLauncher(page) {
+async function openLauncher(page: Page) {
   await page.keyboard.press("Meta+t");
   await search(page).waitFor();
 }

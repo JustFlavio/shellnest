@@ -1,7 +1,7 @@
 import { mkdir, open, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { isEnvelope, revision } from "./envelope.mjs";
-import { LEGACY_VAULT } from "./vault-id.mjs";
+import { isEnvelope, revision } from "./envelope.ts";
+import { LEGACY_VAULT } from "./vault-id.ts";
 
 /**
  * File storage for the encrypted containers.
@@ -13,34 +13,34 @@ import { LEGACY_VAULT } from "./vault-id.mjs";
  * Reads and writes go through one queue, so the revision check and the write
  * of a conditional PUT are atomic with respect to every other request.
  */
-export async function createStorage(directory) {
+export async function createStorage(directory: string) {
   await mkdir(join(directory, "vaults"), { recursive: true, mode: 0o700 });
-  let queue = Promise.resolve();
-  const serialized = (task) => {
+  let queue: Promise<unknown> = Promise.resolve();
+  const serialized = <T>(task: () => Promise<T>) => {
     const run = queue.then(task);
     queue = run.catch(() => {});
     return run;
   };
-  const fileOf = (id, suffix = "") =>
+  const fileOf = (id: string, suffix = "") =>
     id === LEGACY_VAULT
       ? join(directory, `vault${suffix}.json`)
       : join(directory, "vaults", `${id}${suffix}.json`);
 
-  async function load(id) {
-    let bytes;
+  async function load(id: string) {
+    let bytes: Buffer;
     try {
       bytes = await readFile(fileOf(id));
     } catch (error) {
-      if (error.code === "ENOENT") return null;
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
       throw error;
     }
-    if (!isEnvelope(JSON.parse(bytes)))
+    if (!isEnvelope(JSON.parse(bytes.toString())))
       throw new Error("Invalid stored envelope");
     return bytes;
   }
   // Write to a temporary file, then rename: a crash leaves the old or the new
   // file, never a truncated one.
-  async function replace(file, bytes) {
+  async function replace(file: string, bytes: Uint8Array) {
     await writeFile(`${file}.tmp`, bytes, { mode: 0o600, flush: true });
     await rename(`${file}.tmp`, file);
     // Make the rename itself durable. Not supported everywhere (Windows), so best effort.
@@ -52,7 +52,7 @@ export async function createStorage(directory) {
 
   return {
     /** `{ bytes, etag }` of the stored container, or null if there is none. */
-    read: (id) =>
+    read: (id: string) =>
       serialized(async () => {
         const bytes = await load(id);
         return bytes && { bytes, etag: revision(bytes) };
@@ -62,7 +62,11 @@ export async function createStorage(directory) {
      * current ETag, or `If-None-Match: *` must be sent when nothing is stored.
      * Resolves to `{ etag }`, or null on a revision conflict.
      */
-    write: (id, bytes, { ifMatch, ifNoneMatch }) =>
+    write: (
+      id: string,
+      bytes: Uint8Array,
+      { ifMatch, ifNoneMatch }: { ifMatch?: string; ifNoneMatch?: string },
+    ) =>
       serialized(async () => {
         const current = await load(id);
         if (current ? ifMatch !== revision(current) : ifNoneMatch !== "*")

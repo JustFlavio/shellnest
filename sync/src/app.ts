@@ -1,8 +1,8 @@
 import http from "node:http";
-import { createAuthenticator } from "./auth.mjs";
-import { readEnvelope } from "./body.mjs";
-import { createStorage } from "./storage.mjs";
-import { vaultIdFromPath } from "./vault-id.mjs";
+import { createAuthenticator } from "./auth.ts";
+import { isHttpError, readEnvelope } from "./body.ts";
+import { createStorage } from "./storage.ts";
+import { vaultIdFromPath } from "./vault-id.ts";
 
 /**
  * Builds the HTTP server (not yet listening).
@@ -14,6 +14,10 @@ export async function createSyncServer({
   token,
   directory,
   onError = () => {},
+}: {
+  token: unknown;
+  directory: string;
+  onError?: (error: unknown) => void;
 }) {
   const authorized = createAuthenticator(token);
   const storage = await createStorage(directory);
@@ -21,12 +25,12 @@ export async function createSyncServer({
   const server = http.createServer(async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("X-Content-Type-Options", "nosniff");
-    const reply = (status, value) => {
+    const reply = (status: number, value: unknown) => {
       res.writeHead(status, { "Content-Type": "application/json" });
       res.end(JSON.stringify(value));
     };
     // Refuse without reading a body we do not want: answer, then drop the connection.
-    const reject = (status, error) => {
+    const reject = (status: number, error: string) => {
       res.setHeader("Connection", "close");
       reply(status, { error });
       res.once("finish", () => req.destroy());
@@ -38,7 +42,7 @@ export async function createSyncServer({
       return reject(401, "Unauthorized");
     const vaultId = vaultIdFromPath(req.url ?? "");
     if (!vaultId) return reject(404, "Not found");
-    if (!["GET", "PUT"].includes(req.method)) {
+    if (req.method !== "GET" && req.method !== "PUT") {
       res.setHeader("Allow", "GET, PUT");
       return reject(405, "Method not allowed");
     }
@@ -64,7 +68,7 @@ export async function createSyncServer({
       res.setHeader("ETag", written.etag);
       return reply(200, { ok: true });
     } catch (error) {
-      if (error.status) return reject(error.status, error.message);
+      if (isHttpError(error)) return reject(error.status, error.message);
       onError(error);
       if (!res.headersSent) reply(500, { error: "Storage unavailable" });
       else res.destroy();

@@ -6,7 +6,7 @@ const port = process.env.E2E_PORT ?? "5174";
 // Visual regression on the browser preview (synthetic data, no SSH).
 export default defineConfig({
   testDir: ".",
-  testMatch: "visual*.spec.mjs",
+  testMatch: "visual*.spec.ts",
   snapshotPathTemplate: "{testDir}/visual-snapshots/{arg}{ext}",
   use: {
     baseURL: `http://127.0.0.1:${port}`,
@@ -20,7 +20,7 @@ export default defineConfig({
     {
       name: "webkit",
       use: { browserName: "webkit" },
-      testMatch: ["visual-overlay.spec.mjs", "visual-first-run.spec.mjs"],
+      testMatch: ["visual-overlay.spec.ts", "visual-first-run.spec.ts"],
     },
   ],
   expect: {

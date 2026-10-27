@@ -1,11 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createAuthenticator } from "./src/auth.mjs";
-import { readConfig } from "./src/config.mjs";
-import { isEnvelope } from "./src/envelope.mjs";
-import { vaultIdFromPath } from "./src/vault-id.mjs";
+import { createAuthenticator } from "./src/auth.ts";
+import { readConfig } from "./src/config.ts";
+import { isEnvelope } from "./src/envelope.ts";
+import { vaultIdFromPath } from "./src/vault-id.ts";
 
-const b64 = (n, fill = 1) => Buffer.alloc(n, fill).toString("base64");
+const b64 = (n: number, fill = 1) => Buffer.alloc(n, fill).toString("base64");
 const envelope = () => ({
   version: 1,
   salt: b64(16),

@@ -9,7 +9,7 @@ export const LEGACY_VAULT = "personal";
  * Vault id addressed by a request path, or null when the path is not a vault
  * route. `/vault` is the original single-vault route and maps to "personal".
  */
-export function vaultIdFromPath(path) {
+export function vaultIdFromPath(path: string) {
   const id = path === "/vault" ? LEGACY_VAULT : VAULT_PATH.exec(path)?.[1];
   return id && !RESERVED.test(id) ? id : null;
 }

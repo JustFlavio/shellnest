@@ -1,18 +1,24 @@
 import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { boxOf } from "./box.ts";
 
-const toasts = (page) => page.locator("[data-sonner-toast]");
-const explore = async (page, query = "") => {
+const toasts = (page: Page) => page.locator("[data-sonner-toast]");
+const explore = async (page: Page, query: string = "") => {
   await page.goto(`/${query}`);
   await page.getByRole("button", { name: "Esplora interfaccia" }).click();
   await page.getByRole("heading", { name: "Host", level: 1 }).waitFor();
 };
 // The app's own notify module, loaded through the dev server so it shares the page's toaster.
-const notify = (page, title, detail) =>
+const notify = (page: Page, title: string, detail: string) =>
   page.evaluate(
-    async ([t, d]) => (await import("/src/lib/notify.ts")).notifyError(t, d),
+    async ([t, d]) => {
+      // A variable specifier: only the dev server can resolve this path.
+      const module = "/src/lib/notify.ts";
+      return (await import(module)).notifyError(t, d);
+    },
     [title, detail],
   );
-const lock = async (page) => {
+const lock = async (page: Page) => {
   await page.getByRole("button", { name: "Menu applicazione" }).click();
   await page.getByRole("menuitem", { name: "Blocca vault" }).click();
 };
@@ -94,7 +100,7 @@ test("toasts stay clear of the open editor sheet", async ({ page }) => {
   await expect(sheet).toBeVisible();
   await notify(page, "Titolo", "dettaglio");
   await expect(toasts(page)).toHaveCount(1);
-  const toastBox = await toasts(page).boundingBox();
-  const sheetBox = await sheet.boundingBox();
+  const toastBox = await boxOf(toasts(page));
+  const sheetBox = await boxOf(sheet);
   expect(toastBox.x + toastBox.width).toBeLessThanOrEqual(sheetBox.x);
 });

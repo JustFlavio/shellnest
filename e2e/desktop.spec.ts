@@ -3,6 +3,12 @@ import { browser, $ } from "@wdio/globals";
 
 const password = "synthetic-e2e-password";
 
+// The part of the app state this test reads.
+type State = {
+  identities: { id: string }[];
+  hosts: { identityId: string }[];
+};
+
 describe("Tauri desktop with an isolated real vault", () => {
   it("creates hosts, reuses an identity, switches layout and unlocks persisted data", async () => {
     const master = await $("//label[contains(., 'Password principale')]/input");
@@ -66,9 +72,9 @@ describe("Tauri desktop with an isolated real vault", () => {
 
     await $('[aria-label="Identità"]').click();
     await $('[aria-label="Modifica E2E Login"]').waitForDisplayed();
-    const state = await browser.tauri.execute(({ core }) =>
+    const state = (await browser.tauri.execute(({ core }) =>
       core.invoke("status"),
-    );
+    )) as State;
     assert.equal(state.identities.length, 1);
     assert.equal(state.hosts.length, 2);
     assert.ok(

@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { createSyncServer } from "./src/app.mjs";
-import { run } from "./src/main.mjs";
+import { createSyncServer } from "./src/app.ts";
+import { run } from "./src/main.ts";
 
 export { createSyncServer };
 

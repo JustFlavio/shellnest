@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 // The connection timeline in the pane. The browser preview replays the stages of a connection:
 // addresses ending in .slow.test stay in authentication, .fail.test fail there.
@@ -8,7 +9,7 @@ test.beforeEach(async ({ page }) => {
   await page.getByRole("heading", { name: "Host", level: 1 }).waitFor();
 });
 
-const addHost = async (page, name, address) => {
+const addHost = async (page: Page, name: string, address: string) => {
   await page.getByRole("button", { name: "Nuovo host", exact: true }).click();
   await page.getByRole("heading", { name: "Nuovo host" }).waitFor();
   await page.getByPlaceholder("IP o nome host").fill(address);
@@ -21,12 +22,12 @@ const addHost = async (page, name, address) => {
   ).toBeVisible();
 };
 
-const open = async (page, name) => {
+const open = async (page: Page, name: string) => {
   await page.getByRole("button", { name: "Connessione rapida" }).click();
   await page.getByRole("option", { name: new RegExp(name) }).click();
 };
 
-const steps = (page) =>
+const steps = (page: Page) =>
   page
     .getByRole("list", { name: "Avanzamento della connessione" })
     .getByRole("listitem");

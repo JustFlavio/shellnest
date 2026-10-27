@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 // Quick connection from a bare address: the questions are steps of the timeline.
 test.beforeEach(async ({ page }) => {
@@ -8,22 +9,22 @@ test.beforeEach(async ({ page }) => {
   await page.getByRole("button", { name: "Connessione rapida" }).click();
 });
 
-const search = (page) =>
+const search = (page: Page) =>
   page.getByRole("combobox", { name: "Cerca host o schede" });
-const steps = (page) =>
+const steps = (page: Page) =>
   page
     .getByRole("list", { name: "Avanzamento della connessione" })
     .locator("> li");
-const start = async (page, text) => {
+const start = async (page: Page, text: string) => {
   await search(page).fill(text);
   await search(page).press("Meta+Enter");
   await page.getByLabel("Utente", { exact: true }).waitFor();
 };
-const approve = (page) =>
+const approve = (page: Page) =>
   page.getByRole("button", { name: "Impronta verificata, connetti" }).click();
-const savedHost = (page, name) =>
+const savedHost = (page: Page, name: string) =>
   page.getByRole("button", { name: "Seleziona " + name });
-const goVault = async (page) => {
+const goVault = async (page: Page) => {
   await page
     .getByRole("navigation", { name: "Sessioni e connessioni" })
     .getByRole("button", { name: "Vault", exact: true })
