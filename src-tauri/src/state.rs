@@ -37,10 +37,11 @@ impl AppState {
         Ok(())
     }
     pub(crate) fn active_path(&self) -> Result<PathBuf, String> {
-        self.catalog
+        Ok(self
+            .catalog
             .lock()
             .map_err(|_| "Registro vault non disponibile")?
-            .selected_path(&self.path)
+            .selected_path(&self.path)?)
     }
     pub(crate) fn host_password(&self, vault_id: &str, id: &str) -> Result<String, String> {
         let guard = self.vault.lock().map_err(|_| "Stato non disponibile")?;
