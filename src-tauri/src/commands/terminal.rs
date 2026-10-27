@@ -1,8 +1,9 @@
 use crate::{
-    commit,
+    local,
+    state::{commit, AppState},
     terminal::{probe, register, send, session_scope, Input, Output},
-    AppState,
 };
+use std::sync::Arc;
 use tauri::{ipc::Channel, Manager, State};
 use zeroize::Zeroizing;
 
@@ -186,5 +187,34 @@ pub(crate) fn disconnect(
     {
         let _ = tx.send(Input::Close);
     }
+    Ok(())
+}
+#[tauri::command]
+pub(crate) fn connect_local(
+    state: State<AppState>,
+    vault_id: String,
+    session_id: String,
+    output: Channel<Output>,
+    cols: u32,
+    rows: u32,
+) -> Result<(), String> {
+    let guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
+    state.ensure_vault(&vault_id)?;
+    guard.as_ref().ok_or("Vault bloccato")?;
+    let mut sessions = state
+        .sessions
+        .lock()
+        .map_err(|_| "Sessioni non disponibili")?;
+    if session_id.is_empty() || session_id.len() > 80 || sessions.contains_key(&session_id) {
+        return Err("Identificativo sessione non valido o già aperto".into());
+    }
+    let tx = local::start(
+        session_id.clone(),
+        local::shell_command(),
+        cols,
+        rows,
+        Arc::new(move |event| output.send(event).is_ok()),
+    )?;
+    sessions.insert(session_id, tx);
     Ok(())
 }

@@ -4,7 +4,10 @@ use super::{
     os_probe::detect_os,
     password::PasswordPrompt,
 };
-use crate::{model::Connection, AppState};
+use crate::{
+    model::Connection,
+    state::{record_connection, AppState},
+};
 use russh::{ChannelMsg, Disconnect};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{ipc::Channel, Manager};
@@ -110,7 +113,7 @@ fn publish_metadata(
     let port = host.host.port.unwrap_or(22);
     let output = output.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        match crate::record_connection(
+        match record_connection(
             &app.state::<AppState>(),
             &vault_id,
             &id,

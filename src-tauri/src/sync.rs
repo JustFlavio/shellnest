@@ -1,12 +1,12 @@
 use crate::{
+    state::AppState,
     vault::{self, Disk, Envelope, OpenVault},
-    view, AppState, View,
+    view::{view, View},
 };
 use reqwest::{blocking::Client, StatusCode, Url};
 use std::time::Duration;
-use tauri::Manager;
 
-pub fn endpoint(raw: &str) -> Result<Url, String> {
+pub(crate) fn endpoint(raw: &str) -> Result<Url, String> {
     let mut url = Url::parse(raw.trim_end_matches('/')).map_err(|_| "URL non valido")?;
     if url.scheme() != "https"
         && !(url.scheme() == "http"
@@ -38,7 +38,7 @@ fn client() -> Result<Client, String> {
         .build()
         .map_err(|e| e.to_string())
 }
-pub fn endpoint_for_vault(raw: &str, vault_id: &str) -> Result<Url, String> {
+pub(crate) fn endpoint_for_vault(raw: &str, vault_id: &str) -> Result<Url, String> {
     let url = endpoint(raw)?;
     if vault_id != "personal" {
         let remote_id = url.path().rsplit_once("/vaults/").map(|(_, id)| id);
@@ -62,13 +62,7 @@ fn revision(response: &reqwest::blocking::Response) -> Result<String, String> {
         .map(str::to_owned)
         .ok_or("Revisione remota assente".into())
 }
-#[tauri::command]
-pub async fn sync_vault(app: tauri::AppHandle, vault_id: String) -> Result<View, String> {
-    tauri::async_runtime::spawn_blocking(move || synchronize(&app.state::<AppState>(), &vault_id))
-        .await
-        .map_err(|e| e.to_string())?
-}
-fn synchronize(state: &AppState, vault_id: &str) -> Result<View, String> {
+pub(crate) fn synchronize(state: &AppState, vault_id: &str) -> Result<View, String> {
     let mut guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
     state.ensure_vault(vault_id)?;
     let path = state.active_path()?;
@@ -139,22 +133,7 @@ fn synchronize(state: &AppState, vault_id: &str) -> Result<View, String> {
     drop(guard);
     view(state)
 }
-#[tauri::command]
-pub async fn restore_vault(
-    app: tauri::AppHandle,
-    vault_id: String,
-    url: String,
-    token: String,
-    password: String,
-) -> Result<View, String> {
-    let password = zeroize::Zeroizing::new(password);
-    tauri::async_runtime::spawn_blocking(move || {
-        restore(&app.state::<AppState>(), &vault_id, &url, &token, &password)
-    })
-    .await
-    .map_err(|e| e.to_string())?
-}
-fn restore(
+pub(crate) fn restore(
     state: &AppState,
     vault_id: &str,
     url: &str,
@@ -315,7 +294,7 @@ mod tests {
                 os: None,
                 last_connected_at: None,
             });
-            crate::commit(state, v, data).unwrap();
+            crate::state::commit(state, v, data).unwrap();
         };
         edit(&a, "first-host");
         synchronize(&a, "personal").unwrap();
