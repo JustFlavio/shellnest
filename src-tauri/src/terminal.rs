@@ -946,10 +946,15 @@ mod tests {
             let (connection, task) = fixture(true).await;
             let asked = Arc::new(Mutex::new(Vec::new()));
             // Wrong password first, then the right one.
-            let ask = answers(vec![Some("wrong"), Some("test-only-password")], asked.clone());
+            let ask = answers(
+                vec![Some("wrong"), Some("test-only-password")],
+                asked.clone(),
+            );
             let (session, _, _) = open(&connection, |_| {}, ask).await.unwrap();
             assert_eq!(*asked.lock().unwrap(), vec![false, true]);
-            let _ = session.disconnect(Disconnect::ByApplication, "", "en").await;
+            let _ = session
+                .disconnect(Disconnect::ByApplication, "", "en")
+                .await;
 
             // Cancelling ends the attempt without a session.
             let asked = Arc::new(Mutex::new(Vec::new()));
@@ -1012,7 +1017,10 @@ mod tests {
             remaining_methods: MethodSet::from(methods),
             partial_success: false,
         };
-        assert!(accepts_password(&refused(&[MethodKind::PublicKey, MethodKind::Password])));
+        assert!(accepts_password(&refused(&[
+            MethodKind::PublicKey,
+            MethodKind::Password
+        ])));
         assert!(!accepts_password(&refused(&[MethodKind::PublicKey])));
         assert!(!accepts_password(&AuthResult::Success));
     }

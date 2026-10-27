@@ -762,9 +762,7 @@ fn claim_instance(path: &std::path::Path) -> Result<std::fs::File, String> {
         .open(path)
         .map_err(|e| e.to_string())?;
     file.try_lock().map_err(|e| {
-        format!(
-            "Impossibile aprire il vault locale: chiudi le altre istanze di Shellnest. {e}"
-        )
+        format!("Impossibile aprire il vault locale: chiudi le altre istanze di Shellnest. {e}")
     })?;
     Ok(file)
 }
@@ -906,10 +904,8 @@ mod tests {
     }
     impl VaultFixture {
         fn new() -> Self {
-            let root = std::env::temp_dir().join(format!(
-                "shellnest-vault-test-{}",
-                rand::random::<u64>()
-            ));
+            let root = std::env::temp_dir()
+                .join(format!("shellnest-vault-test-{}", rand::random::<u64>()));
             std::fs::create_dir_all(&root).unwrap();
             Self { root }
         }
@@ -948,7 +944,13 @@ mod tests {
     fn host_and_new_credentials_commit_together_without_exposing_or_overwriting_secrets() {
         let fixture = VaultFixture::new();
         let state = fixture.state();
-        open_selected(&state, "personal", Secret::Password("test-only master password"), true).unwrap();
+        open_selected(
+            &state,
+            "personal",
+            Secret::Password("test-only master password"),
+            true,
+        )
+        .unwrap();
         let host = Host {
             id: "inline-host".into(),
             name: "API".into(),
@@ -1061,7 +1063,13 @@ mod tests {
     fn delayed_connection_metadata_never_updates_a_changed_endpoint() {
         let fixture = VaultFixture::new();
         let state = fixture.state();
-        open_selected(&state, "personal", Secret::Password("test-only master password"), true).unwrap();
+        open_selected(
+            &state,
+            "personal",
+            Secret::Password("test-only master password"),
+            true,
+        )
+        .unwrap();
         mutate(&state, "personal", |data| {
             data.upsert_identity(Identity {
                 id: "admin".into(),
@@ -1148,7 +1156,13 @@ mod tests {
     fn multiple_vaults_keep_files_passwords_and_mutations_isolated() {
         let fixture = VaultFixture::new();
         let state = fixture.state();
-        open_selected(&state, "personal", Secret::Password("personal test password"), true).unwrap();
+        open_selected(
+            &state,
+            "personal",
+            Secret::Password("personal test password"),
+            true,
+        )
+        .unwrap();
         mutate(&state, "personal", |data| {
             data.upsert_identity(Identity {
                 id: "personal-login".into(),
@@ -1169,18 +1183,42 @@ mod tests {
         assert_eq!(work.vaults.len(), 2);
         assert_eq!(std::fs::read(&state.path).unwrap(), personal_bytes);
         assert!(mutate(&state, "personal", |_| Ok(())).is_err());
-        assert!(open_selected(&state, "personal", Secret::Password("personal test password"), false).is_err());
+        assert!(open_selected(
+            &state,
+            "personal",
+            Secret::Password("personal test password"),
+            false
+        )
+        .is_err());
         assert!(open_selected(&state, &work.vault_id, Secret::Password("short"), true).is_err());
         assert!(!state.active_path().unwrap().exists());
-        open_selected(&state, &work.vault_id, Secret::Password("work test password"), true).unwrap();
+        open_selected(
+            &state,
+            &work.vault_id,
+            Secret::Password("work test password"),
+            true,
+        )
+        .unwrap();
         assert!(view(&state).unwrap().identities.is_empty());
         let work_path = state.active_path().unwrap();
         assert_ne!(work_path, state.path);
         select(&state, "personal").unwrap();
         assert!(state.vault.lock().unwrap().is_none());
-        assert!(open_selected(&state, "personal", Secret::Password("work test password"), false).is_err());
+        assert!(open_selected(
+            &state,
+            "personal",
+            Secret::Password("work test password"),
+            false
+        )
+        .is_err());
         assert_eq!(std::fs::read(&state.path).unwrap(), personal_bytes);
-        let personal = open_selected(&state, "personal", Secret::Password("personal test password"), false).unwrap();
+        let personal = open_selected(
+            &state,
+            "personal",
+            Secret::Password("personal test password"),
+            false,
+        )
+        .unwrap();
         assert_eq!(personal.identities.len(), 1);
         assert_eq!(personal.identities[0].id, "personal-login");
         let before = state.catalog.lock().unwrap().selected.clone();
@@ -1197,10 +1235,22 @@ mod tests {
     fn only_empty_non_default_vaults_can_be_deleted() {
         let fixture = VaultFixture::new();
         let state = fixture.state();
-        open_selected(&state, "personal", Secret::Password("personal test password"), true).unwrap();
+        open_selected(
+            &state,
+            "personal",
+            Secret::Password("personal test password"),
+            true,
+        )
+        .unwrap();
         assert!(delete(&state, "personal").is_err());
         let work = create(&state, "personal", "Lavoro").unwrap();
-        open_selected(&state, &work.vault_id, Secret::Password("work test password"), true).unwrap();
+        open_selected(
+            &state,
+            &work.vault_id,
+            Secret::Password("work test password"),
+            true,
+        )
+        .unwrap();
         mutate(&state, &work.vault_id, |data| {
             data.upsert_identity(Identity {
                 id: "login".into(),
@@ -1214,10 +1264,7 @@ mod tests {
         .unwrap();
         assert!(delete(&state, &work.vault_id).is_err());
         assert_eq!(view(&state).unwrap().vaults.len(), 2);
-        mutate(&state, &work.vault_id, |data| {
-            data.delete_identity("login")
-        })
-        .unwrap();
+        mutate(&state, &work.vault_id, |data| data.delete_identity("login")).unwrap();
         let path = state.active_path().unwrap();
         let after = delete(&state, &work.vault_id).unwrap();
         assert_eq!(after.vault_id, "personal");
@@ -1225,13 +1272,22 @@ mod tests {
         assert!(!path.exists());
         let never_opened = create(&state, "personal", "Vuoto").unwrap();
         assert!(!never_opened.exists);
-        assert_eq!(delete(&state, &never_opened.vault_id).unwrap().vaults.len(), 1);
+        assert_eq!(
+            delete(&state, &never_opened.vault_id).unwrap().vaults.len(),
+            1
+        );
     }
     #[test]
     fn switching_closes_sessions_and_catalog_failure_preserves_open_vault() {
         let fixture = VaultFixture::new();
         let state = fixture.state();
-        open_selected(&state, "personal", Secret::Password("personal test password"), true).unwrap();
+        open_selected(
+            &state,
+            "personal",
+            Secret::Password("personal test password"),
+            true,
+        )
+        .unwrap();
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
         state
             .sessions
@@ -1241,7 +1297,13 @@ mod tests {
         let work = create(&state, "personal", "Lavoro").unwrap();
         assert!(matches!(rx.try_recv(), Ok(terminal::Input::Close)));
         assert!(state.sessions.lock().unwrap().is_empty());
-        open_selected(&state, &work.vault_id, Secret::Password("work test password"), true).unwrap();
+        open_selected(
+            &state,
+            &work.vault_id,
+            Secret::Password("work test password"),
+            true,
+        )
+        .unwrap();
         let catalog_file = state.path.with_extension("catalog.json");
         std::fs::remove_file(&catalog_file).unwrap();
         std::fs::create_dir(&catalog_file).unwrap();

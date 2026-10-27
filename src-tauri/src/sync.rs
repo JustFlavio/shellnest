@@ -231,10 +231,8 @@ mod tests {
     }
     #[test]
     fn two_devices_upload_restore_pull_and_preserve_conflicts() {
-        let root = std::env::temp_dir().join(format!(
-            "shellnest-sync-test-{}",
-            rand::random::<u64>()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("shellnest-sync-test-{}", rand::random::<u64>()));
         std::fs::create_dir_all(&root).unwrap();
         let module = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .parent()

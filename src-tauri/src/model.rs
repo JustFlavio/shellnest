@@ -122,8 +122,7 @@ fn check_layout(
 fn prune_layout(node: &serde_json::Value, host_id: &str) -> Option<serde_json::Value> {
     let obj = node.as_object()?;
     if obj.contains_key("hostId") || obj.contains_key("local") {
-        return (obj.get("hostId").and_then(|h| h.as_str()) != Some(host_id))
-            .then(|| node.clone());
+        return (obj.get("hostId").and_then(|h| h.as_str()) != Some(host_id)).then(|| node.clone());
     }
     match (
         obj.get("a").and_then(|a| prune_layout(a, host_id)),
@@ -556,7 +555,8 @@ impl Data {
         self.validate()
     }
     pub fn delete_group(&mut self, id: &str) -> Result<(), String> {
-        if self.groups.iter().any(|g| g.parent_id == id) || self.hosts.iter().any(|h| h.group_id == id)
+        if self.groups.iter().any(|g| g.parent_id == id)
+            || self.hosts.iter().any(|h| h.group_id == id)
         {
             return Err("La cartella non è vuota: sposta o elimina prima il suo contenuto.".into());
         }
@@ -598,9 +598,7 @@ impl Data {
             .hosts
             .iter()
             .find(|h| {
-                h.id == host.id
-                    && h.address == host.address
-                    && self.effective_port(h) == port
+                h.id == host.id && h.address == host.address && self.effective_port(h) == port
             })
             .cloned();
         host.fingerprint = previous
@@ -632,7 +630,9 @@ impl Data {
     ) -> Result<(), String> {
         if inherit {
             if credentials.is_some() || !host.identity_id.is_empty() {
-                return Err("Eredita l’identità dalla cartella oppure sceglila, non entrambe".into());
+                return Err(
+                    "Eredita l’identità dalla cartella oppure sceglila, non entrambe".into(),
+                );
             }
             host.credentials = None;
         } else if host.identity_id.is_empty() {
@@ -1127,12 +1127,19 @@ mod tests {
         }
         let mut parent = "b".to_string();
         for (i, level) in ["c", "d", "e"].iter().enumerate() {
-            data.upsert_group(group(level, &format!("L{i}"), &parent)).unwrap();
+            data.upsert_group(group(level, &format!("L{i}"), &parent))
+                .unwrap();
             parent = level.to_string();
         }
         assert!(data.clone().upsert_group(group("f", "Sesto", "e")).is_err());
-        assert!(data.clone().upsert_group(group("a", "Produzione", "e")).is_err());
-        assert!(data.clone().upsert_group(group("a", "Produzione", "a")).is_err());
+        assert!(data
+            .clone()
+            .upsert_group(group("a", "Produzione", "e"))
+            .is_err());
+        assert!(data
+            .clone()
+            .upsert_group(group("a", "Produzione", "a"))
+            .is_err());
     }
     #[test]
     fn hosts_inherit_identity_and_port_from_the_nearest_group() {
