@@ -12,6 +12,7 @@
     "format": "prettier --write .",
     "knip": "knip",
     "format:check": "prettier --check .",
+    "tauri": "tauri",
     "desktop": "tauri dev",
     "desktop:build": "tauri build",
     "test": "node --test \"src/**/*.test.ts\" \"sync/*.test.ts\"",
