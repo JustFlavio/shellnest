@@ -98,6 +98,8 @@ pub(crate) fn connect(
     }
     register(app, &state, vault_id, session_id, host, true, output)
 }
+// The argument list is the IPC contract with the frontend, so it cannot be grouped into a struct.
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub(crate) fn connect_quick(
     app: tauri::AppHandle,

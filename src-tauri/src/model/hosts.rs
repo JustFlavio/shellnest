@@ -67,13 +67,6 @@ impl Data {
         }
         self.validate()
     }
-    pub(crate) fn upsert_host_with_credentials(
-        &mut self,
-        host: Host,
-        credentials: Option<HostCredentials>,
-    ) -> Result<(), String> {
-        self.upsert_host_inheriting(host, credentials, false)
-    }
     // `inherit`: the host has no identity or credentials and uses its group's identity.
     pub(crate) fn upsert_host_inheriting(
         &mut self,
@@ -152,22 +145,24 @@ mod tests {
     fn private_credentials_roundtrip_and_remain_independent_of_shared_identities() {
         let mut data = Data::default();
         for (id, password) in [("a", "secret-a"), ("b", "secret-b")] {
-            data.upsert_host_with_credentials(
+            data.upsert_host_inheriting(
                 host(id, ""),
                 Some(HostCredentials {
                     username: "root".into(),
                     password: password.into(),
                 }),
+                false,
             )
             .unwrap();
         }
         assert!(data.identities.is_empty());
-        data.upsert_host_with_credentials(
+        data.upsert_host_inheriting(
             host("a", ""),
             Some(HostCredentials {
                 username: "deploy".into(),
                 password: String::new(),
             }),
+            false,
         )
         .unwrap();
         assert_eq!(data.resolve("a").unwrap().password, "secret-a");

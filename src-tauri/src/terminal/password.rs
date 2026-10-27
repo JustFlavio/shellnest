@@ -26,6 +26,7 @@ impl PasswordPrompt {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
     async fn a_password_is_delivered_only_to_an_open_question() {
         let prompt = PasswordPrompt::default();
         assert!(!prompt.asking());

@@ -147,8 +147,8 @@ pub(crate) fn restore(
         return Err("Il ripristino è disponibile solo su un dispositivo senza vault locale".into());
     }
     let response = client()?
-        .get(endpoint_for_vault(&url, vault_id)?)
-        .bearer_auth(&token)
+        .get(endpoint_for_vault(url, vault_id)?)
+        .bearer_auth(token)
         .send()
         .map_err(|e| e.to_string())?;
     if !response.status().is_success() {
@@ -157,7 +157,7 @@ pub(crate) fn restore(
     let rev = revision(&response)?;
     let env: Envelope = response.json().map_err(|_| "Vault remoto non valido")?;
     let mut v = OpenVault::unlock(
-        &password,
+        password,
         Disk {
             envelope: env,
             revision: Some(rev),

@@ -86,7 +86,7 @@ mod tests {
             password: "synthetic-inline-secret".into(),
         };
         let snapshot = mutate(&state, "personal", |data| {
-            data.upsert_host_with_credentials(host.clone(), Some(credentials.clone()))
+            data.upsert_host_inheriting(host.clone(), Some(credentials.clone()), false)
         })
         .unwrap();
         assert_eq!(snapshot.hosts.len(), 1);
@@ -108,7 +108,7 @@ mod tests {
         let mut invalid = host.clone();
         invalid.name.clear();
         assert!(mutate(&state, "personal", |data| {
-            data.upsert_host_with_credentials(invalid, Some(credentials.clone()))
+            data.upsert_host_inheriting(invalid, Some(credentials.clone()), false)
         })
         .is_err());
         assert_eq!(std::fs::read(&state.path).unwrap(), before);
@@ -116,27 +116,29 @@ mod tests {
         let mut new_host = host.clone();
         new_host.id = "another-host".into();
         assert!(mutate(&state, "personal", |data| {
-            data.upsert_host_with_credentials(
+            data.upsert_host_inheriting(
                 new_host,
                 Some(HostCredentials {
                     username: "root".into(),
                     password: String::new(),
                 }),
+                false,
             )
         })
         .is_err());
         assert_eq!(std::fs::read(&state.path).unwrap(), before);
         assert!(mutate(&state, "other-vault", |data| {
-            data.upsert_host_with_credentials(host.clone(), Some(credentials.clone()))
+            data.upsert_host_inheriting(host.clone(), Some(credentials.clone()), false)
         })
         .is_err());
         let second = mutate(&state, "personal", |data| {
-            data.upsert_host_with_credentials(
+            data.upsert_host_inheriting(
                 host,
                 Some(HostCredentials {
                     username: "admin".into(),
                     password: "another-synthetic-secret".into(),
                 }),
+                false,
             )
         })
         .unwrap();

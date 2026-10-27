@@ -45,8 +45,3 @@ pub(super) fn group(id: &str, name: &str, parent: &str) -> Group {
         port: None,
     }
 }
-pub(super) fn host_in(id: &str, identity_id: &str) -> Host {
-    let mut h = host(id, identity_id);
-    h.port = None;
-    h
-}

@@ -54,6 +54,7 @@ pub(crate) fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Erro
 mod tests {
     use super::*;
     use crate::test_support::VaultFixture;
+    #[cfg(not(feature = "desktop-e2e"))]
     #[test]
     fn legacy_data_dir_moves_only_when_the_new_one_is_missing() {
         let fixture = VaultFixture::new();
