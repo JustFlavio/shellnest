@@ -2,7 +2,7 @@ use super::mutate;
 use crate::{error::Error, model, state::AppState, view::View};
 use tauri::State;
 
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn save_group(
     state: State<AppState>,
     vault_id: String,
@@ -10,7 +10,7 @@ pub(crate) fn save_group(
 ) -> Result<View, Error> {
     mutate(&state, &vault_id, |data| data.upsert_group(group))
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn delete_group(
     state: State<AppState>,
     vault_id: String,

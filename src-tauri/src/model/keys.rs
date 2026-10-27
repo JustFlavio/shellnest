@@ -1,4 +1,4 @@
-use super::{Data, ModelError};
+use super::{Data, ModelError, Redacted};
 use russh::keys::{decode_secret_key, HashAlg};
 use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop};
@@ -11,6 +11,17 @@ pub(crate) struct SshKey {
     pub(crate) private_key: String,
     pub(crate) passphrase: String,
     pub(crate) fingerprint: String,
+}
+impl std::fmt::Debug for SshKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SshKey")
+            .field("id", &self.id)
+            .field("name", &self.name)
+            .field("private_key", &Redacted)
+            .field("passphrase", &Redacted)
+            .field("fingerprint", &self.fingerprint)
+            .finish()
+    }
 }
 pub(super) fn key_fingerprint(private_key: &str, passphrase: &str) -> Result<String, ModelError> {
     let key = decode_secret_key(

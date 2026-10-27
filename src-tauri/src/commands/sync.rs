@@ -7,7 +7,7 @@ use crate::{
 };
 use tauri::{Manager, State};
 
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn configure_sync(
     state: State<AppState>,
     vault_id: String,
@@ -58,6 +58,7 @@ pub(crate) async fn restore_vault(
     password: String,
 ) -> Result<View, Error> {
     let password = zeroize::Zeroizing::new(password);
+    let token = zeroize::Zeroizing::new(token);
     tauri::async_runtime::spawn_blocking(move || {
         restore(&app.state::<AppState>(), &vault_id, &url, &token, &password)
     })

@@ -1,4 +1,4 @@
-use super::{Data, ModelError};
+use super::{Data, ModelError, Redacted};
 use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -11,6 +11,18 @@ pub(crate) struct Identity {
     pub(crate) auth: String,
     pub(crate) key_id: String,
     pub(crate) password: String,
+}
+impl std::fmt::Debug for Identity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Identity")
+            .field("id", &self.id)
+            .field("name", &self.name)
+            .field("username", &self.username)
+            .field("auth", &self.auth)
+            .field("key_id", &self.key_id)
+            .field("password", &Redacted)
+            .finish()
+    }
 }
 
 impl Data {

@@ -6,7 +6,7 @@ mod error;
 pub(crate) use catalog::{valid_vault_id, VaultCatalog, VaultEntry};
 pub(crate) use error::VaultError;
 
-use crate::model::Data;
+use crate::model::{Data, Redacted};
 use argon2::Argon2;
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use chacha20poly1305::{
@@ -37,6 +37,14 @@ pub(crate) struct OpenVault {
     pub(crate) key: Zeroizing<[u8; 32]>,
     pub(crate) data: Data,
     pub(crate) disk: Disk,
+}
+impl std::fmt::Debug for OpenVault {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OpenVault")
+            .field("key", &Redacted)
+            .field("data", &self.data)
+            .finish_non_exhaustive()
+    }
 }
 
 fn derive(password: &str, salt: &[u8]) -> Result<Zeroizing<[u8; 32]>, VaultError> {
@@ -167,6 +175,16 @@ mod tests {
         let v = OpenVault::create("correct horse battery staple").unwrap();
         assert!(OpenVault::unlock_with_key(Zeroizing::new(*v.key), v.disk.clone()).is_ok());
         assert!(OpenVault::unlock_with_key(Zeroizing::new([7; 32]), v.disk).is_err());
+    }
+    #[test]
+    fn debug_output_of_an_open_vault_hides_its_key() {
+        let v = OpenVault::create("correct horse battery staple").unwrap();
+        let text = format!("{v:?}");
+        assert!(text.contains("<redacted>"));
+        for byte_list in [format!("{:?}", *v.key), format!("{:?}", v.key.as_slice())] {
+            assert!(!text.contains(&byte_list));
+        }
+        assert!(!text.contains("correct horse"));
     }
     #[test]
     fn tampering_is_detected_and_nonces_change() {

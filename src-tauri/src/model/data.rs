@@ -1,5 +1,6 @@
 use super::{Group, Host, Identity, SshKey, Workspace};
 use serde::Serialize;
+use std::fmt;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[derive(Clone, Serialize, Zeroize, ZeroizeOnDrop)]
@@ -16,6 +17,17 @@ pub(crate) struct Data {
     pub(crate) sync_token: String,
     #[serde(skip)]
     pub(crate) migrated: bool,
+}
+// Only counts: the contents are secrets.
+impl fmt::Debug for Data {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Data")
+            .field("schema_version", &self.schema_version)
+            .field("hosts", &self.hosts.len())
+            .field("identities", &self.identities.len())
+            .field("keys", &self.keys.len())
+            .finish_non_exhaustive()
+    }
 }
 impl Default for Data {
     fn default() -> Self {

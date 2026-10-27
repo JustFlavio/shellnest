@@ -7,7 +7,7 @@ use crate::{
 };
 use tauri::{Manager, State};
 
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn status(state: State<AppState>) -> Result<View, Error> {
     view(&state)
 }
@@ -34,6 +34,15 @@ pub(crate) enum Secret<'a> {
     Password(&'a str),
     Key(zeroize::Zeroizing<[u8; 32]>),
 }
+impl std::fmt::Debug for Secret<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let kind = match self {
+            Self::Password(_) => "Password",
+            Self::Key(_) => "Key",
+        };
+        f.debug_tuple(kind).field(&crate::model::Redacted).finish()
+    }
+}
 #[tauri::command]
 pub(crate) async fn unlock_saved(app: tauri::AppHandle, vault_id: String) -> Result<View, Error> {
     tauri::async_runtime::spawn_blocking(move || {
@@ -48,11 +57,11 @@ pub(crate) async fn unlock_saved(app: tauri::AppHandle, vault_id: String) -> Res
     .await
     .map_err(Error::from)?
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn is_remembered(vault_id: String) -> bool {
     keychain::load(&vault_id).is_ok()
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn set_remembered(
     state: State<AppState>,
     vault_id: String,
@@ -110,7 +119,7 @@ pub(crate) fn open_selected(
     drop(guard);
     view(s)
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn lock(state: State<AppState>, vault_id: String) -> Result<View, Error> {
     let mut guard = state.vault()?;
     state.ensure_vault(&vault_id)?;

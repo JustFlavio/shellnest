@@ -7,7 +7,7 @@ use crate::{
 };
 use tauri::State;
 
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn reveal_host_password(
     state: State<AppState>,
     vault_id: String,
@@ -15,7 +15,7 @@ pub(crate) fn reveal_host_password(
 ) -> Result<String, Error> {
     state.host_password(&vault_id, &id)
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn save_host(
     state: State<AppState>,
     vault_id: String,
@@ -27,7 +27,7 @@ pub(crate) fn save_host(
         data.upsert_host_inheriting(host, credentials, inherit.unwrap_or(false))
     })
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn assign_identity(
     state: State<AppState>,
     vault_id: String,
@@ -38,7 +38,7 @@ pub(crate) fn assign_identity(
         data.assign_identity(&ids, &identity_id)
     })
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn delete_host(
     state: State<AppState>,
     vault_id: String,

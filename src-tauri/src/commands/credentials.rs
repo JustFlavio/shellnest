@@ -7,7 +7,7 @@ use crate::{
 };
 use tauri::State;
 
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn save_identity(
     state: State<AppState>,
     vault_id: String,
@@ -15,7 +15,7 @@ pub(crate) fn save_identity(
 ) -> Result<View, Error> {
     mutate(&state, &vault_id, |data| data.upsert_identity(identity))
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn save_key(
     state: State<AppState>,
     vault_id: String,
@@ -23,7 +23,7 @@ pub(crate) fn save_key(
 ) -> Result<View, Error> {
     mutate(&state, &vault_id, |data| data.upsert_key(key))
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn delete_identity(
     state: State<AppState>,
     vault_id: String,
@@ -31,7 +31,7 @@ pub(crate) fn delete_identity(
 ) -> Result<View, Error> {
     mutate(&state, &vault_id, |data| data.delete_identity(&id))
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn delete_key(
     state: State<AppState>,
     vault_id: String,

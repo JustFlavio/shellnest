@@ -180,20 +180,38 @@ pub(crate) fn register(
     }
     sessions.insert(session_id.clone(), tx.clone());
     tauri::async_runtime::spawn(async move {
-        if let Err(e) = run(app.clone(), vault_id, saved, host, rx, &output).await {
+        let _closing = Closing {
+            app: app.clone(),
+            session_id,
+            tx,
+            output: output.clone(),
+        };
+        if let Err(e) = run(app, vault_id, saved, host, rx, &output).await {
             let _ = output.send(Output::Error(e.to_string()));
-        }
-        let _ = output.send(Output::Closed);
-        let state = app.state::<AppState>();
-        let mut sessions = state.sessions();
-        if sessions
-            .get(&session_id)
-            .is_some_and(|current| current.same_channel(&tx))
-        {
-            sessions.remove(&session_id);
         }
     });
     Ok(())
+}
+/// Ends a session for the UI and the registry however its task ends, a panic included: without it a
+/// panicking task would leave a dead entry that blocks its id, and a tab that never learns it closed.
+struct Closing {
+    app: tauri::AppHandle,
+    session_id: String,
+    tx: mpsc::UnboundedSender<Input>,
+    output: Channel<Output>,
+}
+impl Drop for Closing {
+    fn drop(&mut self) {
+        let _ = self.output.send(Output::Closed);
+        let state = self.app.state::<AppState>();
+        let mut sessions = state.sessions();
+        if sessions
+            .get(&self.session_id)
+            .is_some_and(|current| current.same_channel(&self.tx))
+        {
+            sessions.remove(&self.session_id);
+        }
+    }
 }
 pub(crate) fn send(state: &AppState, vault_id: &str, id: &str, input: Input) -> Result<(), Error> {
     let _scope = session_scope(state, vault_id)?;

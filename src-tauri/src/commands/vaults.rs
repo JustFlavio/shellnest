@@ -8,7 +8,7 @@ use crate::{
 };
 use tauri::State;
 
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn select_vault(state: State<AppState>, vault_id: String) -> Result<View, Error> {
     select(&state, &vault_id)
 }
@@ -33,7 +33,7 @@ fn select(state: &AppState, id: &str) -> Result<View, Error> {
     drop(guard);
     view(state)
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn create_vault(
     state: State<AppState>,
     vault_id: String,
@@ -65,7 +65,7 @@ fn create(state: &AppState, expected: &str, name: &str) -> Result<View, Error> {
     drop(guard);
     view(state)
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn rename_vault(
     state: State<AppState>,
     vault_id: String,
@@ -87,7 +87,7 @@ pub(crate) fn rename_vault(
     drop(guard);
     view(&state)
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn delete_vault(state: State<AppState>, vault_id: String) -> Result<View, Error> {
     delete(&state, &vault_id)
 }

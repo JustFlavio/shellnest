@@ -1,4 +1,4 @@
-use super::{new_id, Data, Host, ModelError};
+use super::{new_id, Data, Host, ModelError, Redacted};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
@@ -11,6 +11,19 @@ pub(crate) struct Connection {
     pub(crate) passphrase: String,
     // For the connection log and the timeline; not a secret.
     pub(crate) key_name: String,
+}
+impl std::fmt::Debug for Connection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Connection")
+            .field("host", &self.host)
+            .field("username", &self.username)
+            .field("auth", &self.auth)
+            .field("password", &Redacted)
+            .field("private_key", &Redacted)
+            .field("passphrase", &Redacted)
+            .field("key_name", &self.key_name)
+            .finish()
+    }
 }
 
 impl Data {

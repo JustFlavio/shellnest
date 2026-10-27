@@ -78,7 +78,8 @@ pub(crate) fn start(
             .as_raw_fd()
             .ok_or(TerminalError::NoPtyDescriptor)?;
         let duplicate = nix::fcntl::fcntl(fd, nix::fcntl::FcntlArg::F_DUPFD_CLOEXEC(0))?;
-        // The duplicate belongs exclusively to this reader and closes with it.
+        // SAFETY: `duplicate` was just returned by a successful F_DUPFD_CLOEXEC, so it is a valid open
+        // descriptor that no other owner has: wrapping it in an `OwnedFd` makes this the only closer.
         unsafe { OwnedFd::from_raw_fd(duplicate) }
     };
     let mut registry = children().lock_recovering();

@@ -1,8 +1,8 @@
-use super::{validate_endpoint, workspaces::prune_layout, Data, ModelError};
+use super::{validate_endpoint, workspaces::prune_layout, Data, ModelError, Redacted};
 use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-#[derive(Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
+#[derive(Clone, Debug, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct Host {
     pub(crate) id: String,
@@ -28,6 +28,14 @@ pub(crate) struct Host {
 pub(crate) struct HostCredentials {
     pub(crate) username: String,
     pub(crate) password: String,
+}
+impl std::fmt::Debug for HostCredentials {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HostCredentials")
+            .field("username", &self.username)
+            .field("password", &Redacted)
+            .finish()
+    }
 }
 
 impl Data {

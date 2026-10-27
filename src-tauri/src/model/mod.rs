@@ -23,6 +23,14 @@ pub(crate) use keys::SshKey;
 pub(crate) use resolve::Connection;
 pub(crate) use workspaces::Workspace;
 
+/// Stands in for a secret in `Debug` output, so a stray `{:?}` or `assert_eq!` never prints it.
+pub(crate) struct Redacted;
+impl std::fmt::Debug for Redacted {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("<redacted>")
+    }
+}
+
 pub(crate) fn new_id() -> String {
     format!("{:032x}", rand::random::<u128>())
 }
@@ -48,5 +56,52 @@ mod tests {
         assert!(validate_endpoint("host\nother", 22).is_err());
         assert!(validate_endpoint("::1", 22).is_ok());
         assert!(validate_endpoint("host", 0).is_err());
+    }
+    #[test]
+    fn debug_output_of_secret_bearing_types_never_shows_the_secret() {
+        let mut data = Data::default();
+        data.keys.push(SshKey {
+            id: "k".into(),
+            name: "Key".into(),
+            private_key: "SECRET-PRIVATE-KEY".into(),
+            passphrase: "SECRET-PASSPHRASE".into(),
+            fingerprint: "SHA256:public".into(),
+        });
+        data.identities.push(Identity {
+            id: "i".into(),
+            name: "Login".into(),
+            username: "root".into(),
+            auth: "password".into(),
+            key_id: String::new(),
+            password: "SECRET-IDENTITY-PASSWORD".into(),
+        });
+        let mut host = test_support::host("h", "");
+        host.credentials = Some(HostCredentials {
+            username: "deploy".into(),
+            password: "SECRET-HOST-PASSWORD".into(),
+        });
+        data.hosts.push(host);
+        data.sync_token = "SECRET-SYNC-TOKEN".into();
+        let connection = Connection {
+            host: data.hosts[0].clone(),
+            username: "deploy".into(),
+            auth: "key".into(),
+            password: "SECRET-HOST-PASSWORD".into(),
+            private_key: "SECRET-PRIVATE-KEY".into(),
+            passphrase: "SECRET-PASSPHRASE".into(),
+            key_name: "Key".into(),
+        };
+        let shown = [
+            format!("{data:?}"),
+            format!("{:?}", data.keys[0]),
+            format!("{:?}", data.identities[0]),
+            format!("{:?}", data.hosts[0]),
+            format!("{connection:?}"),
+        ];
+        for text in &shown {
+            assert!(!text.contains("SECRET"), "leaked: {text}");
+        }
+        assert!(shown[1].contains("<redacted>") && shown[1].contains("SHA256:public"));
+        assert!(shown[3].contains("deploy") && shown[3].contains("<redacted>"));
     }
 }

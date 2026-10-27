@@ -47,7 +47,7 @@ pub(crate) async fn probe_target(
     crate::model::validate_endpoint(&address, port)?;
     Ok(probe(&address, port).await?)
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn trust_host(
     state: State<AppState>,
     vault_id: String,
@@ -83,7 +83,7 @@ pub(crate) fn trust_host(
     host.fingerprint = expected;
     commit(&state, v, data)
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn connect(
     app: tauri::AppHandle,
     state: State<AppState>,
@@ -108,7 +108,7 @@ pub(crate) fn connect(
 }
 // The argument list is the IPC contract with the frontend, so it cannot be grouped into a struct.
 #[allow(clippy::too_many_arguments)]
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn connect_quick(
     app: tauri::AppHandle,
     state: State<AppState>,
@@ -203,7 +203,7 @@ pub(crate) fn disconnect(
     }
     Ok(())
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn connect_local(
     state: State<AppState>,
     vault_id: String,

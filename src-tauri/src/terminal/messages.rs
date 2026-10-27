@@ -1,3 +1,4 @@
+use crate::model::Redacted;
 use serde::Serialize;
 use zeroize::Zeroizing;
 
@@ -7,6 +8,17 @@ pub(crate) enum Input {
     // The answer to Output::Password; never logged, zeroized once used.
     Password(Zeroizing<String>),
     Close,
+}
+// Keystrokes may be a password typed into a remote prompt: only their size is ever shown.
+impl std::fmt::Debug for Input {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Data(bytes) => write!(f, "Data({} bytes)", bytes.len()),
+            Self::Resize(cols, rows) => write!(f, "Resize({cols}, {rows})"),
+            Self::Password(_) => f.debug_tuple("Password").field(&Redacted).finish(),
+            Self::Close => f.write_str("Close"),
+        }
+    }
 }
 #[derive(Clone, Serialize)]
 #[serde(tag = "type", content = "data", rename_all = "lowercase")]
@@ -35,4 +47,21 @@ pub(crate) struct StepDetail {
 pub(crate) struct ConnectionMetadata {
     pub os: Option<String>,
     pub last_connected_at: u64,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn debug_output_of_input_shows_sizes_never_content() {
+        assert_eq!(
+            format!("{:?}", Input::Password(Zeroizing::new("SECRET".into()))),
+            "Password(<redacted>)"
+        );
+        assert_eq!(
+            format!("{:?}", Input::Data(b"sudo-password\n".to_vec())),
+            "Data(14 bytes)"
+        );
+        assert_eq!(format!("{:?}", Input::Resize(80, 24)), "Resize(80, 24)");
+    }
 }

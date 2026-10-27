@@ -2,7 +2,7 @@ use super::mutate;
 use crate::{error::Error, model, state::AppState, view::View};
 use tauri::State;
 
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn save_workspace(
     state: State<AppState>,
     vault_id: String,
@@ -10,7 +10,7 @@ pub(crate) fn save_workspace(
 ) -> Result<View, Error> {
     mutate(&state, &vault_id, |data| data.upsert_workspace(workspace))
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn delete_workspace(
     state: State<AppState>,
     vault_id: String,
