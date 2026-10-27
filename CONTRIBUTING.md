@@ -28,7 +28,7 @@ cargo test --locked --manifest-path src-tauri/Cargo.toml
 
 ## Security-sensitive changes
 
-Anything touching the vault, key handling or sync needs extra care. Never change the encryption `AAD` constant in `src-tauri/src/vault.rs`: existing vaults would stop opening. Report vulnerabilities privately, see [SECURITY.md](SECURITY.md).
+Anything touching the vault, key handling or sync needs extra care. Never change the encryption `AAD` constant in `src-tauri/src/vault/mod.rs`: existing vaults would stop opening. Report vulnerabilities privately, see [SECURITY.md](SECURITY.md).
 
 ## License
 

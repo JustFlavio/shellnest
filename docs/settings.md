@@ -13,7 +13,7 @@ Le impostazioni dell'app stanno in `localStorage` (`shellnest.settings`, `shelln
 ## In arrivo (mostrato nella UI come "Presto")
 
 - **Evidenziazione parole chiave** nell'output (errori, avvisi, OK, info, debug, IP e MAC) con colori a scelta. Lavoro a sé: serve colorare l'output di xterm senza toccare i dati inviati alla shell.
-- **Connessione**: keepalive configurabile (oggi fisso a 30 s con 3 tentativi in `src-tauri/src/terminal.rs`), riconnessione automatica, shell del terminale locale, rilevamento OS dell'host come interruttore.
+- **Connessione**: keepalive configurabile (oggi fisso a 30 s con 3 tentativi in `src-tauri/src/terminal/host_key.rs`), riconnessione automatica, shell del terminale locale, rilevamento OS dell'host come interruttore.
 - Documentazione e Changelog.
 - Tema chiaro dell'app (oggi esiste una sola paletta): solo allora ha senso il selettore "Tema".
 
