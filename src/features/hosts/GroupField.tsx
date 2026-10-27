@@ -1,6 +1,7 @@
 import { Combobox } from "@base-ui/react/combobox";
 import { Folder, FolderPlus, FolderX } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { groupOptions, groupPath, inheritedIdentity } from "./groups.mjs";
@@ -163,6 +164,16 @@ export function GroupField({
               <p className={suggestionEmpty}>
                 Nessuna cartella. Scrivi un nome per crearne una.
               </p>
+            )}
+            {!text && (
+              <Button
+                variant="ghost"
+                type="button"
+                className="mt-[4px] w-full text-[12px] text-primary"
+                onClick={() => onNewGroup("")}
+              >
+                Crea cartella
+              </Button>
             )}
           </Combobox.Popup>
         </Combobox.Positioner>

@@ -56,3 +56,12 @@ test("first host: identity created inline", async ({ page }) => {
   await expect(page.getByRole("combobox", { name: "Utente SSH" })).toHaveValue("root");
 });
 
+test("first host: folder created inline", async ({ page }) => {
+  await newHost(page);
+  await page.getByRole("combobox", { name: "Cartella" }).click();
+  await page.getByRole("button", { name: "Crea cartella", exact: true }).click();
+  await page.getByRole("heading", { name: "Nuovo gruppo" }).waitFor();
+  await page.getByRole("textbox", { name: "Nome" }).fill("Produzione");
+  await page.getByRole("button", { name: "Salva e torna all’host" }).click();
+  await expect(page.getByRole("combobox", { name: "Cartella" })).toHaveValue("Produzione");
+});
