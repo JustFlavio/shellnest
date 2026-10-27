@@ -1,8 +1,15 @@
 // The steps of the connection timeline, derived from what the session reports.
 // Statuses come from the Rust side (terminal.rs `open`); the UI text is Italian.
+export type StepState = "done" | "current" | "failed" | "pending";
+export type TimelineStep = {
+  id: "connect" | "trust" | "auth" | "password" | "session";
+  label: string;
+  state: StepState;
+};
+
 const CHANGED = "Identità del server cambiata";
 
-function stageOf(phase) {
+function stageOf(phase: string): "connect" | "auth" | "session" {
   if (/^(Apertura del terminale|Connesso)/.test(phase)) return "session";
   if (
     phase === "Autenticazione SSH" ||
@@ -27,20 +34,29 @@ export function timelineSteps({
   failure,
   opened,
   password,
-}) {
+}: {
+  kind: "ssh" | "quick" | "local";
+  target: string;
+  askedTrust: boolean;
+  awaitingTrust: boolean;
+  phase: string;
+  failure: string;
+  opened: boolean;
+  password?: boolean | null;
+}): TimelineStep[] {
   const changed = !!failure && failure.includes(CHANGED);
   const remote = kind !== "local";
-  const steps = [
+  const steps: Omit<TimelineStep, "state">[] = [
     {
       id: "connect",
       label: remote ? `Connessione a ${target}` : "Avvio del terminale locale",
     },
     ...(remote && (askedTrust || changed)
-      ? [{ id: "trust", label: "Verifica impronta" }]
+      ? [{ id: "trust" as const, label: "Verifica impronta" }]
       : []),
-    ...(remote ? [{ id: "auth", label: "Autenticazione" }] : []),
+    ...(remote ? [{ id: "auth" as const, label: "Autenticazione" }] : []),
     ...(password !== null && password !== undefined
-      ? [{ id: "password", label: "Password" }]
+      ? [{ id: "password" as const, label: "Password" }]
       : []),
     { id: "session", label: "Sessione aperta" },
   ];
@@ -59,7 +75,7 @@ export function timelineSteps({
                 ? "password"
                 : stageOf(phase)),
         );
-  return steps.map((step, i) => ({
+  return steps.map((step, i): TimelineStep => ({
     ...step,
     state:
       i < current

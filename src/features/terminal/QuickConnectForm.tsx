@@ -3,7 +3,7 @@ import { SelectField } from "@/components/SelectField";
 import { Button } from "@/components/ui/button";
 import { help, muted } from "@/lib/editor-ui";
 import type { Identity } from "@/lib/types";
-import type { ConnectionTarget } from "./connection-target.mjs";
+import type { ConnectionTarget } from "./connection-target.ts";
 
 export function QuickConnectForm({
   target,

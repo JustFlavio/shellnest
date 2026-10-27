@@ -1,5 +1,5 @@
 import type { Host, WorkspaceDraft } from "@/lib/types";
-import type { ConnectionTarget } from "./connection-target.mjs";
+import type { ConnectionTarget } from "./connection-target.ts";
 
 export type QuickConnection = ConnectionTarget & { identityId: string };
 

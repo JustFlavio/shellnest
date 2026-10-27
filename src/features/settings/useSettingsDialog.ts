@@ -4,7 +4,7 @@ import { desktop } from "@/lib/platform";
 import type { SettingsSection } from "./SettingsNav";
 import type { View } from "@/lib/types";
 import type { VaultApi } from "@/features/vault/useVault";
-import { syncUrlForVault } from "@/features/terminal/workbench-state.mjs";
+import { syncUrlForVault } from "@/features/terminal/workbench-state.ts";
 
 /** The settings dialog and the vault options in it: sync service and remembered password. */
 export function useSettingsDialog({

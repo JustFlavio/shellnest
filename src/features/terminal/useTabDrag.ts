@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import type { Edge } from "./workbench-state.mjs";
+import type { Edge } from "./workbench-state.ts";
 import type { TabsApi } from "./useTabs";
-import { layoutRects, removeLeaf } from "./workbench-state.mjs";
+import { layoutRects, removeLeaf } from "./workbench-state.ts";
 
 /** Dragging a tab over the bar or a pane over its workspace, and the geometry shown meanwhile. */
 export function useTabDrag({ tabs, active, setActive, dropOnPane }: TabsApi) {

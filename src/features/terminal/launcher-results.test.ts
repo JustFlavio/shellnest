@@ -7,26 +7,36 @@ import {
   listHeading,
   togglePicked,
   workspaceSize,
-} from "./launcher-results.mjs";
+} from "./launcher-results.ts";
+import type { LauncherTab, RecentHost } from "./launcher-results.ts";
+import type { Identity } from "../../lib/types.ts";
 
-const host = (id, name, extra = {}) => ({
-  id,
-  name,
-  address: `${name}.example`,
-  groupId: "",
-  identityId: "",
-  ...extra,
-});
-const base = {
+type Input = Parameters<typeof launcherResults>[0];
+
+const host = (id: string, name: string, extra: Partial<RecentHost> = {}) =>
+  ({
+    id,
+    name,
+    address: `${name}.example`,
+    groupId: "",
+    identityId: "",
+    ...extra,
+  }) as RecentHost;
+const base: Input = {
   query: "",
   vaultName: "Personale",
   groups: [],
-  identities: [{ id: "i1", username: "deploy" }],
+  identities: [{ id: "i1", username: "deploy" } as Identity],
   workspaces: [
     {
       id: "w1",
       name: "Stack",
-      layout: { dir: "row", a: { hostId: "a" }, b: { local: true } },
+      layout: {
+        dir: "row",
+        ratio: 0.5,
+        a: { hostId: "a" },
+        b: { local: true },
+      },
     },
   ],
   tabs: [
@@ -39,7 +49,7 @@ const base = {
   ],
   selecting: false,
 };
-const keys = (input) =>
+const keys = (input: Partial<Input>) =>
   launcherResults({ ...base, ...input }).results.map((r) => r.key);
 
 test("hosts come most recently used first, then by name", () => {
@@ -112,7 +122,12 @@ test("the list heading follows picking, searching and history", () => {
   );
 });
 
-const session = (id, hostId, lastActive, extra = {}) => ({
+const session = (
+  id: string,
+  hostId: string,
+  lastActive: number,
+  extra: Partial<LauncherTab> = {},
+): LauncherTab => ({
   id,
   title: hostId,
   subtitle: `root@${hostId}.example`,
@@ -131,7 +146,7 @@ test("a host with open sessions is one row that switches to the latest", () => {
     results.map((r) => r.key),
     ["host-a"],
   );
-  assert.equal(results[0].openTab.id, "t2");
+  assert.equal(results[0].openTab?.id, "t2");
 });
 
 test("the row also matches on the tab and carries panes of a split", () => {
@@ -146,7 +161,7 @@ test("the row also matches on the tab and carries panes of a split", () => {
     r.map((x) => x.key),
     ["host-c"],
   );
-  assert.equal(r[0].openTab.id, "t9");
+  assert.equal(r[0].openTab?.id, "t9");
   assert.deepEqual(keys({ query: "workspace", tabs: [split] }), ["tab-t9"]);
 });
 

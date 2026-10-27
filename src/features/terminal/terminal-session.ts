@@ -2,8 +2,8 @@ import type { RefObject } from "react";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { desktop } from "@/lib/platform";
 import type { Output, TerminalTab } from "@/lib/types";
-import { RESET_MODES } from "./terminal-input.mjs";
-import { terminalInputChunks } from "./workbench-state.mjs";
+import { RESET_MODES } from "./terminal-input.ts";
+import { terminalInputChunks } from "./workbench-state.ts";
 import type { Xterm } from "./xterm";
 
 export type SessionCallbacks = {

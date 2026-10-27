@@ -2,7 +2,7 @@ import { Panel } from "@/features/hosts/Panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { help } from "@/lib/editor-ui";
-import { leafIds } from "./workbench-state.mjs";
+import { leafIds } from "./workbench-state.ts";
 import { useApp } from "@/app/app-context";
 
 export function WorkspaceDialog() {

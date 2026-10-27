@@ -8,8 +8,8 @@ import { useApp } from "@/app/app-context";
 import { FingerprintCard } from "./FingerprintCard";
 import { PasswordStep } from "./PasswordStep";
 import type { PasswordAsk } from "./useTerminalSession";
-import { timelineSteps } from "./connection-steps.mjs";
-import type { StepState } from "./connection-steps.mjs";
+import { timelineSteps } from "./connection-steps.ts";
+import type { StepState } from "./connection-steps.ts";
 
 const dot: Record<StepState, string> = {
   done: "border-primary bg-primary text-primary-foreground",

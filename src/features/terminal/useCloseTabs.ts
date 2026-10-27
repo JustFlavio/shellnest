@@ -7,7 +7,8 @@ import {
   neighbourInBar,
   sessionIds,
   unlinkPane,
-} from "./tabs-state.mjs";
+} from "./tabs-state.ts";
+import type { Closed } from "./tabs-state.ts";
 import type { HostConnections } from "./useHostConnections";
 import type { TabList } from "./useTabList";
 
@@ -20,7 +21,7 @@ export function useCloseTabs(
 ) {
   const { tabs, active } = list;
   const [pendingClose, setPendingClose] = useState<string[] | null>(null);
-  const closed = useRef<TerminalTab[]>([]);
+  const closed = useRef<Closed<TerminalTab>[]>([]);
   const rememberClosed = (ids: string[]) => {
     closed.current.push(...closedRecords(tabs, ids));
   };

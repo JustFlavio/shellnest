@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { MAX_WORKSPACE_HOSTS } from "./launcher-results.mjs";
+import { MAX_WORKSPACE_HOSTS } from "./launcher-results.ts";
 
 export function PickingActions({
   count,

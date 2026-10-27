@@ -16,7 +16,7 @@ import {
   needsPasteConfirm,
   sanitizePaste,
   terminalKeyAction,
-} from "./terminal-input.mjs";
+} from "./terminal-input.ts";
 
 export type XtermHandlers = {
   // a paste big enough to ask first

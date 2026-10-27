@@ -1,5 +1,11 @@
+export type ConnectionTarget = {
+  address: string;
+  port: number;
+  username?: string;
+};
+
 /** Parse an SSH destination, never a command to execute in a shell. */
-export function parseConnectionTarget(input) {
+export function parseConnectionTarget(input: unknown): ConnectionTarget | null {
   if (
     typeof input !== "string" ||
     input.length > 1024 ||
@@ -8,7 +14,7 @@ export function parseConnectionTarget(input) {
     return null;
   let text = input.trim();
   if (!text || text === "ssh") return null;
-  let explicitPort;
+  let explicitPort: string | undefined;
   if (text.startsWith("ssh ")) {
     const parts = text.split(/ +/);
     if (parts.length === 2) text = parts[1];
@@ -21,15 +27,15 @@ export function parseConnectionTarget(input) {
     } else return null;
   }
   if (/\s/.test(text)) return null;
-  let username;
+  let username: string | undefined;
   const at = text.indexOf("@");
   if (at !== -1) {
     username = text.slice(0, at);
     text = text.slice(at + 1);
     if (!/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,254}$/.test(username)) return null;
   }
-  let address;
-  let inlinePort;
+  let address: string;
+  let inlinePort: string | undefined;
   if (text.startsWith("[")) {
     const match = /^\[([0-9a-fA-F:.]+)\](?::([0-9]+))?$/.exec(text);
     if (!match || !match[1].includes(":")) return null;
@@ -68,7 +74,7 @@ export function parseConnectionTarget(input) {
 }
 
 /** Whether typed text is plainly a connection target, not just a word that happens to parse as a host name. */
-export function looksLikeTarget(input) {
+export function looksLikeTarget(input: string): boolean {
   const target = parseConnectionTarget(input);
   if (!target) return false;
   const text = input.trim();
@@ -85,7 +91,11 @@ export function looksLikeTarget(input) {
  * addressed exactly like the text already has its own row; `forced` (Cmd/Ctrl+Enter) shows
  * the card for any text that parses.
  */
-export function quickConnectTarget(input, hosts, forced = false) {
+export function quickConnectTarget(
+  input: string,
+  hosts: { name: string; address: string }[],
+  forced = false,
+): ConnectionTarget | null {
   const target = parseConnectionTarget(input);
   if (!target || !(forced || looksLikeTarget(input))) return null;
   const text = input.trim().toLocaleLowerCase();

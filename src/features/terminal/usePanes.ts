@@ -7,9 +7,9 @@ import {
   replaceTab,
   splitPane,
   unlinkPane,
-} from "./tabs-state.mjs";
-import { replaceLeaf, setRatio } from "./workbench-state.mjs";
-import type { Edge } from "./workbench-state.mjs";
+} from "./tabs-state.ts";
+import { replaceLeaf, setRatio } from "./workbench-state.ts";
+import type { Edge } from "./workbench-state.ts";
 import type { CloseTabs } from "./useCloseTabs";
 import type { HostConnections } from "./useHostConnections";
 import type { TabList } from "./useTabList";

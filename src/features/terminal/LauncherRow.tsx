@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { CommandItem } from "@/components/ui/command";
 import { OsIcon } from "@/components/OsIcon";
 import { cn } from "@/lib/utils";
-import type { LauncherResult } from "./launcher-results.mjs";
+import type { LauncherResult } from "./launcher-results.ts";
 
 // keeps Enter on a row button from reaching the list, which would also run the highlighted result
 const stopKey = (event: React.KeyboardEvent) => event.stopPropagation();

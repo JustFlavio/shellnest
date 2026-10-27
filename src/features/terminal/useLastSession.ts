@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { desktop } from "@/lib/platform";
 import type { VaultApi } from "@/features/vault/useVault";
-import { parseSession } from "./tabs-state.mjs";
-import { snapshotSession } from "./workbench-state.mjs";
+import { parseSession } from "./tabs-state.ts";
+import { snapshotSession } from "./workbench-state.ts";
 import type { TabList } from "./useTabList";
 
 const sessionKey = (vaultId: string) => `shellnest.session.${vaultId}`;
