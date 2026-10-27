@@ -1,4 +1,4 @@
-import { Check, LayoutGrid, Trash2 } from "lucide-react";
+import { Check, LayoutGrid, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OsIcon } from "@/components/OsIcon";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ export function LauncherRow({
   onActivate,
   onArmDelete,
   onDelete,
+  onNewSession,
 }: {
   result: LauncherResult;
   selected: boolean;
@@ -26,7 +27,9 @@ export function LauncherRow({
   onActivate: () => void;
   onArmDelete: () => void;
   onDelete: () => void;
+  onNewSession: () => void;
 }) {
+  const open = !!result.openTab && checked === undefined;
   return (
     <div
       data-launch-selected={selected ? "" : undefined}
@@ -70,10 +73,32 @@ export function LauncherRow({
         <span className="min-w-0 flex-1 truncate text-[13px]">
           {result.title}
         </span>
+        {open && (
+          <span className="flex shrink-0 items-center gap-[6px] text-[12px] font-normal text-muted-foreground">
+            <span
+              className="inline-block size-[5px] rounded-full bg-[#76c5a0]"
+              aria-hidden
+            />
+            aperta
+          </span>
+        )}
         <span className="shrink-0 text-[12px] font-normal text-muted-foreground">
           {result.path}
         </span>
       </Button>
+      {open && (
+        <Button
+          variant="ghost"
+          type="button"
+          className="mr-[6px] h-[28px] px-[8px] text-[12px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          aria-label={`Nuova sessione ${result.title}`}
+          title="Nuova sessione (Maiusc+Invio)"
+          disabled={busy}
+          onClick={onNewSession}
+        >
+          <Plus size={14} />
+        </Button>
+      )}
       {result.workspace && (
         <Button
           variant="ghost"
