@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Switch } from "@/components/ui/switch";
-import { Row, card, cardTitle } from "@/features/settings/SettingsDialog";
+import { Row } from "@/features/settings/Row";
+import { card, cardTitle } from "@/features/settings/settings-ui";
 import { help, muted } from "@/lib/editor-ui";
 import type { View } from "@/lib/types";
 

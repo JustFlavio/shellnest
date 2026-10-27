@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { desktop } from "@/lib/platform";
-import type { SettingsSection } from "./SettingsDialog";
+import type { SettingsSection } from "./SettingsNav";
 import type { View } from "@/lib/types";
 import type { VaultApi } from "@/features/vault/useVault";
 import { syncUrlForVault } from "@/features/terminal/workbench-state.mjs";
