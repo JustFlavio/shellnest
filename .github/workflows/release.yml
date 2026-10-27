@@ -4,7 +4,30 @@ on:
     tags: ["v*"]
 
 jobs:
+  # One job makes the draft release, so the parallel builds do not each create their own.
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release_id: ${{ steps.create.outputs.id }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check that the tag matches the app version
+        run: test "v$(node -p "require('./package.json').version")" = "${{ github.ref_name }}"
+      - id: create
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          id=$(gh api "repos/${{ github.repository }}/releases" \
+            -f tag_name="${{ github.ref_name }}" \
+            -f name="Shellnest ${{ github.ref_name }}" \
+            -f body="Alpha build, not code-signed. See CHANGELOG.md for what is in it and the README for first-launch warnings." \
+            -F draft=true -F prerelease=true --jq .id)
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: create-release
     permissions:
       contents: write
     strategy:
@@ -30,17 +53,10 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-      - name: Check that the tag matches the app version
-        shell: bash
-        run: test "v$(node -p "require('./package.json').version")" = "${{ github.ref_name }}"
       - run: npm ci
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: Shellnest ${{ github.ref_name }}
-          releaseBody: Alpha build, not code-signed. See CHANGELOG.md for what is in it and the README for first-launch warnings.
-          releaseDraft: true
-          prerelease: true
+          releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
