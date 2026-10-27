@@ -110,9 +110,15 @@ pub(crate) fn connect_quick(
     port: u16,
     identity_id: String,
     username: Option<String>,
+    key_id: String,
+    password: Option<String>,
     expected_fingerprint: String,
     output: Channel<Output>,
 ) -> Result<(), String> {
+    let password = Zeroizing::new(password.unwrap_or_default());
+    if password.len() > 1024 {
+        return Err("Password troppo lunga".into());
+    }
     crate::model::validate_endpoint(&address, port)?;
     let guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
     state.ensure_vault(&vault_id)?;
@@ -125,6 +131,7 @@ pub(crate) fn connect_quick(
             port,
             &identity_id,
             username.as_deref(),
+            (&key_id, password.as_str()),
             &expected_fingerprint,
         )?;
     register(app, &state, vault_id, session_id, connection, false, output)

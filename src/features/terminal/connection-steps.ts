@@ -41,6 +41,7 @@ export function timelineSteps({
   opened,
   passwords = 0,
   details = {},
+  setup,
 }: {
   kind: "ssh" | "quick" | "local";
   target: string;
@@ -51,6 +52,9 @@ export function timelineSteps({
   opened: boolean;
   passwords?: number;
   details?: Record<string, StepNote>;
+  // A quick connection still asking: the question being answered, and whether a second one
+  // (password or key) follows. Undefined once everything is known.
+  setup?: { stage: "user" | "method" | null; method: boolean };
 }): TimelineStep[] {
   const changed = !!failure && failure.includes(CHANGED);
   const remote = kind !== "local";
@@ -59,6 +63,14 @@ export function timelineSteps({
     label: i === 0 ? "Password" : `Password (tentativo ${i + 1})`,
   }));
   const steps: Omit<TimelineStep, "state">[] = [
+    ...(setup
+      ? [
+          { id: "user", label: "Utente" },
+          ...(setup.method
+            ? [{ id: "method", label: "Metodo di accesso" }]
+            : []),
+        ]
+      : []),
     {
       id: "connect",
       label: remote ? `Connessione a ${target}` : "Avvio del terminale locale",
@@ -73,7 +85,9 @@ export function timelineSteps({
   const stage = stageOf(phase);
   const current = opened
     ? steps.length
-    : awaitingTrust || changed
+    : setup?.stage
+      ? steps.findIndex((s) => s.id === setup.stage)
+      : awaitingTrust || changed
       ? steps.findIndex((s) => s.id === "trust")
       : !remote
         ? 0

@@ -1,12 +1,10 @@
 import type { Host, WorkspaceDraft } from "@/lib/types";
 import type { ConnectionTarget } from "./connection-target.ts";
 
-export type QuickConnection = ConnectionTarget & { identityId: string };
-
 /** An unknown host key waiting for the user's answer, and what to resume once trusted. */
 export type Trust = {
   host?: Host;
-  quick?: QuickConnection;
+  quick?: ConnectionTarget;
   workspaces?: WorkspaceDraft[];
   activeIndex?: number;
   fingerprint: string;

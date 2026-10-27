@@ -62,16 +62,17 @@ test("targets offer a quick connection", async ({ page }) => {
   await expect(page.locator("form code")).toHaveText("10.0.0.5:2222");
 });
 
-test("Cmd+Enter reveals the quick connection and focuses the identity", async ({
+test("Cmd+Enter starts the connection timeline with the target", async ({
   page,
 }) => {
   await openLauncher(page);
   await search(page).fill("rc");
   await search(page).press("Meta+Enter");
-  await expect(card(page)).toBeVisible();
+  await expect(search(page)).toHaveCount(0);
+  await expect(page.getByLabel("Utente", { exact: true })).toBeFocused();
   await expect(
-    page.getByRole("combobox", { name: "Identità per connessione rapida" }),
-  ).toBeFocused();
+    page.getByRole("list", { name: "Avanzamento della connessione" }),
+  ).toContainText("Connessione a rc:22");
 });
 
 test("an empty vault explains how to connect", async ({ page }) => {

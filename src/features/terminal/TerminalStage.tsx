@@ -24,7 +24,7 @@ export function TerminalStage() {
       connect,
       askClosePane,
       openLocal,
-      openQuick,
+      startQuick,
       resizeActive,
       tabStatus,
       tabTitle,
@@ -94,7 +94,11 @@ export function TerminalStage() {
                 const host = view.hosts.find((h) => h.id === tab.host.id);
                 if (host) connect(host);
               } else if (tab.kind === "local") openLocal();
-              else openQuick(tab.target);
+              else
+                startQuick({
+                  ...tab.target,
+                  username: tab.username || undefined,
+                });
             }}
             onEdit={
               tab.kind === "ssh"

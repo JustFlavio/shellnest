@@ -18,7 +18,7 @@ export function useTabs(
   const list = useTabList();
   const [trust, setTrust] = useState<Trust | null>(null);
   const connections = useHostConnections(vault, list, setTrust);
-  const closing = useCloseTabs(vault, list, connections, closeGuard);
+  const closing = useCloseTabs(list, connections, closeGuard);
   const panes = usePanes(vault, list, connections, closing);
   const lastSession = useLastSession(vault, list);
   const workspaces = useWorkspaces(vault, list, setTrust, lastSession);
@@ -67,8 +67,8 @@ export function useTabs(
     connect: connections.connect,
     connectHosts: connections.connectHosts,
     openLocal: connections.openLocal,
-    openQuick: connections.openQuick,
-    quickConnect: connections.quickConnect,
+    startQuick: connections.startQuick,
+    finishQuick: connections.finishQuick,
     pendingClose: closing.pendingClose,
     setPendingClose: closing.setPendingClose,
     closePane: closing.closePane,

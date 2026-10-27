@@ -162,3 +162,43 @@ test("details: server banner, known host, new fingerprint, key name", () => {
   // nothing is claimed for a step that is still running or failed
   assert.equal(detail({ details: key }, "auth"), undefined);
 });
+
+test("a quick connection asks user, then the login, before connecting", () => {
+  const quick = { ...base, kind: "quick" as const, askedTrust: true };
+  const asking = (setup: Parameters<typeof timelineSteps>[0]["setup"]) =>
+    timelineSteps({ ...quick, setup }).map((s) => s.id + ":" + s.state);
+  assert.deepEqual(asking({ stage: "user", method: true }), [
+    "user:current",
+    "method:pending",
+    "connect:pending",
+    "trust:pending",
+    "auth:pending",
+    "session:pending",
+  ]);
+  assert.deepEqual(asking({ stage: "method", method: true }).slice(0, 3), [
+    "user:done",
+    "method:current",
+    "connect:pending",
+  ]);
+  // an identity answers both: no second question
+  assert.deepEqual(asking({ stage: "user", method: false }).slice(0, 2), [
+    "user:current",
+    "connect:pending",
+  ]);
+  // answered: the usual steps, the fingerprint one first
+  assert.deepEqual(
+    timelineSteps({
+      ...quick,
+      awaitingTrust: true,
+      setup: { stage: null, method: true },
+    }).map((s) => s.id + ":" + s.state),
+    [
+      "user:done",
+      "method:done",
+      "connect:done",
+      "trust:current",
+      "auth:pending",
+      "session:pending",
+    ],
+  );
+});

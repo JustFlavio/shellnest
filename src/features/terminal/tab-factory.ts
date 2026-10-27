@@ -1,4 +1,4 @@
-import type { Host, Identity, QuickTarget, TerminalTab } from "@/lib/types";
+import type { Host, Identity, TerminalTab } from "@/lib/types";
 
 export function sshTab(
   host: Host,
@@ -35,9 +35,9 @@ export function localTab(
   };
 }
 
+/** A quick connection to a bare address: the timeline asks for user and login before anything is sent. */
 export function quickTab(
-  target: QuickTarget,
-  identity: Identity,
+  target: { address: string; port: number; username?: string },
   vaultId: string,
 ): TerminalTab {
   return {
@@ -45,9 +45,15 @@ export function quickTab(
     kind: "quick",
     vaultId,
     title: target.address,
-    username: target.username ?? identity.username,
-    identityName: identity.name,
-    target,
+    username: target.username ?? "",
+    identityName: "",
+    // Only the address: whatever login an earlier attempt chose is asked again.
+    target: {
+      address: target.address,
+      port: target.port,
+      ...(target.username ? { username: target.username } : {}),
+      expectedFingerprint: "",
+    },
     status: "connecting",
   };
 }

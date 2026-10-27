@@ -128,6 +128,9 @@ export function createPreviewBackend(empty = false) {
         break;
       case "probe_host":
         return probeHost(next, args) as T;
+      case "probe_target":
+        // No network in the preview: every address presents the same demo key.
+        return "SHA256:impronta-dimostrativa" as T;
       case "reveal_host_password":
         return revealHostPassword(next, args) as T;
       default: {

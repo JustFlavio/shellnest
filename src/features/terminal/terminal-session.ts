@@ -3,6 +3,7 @@ import { Channel, invoke } from "@tauri-apps/api/core";
 import { desktop } from "@/lib/platform";
 import type { Output, TerminalTab } from "@/lib/types";
 import { MAX_PASSWORD_ATTEMPTS } from "./connection-steps.ts";
+import { takeQuickPassword } from "./quick-password";
 import { RESET_MODES } from "./terminal-input.ts";
 import { terminalInputChunks } from "./workbench-state.ts";
 import type { Xterm } from "./xterm";
@@ -58,7 +59,7 @@ export function startSession(
     inputQueue = Promise.resolve();
   let pendingInput = "";
   let pendingOverflow = false;
-  const prompt = `\x1b[32m${tab.kind === "ssh" ? tab.host.username || "root" : "demo"}@${tab.kind === "ssh" ? tab.host.name : "locale"}\x1b[0m:\x1b[34m~\x1b[0m$ `;
+  const prompt = `\x1b[32m${tab.kind === "ssh" ? tab.host.username || "root" : tab.kind === "quick" ? tab.username || "root" : "demo"}@${tab.kind === "ssh" ? tab.host.name : tab.kind === "quick" ? tab.target.address : "locale"}\x1b[0m:\x1b[34m~\x1b[0m$ `;
   const session = { vaultId: tab.vaultId, sessionId: tab.id };
   const send = (data: string) => {
     if (!desktop) {
@@ -177,12 +178,19 @@ export function startSession(
       cols: term.cols,
       rows: term.rows,
     });
-  else if (tab.kind === "quick")
+  else if (tab.kind === "quick") {
+    const { address, port, username, login, expectedFingerprint } = tab.target;
     request = invoke("connect_quick", {
       ...base,
-      ...tab.target,
-      username: tab.target.username ?? null,
+      address,
+      port,
+      username: username ?? null,
+      identityId: login?.kind === "identity" ? login.id : "",
+      keyId: login?.kind === "key" ? login.id : "",
+      password: takeQuickPassword(tab.id) ?? null,
+      expectedFingerprint,
     });
+  }
   else request = invoke("connect", { ...base, id: tab.host.id });
   request.catch((e) => {
     if (!disposed) {
@@ -206,7 +214,12 @@ function startPreview(
   prompt: string,
   stop: () => void,
 ) {
-  const address = tab.kind === "ssh" ? tab.host.address : "";
+  const address =
+    tab.kind === "ssh"
+      ? tab.host.address
+      : tab.kind === "quick"
+        ? tab.target.address
+        : "";
   const timers: number[] = [];
   const at = (ms: number, event: Output | (() => void)) =>
     timers.push(
@@ -222,7 +235,8 @@ function startPreview(
     data: { step, text, warn },
   });
   const byPassword =
-    tab.kind === "ssh" && tab.identityName === "Credenziali dell’host";
+    tab.kind !== "local" &&
+    ["Credenziali dell’host", "Password"].includes(tab.identityName);
   const banner = () =>
     term.write(
       "\x1b[90mSessione dimostrativa: nessuna connessione reale.\x1b[0m\r\n" +
@@ -292,7 +306,7 @@ function startPreview(
       "auth",
       byPassword
         ? "Autenticato con la password"
-        : `Autenticato con la chiave “${tab.kind === "ssh" ? tab.identityName : ""}”`,
+        : `Autenticato con la chiave “${tab.identityName}”`,
     );
   }
   return () => {

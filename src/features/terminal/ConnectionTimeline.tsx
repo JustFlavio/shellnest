@@ -8,8 +8,12 @@ import { useApp } from "@/app/app-context";
 import { ConnectionLog } from "./ConnectionLog";
 import { FingerprintCard } from "./FingerprintCard";
 import { PasswordStep } from "./PasswordStep";
+import { QuickMethodStep } from "./QuickMethodStep";
+import { QuickUserStep } from "./QuickUserStep";
 import type { PasswordAsk } from "./useTerminalSession";
 import { timelineSteps } from "./connection-steps.ts";
+import { needsMethod } from "./quick-setup.ts";
+import { useQuickSetup } from "./useQuickSetup";
 import type { StepNote, StepState } from "./connection-steps.ts";
 
 const dot: Record<StepState, string> = {
@@ -45,15 +49,52 @@ export function ConnectionTimeline({
   onEdit?: () => void;
 }) {
   const {
-    tabs: { trust },
+    vault: { view, busy },
+    tabs: { trust, finishQuick },
   } = useApp();
   // Whether this pane had to ask for the host key: decided once, when it opened.
-  const [askedTrust] = useState(tab.kind === "ssh" && !tab.host.fingerprint);
+  const [askedTrust] = useState(
+    (tab.kind === "ssh" && !tab.host.fingerprint) || tab.kind === "quick",
+  );
+  const quick = useQuickSetup(
+    tab.kind === "quick" ? tab.target.address : "",
+    tab.username,
+  );
+  // A quick connection asks for user and login here until it has them.
+  const asking = tab.kind === "quick" && !tab.target.login;
   const [copy, setCopy] = useState("");
   const target =
     tab.kind === "ssh" ? tab.host : tab.kind === "quick" ? tab.target : null;
   const message = failure || tab.error || "";
-  const awaitingTrust = tab.kind === "ssh" && !tab.host.fingerprint && !message;
+  const awaitingTrust =
+    ((tab.kind === "ssh" && !tab.host.fingerprint) ||
+      (tab.kind === "quick" && !asking && !tab.target.expectedFingerprint)) &&
+    !message;
+  const chosen = view.identities.find((i) => i.id === quick.setup.identityId);
+  const quickDetails: Record<string, StepNote> =
+    tab.kind === "quick" && (!asking || quick.stage === "method")
+      ? {
+          user: {
+            text: chosen
+              ? `${quick.setup.username} · identità “${chosen.name}”`
+              : quick.setup.username,
+            warn: false,
+          },
+          ...(asking && quick.stage !== "method"
+            ? {}
+            : tab.kind === "quick" && tab.target.login?.kind !== "identity"
+              ? {
+                  method: {
+                    text:
+                      quick.setup.method === "key"
+                        ? `Chiave “${view.keys.find((k) => k.id === quick.setup.keyId)?.name ?? ""}”`
+                        : "Password",
+                    warn: false,
+                  },
+                }
+              : {}),
+        }
+      : {};
   const steps = timelineSteps({
     kind: tab.kind,
     target: target ? `${target.address}:${target.port}` : "",
@@ -63,7 +104,16 @@ export function ConnectionTimeline({
     failure: message,
     opened: false,
     passwords: password?.asks ?? 0,
-    details,
+    details: { ...quickDetails, ...details },
+    setup:
+      tab.kind === "quick"
+        ? {
+            stage: asking ? quick.stage : null,
+            method: asking
+              ? needsMethod(quick.setup)
+              : tab.target.login?.kind !== "identity",
+          }
+        : undefined,
   });
   const lines = tab.error && !logs.length ? [tab.error] : logs;
   return (
@@ -150,8 +200,28 @@ export function ConnectionTimeline({
                       onCancel={onCancel}
                     />
                   )}
+                {step.state === "current" && step.id === "user" && (
+                  <QuickUserStep
+                    state={quick}
+                    identities={view.identities}
+                    busy={busy}
+                    onSubmit={(save) => finishQuick(tab, quick.setup, save)}
+                    onCancel={onCancel}
+                  />
+                )}
+                {step.state === "current" && step.id === "method" && (
+                  <QuickMethodStep
+                    state={quick}
+                    keys={view.keys}
+                    busy={busy}
+                    onSubmit={(save) => finishQuick(tab, quick.setup, save)}
+                    onCancel={onCancel}
+                  />
+                )}
                 {step.state === "current" &&
                   step.id !== "trust" &&
+                  step.id !== "user" &&
+                  step.id !== "method" &&
                   !(step.id.startsWith("password") && password?.waiting) && (
                     <p role="status" className={help + " mt-[2px]"}>
                       {phase}

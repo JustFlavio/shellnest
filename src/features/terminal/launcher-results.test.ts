@@ -199,24 +199,17 @@ test("without a search nothing is marked open, and picking lists plain hosts", (
   );
 });
 
-test("Cmd/Ctrl+Enter connects to a ready target and otherwise reveals the card", () => {
+test("Cmd/Ctrl+Enter starts the timeline for a target, and does nothing otherwise", () => {
   const state = {
     count: 3,
     selected: 0,
     busy: false,
     canQuickConnect: true,
     modified: true,
-    hasText: true,
-    ready: true,
   };
   assert.deepEqual(launcherKeyAction("Enter", state), { type: "quick" });
-  assert.deepEqual(launcherKeyAction("Enter", { ...state, ready: false }), {
-    type: "reveal",
-  });
-  assert.deepEqual(
+  assert.equal(
     launcherKeyAction("Enter", { ...state, canQuickConnect: false }),
-    { type: "reveal" },
+    null,
   );
-  assert.equal(launcherKeyAction("Enter", { ...state, hasText: false }), null);
-  assert.equal(launcherKeyAction("Enter", { ...state, busy: true }), null);
 });

@@ -16,7 +16,7 @@ function endpointOf(tab: TerminalTab) {
   const target =
     tab.kind === "ssh" ? tab.host : tab.kind === "quick" ? tab.target : null;
   return target
-    ? `${tab.username}@${target.address}${target.port === 22 ? "" : `:${target.port}`}`
+    ? `${tab.username ? `${tab.username}@` : ""}${target.address}${target.port === 22 ? "" : `:${target.port}`}`
     : "Shell del dispositivo";
 }
 
@@ -90,7 +90,10 @@ export function TerminalPane({
 } & SessionCallbacks) {
   const [pendingPaste, setPendingPaste] = useState<string | null>(null);
   const container = useRef<HTMLDivElement>(null);
-  const pendingTrust = tab.kind === "ssh" && !tab.host.fingerprint;
+  // No session until the host key is confirmed (and, for a quick connection, the login chosen).
+  const pendingTrust =
+    (tab.kind === "ssh" && !tab.host.fingerprint) ||
+    (tab.kind === "quick" && !tab.target.expectedFingerprint);
   const xterm = useRef<Xterm | null>(null);
   const search = useTerminalSearch(xterm);
   const { opened, phase, logs, details, failure, password, submitPassword } =

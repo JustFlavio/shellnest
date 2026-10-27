@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { inheritedIdentity } from "./groups.ts";
+import { saveHostCommand } from "./save-host";
 import { hostDraftIsValid, hostInheritsIdentity } from "./host-draft";
 import { newGroup, newHost, newIdentity, newKey } from "@/lib/types";
 import type {
@@ -40,25 +41,7 @@ export function useEditors(
     busy || !!identityForm || !!keyForm || !!groupForm,
     async (draft) => {
       const generation = epoch.current;
-      const {
-        credentials,
-        username,
-        hasPassword,
-        inheritIdentity,
-        port: _effectivePort,
-        ownPort,
-        effectiveIdentityId: _effectiveIdentity,
-        identitySource: _identitySource,
-        ...host
-      } = draft;
-      const next = await invokeScoped<View>("save_host", {
-        host: { ...host, port: ownPort },
-        inherit: !!inheritIdentity,
-        credentials:
-          host.identityId || inheritIdentity
-            ? null
-            : (credentials ?? { username: username ?? "", password: "" }),
-      });
+      const next = await saveHostCommand(invokeScoped, draft);
       if (generation !== epoch.current)
         throw new Error("Il vault attivo è cambiato");
       update(next);

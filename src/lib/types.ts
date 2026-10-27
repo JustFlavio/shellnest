@@ -78,11 +78,18 @@ export type View = {
 export type WorkspaceDraft = { name?: string; layout: SavedNode };
 export type Workspace = WorkspaceDraft & { id: string; name: string };
 export type VaultInfo = { id: string; name: string; exists: boolean };
+/** How a quick connection logs in: a saved identity, a key from the vault, or a password. */
+export type QuickLogin =
+  | { kind: "identity"; id: string }
+  | { kind: "key"; id: string }
+  | { kind: "password" };
 export type QuickTarget = {
   address: string;
   port: number;
-  identityId: string;
   username?: string;
+  // unset while the timeline still asks for it
+  login?: QuickLogin;
+  // empty until the host key is confirmed; quick connections never keep it
   expectedFingerprint: string;
 };
 export type TerminalTab = {
