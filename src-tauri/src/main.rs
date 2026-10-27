@@ -768,6 +768,15 @@ fn claim_instance(path: &std::path::Path) -> Result<std::fs::File, String> {
     })?;
     Ok(file)
 }
+/// Moves the data folder of the old identifier to the new one, so existing vaults survive the rename.
+// shortcut: skipped when the new folder already exists (nothing is merged), fine while there are no other users.
+#[cfg(not(feature = "desktop-e2e"))]
+fn migrate_legacy_data_dir(dir: &std::path::Path) {
+    let legacy = dir.with_file_name("dev.servermanager.desktop");
+    if !dir.exists() && legacy.is_dir() {
+        let _ = std::fs::rename(&legacy, dir);
+    }
+}
 fn main() {
     let builder = tauri::Builder::default();
     #[cfg(feature = "desktop-e2e")]
@@ -777,10 +786,14 @@ fn main() {
     builder
         .setup(|app| {
             #[cfg(not(feature = "desktop-e2e"))]
-            let dir = app.path().app_data_dir()?;
+            let dir = {
+                let dir = app.path().app_data_dir()?;
+                migrate_legacy_data_dir(&dir);
+                dir
+            };
             #[cfg(feature = "desktop-e2e")]
             let dir = {
-                let path = PathBuf::from(std::env::var("SERVER_MANAGER_E2E_DATA_DIR")?);
+                let path = PathBuf::from(std::env::var("SHELLNEST_E2E_DATA_DIR")?);
                 if !path.is_absolute() || !path.is_dir() {
                     return Err("E2E requires an existing absolute temporary data directory".into());
                 }
@@ -893,7 +906,7 @@ mod tests {
     impl VaultFixture {
         fn new() -> Self {
             let root = std::env::temp_dir().join(format!(
-                "server-manager-vault-test-{}",
+                "shellnest-vault-test-{}",
                 rand::random::<u64>()
             ));
             std::fs::create_dir_all(&root).unwrap();
@@ -911,11 +924,24 @@ mod tests {
                     .file_name()
                     .unwrap()
                     .to_string_lossy()
-                    .starts_with("server-manager-vault-test-")
+                    .starts_with("shellnest-vault-test-")
             {
                 let _ = std::fs::remove_dir_all(&self.root);
             }
         }
+    }
+    #[test]
+    fn legacy_data_dir_moves_only_when_the_new_one_is_missing() {
+        let fixture = VaultFixture::new();
+        let legacy = fixture.root.join("dev.servermanager.desktop");
+        let dir = fixture.root.join("io.github.justflavio.shellnest");
+        std::fs::create_dir_all(&legacy).unwrap();
+        std::fs::write(legacy.join("vault.json"), "v").unwrap();
+        migrate_legacy_data_dir(&dir);
+        assert!(dir.join("vault.json").exists() && !legacy.exists());
+        std::fs::create_dir_all(&legacy).unwrap();
+        migrate_legacy_data_dir(&dir);
+        assert!(legacy.exists());
     }
     #[test]
     fn host_and_new_credentials_commit_together_without_exposing_or_overwriting_secrets() {

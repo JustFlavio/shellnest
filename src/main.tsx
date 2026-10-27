@@ -308,7 +308,7 @@ function App() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(
-        `server-manager.layout.${view.vaultId}`,
+        `shellnest.layout.${view.vaultId}`,
       );
       setLayout(saved === "list" ? "list" : "cards");
     } catch {
@@ -318,7 +318,7 @@ function App() {
   const changeLayout = (value: "cards" | "list") => {
     setLayout(value);
     try {
-      localStorage.setItem(`server-manager.layout.${view.vaultId}`, value);
+      localStorage.setItem(`shellnest.layout.${view.vaultId}`, value);
     } catch {
       /* Preference storage is optional. */
     }
@@ -1970,7 +1970,7 @@ function App() {
               onDragStart={(e) => {
                 e.dataTransfer.effectAllowed = "move";
                 e.dataTransfer.setData(
-                  "application/x-server-manager-tab",
+                  "application/x-shellnest-tab",
                   tab.id,
                 );
                 setDrag({ id: tab.id });
@@ -1979,7 +1979,7 @@ function App() {
               onDragOver={(e) => {
                 if (
                   !e.dataTransfer.types.includes(
-                    "application/x-server-manager-tab",
+                    "application/x-shellnest-tab",
                   )
                 )
                   return;
@@ -2004,7 +2004,7 @@ function App() {
               onDrop={(e) => {
                 e.preventDefault();
                 const moving = e.dataTransfer.getData(
-                  "application/x-server-manager-tab",
+                  "application/x-shellnest-tab",
                 );
                 setTabs((old) => reorderTabs(old, moving, tab.id));
                 clearDnd();

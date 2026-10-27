@@ -8,10 +8,10 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const artifacts = join(root, "artifacts", "desktop-e2e");
 await mkdir(artifacts, { recursive: true });
-const dataDir = await mkdtemp(join(tmpdir(), "server-manager-e2e-"));
+const dataDir = await mkdtemp(join(tmpdir(), "shellnest-e2e-"));
 const env = {
   ...process.env,
-  SERVER_MANAGER_E2E_DATA_DIR: dataDir,
+  SHELLNEST_E2E_DATA_DIR: dataDir,
   WEBVIEW2_USER_DATA_FOLDER: join(dataDir, "webview"),
 };
 

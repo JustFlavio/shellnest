@@ -1,13 +1,13 @@
 import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
-if (!process.env.SERVER_MANAGER_E2E_DATA_DIR) {
+if (!process.env.SHELLNEST_E2E_DATA_DIR) {
   throw new Error("Use npm run test:desktop to create an isolated test vault.");
 }
 
 const binary = fileURLToPath(
   new URL(
-    `../src-tauri/target/debug/server-manager${process.platform === "win32" ? ".exe" : ""}`,
+    `../src-tauri/target/debug/shellnest${process.platform === "win32" ? ".exe" : ""}`,
     import.meta.url,
   ),
 );

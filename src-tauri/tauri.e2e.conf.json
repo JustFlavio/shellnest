@@ -1,5 +1,5 @@
 {
-  "identifier": "dev.servermanager.e2e",
+  "identifier": "io.github.justflavio.shellnest.e2e",
   "productName": "Shellnest E2E",
   "build": {
     "beforeBuildCommand": "npm run build -- --mode desktop-e2e"

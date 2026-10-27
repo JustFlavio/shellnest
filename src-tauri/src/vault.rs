@@ -123,6 +123,7 @@ pub fn valid_vault_id(id: &str) -> bool {
             .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
 }
 
+// Part of the encryption: never rename it, or existing vaults stop decrypting.
 const AAD: &[u8] = b"server-manager:vault:1";
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Envelope {

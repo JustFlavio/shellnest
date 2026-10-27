@@ -218,7 +218,7 @@ mod tests {
                     .file_name()
                     .unwrap()
                     .to_string_lossy()
-                    .starts_with("server-manager-sync-test-")
+                    .starts_with("shellnest-sync-test-")
             {
                 let _ = std::fs::remove_dir_all(&self.root);
             }
@@ -232,7 +232,7 @@ mod tests {
     #[test]
     fn two_devices_upload_restore_pull_and_preserve_conflicts() {
         let root = std::env::temp_dir().join(format!(
-            "server-manager-sync-test-{}",
+            "shellnest-sync-test-{}",
             rand::random::<u64>()
         ));
         std::fs::create_dir_all(&root).unwrap();

@@ -489,7 +489,7 @@ export function TerminalPane({
           draggable={!!onDragPane}
           onDragStart={(e) => {
             e.dataTransfer.effectAllowed = "move";
-            e.dataTransfer.setData("application/x-server-manager-pane", tab.id);
+            e.dataTransfer.setData("application/x-shellnest-pane", tab.id);
             // The pane itself fades out while the others close ranks, so the cursor carries a
             // small card with its name instead of the bare header text.
             const chip = document.createElement("div");

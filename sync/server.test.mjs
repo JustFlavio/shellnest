@@ -15,7 +15,7 @@ const env = (n) => ({
 });
 
 test("vault namespaces preserve legacy storage and isolate conditional writes", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "server-manager-vaults-"));
+  const directory = await mkdtemp(join(tmpdir(), "shellnest-vaults-"));
   let server;
   try {
     server = await createSyncServer({ token, directory });
@@ -70,7 +70,7 @@ test("vault namespaces preserve legacy storage and isolate conditional writes", 
   }
 });
 test("auth, opaque storage, revision conflicts, concurrent writes, restart", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "server-manager-"));
+  const directory = await mkdtemp(join(tmpdir(), "shellnest-"));
   let server;
   try {
     const start = async () => {
