@@ -14,7 +14,7 @@ Utenti individuali che amministrano server via SSH, incluso l'autore del progett
 
 ## Product Purpose
 
-Progetto open source proposto come alternativa a un altro client SSH per utenti individuali, con sincronizzazione self-hosted opzionale. La distribuzione pubblica è un obiettivo confermato; i limiti documentati restano validi e non costituiscono una release stabile verificata.
+Progetto open source: client SSH per utenti individuali, con sincronizzazione self-hosted opzionale. La distribuzione pubblica è un obiettivo confermato; i limiti documentati restano validi e non costituiscono una release stabile verificata.
 
 Riunire organizzazione degli host, credenziali riutilizzabili e terminali SSH in un client quotidiano per Windows e macOS. Il successo richiede percorsi rapidi per trovare un server, connettersi e passare fra sessioni, con parità funzionale fra i due sistemi e uso completo da tastiera.
 
@@ -42,7 +42,7 @@ Riunire organizzazione degli host, credenziali riutilizzabili e terminali SSH in
 
 ## Brand Commitments
 
-Shellnest è il nome dell’app (il logo è provvisorio). Il progetto è open source con licenza MIT e l'interfaccia attuale è in italiano. Il client è implementato indipendentemente da un altro client SSH: i riferimenti di prodotto non implicano integrazione con il suo cloud o importazione del suo vault.
+Shellnest è il nome dell’app (il logo è provvisorio). Il progetto è open source con licenza MIT e l'interfaccia attuale è in italiano. Il client è indipendente: non si integra con servizi cloud di terzi né importa vault di altri client.
 
 ## Evidence on Hand
 

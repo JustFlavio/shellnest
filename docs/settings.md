@@ -17,9 +17,9 @@ Le impostazioni dell'app stanno in `localStorage` (`shellnest.settings`, `shelln
 - Documentazione e Changelog.
 - Tema chiaro dell'app (oggi esiste una sola paletta): solo allora ha senso il selettore "Tema".
 
-## Scelte: cosa NON copiamo da un altro client SSH
+## Scelte di prodotto: cosa non è previsto
 
-- **Autocomplete** del terminale (beta in un altro client SSH): non previsto.
+- **Autocomplete** del terminale: non previsto.
 - **Indicatori di popolarità** accanto ai temi (numero di utenti): non hanno senso senza un servizio centrale.
 - **Link esterni** nella sidebar (richiesta funzioni, segnalazione bug, programma beta): per bug e idee c'è il repository GitHub pubblico.
 - Account, SSH ID, inviti, SFTP, log a pagamento: fuori dal prodotto.
