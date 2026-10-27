@@ -1,4 +1,5 @@
 import { SettingsDialog } from "./SettingsDialog";
+import { UpdateSettings } from "./UpdateSettings";
 import { VaultSettings } from "@/features/vault/VaultSettings";
 import { mac } from "@/lib/platform";
 import { useApp } from "@/app/app-context";
@@ -15,6 +16,7 @@ export function SettingsPanel() {
     },
     session: { requestSwitch, openCreateDialog, openRenameDialog, deleteVault },
     sync: { synchronize, syncState, lastSync },
+    update,
     settings,
   } = useApp();
   if (!settings.section) return null;
@@ -31,6 +33,13 @@ export function SettingsPanel() {
       overrides={overrides}
       onOverrides={saveOverrides}
       mac={mac}
+      updates={
+        <UpdateSettings
+          settings={appSettings}
+          onChange={saveSettings}
+          update={update}
+        />
+      }
       vault={
         <VaultSettings
           view={view}

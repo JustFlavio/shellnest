@@ -2,11 +2,12 @@ import { cn } from "@/lib/utils";
 import { soon } from "./settings-ui";
 import pkg from "../../../package.json";
 
-export type SettingsSection = "vault" | "terminal" | "shortcuts";
+export type SettingsSection = "vault" | "terminal" | "shortcuts" | "updates";
 const sections: { id: SettingsSection; label: string }[] = [
   { id: "vault", label: "Vault" },
   { id: "terminal", label: "Terminale" },
   { id: "shortcuts", label: "Scorciatoie" },
+  { id: "updates", label: "Aggiornamenti" },
 ];
 const disabledItem =
   "flex h-[34px] items-center justify-between rounded-lg px-[12px] text-[13px] text-muted-foreground opacity-70";

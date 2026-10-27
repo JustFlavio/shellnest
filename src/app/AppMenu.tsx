@@ -13,6 +13,7 @@ import {
   LockKeyhole,
   Menu,
   Plus,
+  RefreshCw,
   Server,
   Settings2,
   TerminalSquare,
@@ -31,6 +32,7 @@ export function AppMenu() {
     library: { group, navigate, newHostIn },
     session: { requestLock },
     settings,
+    update,
   } = useApp();
   return (
     <DropdownMenu>
@@ -74,6 +76,10 @@ export function AppMenu() {
           {hint("openSettings") && (
             <kbd className="ml-auto">{hint("openSettings")}</kbd>
           )}
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled={update.busy} onClick={update.check}>
+          <RefreshCw size={15} />
+          Controlla aggiornamenti
         </DropdownMenuItem>
         <DropdownMenuItem
           disabled={busy || !tabs.length}

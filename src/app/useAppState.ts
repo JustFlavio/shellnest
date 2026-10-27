@@ -1,6 +1,7 @@
 import { useCloseGuard } from "@/features/terminal/CloseGuard";
 import { useLibrary } from "@/features/hosts/useLibrary";
 import { usePreferences } from "@/features/settings/usePreferences";
+import { useAppUpdate } from "@/features/settings/useAppUpdate";
 import { useSettingsDialog } from "@/features/settings/useSettingsDialog";
 import { useTabDrag } from "@/features/terminal/useTabDrag";
 import { useTabs } from "@/features/terminal/useTabs";
@@ -15,6 +16,11 @@ export function useAppState() {
   const preferences = usePreferences();
   const closeGuard = useCloseGuard();
   const tabs = useTabs(vault, closeGuard);
+  const update = useAppUpdate(
+    preferences.appSettings.checkUpdates,
+    () => tabs.tabs.some((t) => t.status === "connected"),
+    closeGuard,
+  );
   const dnd = useTabDrag(tabs);
   const library = useLibrary(vault, tabs);
   const settings = useSettingsDialog(vault);
@@ -56,6 +62,7 @@ export function useAppState() {
     dnd,
     library,
     settings,
+    update,
     unlock,
     sync,
     session,

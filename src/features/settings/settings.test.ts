@@ -43,3 +43,9 @@ test("font stack and size helpers", () => {
   assert.equal(clampFontSize(3), 8);
   assert.equal(terminalTheme("zzz").id, "shellnest");
 });
+
+test("update checks are on by default and only a boolean turns them off", () => {
+  assert.equal(parseSettings(null).checkUpdates, true);
+  assert.equal(parseSettings('{"checkUpdates":false}').checkUpdates, false);
+  assert.equal(parseSettings('{"checkUpdates":"no"}').checkUpdates, true);
+});
