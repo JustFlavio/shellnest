@@ -8,7 +8,6 @@ import { inheritedIdentity } from "./groups.mjs";
 import {
   divider,
   section,
-  sectionHelp,
   sheetField,
   subheading,
 } from "@/lib/editor-ui";
@@ -94,11 +93,6 @@ export function HostAccessSection({
             }
           />
         </div>
-      )}
-      {!value.identityId && !value.inheritIdentity && existing?.hasPassword && (
-        <p className={sectionHelp}>
-          Lascia vuoto per mantenere la password salvata.
-        </p>
       )}
     </fieldset>
   );
