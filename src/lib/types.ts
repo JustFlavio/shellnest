@@ -77,13 +77,13 @@ export type View = {
 };
 export type WorkspaceDraft = { name?: string; layout: SavedNode };
 export type Workspace = WorkspaceDraft & { id: string; name: string };
-export type VaultInfo = { id: string; name: string; exists: boolean };
+type VaultInfo = { id: string; name: string; exists: boolean };
 /** How a quick connection logs in: a saved identity, a key from the vault, or a password. */
 export type QuickLogin =
   | { kind: "identity"; id: string }
   | { kind: "key"; id: string }
   | { kind: "password" };
-export type QuickTarget = {
+type QuickTarget = {
   address: string;
   port: number;
   username?: string;

@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 
-export const MIN_TOKEN_LENGTH = 32;
+const MIN_TOKEN_LENGTH = 32;
 
 const digest = (value) => createHash("sha256").update(value).digest();
 

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "entry": ["src/**/*.test.{ts,mjs}", "e2e/**/*.{ts,mjs}", "sync/*.{ts,mjs}"],
+  "project": ["src/**", "e2e/**", "sync/**"],
+  "ignore": ["src/components/ui/**"],
+  "ignoreIssues": { "src/components/ui/**": ["exports", "types"] },
+  "ignoreDependencies": [
+    "@wdio/cli",
+    "@wdio/local-runner",
+    "@wdio/mocha-framework",
+    "@wdio/spec-reporter",
+    "@wdio/tauri-service"
+  ],
+  "ignoreUnresolved": ["/src/lib/notify.ts"]
+}

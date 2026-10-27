@@ -1,6 +1,6 @@
 import { isEnvelope } from "./envelope.mjs";
 
-export const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_BYTES = 8 * 1024 * 1024;
 
 const httpError = (status, message) =>
   Object.assign(new Error(message), { status });

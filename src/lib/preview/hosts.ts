@@ -123,7 +123,7 @@ export function assignIdentity(next: View, args: Args): void {
 }
 
 // The preview has no network: every unverified host shows the same sample key.
-export const PREVIEW_FINGERPRINT = "SHA256:impronta-dimostrativa";
+const PREVIEW_FINGERPRINT = "SHA256:impronta-dimostrativa";
 
 export function probeHost(next: View, args: Args): string {
   requireValue(

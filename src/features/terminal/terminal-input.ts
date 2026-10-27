@@ -8,7 +8,7 @@ export function sanitizePaste(text: string): string {
     .replace(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/g, "");
 }
 
-export const PASTE_CONFIRM_LINES = 20;
+const PASTE_CONFIRM_LINES = 20;
 export function pasteLineCount(text: string): number {
   return text.split("\n").length;
 }
