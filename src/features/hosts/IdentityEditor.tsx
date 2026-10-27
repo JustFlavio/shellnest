@@ -1,13 +1,24 @@
 import { DialogClose } from "@/components/ui/dialog";
-import { SelectField } from "@/components/SelectField";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PasswordInput } from "@/components/PasswordInput";
-import { Plus } from "lucide-react";
-import type { IdentityForm, View } from "@/lib/types";
-import { callout, help, sectionHelp } from "@/lib/editor-ui";
+import type { Identity, IdentityForm, View } from "@/lib/types";
+import { IdentityAccessSection } from "./IdentityAccessSection";
+import { help } from "@/lib/editor-ui";
 import { EditorSection } from "./EditorSection";
 import { Panel } from "./Panel";
+
+const identityIsDirty = (value: IdentityForm, existing: Identity | undefined) =>
+  !!value.password ||
+  (existing
+    ? (["name", "username", "auth", "keyId"] as const).some(
+        (key) => value[key] !== existing[key],
+      )
+    : !!(
+        value.name ||
+        value.keyId ||
+        value.username !== "root" ||
+        value.auth !== "key"
+      ));
 
 export function IdentityEditor({
   value,
@@ -31,23 +42,11 @@ export function IdentityEditor({
   error: string;
 }) {
   const existing = view.identities.find((i) => i.id === value.id);
-  const dirty =
-    !!value.password ||
-    (existing
-      ? (["name", "username", "auth", "keyId"] as const).some(
-          (key) => value[key] !== existing[key],
-        )
-      : !!(
-          value.name ||
-          value.keyId ||
-          value.username !== "root" ||
-          value.auth !== "key"
-        ));
   return (
     <Panel
       title={existing ? "Modifica identità" : "Nuova identità"}
       {...{ onClose, busy, error }}
-      dirty={dirty}
+      dirty={identityIsDirty(value, existing)}
       footer={
         <footer>
           <DialogClose
@@ -102,81 +101,13 @@ export function IdentityEditor({
             />
           </label>
         </EditorSection>
-        <EditorSection title="Accesso SSH">
-          <label>
-            Metodo
-            <SelectField
-              aria-label="Metodo di autenticazione"
-              value={value.auth}
-              onValueChange={(auth) =>
-                onChange({
-                  ...value,
-                  auth: auth as "key" | "password",
-                  password: "",
-                  keyId: "",
-                })
-              }
-              options={[
-                { value: "key", label: "Chiave SSH" },
-                { value: "password", label: "Password" },
-              ]}
-            />
-          </label>
-          {value.auth === "key" ? (
-            <>
-              <label>
-                Chiave dal portachiavi
-                <SelectField
-                  aria-label="Chiave dal portachiavi"
-                  required
-                  value={value.keyId}
-                  onValueChange={(keyId) => onChange({ ...value, keyId })}
-                  placeholder="Seleziona una chiave"
-                  options={view.keys.map((k) => ({
-                    value: k.id,
-                    label: k.name,
-                  }))}
-                />
-              </label>
-              <Button
-                variant="link"
-                className="mt-[10px]"
-                type="button"
-                onClick={onNewKey}
-              >
-                <Plus size={14} />
-                Importa una chiave
-              </Button>
-            </>
-          ) : (
-            <label>
-              Password
-              <PasswordInput
-                autoComplete="new-password"
-                required={!existing?.hasPassword}
-                value={value.password}
-                onChange={(e) =>
-                  onChange({ ...value, password: e.target.value })
-                }
-                placeholder={
-                  existing?.hasPassword
-                    ? "Lascia vuoto per mantenere quella salvata"
-                    : ""
-                }
-              />
-            </label>
-          )}
-          {existing && existing.hostCount > 0 && (
-            <div className={callout}>
-              La modifica verrà usata dalle prossime connessioni di{" "}
-              {existing.hostCount} host. Le sessioni già aperte restano attive.
-            </div>
-          )}
-          <p className={sectionHelp}>
-            Puoi assegnare questa identità a uno o più host. Identità con utenti
-            diversi possono usare la stessa chiave.
-          </p>
-        </EditorSection>
+        <IdentityAccessSection
+          value={value}
+          onChange={onChange}
+          keys={view.keys}
+          existing={existing}
+          onNewKey={onNewKey}
+        />
       </form>
     </Panel>
   );

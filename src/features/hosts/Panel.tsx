@@ -41,7 +41,7 @@ export function Panel({
 }) {
   const [discarding, setDiscarding] = useState(false);
   const popup = useRef<HTMLDivElement>(null);
-  const opener = useRef<HTMLElement | null>(currentOpener());
+  const [opener] = useState(currentOpener);
   const styles = panelStyles[variant];
   useEffect(() => {
     if (variant !== "sheet") return;
@@ -79,7 +79,7 @@ export function Panel({
                 ) ?? true
             : undefined
         }
-        finalFocus={() => (opener.current?.isConnected ? opener.current : true)}
+        finalFocus={() => (opener?.isConnected ? opener : true)}
         showCloseButton={false}
         aria-busy={busy}
       >

@@ -143,17 +143,19 @@ export function createPreviewBackend() {
         exists: v.exists,
       }));
       view.hosts.forEach((h) => Object.assign(h, resolveHost(view.groups, h)));
+      const hostsPerIdentity = new Map<string, number>();
+      for (const h of view.hosts)
+        hostsPerIdentity.set(
+          h.identityId,
+          (hostsPerIdentity.get(h.identityId) ?? 0) + 1,
+        );
       view.identities.forEach((i) => {
-        i.hostCount = view.hosts.filter((h) => h.identityId === i.id).length;
+        i.hostCount = hostsPerIdentity.get(i.id) ?? 0;
       });
       view.keys.forEach((k) => {
-        const ids = view.identities
-          .filter((i) => i.keyId === k.id)
-          .map((i) => i.id);
-        k.identityCount = ids.length;
-        k.hostCount = view.hosts.filter((h) =>
-          ids.includes(h.identityId),
-        ).length;
+        const identities = view.identities.filter((i) => i.keyId === k.id);
+        k.identityCount = identities.length;
+        k.hostCount = identities.reduce((sum, i) => sum + i.hostCount, 0);
       });
       if (!view.unlocked) {
         view.hosts = [];

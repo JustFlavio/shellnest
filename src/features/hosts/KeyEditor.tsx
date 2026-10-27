@@ -3,12 +3,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Textarea } from "@/components/ui/textarea";
-import { useRef, useState } from "react";
-import { Upload } from "lucide-react";
-import type { KeyForm, View } from "@/lib/types";
+import { useState } from "react";
+import type { KeyForm, SshKey, View } from "@/lib/types";
 import { callout, fingerprint, help, sectionHelp } from "@/lib/editor-ui";
+import { KeyFilePicker } from "./KeyFilePicker";
 import { EditorSection } from "./EditorSection";
 import { Panel } from "./Panel";
+
+const submitLabel = (existing: SshKey | undefined, returnTo?: string) =>
+  returnTo
+    ? "Importa e torna all’identità"
+    : existing
+      ? "Salva chiave"
+      : "Importa chiave";
 
 export function KeyEditor({
   value,
@@ -30,7 +37,6 @@ export function KeyEditor({
   returnTo?: string;
 }) {
   const existing = view.keys.find((k) => k.id === value.id);
-  const file = useRef<HTMLInputElement>(null);
   const [fileError, setFileError] = useState("");
   return (
     <Panel
@@ -51,11 +57,7 @@ export function KeyEditor({
             className="primary"
             disabled={busy}
           >
-            {returnTo
-              ? "Importa e torna all’identità"
-              : existing
-                ? "Salva chiave"
-                : "Importa chiave"}
+            {submitLabel(existing, returnTo)}
           </Button>
         </footer>
       }
@@ -93,13 +95,13 @@ export function KeyEditor({
           </label>
           {existing && (
             <>
-              <label>
+              <div className="mt-[10px] flex flex-col gap-[7px] text-[12px] text-muted-foreground">
                 Impronta pubblica
                 <code className={fingerprint}>
                   {existing.fingerprint ||
                     "Non verificata: reimporta la chiave per validarla"}
                 </code>
-              </label>
+              </div>
               <p className={sectionHelp}>
                 Usata da {existing.identityCount} identità e{" "}
                 {existing.hostCount} host. Per rinominare la chiave, lascia
@@ -109,39 +111,11 @@ export function KeyEditor({
           )}
         </EditorSection>
         <EditorSection title="Chiave privata">
-          <input
-            ref={file}
-            type="file"
-            tabIndex={-1}
-            className="sr-only"
-            aria-label="File della chiave privata"
-            onChange={async (e) => {
-              setFileError("");
-              const f = e.target.files?.[0];
-              if (!f) return;
-              try {
-                if (f.size > 1024 * 1024)
-                  throw new Error("File troppo grande (massimo 1 MB)");
-                const text = await f.text();
-                onChange({
-                  ...value,
-                  privateKey: text,
-                  name: value.name || f.name,
-                });
-              } catch (err) {
-                setFileError(String(err));
-              }
-              e.target.value = "";
-            }}
+          <KeyFilePicker
+            value={value}
+            onChange={onChange}
+            onError={setFileError}
           />
-          <Button
-            variant="ghost"
-            type="button"
-            onClick={() => file.current?.click()}
-          >
-            <Upload size={15} />
-            Scegli file della chiave privata
-          </Button>
           <label>
             {existing
               ? "Sostituisci chiave privata (opzionale)"

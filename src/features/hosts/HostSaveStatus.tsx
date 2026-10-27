@@ -3,23 +3,16 @@ import { cn } from "@/lib/utils";
 
 export type SaveStatus = "idle" | "editing" | "saving" | "saved" | "error";
 
+const statuses = {
+  saving: { Icon: LoaderCircle, label: "Salvataggio in corso" },
+  saved: { Icon: Check, label: "Salvato" },
+  error: { Icon: AlertCircle, label: "Salvataggio non riuscito" },
+  idle: { Icon: Pencil, label: "Modifiche non salvate" },
+  editing: { Icon: Pencil, label: "Modifiche non salvate" },
+} as const;
+
 export function HostSaveStatus({ status }: { status: SaveStatus }) {
-  const StatusIcon =
-    status === "saving"
-      ? LoaderCircle
-      : status === "saved"
-        ? Check
-        : status === "error"
-          ? AlertCircle
-          : Pencil;
-  const label =
-    status === "saving"
-      ? "Salvataggio in corso"
-      : status === "saved"
-        ? "Salvato"
-        : status === "error"
-          ? "Salvataggio non riuscito"
-          : "Modifiche non salvate";
+  const { Icon, label } = statuses[status];
   return (
     <span
       role="status"
@@ -30,9 +23,7 @@ export function HostSaveStatus({ status }: { status: SaveStatus }) {
       )}
       title={label}
     >
-      <StatusIcon
-        className={`size-4 ${status === "saving" ? "animate-spin" : ""}`}
-      />
+      <Icon className={`size-4 ${status === "saving" ? "animate-spin" : ""}`} />
       <span className="sr-only">{label}</span>
     </span>
   );

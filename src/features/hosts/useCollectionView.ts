@@ -1,8 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { subtreeIds } from "./groups.mjs";
 import type { View } from "@/lib/types";
 
 export type Page = "hosts" | "identities" | "keys";
+
+const savedLayout = (vaultId: string) => {
+  try {
+    return localStorage.getItem(`shellnest.layout.${vaultId}`) === "list"
+      ? "list"
+      : "cards";
+  } catch {
+    return "cards";
+  }
+};
 
 /** Which page, folder, search and sort the vault browser shows, and which rows are selected. */
 export function useCollectionView(
@@ -15,7 +25,9 @@ export function useCollectionView(
     [query, setQuery] = useState(""),
     [usage, setUsage] = useState<{ ids: string[]; label: string } | null>(null),
     [sort, setSort] = useState<"name" | "recent">("name"),
-    [layout, setLayout] = useState<"list" | "cards">("cards");
+    [layout, setLayout] = useState<"list" | "cards">(() =>
+      savedLayout(view.vaultId),
+    );
   const [selected, setSelected] = useState<Set<string>>(new Set()),
     [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
   const search = useRef<HTMLInputElement>(null);
@@ -23,25 +35,34 @@ export function useCollectionView(
     setSelected(new Set());
     setSelectedFolders(new Set());
   };
-  useEffect(() => {
+  // Selection and layout follow the view they were made in: adjust them while rendering, not in an effect after a stale frame.
+  const [scope, setScope] = useState({
+    group,
+    query,
+    page,
+    vaultId: view.vaultId,
+  });
+  if (
+    scope.group !== group ||
+    scope.query !== query ||
+    scope.page !== page ||
+    scope.vaultId !== view.vaultId
+  ) {
+    setScope({ group, query, page, vaultId: view.vaultId });
     clearSelection();
-  }, [group, query, page, view.vaultId]);
-  useEffect(() => {
+  }
+  const [knownHosts, setKnownHosts] = useState(view.hosts);
+  if (knownHosts !== view.hosts) {
+    setKnownHosts(view.hosts);
     const ids = new Set(view.hosts.map((h) => h.id));
-    setSelected((old) =>
-      [...old].every((id) => ids.has(id))
-        ? old
-        : new Set([...old].filter((id) => ids.has(id))),
-    );
-  }, [view.hosts]);
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(`shellnest.layout.${view.vaultId}`);
-      setLayout(saved === "list" ? "list" : "cards");
-    } catch {
-      setLayout("cards");
-    }
-  }, [view.vaultId]);
+    if (![...selected].every((id) => ids.has(id)))
+      setSelected(new Set([...selected].filter((id) => ids.has(id))));
+  }
+  const [layoutVault, setLayoutVault] = useState(view.vaultId);
+  if (layoutVault !== view.vaultId) {
+    setLayoutVault(view.vaultId);
+    setLayout(savedLayout(view.vaultId));
+  }
   const changeLayout = (value: "cards" | "list") => {
     setLayout(value);
     try {

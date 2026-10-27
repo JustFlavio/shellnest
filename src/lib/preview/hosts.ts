@@ -101,15 +101,17 @@ export function deleteHost(next: View, args: Args): void {
 
 export function assignIdentity(next: View, args: Args): void {
   const ids = args.ids as string[];
+  const known = new Set(next.hosts.map((h) => h.id));
   requireValue(
     Array.isArray(ids) &&
       ids.length &&
-      ids.every((id) => next.hosts.some((h) => h.id === id)) &&
+      ids.every((id) => known.has(id)) &&
       next.identities.some((i) => i.id === args.identityId),
     "Seleziona host e identità validi",
   );
+  const assigned = new Set(ids);
   next.hosts = next.hosts.map((h) =>
-    ids.includes(h.id)
+    assigned.has(h.id)
       ? {
           ...h,
           identityId: String(args.identityId),
