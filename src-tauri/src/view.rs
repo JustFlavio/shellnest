@@ -1,3 +1,4 @@
+//! The secret-free snapshot of the vault that is sent to the UI after every change.
 use crate::{
     error::Error,
     model::{self, Host},

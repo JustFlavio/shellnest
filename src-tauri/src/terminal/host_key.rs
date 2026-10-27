@@ -1,3 +1,4 @@
+//! Host key handling: the russh handler that records and checks the fingerprint, and `probe`.
 use super::TerminalError;
 use crate::locks::MutexExt;
 use russh::{

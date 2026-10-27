@@ -1,3 +1,4 @@
+//! The sync client: pulls and pushes the encrypted envelope of a vault, never anything decrypted.
 use crate::{
     error::Error,
     state::AppState,

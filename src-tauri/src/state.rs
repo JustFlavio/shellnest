@@ -1,3 +1,4 @@
+//! The shared app state (open vault, catalog, sessions) and the one way to persist a change.
 use crate::{
     error::Error,
     locks::MutexExt,

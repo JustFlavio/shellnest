@@ -1,3 +1,4 @@
+//! The single open question to the user while authenticating: the password prompt.
 use crate::locks::MutexExt;
 use std::sync::{Arc, Mutex};
 use tokio::sync::{oneshot, Notify};

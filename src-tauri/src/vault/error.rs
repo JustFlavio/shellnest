@@ -1,3 +1,4 @@
+//! Errors of encryption, vault files and the catalog.
 use crate::model::ModelError;
 
 /// Why a vault could not be opened, sealed, stored or listed. The messages are shown to the user.

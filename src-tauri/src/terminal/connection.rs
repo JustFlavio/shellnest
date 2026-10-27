@@ -1,3 +1,4 @@
+//! Opens one SSH connection: host key check, authentication (key, saved password, asked password), shell.
 use super::{
     host_key::{config, handler, Handler},
     TerminalError,

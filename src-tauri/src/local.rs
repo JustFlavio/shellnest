@@ -1,3 +1,4 @@
+//! The local shell: a PTY with a reader thread and a writer thread, killed when the session or the app closes.
 use crate::{
     locks::MutexExt,
     terminal::{Input, Output, TerminalError},

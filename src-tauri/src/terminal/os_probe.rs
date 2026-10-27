@@ -1,3 +1,4 @@
+//! Best-effort detection of the remote OS over a second channel, bounded in time and size.
 use russh::{client, ChannelMsg};
 use std::time::Duration;
 

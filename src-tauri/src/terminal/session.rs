@@ -1,3 +1,4 @@
+//! The session task: connect under a timeout that pauses while the user types, then pump the channel.
 use super::{
     connection::{open, Note},
     messages::{ConnectionMetadata, Input, Output, StepDetail},

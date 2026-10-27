@@ -1,3 +1,4 @@
+//! Errors of SSH sessions, host key probing and the local PTY.
 /// Why a terminal session, a local PTY or a host key check failed. The messages are shown to the user.
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum TerminalError {

@@ -1,3 +1,4 @@
+//! What the UI and the session task send each other: `Input` in, `Output` out.
 use crate::model::Redacted;
 use serde::Serialize;
 use zeroize::Zeroizing;

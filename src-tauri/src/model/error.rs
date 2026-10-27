@@ -1,3 +1,4 @@
+//! Errors of editing and resolving the vault contents.
 /// Why an edit of the vault contents was refused. The messages are shown to the user as they are.
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum ModelError {
