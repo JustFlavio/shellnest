@@ -1,10 +1,13 @@
+//! The session task: connect under a timeout that pauses while the user types, then pump the channel.
 use super::{
     connection::{open, Note},
     messages::{ConnectionMetadata, Input, Output, StepDetail},
     os_probe::detect_os,
     password::PasswordPrompt,
+    TerminalError,
 };
 use crate::{
+    error::Error,
     model::Connection,
     state::{record_connection, AppState},
 };
@@ -19,11 +22,11 @@ const OPEN_TIMEOUT: Duration = Duration::from_secs(30);
 /// Drives `opening` to its end. Lock/close cancels transport establishment and authentication as well
 /// as live sessions, so `None` is a close. The timeout does not run while the user is typing a password.
 async fn until_open<T>(
-    opening: impl std::future::Future<Output = Result<T, String>>,
+    opening: impl std::future::Future<Output = Result<T, TerminalError>>,
     prompt: &PasswordPrompt,
     rx: &mut mpsc::UnboundedReceiver<Input>,
     limit: Duration,
-) -> Result<Option<T>, String> {
+) -> Result<Option<T>, TerminalError> {
     tokio::pin!(opening);
     let mut deadline = tokio::time::Instant::now() + limit;
     loop {
@@ -31,7 +34,7 @@ async fn until_open<T>(
         // when a question opens: the timer is held while asking, and starts over once it is answered.
         tokio::select! {
             result=&mut opening=>return result.map(Some),
-            _=tokio::time::sleep_until(deadline),if !prompt.asking()=>return Err("Timeout connessione SSH".into()),
+            _=tokio::time::sleep_until(deadline),if !prompt.asking()=>return Err(TerminalError::ConnectTimeout),
             _=prompt.opened()=>{},
             input=rx.recv()=>match input{
                 Some(Input::Password(password))=>{
@@ -51,7 +54,7 @@ async fn run(
     host: Connection,
     mut rx: mpsc::UnboundedReceiver<Input>,
     output: &Channel<Output>,
-) -> Result<(), String> {
+) -> Result<(), TerminalError> {
     let _ = output.send(Output::Status("Connessione…".into()));
     let prompt = PasswordPrompt::default();
     let opening = open(
@@ -95,14 +98,14 @@ async fn run(
                 if os.is_some(){publish_metadata(&app,&vault_id,saved,&host,output,os,connected_at);}
             },
             input=rx.recv()=>match input{
-                Some(Input::Data(bytes))=>channel.data(&bytes[..]).await.map_err(|e|e.to_string())?,
-                Some(Input::Resize(cols,rows))=>channel.window_change(cols,rows,0,0).await.map_err(|e|e.to_string())?,
+                Some(Input::Data(bytes))=>channel.data(&bytes[..]).await?,
+                Some(Input::Resize(cols,rows))=>channel.window_change(cols,rows,0,0).await?,
                 Some(Input::Password(_))=>{}
                 Some(Input::Close)|None=>{let _=channel.close().await;let _=output.send(Output::Log("Connessione chiusa dall’utente".into()));break;}
             },
             msg=channel.wait()=>match msg{
                 Some(ChannelMsg::Data{data})|Some(ChannelMsg::ExtendedData{data,..})=>{if output.send(Output::Data(data.to_vec())).is_err(){break;}},
-                Some(ChannelMsg::Failure)=>return Err("Il server ha rifiutato terminale o shell".into()),
+                Some(ChannelMsg::Failure)=>return Err(TerminalError::ShellRefused),
                 Some(ChannelMsg::Close)|None=>{let _=output.send(Output::Log("Connessione chiusa dal server".into()));break;},
                 _=>{}
             }
@@ -167,57 +170,68 @@ pub(crate) fn register(
     host: Connection,
     saved: bool,
     output: Channel<Output>,
-) -> Result<(), String> {
+) -> Result<(), TerminalError> {
     if session_id.is_empty() || session_id.len() > 80 {
-        return Err("Identificativo sessione non valido".into());
+        return Err(TerminalError::SessionIdInvalid);
     }
     let (tx, rx) = mpsc::unbounded_channel();
-    let mut sessions = state
-        .sessions
-        .lock()
-        .map_err(|_| "Sessioni non disponibili")?;
+    let mut sessions = state.sessions();
     if sessions.contains_key(&session_id) {
-        return Err("Sessione già aperta".into());
+        return Err(TerminalError::SessionOpen);
     }
     sessions.insert(session_id.clone(), tx.clone());
     tauri::async_runtime::spawn(async move {
-        if let Err(e) = run(app.clone(), vault_id, saved, host, rx, &output).await {
-            let _ = output.send(Output::Error(e));
-        }
-        let _ = output.send(Output::Closed);
-        if let Ok(mut sessions) = app.state::<AppState>().sessions.lock() {
-            if sessions
-                .get(&session_id)
-                .is_some_and(|current| current.same_channel(&tx))
-            {
-                sessions.remove(&session_id);
-            }
+        let _closing = Closing {
+            app: app.clone(),
+            session_id,
+            tx,
+            output: output.clone(),
+        };
+        if let Err(e) = run(app, vault_id, saved, host, rx, &output).await {
+            let _ = output.send(Output::Error(e.to_string()));
         }
     });
     Ok(())
 }
-pub(crate) fn send(state: &AppState, vault_id: &str, id: &str, input: Input) -> Result<(), String> {
+/// Ends a session for the UI and the registry however its task ends, a panic included: without it a
+/// panicking task would leave a dead entry that blocks its id, and a tab that never learns it closed.
+struct Closing {
+    app: tauri::AppHandle,
+    session_id: String,
+    tx: mpsc::UnboundedSender<Input>,
+    output: Channel<Output>,
+}
+impl Drop for Closing {
+    fn drop(&mut self) {
+        let _ = self.output.send(Output::Closed);
+        let state = self.app.state::<AppState>();
+        let mut sessions = state.sessions();
+        if sessions
+            .get(&self.session_id)
+            .is_some_and(|current| current.same_channel(&self.tx))
+        {
+            sessions.remove(&self.session_id);
+        }
+    }
+}
+pub(crate) fn send(state: &AppState, vault_id: &str, id: &str, input: Input) -> Result<(), Error> {
     let _scope = session_scope(state, vault_id)?;
     state
-        .sessions
-        .lock()
-        .map_err(|_| "Sessioni non disponibili")?
+        .sessions()
         .get(id)
-        .ok_or("Sessione chiusa")?
+        .ok_or(TerminalError::SessionClosed)?
         .send(input)
-        .map_err(|_| "Sessione chiusa".into())
+        .map_err(|_| TerminalError::SessionClosed)?;
+    Ok(())
 }
 pub(crate) fn session_scope<'a>(
     state: &'a AppState,
     vault_id: &str,
-) -> Result<std::sync::MutexGuard<'a, crate::vault::VaultCatalog>, String> {
+) -> Result<std::sync::MutexGuard<'a, crate::vault::VaultCatalog>, Error> {
     // A switch drains sessions while holding catalog; terminal IO must not wait on the network-held vault lock.
-    let catalog = state
-        .catalog
-        .lock()
-        .map_err(|_| "Registro vault non disponibile")?;
+    let catalog = state.catalog()?;
     if catalog.selected != vault_id {
-        return Err("Il vault attivo è cambiato. Ripeti l’operazione nel vault corretto.".into());
+        return Err(Error::VaultSwitched);
     }
     Ok(catalog)
 }
@@ -230,10 +244,14 @@ mod tests {
     use zeroize::Zeroizing;
     const LIMIT: Duration = Duration::from_millis(300);
     // What `open` does at a password step: open the question, wait for the answer, then finish.
-    async fn asks_then(prompt: &PasswordPrompt, after: Duration, then: bool) -> Result<u8, String> {
+    async fn asks_then(
+        prompt: &PasswordPrompt,
+        after: Duration,
+        then: bool,
+    ) -> Result<u8, TerminalError> {
         sleep(Duration::from_millis(50)).await;
         let answer = prompt.ask();
-        answer.await.map_err(|e| e.to_string())?;
+        answer.await.map_err(|_| TerminalError::SessionClosed)?;
         if then {
             sleep(after).await;
             return Ok(1);
@@ -259,7 +277,7 @@ mod tests {
             ),
             typing
         );
-        assert_eq!(result, Ok(Some(1)));
+        assert!(matches!(result, Ok(Some(1))));
     }
     #[tokio::test]
     async fn the_timeout_restarts_after_the_answer() {
@@ -281,7 +299,7 @@ mod tests {
             ),
             typing
         );
-        assert_eq!(result.unwrap_err(), "Timeout connessione SSH");
+        assert_eq!(result.unwrap_err().to_string(), "Timeout connessione SSH");
         let since = answered.lock().unwrap().unwrap().elapsed();
         assert!(
             since >= LIMIT - Duration::from_millis(20),
@@ -292,13 +310,16 @@ mod tests {
     async fn without_a_question_the_timeout_fires_and_close_wins() {
         let prompt = PasswordPrompt::default();
         let (tx, mut rx) = mpsc::unbounded_channel();
-        let never = || std::future::pending::<Result<u8, String>>();
+        let never = || std::future::pending::<Result<u8, TerminalError>>();
         let started = Instant::now();
         let result = until_open(never(), &prompt, &mut rx, LIMIT).await;
-        assert_eq!(result.unwrap_err(), "Timeout connessione SSH");
+        assert_eq!(result.unwrap_err().to_string(), "Timeout connessione SSH");
         assert!(started.elapsed() >= LIMIT);
         tx.send(Input::Close).unwrap();
-        assert_eq!(until_open(never(), &prompt, &mut rx, LIMIT).await, Ok(None));
+        assert!(matches!(
+            until_open(never(), &prompt, &mut rx, LIMIT).await,
+            Ok(None)
+        ));
     }
     #[test]
     fn terminal_io_is_not_blocked_by_sync_and_rejects_stale_vault_scope() {

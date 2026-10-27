@@ -1,4 +1,4 @@
-use super::{new_id, Data, Host};
+use super::{new_id, Data, Host, ModelError};
 use serde::{Deserialize, Serialize};
 
 pub(crate) const MAX_GROUP_DEPTH: usize = 5;
@@ -56,7 +56,7 @@ impl Data {
             })
             .unwrap_or(22)
     }
-    pub(crate) fn upsert_group(&mut self, mut group: Group) -> Result<(), String> {
+    pub(crate) fn upsert_group(&mut self, mut group: Group) -> Result<(), ModelError> {
         group.name = group.name.trim().to_string();
         if group.id.is_empty() {
             group.id = new_id();
@@ -72,7 +72,7 @@ impl Data {
             let mut hops = 0;
             while !cursor.parent_id.is_empty() {
                 if cursor.parent_id == g.id || hops > MAX_GROUP_DEPTH {
-                    return Err("Una cartella non può stare dentro se stessa".into());
+                    return Err(ModelError::GroupInsideItself);
                 }
                 hops += 1;
                 match self.groups.iter().find(|p| p.id == cursor.parent_id) {
@@ -83,11 +83,11 @@ impl Data {
         }
         self.validate()
     }
-    pub(crate) fn delete_group(&mut self, id: &str) -> Result<(), String> {
+    pub(crate) fn delete_group(&mut self, id: &str) -> Result<(), ModelError> {
         if self.groups.iter().any(|g| g.parent_id == id)
             || self.hosts.iter().any(|h| h.group_id == id)
         {
-            return Err("La cartella non è vuota: sposta o elimina prima il suo contenuto.".into());
+            return Err(ModelError::GroupNotEmpty);
         }
         self.groups.retain(|g| g.id != id);
         Ok(())

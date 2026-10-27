@@ -1,4 +1,4 @@
-use super::{new_id, Data, Host};
+use super::{new_id, Data, Host, ModelError, Redacted};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
@@ -12,17 +12,34 @@ pub(crate) struct Connection {
     // For the connection log and the timeline; not a secret.
     pub(crate) key_name: String,
 }
+impl std::fmt::Debug for Connection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Connection")
+            .field("host", &self.host)
+            .field("username", &self.username)
+            .field("auth", &self.auth)
+            .field("password", &Redacted)
+            .field("private_key", &Redacted)
+            .field("passphrase", &Redacted)
+            .field("key_name", &self.key_name)
+            .finish()
+    }
+}
 
 impl Data {
-    pub(crate) fn resolve(&self, id: &str) -> Result<Connection, String> {
+    pub(crate) fn resolve(&self, id: &str) -> Result<Connection, ModelError> {
         let host = self
             .hosts
             .iter()
             .find(|h| h.id == id)
-            .ok_or("Host non trovato")?;
+            .ok_or(ModelError::HostNotFound)?;
         self.connection_for(host.clone(), None)
     }
-    fn connection_for(&self, mut host: Host, username: Option<&str>) -> Result<Connection, String> {
+    fn connection_for(
+        &self,
+        mut host: Host,
+        username: Option<&str>,
+    ) -> Result<Connection, ModelError> {
         // Downstream code sees the resolved port and identity, never the inherited-from-group blanks.
         host.port = Some(self.effective_port(&host));
         host.identity_id = self.effective_identity_id(&host);
@@ -43,13 +60,13 @@ impl Data {
             .identities
             .iter()
             .find(|i| i.id == host.identity_id)
-            .ok_or("Identità non trovata")?;
+            .ok_or(ModelError::IdentityNotFound)?;
         let key = if identity.auth == "key" {
             Some(
                 self.keys
                     .iter()
                     .find(|k| k.id == identity.key_id)
-                    .ok_or("Chiave non trovata")?,
+                    .ok_or(ModelError::KeyNotFound)?,
             )
         } else {
             None
@@ -74,7 +91,7 @@ impl Data {
         username: Option<&str>,
         (key_id, password): (&str, &str),
         expected_fingerprint: &str,
-    ) -> Result<Connection, String> {
+    ) -> Result<Connection, ModelError> {
         if address.is_empty()
             || address.len() > 253
             || port == 0
@@ -83,12 +100,12 @@ impl Data {
                     .bytes()
                     .all(|c| c.is_ascii_alphanumeric() || matches!(c, b'.' | b'-' | b'_')))
         {
-            return Err("Indirizzo o porta non validi".into());
+            return Err(ModelError::TargetInvalid);
         }
         if username.is_some_and(|u| {
             u.is_empty() || u.len() > 256 || u.chars().any(|c| c.is_control() || c.is_whitespace())
         }) {
-            return Err("Utente SSH non valido".into());
+            return Err(ModelError::UsernameInvalid);
         }
         use base64::Engine;
         if !expected_fingerprint
@@ -100,7 +117,7 @@ impl Data {
             })
             .is_some_and(|b| b.len() == 32)
         {
-            return Err("Verifica prima l’impronta del server".into());
+            return Err(ModelError::FingerprintUnverified);
         }
         let host = Host {
             id: format!("quick-{}", new_id()),
@@ -117,7 +134,7 @@ impl Data {
         if !identity_id.is_empty() {
             return self.connection_for(host, username);
         }
-        let username = username.ok_or("Indica l’utente SSH")?;
+        let username = username.ok_or(ModelError::UsernameMissing)?;
         let key = if key_id.is_empty() {
             None
         } else {
@@ -125,7 +142,7 @@ impl Data {
                 self.keys
                     .iter()
                     .find(|k| k.id == key_id)
-                    .ok_or("Chiave non trovata")?,
+                    .ok_or(ModelError::KeyNotFound)?,
             )
         };
         Ok(Connection {

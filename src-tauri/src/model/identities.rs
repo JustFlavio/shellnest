@@ -1,4 +1,4 @@
-use super::Data;
+use super::{Data, ModelError, Redacted};
 use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -12,9 +12,21 @@ pub(crate) struct Identity {
     pub(crate) key_id: String,
     pub(crate) password: String,
 }
+impl std::fmt::Debug for Identity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Identity")
+            .field("id", &self.id)
+            .field("name", &self.name)
+            .field("username", &self.username)
+            .field("auth", &self.auth)
+            .field("key_id", &self.key_id)
+            .field("password", &Redacted)
+            .finish()
+    }
+}
 
 impl Data {
-    pub(crate) fn upsert_identity(&mut self, mut identity: Identity) -> Result<(), String> {
+    pub(crate) fn upsert_identity(&mut self, mut identity: Identity) -> Result<(), ModelError> {
         if identity.auth == "password" {
             identity.key_id.clear();
             if identity.password.is_empty() {
@@ -36,13 +48,11 @@ impl Data {
         }
         self.validate()
     }
-    pub(crate) fn delete_identity(&mut self, id: &str) -> Result<(), String> {
+    pub(crate) fn delete_identity(&mut self, id: &str) -> Result<(), ModelError> {
         let used = self.hosts.iter().filter(|h| h.identity_id == id).count()
             + self.groups.iter().filter(|g| g.identity_id == id).count();
         if used > 0 {
-            return Err(format!(
-                "Identità utilizzata da {used} host o cartelle. Riassegnali prima."
-            ));
+            return Err(ModelError::IdentityInUse(used));
         }
         self.identities.retain(|i| i.id != id);
         Ok(())
@@ -51,12 +61,12 @@ impl Data {
         &mut self,
         ids: &[String],
         identity_id: &str,
-    ) -> Result<(), String> {
+    ) -> Result<(), ModelError> {
         if ids.is_empty() || !self.identities.iter().any(|i| i.id == identity_id) {
-            return Err("Seleziona host e identità validi".into());
+            return Err(ModelError::AssignInvalid);
         }
         if ids.iter().any(|id| !self.hosts.iter().any(|h| &h.id == id)) {
-            return Err("Uno degli host selezionati non esiste più".into());
+            return Err(ModelError::AssignHostMissing);
         }
         for host in &mut self.hosts {
             if ids.contains(&host.id) {

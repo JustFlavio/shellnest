@@ -1,4 +1,8 @@
-use crate::terminal::{Input, Output};
+//! The local shell: a PTY with a reader thread and a writer thread, killed when the session or the app closes.
+use crate::{
+    locks::MutexExt,
+    terminal::{Input, Output, TerminalError},
+};
 use portable_pty::{native_pty_system, ChildKiller, CommandBuilder, PtySize};
 use std::{
     collections::HashMap,
@@ -61,34 +65,32 @@ pub(crate) fn start(
     cols: u32,
     rows: u32,
     sink: Arc<dyn Fn(Output) -> bool + Send + Sync>,
-) -> Result<mpsc::UnboundedSender<Input>, String> {
+) -> Result<mpsc::UnboundedSender<Input>, TerminalError> {
     let pair = native_pty_system()
         .openpty(size(cols, rows))
-        .map_err(|e| e.to_string())?;
-    let mut reader = pair.master.try_clone_reader().map_err(|e| e.to_string())?;
-    let mut writer = pair.master.take_writer().map_err(|e| e.to_string())?;
+        .map_err(TerminalError::pty)?;
+    let mut reader = pair.master.try_clone_reader().map_err(TerminalError::pty)?;
+    let mut writer = pair.master.take_writer().map_err(TerminalError::pty)?;
     #[cfg(unix)]
     let poll_fd = {
         use std::os::fd::{FromRawFd, OwnedFd};
         let fd = pair
             .master
             .as_raw_fd()
-            .ok_or("PTY locale senza descrittore nativo")?;
-        let duplicate = nix::fcntl::fcntl(fd, nix::fcntl::FcntlArg::F_DUPFD_CLOEXEC(0))
-            .map_err(|e| e.to_string())?;
-        // The duplicate belongs exclusively to this reader and closes with it.
+            .ok_or(TerminalError::NoPtyDescriptor)?;
+        let duplicate = nix::fcntl::fcntl(fd, nix::fcntl::FcntlArg::F_DUPFD_CLOEXEC(0))?;
+        // SAFETY: `duplicate` was just returned by a successful F_DUPFD_CLOEXEC, so it is a valid open
+        // descriptor that no other owner has: wrapping it in an `OwnedFd` makes this the only closer.
         unsafe { OwnedFd::from_raw_fd(duplicate) }
     };
-    let mut registry = children()
-        .lock()
-        .map_err(|_| "Terminali locali non disponibili")?;
+    let mut registry = children().lock_recovering();
     if registry.contains_key(&id) {
-        return Err("Sessione locale già aperta".into());
+        return Err(TerminalError::LocalSessionOpen);
     }
     let mut child = pair
         .slave
         .spawn_command(command)
-        .map_err(|e| e.to_string())?;
+        .map_err(TerminalError::pty)?;
     registry.insert(id.clone(), child.clone_killer());
     drop(registry);
     drop(pair.slave);
@@ -137,25 +139,24 @@ pub(crate) fn start(
     });
     thread::spawn(move || {
         let _ = sink(Output::Status("Connesso".into()));
-        let result = (|| -> Result<(), String> {
+        let result = (|| -> Result<(), TerminalError> {
             loop {
                 if failed.load(Ordering::Acquire) {
                     break;
                 }
                 match rx.try_recv() {
-                    Ok(Input::Data(bytes)) => writer
-                        .write_all(&bytes)
-                        .and_then(|_| writer.flush())
-                        .map_err(|e| e.to_string())?,
+                    Ok(Input::Data(bytes)) => {
+                        writer.write_all(&bytes).and_then(|()| writer.flush())?
+                    }
                     Ok(Input::Resize(cols, rows)) => pair
                         .master
                         .resize(size(cols, rows))
-                        .map_err(|e| e.to_string())?,
+                        .map_err(TerminalError::pty)?,
                     Ok(Input::Close) | Err(mpsc::error::TryRecvError::Disconnected) => break,
                     // Nothing here asks for a password: an answer never reaches the shell.
                     Ok(Input::Password(_)) | Err(mpsc::error::TryRecvError::Empty) => {}
                 }
-                if child.try_wait().map_err(|e| e.to_string())?.is_some() {
+                if child.try_wait()?.is_some() {
                     return Ok(());
                 }
                 thread::sleep(Duration::from_millis(10));
@@ -168,15 +169,13 @@ pub(crate) fn start(
             let _ = child.kill();
             let _ = child.wait();
         }
-        if let Ok(mut registry) = children().lock() {
-            registry.remove(&id);
-        }
+        children().lock_recovering().remove(&id);
         closing.store(true, Ordering::Release);
         drop(writer);
         drop(pair.master);
         let _ = reader_thread.join();
         if let Err(error) = result {
-            let _ = sink(Output::Error(error));
+            let _ = sink(Output::Error(error.to_string()));
         }
         let _ = sink(Output::Closed);
     });
@@ -184,10 +183,8 @@ pub(crate) fn start(
 }
 
 pub(crate) fn shutdown_all() {
-    if let Ok(mut registry) = children().lock() {
-        for (_, mut child) in registry.drain() {
-            let _ = child.kill();
-        }
+    for (_, mut child) in children().lock_recovering().drain() {
+        let _ = child.kill();
     }
 }
 

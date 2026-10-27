@@ -1,40 +1,41 @@
 use super::mutate;
 use crate::{
+    error::Error,
     model::{Identity, SshKey},
     state::AppState,
     view::View,
 };
 use tauri::State;
 
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn save_identity(
     state: State<AppState>,
     vault_id: String,
     identity: Identity,
-) -> Result<View, String> {
+) -> Result<View, Error> {
     mutate(&state, &vault_id, |data| data.upsert_identity(identity))
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn save_key(
     state: State<AppState>,
     vault_id: String,
     key: SshKey,
-) -> Result<View, String> {
+) -> Result<View, Error> {
     mutate(&state, &vault_id, |data| data.upsert_key(key))
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn delete_identity(
     state: State<AppState>,
     vault_id: String,
     id: String,
-) -> Result<View, String> {
+) -> Result<View, Error> {
     mutate(&state, &vault_id, |data| data.delete_identity(&id))
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn delete_key(
     state: State<AppState>,
     vault_id: String,
     id: String,
-) -> Result<View, String> {
+) -> Result<View, Error> {
     mutate(&state, &vault_id, |data| data.delete_key(&id))
 }

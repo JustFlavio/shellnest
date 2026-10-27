@@ -1,11 +1,11 @@
 use super::{
     workspaces::{check_layout, MAX_LAYOUT_LEAVES},
-    Data, MAX_GROUP_DEPTH,
+    Data, ModelError, MAX_GROUP_DEPTH,
 };
 use std::collections::HashSet;
 
 impl Data {
-    pub(crate) fn validate(&self) -> Result<(), String> {
+    pub(crate) fn validate(&self) -> Result<(), ModelError> {
         for ids in [
             self.hosts.iter().map(|h| &h.id).collect::<Vec<_>>(),
             self.identities.iter().map(|i| &i.id).collect(),
@@ -16,18 +16,18 @@ impl Data {
             let mut seen = HashSet::new();
             for id in ids {
                 if id.is_empty() || id.len() > 80 || !seen.insert(id) {
-                    return Err("Identificativi mancanti o duplicati nel vault".into());
+                    return Err(ModelError::InvalidIds);
                 }
             }
         }
         for i in &self.identities {
             if i.username.trim().is_empty() || i.name.trim().is_empty() {
-                return Err("Identità senza nome o utente".into());
+                return Err(ModelError::IdentityIncomplete);
             }
             match i.auth.as_str() {
                 "key" if self.keys.iter().any(|k| k.id == i.key_id) && i.password.is_empty() => {}
                 "password" if i.key_id.is_empty() => {}
-                _ => return Err("Identità con riferimento alla chiave non valido".into()),
+                _ => return Err(ModelError::IdentityKeyInvalid),
             }
         }
         for g in &self.groups {
@@ -39,11 +39,9 @@ impl Data {
                     .groups
                     .iter()
                     .find(|p| p.id == cursor.parent_id)
-                    .ok_or("Gruppo padre non trovato")?;
+                    .ok_or(ModelError::GroupParentMissing)?;
                 if depth > MAX_GROUP_DEPTH {
-                    return Err(format!(
-                        "Le cartelle possono avere al massimo {MAX_GROUP_DEPTH} livelli"
-                    ));
+                    return Err(ModelError::GroupTooDeep(MAX_GROUP_DEPTH));
                 }
             }
             let name = g.name.trim();
@@ -52,27 +50,27 @@ impl Data {
                 || name != g.name
                 || name.chars().any(|c| c == '/' || c.is_control())
             {
-                return Err("Nome cartella non valido".into());
+                return Err(ModelError::GroupNameInvalid);
             }
             if g.port == Some(0)
                 || (!g.identity_id.is_empty()
                     && !self.identities.iter().any(|i| i.id == g.identity_id))
             {
-                return Err(format!("Impostazioni della cartella {} non valide", g.name));
+                return Err(ModelError::GroupSettingsInvalid(g.name.clone()));
             }
             if self.groups.iter().any(|o| {
                 o.id != g.id
                     && o.parent_id == g.parent_id
                     && o.name.to_lowercase() == g.name.to_lowercase()
             }) {
-                return Err(format!("Esiste già una cartella chiamata {}", g.name));
+                return Err(ModelError::GroupNameTaken(g.name.clone()));
             }
         }
         for h in &self.hosts {
             if h.port == Some(0)
                 || (!h.group_id.is_empty() && !self.groups.iter().any(|g| g.id == h.group_id))
             {
-                return Err(format!("Porta o cartella non valida per l’host {}", h.name));
+                return Err(ModelError::HostPlacementInvalid(h.name.clone()));
             }
             if let Some(credentials) = &h.credentials {
                 if !h.identity_id.is_empty()
@@ -83,22 +81,14 @@ impl Data {
                         .any(|c| c.is_control() || c.is_whitespace())
                     || credentials.password.is_empty()
                 {
-                    return Err(
-                        "Credenziali dell’host non valide o in conflitto con un’identità".into(),
-                    );
+                    return Err(ModelError::HostCredentialsInvalid);
                 }
             } else if h.identity_id.is_empty() {
                 if self.inherited_identity(h).is_none() {
-                    return Err(format!(
-                        "L’host {} non ha un’identità e la sua cartella non ne fornisce una",
-                        h.name
-                    ));
+                    return Err(ModelError::HostWithoutIdentity(h.name.clone()));
                 }
             } else if !self.identities.iter().any(|i| i.id == h.identity_id) {
-                return Err(format!(
-                    "L’host {} fa riferimento a un’identità mancante",
-                    h.name
-                ));
+                return Err(ModelError::HostIdentityMissing(h.name.clone()));
             }
         }
         let host_ids: HashSet<&str> = self.hosts.iter().map(|h| h.id.as_str()).collect();
@@ -109,7 +99,7 @@ impl Data {
                 || !check_layout(&w.layout, &host_ids, 0, &mut leaves)
                 || leaves > MAX_LAYOUT_LEAVES
             {
-                return Err(format!("Workspace {} non valido", w.name));
+                return Err(ModelError::WorkspaceInvalid(w.name.clone()));
             }
         }
         Ok(())

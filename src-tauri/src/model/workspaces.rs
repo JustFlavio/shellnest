@@ -1,4 +1,4 @@
-use super::{new_id, Data};
+use super::{new_id, Data, ModelError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
@@ -62,7 +62,7 @@ pub(super) fn prune_layout(node: &serde_json::Value, host_id: &str) -> Option<se
 }
 
 impl Data {
-    pub(crate) fn upsert_workspace(&mut self, mut workspace: Workspace) -> Result<(), String> {
+    pub(crate) fn upsert_workspace(&mut self, mut workspace: Workspace) -> Result<(), ModelError> {
         workspace.name = workspace.name.trim().to_string();
         if workspace.id.is_empty() {
             workspace.id = new_id();

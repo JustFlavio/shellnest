@@ -4521,6 +4521,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-wdio",
  "tauri-plugin-wdio-webdriver",
+ "thiserror 2.0.21",
  "tokio",
  "zeroize",
 ]

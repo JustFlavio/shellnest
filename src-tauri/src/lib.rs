@@ -1,8 +1,10 @@
 //! Shellnest: a desktop SSH client with encrypted local vaults and optional self-hosted sync.
 mod app;
 mod commands;
+mod error;
 mod keychain;
 mod local;
+mod locks;
 #[cfg(target_os = "macos")]
 mod menu;
 mod model;

@@ -1,31 +1,27 @@
 use crate::{
+    error::Error,
     keychain, model,
     state::AppState,
-    terminal, vault,
+    terminal,
+    vault::{self, VaultError},
     view::{view, View},
 };
 use tauri::State;
 
-#[tauri::command]
-pub(crate) fn select_vault(state: State<AppState>, vault_id: String) -> Result<View, String> {
+#[tauri::command(async)]
+pub(crate) fn select_vault(state: State<AppState>, vault_id: String) -> Result<View, Error> {
     select(&state, &vault_id)
 }
-fn select(state: &AppState, id: &str) -> Result<View, String> {
-    let mut guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
-    let mut catalog = state
-        .catalog
-        .lock()
-        .map_err(|_| "Registro vault non disponibile")?;
+fn select(state: &AppState, id: &str) -> Result<View, Error> {
+    let mut guard = state.vault()?;
+    let mut catalog = state.catalog()?;
     if !catalog.vaults.iter().any(|v| v.id == id) {
-        return Err("Vault non trovato".into());
+        return Err(Error::VaultNotFound);
     }
     if catalog.selected != id {
         let mut next = catalog.clone();
         next.selected = id.into();
-        let mut sessions = state
-            .sessions
-            .lock()
-            .map_err(|_| "Sessioni non disponibili")?;
+        let mut sessions = state.sessions();
         next.persist(&state.path)?;
         for (_, tx) in sessions.drain() {
             let _ = tx.send(terminal::Input::Close);
@@ -37,21 +33,18 @@ fn select(state: &AppState, id: &str) -> Result<View, String> {
     drop(guard);
     view(state)
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn create_vault(
     state: State<AppState>,
     vault_id: String,
     name: String,
-) -> Result<View, String> {
+) -> Result<View, Error> {
     create(&state, &vault_id, &name)
 }
-fn create(state: &AppState, expected: &str, name: &str) -> Result<View, String> {
-    let mut guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
+fn create(state: &AppState, expected: &str, name: &str) -> Result<View, Error> {
+    let mut guard = state.vault()?;
     state.ensure_vault(expected)?;
-    let mut catalog = state
-        .catalog
-        .lock()
-        .map_err(|_| "Registro vault non disponibile")?;
+    let mut catalog = state.catalog()?;
     let name = catalog.validate_name(name, None)?;
     let mut next = catalog.clone();
     let id = model::new_id();
@@ -60,10 +53,7 @@ fn create(state: &AppState, expected: &str, name: &str) -> Result<View, String> 
         name,
     });
     next.selected = id;
-    let mut sessions = state
-        .sessions
-        .lock()
-        .map_err(|_| "Sessioni non disponibili")?;
+    let mut sessions = state.sessions();
     next.persist(&state.path)?;
     for (_, tx) in sessions.drain() {
         let _ = tx.send(terminal::Input::Close);
@@ -75,24 +65,21 @@ fn create(state: &AppState, expected: &str, name: &str) -> Result<View, String> 
     drop(guard);
     view(state)
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn rename_vault(
     state: State<AppState>,
     vault_id: String,
     name: String,
-) -> Result<View, String> {
-    let guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
+) -> Result<View, Error> {
+    let guard = state.vault()?;
     state.ensure_vault(&vault_id)?;
-    let mut catalog = state
-        .catalog
-        .lock()
-        .map_err(|_| "Registro vault non disponibile")?;
+    let mut catalog = state.catalog()?;
     let name = catalog.validate_name(&name, Some(&vault_id))?;
     let mut next = catalog.clone();
     next.vaults
         .iter_mut()
         .find(|v| v.id == vault_id)
-        .ok_or("Vault non trovato")?
+        .ok_or(Error::VaultNotFound)?
         .name = name;
     next.persist(&state.path)?;
     *catalog = next;
@@ -100,16 +87,16 @@ pub(crate) fn rename_vault(
     drop(guard);
     view(&state)
 }
-#[tauri::command]
-pub(crate) fn delete_vault(state: State<AppState>, vault_id: String) -> Result<View, String> {
+#[tauri::command(async)]
+pub(crate) fn delete_vault(state: State<AppState>, vault_id: String) -> Result<View, Error> {
     delete(&state, &vault_id)
 }
 // Only the active vault, only when empty (or never created on disk), never the default one.
-fn delete(state: &AppState, id: &str) -> Result<View, String> {
+fn delete(state: &AppState, id: &str) -> Result<View, Error> {
     if id == "personal" {
-        return Err("Il vault Personale non può essere eliminato".into());
+        return Err(VaultError::DefaultNotDeletable.into());
     }
-    let mut guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
+    let mut guard = state.vault()?;
     state.ensure_vault(id)?;
     let path = state.active_path()?;
     match guard.as_ref() {
@@ -121,23 +108,17 @@ fn delete(state: &AppState, id: &str) -> Result<View, String> {
                 && d.groups.is_empty()
                 && d.workspaces.is_empty())
             {
-                return Err("Il vault non è vuoto: eliminane prima il contenuto".into());
+                return Err(VaultError::NotEmpty.into());
             }
         }
-        None if path.exists() => return Err("Sblocca il vault per eliminarlo".into()),
+        None if path.exists() => return Err(VaultError::LockedForDeletion.into()),
         None => {}
     }
-    let mut catalog = state
-        .catalog
-        .lock()
-        .map_err(|_| "Registro vault non disponibile")?;
+    let mut catalog = state.catalog()?;
     let mut next = catalog.clone();
     next.vaults.retain(|v| v.id != id);
     next.selected = "personal".into();
-    let mut sessions = state
-        .sessions
-        .lock()
-        .map_err(|_| "Sessioni non disponibili")?;
+    let mut sessions = state.sessions();
     next.persist(&state.path)?;
     for (_, tx) in sessions.drain() {
         let _ = tx.send(terminal::Input::Close);

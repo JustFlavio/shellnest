@@ -1,3 +1,6 @@
+//! Host key handling: the russh handler that records and checks the fingerprint, and `probe`.
+use super::TerminalError;
+use crate::locks::MutexExt;
 use russh::{
     client,
     keys::{HashAlg, PublicKeyOrCertificate},
@@ -34,9 +37,7 @@ impl client::Handler for Handler {
         key: &PublicKeyOrCertificate,
     ) -> Result<bool, Self::Error> {
         let fingerprint = key.public_key().fingerprint(HashAlg::Sha256).to_string();
-        if let Ok(mut seen) = self.seen.lock() {
-            *seen = Some(fingerprint.clone());
-        }
+        *self.seen.lock_recovering() = Some(fingerprint.clone());
         Ok(self
             .expected
             .as_ref()
@@ -49,8 +50,9 @@ impl client::Handler for Handler {
         session: &mut client::Session,
     ) -> Result<(), Self::Error> {
         // Only the first exchange is of interest; later ones are rekeys.
-        if let Ok(mut info) = self.info.lock() {
-            info.get_or_insert_with(|| ServerInfo {
+        self.info
+            .lock_recovering()
+            .get_or_insert_with(|| ServerInfo {
                 banner: printable(session.remote_sshid()),
                 algorithms: format!(
                     "scambio chiavi {}, chiave host {}, cifrario {}",
@@ -59,7 +61,6 @@ impl client::Handler for Handler {
                     names.cipher.as_ref()
                 ),
             });
-        }
         Ok(())
     }
 }
@@ -77,7 +78,7 @@ pub(super) fn config() -> Arc<client::Config> {
         ..Default::default()
     })
 }
-pub(crate) async fn probe(address: &str, port: u16) -> Result<String, String> {
+pub(crate) async fn probe(address: &str, port: u16) -> Result<String, TerminalError> {
     let h = handler(None);
     let seen = h.seen.clone();
     // Probe establishes transport only. No user authentication or credentials are sent.
@@ -86,15 +87,10 @@ pub(crate) async fn probe(address: &str, port: u16) -> Result<String, String> {
         client::connect(config(), (address, port), h),
     )
     .await
-    .map_err(|_| "Timeout durante la verifica del server")?
-    .map_err(|e| e.to_string())?;
+    .map_err(|_| TerminalError::ProbeTimeout)??;
     let _ = session
         .disconnect(Disconnect::ByApplication, "", "en")
         .await;
-    let result = seen
-        .lock()
-        .map_err(|_| "Impronta non disponibile")?
-        .clone()
-        .ok_or("Impronta non disponibile".to_string());
-    result
+    let fingerprint = seen.lock_recovering().clone();
+    fingerprint.ok_or(TerminalError::FingerprintUnavailable)
 }

@@ -1,10 +1,12 @@
 //! Vault encryption and files: a password-derived key seals the data into an `Envelope`, which
 //! is written atomically with a `.bak` of the previous version.
 mod catalog;
+mod error;
 
 pub(crate) use catalog::{valid_vault_id, VaultCatalog, VaultEntry};
+pub(crate) use error::VaultError;
 
-use crate::model::Data;
+use crate::model::{Data, Redacted};
 use argon2::Argon2;
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use chacha20poly1305::{
@@ -36,25 +38,35 @@ pub(crate) struct OpenVault {
     pub(crate) data: Data,
     pub(crate) disk: Disk,
 }
+impl std::fmt::Debug for OpenVault {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OpenVault")
+            .field("key", &Redacted)
+            .field("data", &self.data)
+            .finish_non_exhaustive()
+    }
+}
 
-fn derive(password: &str, salt: &[u8]) -> Result<Zeroizing<[u8; 32]>, String> {
+fn derive(password: &str, salt: &[u8]) -> Result<Zeroizing<[u8; 32]>, VaultError> {
     let mut key = Zeroizing::new([0; 32]);
     Argon2::default()
         .hash_password_into(password.as_bytes(), salt, key.as_mut())
-        .map_err(|e| e.to_string())?;
+        .map_err(VaultError::Kdf)?;
     Ok(key)
 }
-pub(crate) fn decrypt(key: &[u8; 32], env: &Envelope) -> Result<Data, String> {
+pub(crate) fn decrypt(key: &[u8; 32], env: &Envelope) -> Result<Data, VaultError> {
     if env.version != 1 {
-        return Err("Versione vault non supportata".into());
+        return Err(VaultError::UnsupportedVersion);
     }
-    let nonce = B64.decode(&env.nonce).map_err(|_| "Nonce non valido")?;
+    let nonce = B64
+        .decode(&env.nonce)
+        .map_err(|_| VaultError::InvalidNonce)?;
     if nonce.len() != 24 {
-        return Err("Nonce non valido".into());
+        return Err(VaultError::InvalidNonce);
     }
     let bytes = B64
         .decode(&env.ciphertext)
-        .map_err(|_| "Vault non valido")?;
+        .map_err(|_| VaultError::Invalid)?;
     let plain = Zeroizing::new(
         XChaCha20Poly1305::new(key.into())
             .decrypt(
@@ -64,14 +76,14 @@ pub(crate) fn decrypt(key: &[u8; 32], env: &Envelope) -> Result<Data, String> {
                     aad: AAD,
                 },
             )
-            .map_err(|_| "Password errata o vault danneggiato")?,
+            .map_err(|_| VaultError::WrongPassword)?,
     );
-    serde_json::from_slice(&plain).map_err(|_| "Contenuto vault non valido".into())
+    serde_json::from_slice(&plain).map_err(|_| VaultError::InvalidContent)
 }
 impl OpenVault {
-    pub(crate) fn create(password: &str) -> Result<Self, String> {
+    pub(crate) fn create(password: &str) -> Result<Self, VaultError> {
         if password.chars().count() < 12 {
-            return Err("Usa almeno 12 caratteri per la password principale".into());
+            return Err(VaultError::PasswordTooShort);
         }
         let mut salt = [0; 16];
         OsRng.fill_bytes(&mut salt);
@@ -92,27 +104,30 @@ impl OpenVault {
         v.seal()?;
         Ok(v)
     }
-    pub(crate) fn unlock(password: &str, disk: Disk) -> Result<Self, String> {
+    pub(crate) fn unlock(password: &str, disk: Disk) -> Result<Self, VaultError> {
         let salt = B64
             .decode(&disk.envelope.salt)
-            .map_err(|_| "Salt non valido")?;
+            .map_err(|_| VaultError::InvalidSalt)?;
         if salt.len() != 16 {
-            return Err("Salt non valido".into());
+            return Err(VaultError::InvalidSalt);
         }
         Self::unlock_with_key(derive(password, &salt)?, disk)
     }
     // The key a keychain-remembered vault is reopened with, instead of the password.
-    pub(crate) fn unlock_with_key(key: Zeroizing<[u8; 32]>, disk: Disk) -> Result<Self, String> {
+    pub(crate) fn unlock_with_key(
+        key: Zeroizing<[u8; 32]>,
+        disk: Disk,
+    ) -> Result<Self, VaultError> {
         let data = decrypt(&key, &disk.envelope)?;
         let mut disk = disk;
         disk.dirty |= data.migrated;
         Ok(Self { key, data, disk })
     }
-    pub(crate) fn seal(&mut self) -> Result<(), String> {
+    pub(crate) fn seal(&mut self) -> Result<(), VaultError> {
         self.data.validate()?;
         let mut nonce = [0; 24];
         OsRng.fill_bytes(&mut nonce);
-        let plain = Zeroizing::new(serde_json::to_vec(&self.data).map_err(|e| e.to_string())?);
+        let plain = Zeroizing::new(serde_json::to_vec(&self.data)?);
         let bytes = XChaCha20Poly1305::new((&*self.key).into())
             .encrypt(
                 XNonce::from_slice(&nonce),
@@ -121,32 +136,30 @@ impl OpenVault {
                     aad: AAD,
                 },
             )
-            .map_err(|_| "Cifratura fallita")?;
+            .map_err(|_| VaultError::SealFailed)?;
         self.disk.envelope.nonce = B64.encode(nonce);
         self.disk.envelope.ciphertext = B64.encode(bytes);
         self.data.migrated = false;
         Ok(())
     }
 }
-pub(crate) fn save<T: Serialize>(path: &Path, disk: &T) -> Result<(), String> {
+pub(crate) fn save<T: Serialize>(path: &Path, disk: &T) -> Result<(), VaultError> {
     if let Some(parent) = path.parent() {
         if !parent.as_os_str().is_empty() {
-            fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            fs::create_dir_all(parent)?;
         }
     }
     let temp = path.with_extension("tmp");
-    fs::write(&temp, serde_json::to_vec(disk).map_err(|e| e.to_string())?)
-        .map_err(|e| e.to_string())?;
+    fs::write(&temp, serde_json::to_vec(disk)?)?;
     fs::OpenOptions::new()
         .write(true)
         .open(&temp)
-        .and_then(|f| f.sync_all())
-        .map_err(|e| e.to_string())?;
+        .and_then(|f| f.sync_all())?;
     // Persist a previous encrypted version for recovery before replacement.
     if path.exists() {
-        fs::copy(path, path.with_extension("bak")).map_err(|e| e.to_string())?;
+        fs::copy(path, path.with_extension("bak"))?;
     }
-    fs::rename(temp, path).map_err(|e| e.to_string())
+    Ok(fs::rename(temp, path)?)
 }
 #[cfg(test)]
 mod tests {
@@ -162,6 +175,16 @@ mod tests {
         let v = OpenVault::create("correct horse battery staple").unwrap();
         assert!(OpenVault::unlock_with_key(Zeroizing::new(*v.key), v.disk.clone()).is_ok());
         assert!(OpenVault::unlock_with_key(Zeroizing::new([7; 32]), v.disk).is_err());
+    }
+    #[test]
+    fn debug_output_of_an_open_vault_hides_its_key() {
+        let v = OpenVault::create("correct horse battery staple").unwrap();
+        let text = format!("{v:?}");
+        assert!(text.contains("<redacted>"));
+        for byte_list in [format!("{:?}", *v.key), format!("{:?}", v.key.as_slice())] {
+            assert!(!text.contains(&byte_list));
+        }
+        assert!(!text.contains("correct horse"));
     }
     #[test]
     fn tampering_is_detected_and_nonces_change() {

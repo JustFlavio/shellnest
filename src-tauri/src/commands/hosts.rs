@@ -1,48 +1,49 @@
 use super::mutate;
 use crate::{
+    error::Error,
     model::{Host, HostCredentials},
     state::AppState,
     view::View,
 };
 use tauri::State;
 
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn reveal_host_password(
     state: State<AppState>,
     vault_id: String,
     id: String,
-) -> Result<String, String> {
+) -> Result<String, Error> {
     state.host_password(&vault_id, &id)
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn save_host(
     state: State<AppState>,
     vault_id: String,
     host: Host,
     credentials: Option<HostCredentials>,
     inherit: Option<bool>,
-) -> Result<View, String> {
+) -> Result<View, Error> {
     mutate(&state, &vault_id, |data| {
         data.upsert_host_inheriting(host, credentials, inherit.unwrap_or(false))
     })
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn assign_identity(
     state: State<AppState>,
     vault_id: String,
     ids: Vec<String>,
     identity_id: String,
-) -> Result<View, String> {
+) -> Result<View, Error> {
     mutate(&state, &vault_id, |data| {
         data.assign_identity(&ids, &identity_id)
     })
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub(crate) fn delete_host(
     state: State<AppState>,
     vault_id: String,
     id: String,
-) -> Result<View, String> {
+) -> Result<View, Error> {
     mutate(&state, &vault_id, |data| {
         data.delete_host(&id);
         Ok(())

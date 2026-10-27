@@ -1,4 +1,4 @@
-use super::save;
+use super::{save, VaultError};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};
 
@@ -24,34 +24,34 @@ impl Default for VaultCatalog {
     }
 }
 impl VaultCatalog {
-    pub(crate) fn load(legacy: &Path) -> Result<Self, String> {
+    pub(crate) fn load(legacy: &Path) -> Result<Self, VaultError> {
         let catalog = match fs::read(legacy.with_extension("catalog.json")) {
             Ok(bytes) => {
-                serde_json::from_slice::<Self>(&bytes).map_err(|_| "Registro vault non valido")?
+                serde_json::from_slice::<Self>(&bytes).map_err(|_| VaultError::CatalogInvalid)?
             }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Self::default(),
-            Err(e) => return Err(e.to_string()),
+            Err(e) => return Err(e.into()),
         };
         let mut ids = std::collections::HashSet::new();
         for entry in &catalog.vaults {
             if !valid_vault_id(&entry.id) || entry.name.trim().is_empty() || !ids.insert(&entry.id)
             {
-                return Err("Registro vault non valido".into());
+                return Err(VaultError::CatalogInvalid);
             }
         }
         if !catalog.vaults.iter().any(|v| v.id == "personal")
             || !catalog.vaults.iter().any(|v| v.id == catalog.selected)
         {
-            return Err("Registro vault incompleto".into());
+            return Err(VaultError::CatalogIncomplete);
         }
         Ok(catalog)
     }
-    pub(crate) fn persist(&self, legacy: &Path) -> Result<(), String> {
+    pub(crate) fn persist(&self, legacy: &Path) -> Result<(), VaultError> {
         save(&legacy.with_extension("catalog.json"), self)
     }
-    pub(crate) fn path_for(legacy: &Path, id: &str) -> Result<std::path::PathBuf, String> {
+    pub(crate) fn path_for(legacy: &Path, id: &str) -> Result<std::path::PathBuf, VaultError> {
         if !valid_vault_id(id) {
-            return Err("Identificativo vault non valido".into());
+            return Err(VaultError::IdInvalid);
         }
         if id == "personal" {
             return Ok(legacy.to_path_buf());
@@ -59,25 +59,29 @@ impl VaultCatalog {
         let stem = legacy
             .file_stem()
             .and_then(|s| s.to_str())
-            .ok_or("Percorso vault non valido")?;
+            .ok_or(VaultError::PathInvalid)?;
         Ok(legacy
             .with_file_name(format!("{stem}-vaults"))
             .join(format!("{id}.json")))
     }
-    pub(crate) fn selected_path(&self, legacy: &Path) -> Result<std::path::PathBuf, String> {
+    pub(crate) fn selected_path(&self, legacy: &Path) -> Result<std::path::PathBuf, VaultError> {
         Self::path_for(legacy, &self.selected)
     }
-    pub(crate) fn validate_name(&self, name: &str, except: Option<&str>) -> Result<String, String> {
+    pub(crate) fn validate_name(
+        &self,
+        name: &str,
+        except: Option<&str>,
+    ) -> Result<String, VaultError> {
         let name = name.trim();
         if name.is_empty() || name.chars().count() > 80 || name.chars().any(char::is_control) {
-            return Err("Il nome del vault deve contenere da 1 a 80 caratteri".into());
+            return Err(VaultError::NameInvalid);
         }
         if self
             .vaults
             .iter()
             .any(|v| Some(v.id.as_str()) != except && v.name.to_lowercase() == name.to_lowercase())
         {
-            return Err("Esiste già un vault con questo nome".into());
+            return Err(VaultError::NameTaken);
         }
         Ok(name.into())
     }
