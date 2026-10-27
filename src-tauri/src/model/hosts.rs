@@ -1,4 +1,4 @@
-use super::{validate_endpoint, workspaces::prune_layout, Data};
+use super::{validate_endpoint, workspaces::prune_layout, Data, ModelError};
 use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -41,9 +41,9 @@ impl Data {
             })
             .collect();
     }
-    pub(crate) fn upsert_host(&mut self, mut host: Host) -> Result<(), String> {
+    pub(crate) fn upsert_host(&mut self, mut host: Host) -> Result<(), ModelError> {
         if host.name.trim().is_empty() {
-            return Err("Nome, indirizzo e porta valida sono obbligatori".into());
+            return Err(ModelError::HostFieldsRequired);
         }
         let port = self.effective_port(&host);
         validate_endpoint(&host.address, port)?;
@@ -73,12 +73,10 @@ impl Data {
         mut host: Host,
         credentials: Option<HostCredentials>,
         inherit: bool,
-    ) -> Result<(), String> {
+    ) -> Result<(), ModelError> {
         if inherit {
             if credentials.is_some() || !host.identity_id.is_empty() {
-                return Err(
-                    "Eredita l’identità dalla cartella oppure sceglila, non entrambe".into(),
-                );
+                return Err(ModelError::InheritConflict);
             }
             host.credentials = None;
         } else if host.identity_id.is_empty() {
@@ -89,7 +87,7 @@ impl Data {
                 .and_then(|h| h.credentials.as_ref());
             let mut credentials = credentials
                 .or_else(|| previous.cloned())
-                .ok_or("Inserisci le credenziali dell’host o scegli un’identità")?;
+                .ok_or(ModelError::CredentialsRequired)?;
             credentials.username = credentials.username.trim().into();
             if credentials.username.is_empty()
                 || credentials
@@ -97,18 +95,18 @@ impl Data {
                     .chars()
                     .any(|c| c.is_control() || c.is_whitespace())
             {
-                return Err("Utente SSH non valido".into());
+                return Err(ModelError::UsernameInvalid);
             }
             if credentials.password.is_empty() {
                 credentials.password = previous.map(|c| c.password.clone()).unwrap_or_default();
             }
             if credentials.password.is_empty() {
-                return Err("Inserisci una password per questo host".into());
+                return Err(ModelError::PasswordRequired);
             }
             host.credentials = Some(credentials);
         } else {
             if credentials.is_some() {
-                return Err("Scegli credenziali dell’host oppure un’identità, non entrambe".into());
+                return Err(ModelError::CredentialsAndIdentity);
             }
             host.credentials = None;
         }
@@ -119,15 +117,15 @@ impl Data {
         id: &str,
         os: Option<String>,
         now_ms: u64,
-    ) -> Result<(), String> {
+    ) -> Result<(), ModelError> {
         let host = self
             .hosts
             .iter_mut()
             .find(|h| h.id == id)
-            .ok_or("Host non trovato")?;
+            .ok_or(ModelError::HostNotFound)?;
         if let Some(os) = os {
             if os.len() > 80 || os.chars().any(char::is_control) {
-                return Err("Sistema operativo non valido".into());
+                return Err(ModelError::OsInvalid);
             }
             host.os = Some(os);
         }

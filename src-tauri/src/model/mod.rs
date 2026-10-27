@@ -2,6 +2,7 @@
 //!
 //! `Data` is the one aggregate; each submodule adds the operations of one record kind.
 mod data;
+mod error;
 mod groups;
 mod hosts;
 mod identities;
@@ -14,6 +15,7 @@ mod validate;
 mod workspaces;
 
 pub(crate) use data::Data;
+pub(crate) use error::ModelError;
 pub(crate) use groups::{Group, MAX_GROUP_DEPTH};
 pub(crate) use hosts::{Host, HostCredentials};
 pub(crate) use identities::Identity;
@@ -24,7 +26,7 @@ pub(crate) use workspaces::Workspace;
 pub(crate) fn new_id() -> String {
     format!("{:032x}", rand::random::<u128>())
 }
-pub(crate) fn validate_endpoint(address: &str, port: u16) -> Result<(), String> {
+pub(crate) fn validate_endpoint(address: &str, port: u16) -> Result<(), ModelError> {
     if address.trim().is_empty()
         || address.len() > 253
         || port == 0
@@ -32,7 +34,7 @@ pub(crate) fn validate_endpoint(address: &str, port: u16) -> Result<(), String> 
             c.is_whitespace() || c.is_control() || matches!(c, '/' | '\\' | '@' | '[' | ']')
         })
     {
-        return Err("Indirizzo IP o nome host e porta non validi".into());
+        return Err(ModelError::EndpointInvalid);
     }
     Ok(())
 }
