@@ -42,3 +42,17 @@ test("selection bar needs two or more hosts", async ({ page }) => {
   await expect(bar).toHaveCount(0);
 });
 
+test("first host: identity created inline", async ({ page }) => {
+  await newHost(page);
+  await page.getByRole("button", { name: "Crea identità condivisa" }).click();
+  await page.getByRole("heading", { name: "Nuova identità" }).waitFor();
+  await page.getByRole("textbox", { name: "Nome" }).fill("Amministrazione");
+  await page.getByRole("textbox", { name: "Utente SSH" }).fill("root");
+  await page.getByRole("combobox", { name: "Metodo di autenticazione" }).click();
+  await page.getByRole("option", { name: "Password" }).click();
+  await page.getByLabel("Password", { exact: true }).fill("segreto");
+  await page.getByRole("button", { name: "Salva e torna all’host" }).click();
+  await expect(page.getByText("Identità:")).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Utente SSH" })).toHaveValue("root");
+});
+

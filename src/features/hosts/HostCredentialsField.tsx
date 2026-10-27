@@ -111,6 +111,17 @@ export function HostCredentialsField({
           </Combobox.Portal>
         )}
       </Combobox.Root>
+      {/* The suggestions popup only exists once there is an identity to pick. */}
+      {identities.length === 0 && (
+        <Button
+          variant="ghost"
+          type="button"
+          className="w-full text-[12px] text-primary"
+          onClick={onNewIdentity}
+        >
+          Crea identità condivisa
+        </Button>
+      )}
       {selected && (
         <div className={selectedHostIdentity}>
           <ContactRound aria-hidden="true" />
