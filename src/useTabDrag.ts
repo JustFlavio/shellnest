@@ -1,27 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import type { TerminalTab } from "./types";
-import { layoutRects, removeLeaf } from "./workbench-state.mjs";
 import type { Edge } from "./workbench-state.mjs";
-
-type TabDragDeps = {
-  tabs: TerminalTab[];
-  active: string;
-  setActive: (id: string) => void;
-  dropOnPane: (
-    srcId: string,
-    isPane: boolean,
-    targetId: string,
-    edge: Edge,
-  ) => void;
-};
+import type { TabsApi } from "./useTabs";
+import { layoutRects, removeLeaf } from "./workbench-state.mjs";
 
 /** Dragging a tab over the bar or a pane over its workspace, and the geometry shown meanwhile. */
-export function useTabDrag({
-  tabs,
-  active,
-  setActive,
-  dropOnPane,
-}: TabDragDeps) {
+export function useTabDrag({ tabs, active, setActive, dropOnPane }: TabsApi) {
   const [drag, setDrag] = useState<{
       id: string;
       over?: string;

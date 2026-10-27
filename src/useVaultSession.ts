@@ -1,10 +1,11 @@
 import { useState } from "react";
-import type { TerminalTab, View } from "./types";
+import type { View } from "./types";
+import type { TabsApi } from "./useTabs";
 import type { VaultApi } from "./useVault";
 
 type SessionDeps = {
   vault: VaultApi;
-  tabs: { tabs: TerminalTab[]; reset: () => void };
+  tabs: TabsApi;
   sync: { reset: () => void };
   hideSettings: () => void;
   // Everything else tied to the vault being left: selection, filters, open editors, unlock form.

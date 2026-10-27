@@ -20,6 +20,7 @@ import type {
   QuickTarget,
   TerminalTab,
   View,
+  Workspace,
   WorkspaceDraft,
 } from "./types";
 import {
@@ -495,6 +496,17 @@ export function useTabs(
         ? old.map((t) => (t.id === id ? { ...t, termTitle } : t))
         : old,
     );
+  const openWorkspace = (ws: WorkspaceDraft) =>
+    void run(() => openWorkspaces([ws]));
+  const restoreSession = () => {
+    const saved = lastSession();
+    if (saved)
+      void run(() => openWorkspaces(saved.items, view.hosts, saved.active));
+  };
+  const deleteWorkspace = (ws: Workspace) =>
+    void run(async () => {
+      update(await invokeScoped<View>("delete_workspace", { id: ws.id }));
+    });
   const reset = () => {
     setLauncherOpen(false);
     setSavingWs(null);
@@ -534,6 +546,9 @@ export function useTabs(
     quickConnect,
     openWorkspaces,
     lastSession,
+    openWorkspace,
+    restoreSession,
+    deleteWorkspace,
     saveWorkspace,
     duplicateTab,
     approveTrust,
@@ -549,3 +564,5 @@ export function useTabs(
     reset,
   };
 }
+
+export type TabsApi = ReturnType<typeof useTabs>;
