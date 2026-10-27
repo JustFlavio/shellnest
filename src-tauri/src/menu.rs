@@ -1,4 +1,9 @@
-use tauri::menu::{Menu, PredefinedMenuItem as P, Submenu};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem as P, Submenu};
+use tauri::Emitter;
+
+/// The frontend listens for this event and runs the same check as its own "Controlla aggiornamenti".
+const CHECK_UPDATES_EVENT: &str = "check-for-updates";
+const CHECK_UPDATES_ID: &str = "check-updates";
 
 // The default macOS menu binds Cmd+W to "Close Window", which would swallow the pane-close shortcut.
 pub(crate) fn install(app: &mut tauri::App) -> tauri::Result<()> {
@@ -12,6 +17,13 @@ pub(crate) fn install(app: &mut tauri::App) -> tauri::Result<()> {
                 true,
                 &[
                     &P::about(h, None, None)?,
+                    &MenuItem::with_id(
+                        h,
+                        CHECK_UPDATES_ID,
+                        "Controlla aggiornamenti…",
+                        true,
+                        None::<&str>,
+                    )?,
                     &P::separator(h)?,
                     &P::hide(h, None)?,
                     &P::hide_others(h, None)?,
@@ -43,5 +55,10 @@ pub(crate) fn install(app: &mut tauri::App) -> tauri::Result<()> {
         ],
     )?;
     app.set_menu(menu)?;
+    app.on_menu_event(|app, event| {
+        if event.id() == CHECK_UPDATES_ID {
+            let _ = app.emit(CHECK_UPDATES_EVENT, ());
+        }
+    });
     Ok(())
 }

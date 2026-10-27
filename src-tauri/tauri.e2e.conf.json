@@ -1,6 +1,9 @@
 {
   "identifier": "io.github.justflavio.shellnest.e2e",
   "productName": "Shellnest E2E",
+  "bundle": {
+    "createUpdaterArtifacts": false
+  },
   "build": {
     "beforeBuildCommand": "npm run build -- --mode desktop-e2e"
   },
