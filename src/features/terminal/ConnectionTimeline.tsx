@@ -6,6 +6,8 @@ import { help } from "@/lib/editor-ui";
 import type { TerminalTab } from "@/lib/types";
 import { useApp } from "@/app/app-context";
 import { FingerprintCard } from "./FingerprintCard";
+import { PasswordStep } from "./PasswordStep";
+import type { PasswordAsk } from "./useTerminalSession";
 import { timelineSteps } from "./connection-steps.mjs";
 import type { StepState } from "./connection-steps.mjs";
 
@@ -22,6 +24,9 @@ export function ConnectionTimeline({
   phase,
   logs,
   failure,
+  password,
+  onPassword,
+  onCancel,
   onRetry,
   onEdit,
 }: {
@@ -29,6 +34,9 @@ export function ConnectionTimeline({
   phase: string;
   logs: string[];
   failure: string;
+  password: PasswordAsk | null;
+  onPassword: (password: string) => void;
+  onCancel: () => void;
   onRetry: () => void;
   onEdit?: () => void;
 }) {
@@ -51,6 +59,7 @@ export function ConnectionTimeline({
     phase,
     failure: message,
     opened: false,
+    password: password && password.waiting,
   });
   const details = [...logs, ...(tab.error ? [tab.error] : [])].join("\n");
   return (
@@ -111,11 +120,23 @@ export function ConnectionTimeline({
                         : ""}
                   </span>
                 </div>
-                {step.state === "current" && step.id !== "trust" && (
-                  <p role="status" className={help + " mt-[2px]"}>
-                    {phase}
-                  </p>
-                )}
+                {step.state === "current" &&
+                  step.id === "password" &&
+                  password?.waiting && (
+                    <PasswordStep
+                      key={String(password.refused)}
+                      refused={password.refused}
+                      onSubmit={onPassword}
+                      onCancel={onCancel}
+                    />
+                  )}
+                {step.state === "current" &&
+                  step.id !== "trust" &&
+                  !(step.id === "password" && password?.waiting) && (
+                    <p role="status" className={help + " mt-[2px]"}>
+                      {phase}
+                    </p>
+                  )}
                 {step.state === "current" &&
                   step.id === "trust" &&
                   (trust ? (

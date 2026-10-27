@@ -11,7 +11,8 @@ const base = {
   failure: "",
   opened: false,
 };
-const states = (o) => timelineSteps({ ...base, ...o }).map((s) => s.id + ":" + s.state);
+const states = (o) =>
+  timelineSteps({ ...base, ...o }).map((s) => s.id + ":" + s.state);
 
 test("known host skips the fingerprint step", () => {
   assert.deepEqual(states({}), [
@@ -60,5 +61,29 @@ test("a changed fingerprint fails the fingerprint step even if none was asked", 
 
 test("opened completes every step; local has no network steps", () => {
   assert.ok(states({ opened: true }).every((s) => s.endsWith(":done")));
-  assert.deepEqual(states({ kind: "local" }), ["connect:current", "session:pending"]);
+  assert.deepEqual(states({ kind: "local" }), [
+    "connect:current",
+    "session:pending",
+  ]);
+});
+
+test("a password request adds its step after authentication", () => {
+  const asking = { phase: "Autenticazione SSH", password: true };
+  assert.deepEqual(states(asking), [
+    "connect:done",
+    "auth:done",
+    "password:current",
+    "session:pending",
+  ]);
+  // sent, waiting for the answer: still on that step
+  assert.deepEqual(states({ ...asking, password: false }), states(asking));
+  assert.deepEqual(states({ ...asking, failure: "Autenticazione fallita" }), [
+    "connect:done",
+    "auth:done",
+    "password:failed",
+    "session:pending",
+  ]);
+  assert.ok(
+    states({ ...asking, opened: true }).every((s) => s.endsWith(":done")),
+  );
 });

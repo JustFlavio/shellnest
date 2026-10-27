@@ -19,7 +19,26 @@ export type SessionUi = {
   status: (text: string) => void;
   opened: () => void;
   failure: (text: string, log?: boolean) => void;
+  // the server needs a password; true when the previous one was refused
+  password: (refused: boolean) => void;
 };
+
+// The preview has no server: it accepts this password and refuses any other.
+const PREVIEW_PASSWORD = "password-giusta";
+const previewAnswers = new Map<string, (password: string) => void>();
+
+/** Sends the password the server asked for; it is not kept anywhere on the way. */
+export function sendSessionPassword(tab: TerminalTab, password: string) {
+  if (!desktop) {
+    previewAnswers.get(tab.id)?.(password);
+    return Promise.resolve();
+  }
+  return invoke<void>("terminal_password", {
+    vaultId: tab.vaultId,
+    sessionId: tab.id,
+    password,
+  });
+}
 
 const MAX_EARLY_INPUT = 32768;
 
@@ -96,6 +115,7 @@ export function startSession(
       sendSize();
       term.focus();
     }
+    if (event.type === "password") ui.password(event.data);
     if (event.type === "metadata") callbacks.current.onMetadata(tab.vaultId);
     if (event.type === "error") fail(event.data);
     if (event.type === "closed") {
@@ -142,8 +162,14 @@ export function startSession(
   };
   if (!desktop) {
     // The preview replays the stages of a real connection. Addresses ending in .slow.test
-    // stay in the authentication stage, .fail.test ends there with an error.
+    // stay in the authentication stage, .fail.test ends there with an error and .password.test
+    // asks for a password.
     const address = tab.kind === "ssh" ? tab.host.address : "";
+    const banner = () =>
+      term.write(
+        "\x1b[90mSessione dimostrativa: nessuna connessione reale.\x1b[0m\r\n" +
+          prompt,
+      );
     const stages = [
       "Connessione al server SSH",
       "Impronta del server verificata",
@@ -159,7 +185,32 @@ export function startSession(
           250,
         ),
       );
-    else if (!address.endsWith(".slow.test"))
+    else if (address.endsWith(".password.test")) {
+      const open = () => {
+        handle({ type: "status", data: "Apertura del terminale remoto" });
+        timers.push(
+          window.setTimeout(
+            () => handle({ type: "status", data: "Connesso" }),
+            70,
+          ),
+          window.setTimeout(banner, 120),
+        );
+      };
+      timers.push(
+        window.setTimeout(() => handle({ type: "password", data: false }), 180),
+      );
+      previewAnswers.set(tab.id, (password) =>
+        timers.push(
+          window.setTimeout(
+            () =>
+              password === PREVIEW_PASSWORD
+                ? open()
+                : handle({ type: "password", data: true }),
+            60,
+          ),
+        ),
+      );
+    } else if (!address.endsWith(".slow.test"))
       timers.push(
         window.setTimeout(
           () =>
@@ -170,17 +221,11 @@ export function startSession(
           () => handle({ type: "status", data: "Connesso" }),
           250,
         ),
-        window.setTimeout(
-          () =>
-            term.write(
-              "\x1b[90mSessione dimostrativa: nessuna connessione reale.\x1b[0m\r\n" +
-                prompt,
-            ),
-          300,
-        ),
+        window.setTimeout(banner, 300),
       );
     return () => {
       stop();
+      previewAnswers.delete(tab.id);
       timers.forEach(window.clearTimeout);
     };
   }

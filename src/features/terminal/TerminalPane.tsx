@@ -93,7 +93,8 @@ export function TerminalPane({
   const pendingTrust = tab.kind === "ssh" && !tab.host.fingerprint;
   const xterm = useRef<Xterm | null>(null);
   const search = useTerminalSearch(xterm);
-  const { opened, phase, logs, failure } = useTerminalSession({
+  const { opened, phase, logs, failure, password, submitPassword } =
+    useTerminalSession({
     xterm,
     tab,
     container,
@@ -152,6 +153,9 @@ export function TerminalPane({
           phase={phase}
           logs={logs}
           failure={failure}
+          password={password}
+          onPassword={submitPassword}
+          onCancel={onClose}
           onRetry={onRetry}
           onEdit={onEdit}
         />

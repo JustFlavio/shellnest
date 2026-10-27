@@ -108,6 +108,8 @@ export type TerminalTab = {
 export type Output =
   | { type: "data"; data: number[] }
   | { type: "status" | "error"; data: string }
+  // authentication needs a password; data = the previous one was refused
+  | { type: "password"; data: boolean }
   | { type: "metadata"; data: { os: string | null; lastConnectedAt: number } }
   | { type: "closed" };
 export const emptyView: View = {

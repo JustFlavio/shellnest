@@ -99,3 +99,39 @@ test("fingerprint card snapshot (reduced motion)", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Impronta verificata, connetti" })).toBeVisible();
   await expect(page).toHaveScreenshot("connection-fingerprint.png");
 });
+
+test("inline password: refused once, accepted on retry, secret not kept", async ({ page }) => {
+  await addHost(page, "chiave", "chiave.password.test");
+  await open(page, "chiave");
+  await page.getByRole("button", { name: "Impronta verificata, connetti" }).click();
+  const field = page.getByLabel("Password", { exact: true });
+  await expect(field).toBeFocused();
+  await expect(steps(page).nth(3)).toHaveAttribute("aria-current", "step");
+  await expect(steps(page).nth(2)).toContainText("completato");
+
+  await field.fill("sbagliata");
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Password non accettata. Riprova.")).toBeVisible();
+  const retry = page.getByLabel("Password", { exact: true });
+  await expect(retry).toHaveValue("");
+  await expect(page.getByRole("button", { name: "Riprova" })).toBeDisabled();
+
+  await retry.fill("password-giusta");
+  await page.getByRole("button", { name: "Riprova" }).click();
+  await expect(page.getByText("Sessione dimostrativa")).toBeVisible();
+  const stored = await page.evaluate(() =>
+    JSON.stringify([localStorage, sessionStorage].map((s) => Object.entries(s))),
+  );
+  expect(stored).not.toContain("giusta");
+  expect(stored).not.toContain("sbagliata");
+});
+
+test("Esc on the inline password cancels and closes the tab", async ({ page }) => {
+  await addHost(page, "chiave", "chiave.password.test");
+  await open(page, "chiave");
+  await page.getByRole("button", { name: "Impronta verificata, connetti" }).click();
+  await expect(page.getByLabel("Password", { exact: true })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.getByLabel("Password", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Chiudi chiave" })).toHaveCount(0);
+});
