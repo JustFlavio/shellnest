@@ -16,9 +16,9 @@ export function useTerminalSearch(xterm: RefObject<Xterm | null>) {
   const [query, setQuery] = useState("");
   const [noMatch, setNoMatch] = useState(false);
   const input = useRef<HTMLInputElement>(null);
-  const find = (forward: boolean, incremental = false) => {
+  const find = (forward: boolean, incremental = false, text = query) => {
     const addon = xterm.current?.search;
-    if (!query) {
+    if (!text) {
       addon?.clearDecorations();
       setNoMatch(false);
       return;
@@ -26,13 +26,15 @@ export function useTerminalSearch(xterm: RefObject<Xterm | null>) {
     const options = { incremental, decorations: searchDecorations };
     setNoMatch(
       !(forward
-        ? addon?.findNext(query, options)
-        : addon?.findPrevious(query, options)),
+        ? addon?.findNext(text, options)
+        : addon?.findPrevious(text, options)),
     );
   };
-  useEffect(() => {
-    if (searching) find(true, true);
-  }, [query]);
+  // The match follows the typing.
+  const change = (text: string) => {
+    setQuery(text);
+    find(true, true, text);
+  };
   useEffect(() => {
     if (searching) input.current?.focus();
   }, [searching]);
@@ -46,5 +48,5 @@ export function useTerminalSearch(xterm: RefObject<Xterm | null>) {
     xterm.current?.search.clearDecorations();
     xterm.current?.term.focus();
   };
-  return { searching, query, setQuery, noMatch, input, find, open, close };
+  return { searching, query, change, noMatch, input, find, open, close };
 }

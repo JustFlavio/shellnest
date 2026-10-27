@@ -4,15 +4,12 @@ import { Input } from "@/components/ui/input";
 import type { useTerminalSearch } from "./useTerminalSearch";
 
 export function TerminalSearchBar({
-  search: { query, setQuery, noMatch, input, find, close },
+  search: { query, change, noMatch, input, find, close },
 }: {
   search: ReturnType<typeof useTerminalSearch>;
 }) {
   return (
-    <div
-      role="search"
-      className="absolute top-[48px] right-[20px] z-10 flex items-center gap-[4px] rounded-[10px] border border-border bg-card p-[4px] shadow-lg"
-    >
+    <search className="absolute top-[48px] right-[20px] z-10 flex items-center gap-[4px] rounded-[10px] border border-border bg-card p-[4px] shadow-lg">
       <Input
         ref={input}
         value={query}
@@ -20,7 +17,7 @@ export function TerminalSearchBar({
         aria-label="Cerca nel terminale"
         aria-invalid={noMatch || undefined}
         className="h-[30px] w-[200px]"
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => change(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Escape") {
             e.preventDefault();
@@ -59,6 +56,6 @@ export function TerminalSearchBar({
       >
         <X size={15} />
       </Button>
-    </div>
+    </search>
   );
 }

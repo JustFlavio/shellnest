@@ -5,7 +5,7 @@ test("clicking the Vault tab icon selects the tab", async ({ page }) => {
   await page.getByRole("heading", { name: "Host", level: 1 }).waitFor();
   await page.getByRole("button", { name: "Nuova connessione" }).first().click();
   await expect(page.getByRole("heading", { name: "Host", level: 1 })).toHaveCount(0);
-  await page.locator('[role=navigation] svg').first().click();
+  await page.locator('nav svg').first().click();
   await expect(page.getByRole("heading", { name: "Host", level: 1 })).toBeVisible();
 });
 
