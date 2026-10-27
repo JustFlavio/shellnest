@@ -47,6 +47,7 @@ cargo test --locked --manifest-path src-tauri/Cargo.toml
 - [Settings](docs/settings.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
+- [Code of conduct](CODE_OF_CONDUCT.md)
 
 ## License
 

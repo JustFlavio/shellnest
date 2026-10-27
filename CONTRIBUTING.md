@@ -2,6 +2,8 @@
 
 Thanks for helping. Shellnest is a small project: keep changes focused and easy to review.
 
+By taking part you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Setup
 
 Node.js 22.18+, Rust and the [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/).

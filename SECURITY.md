@@ -6,7 +6,7 @@ Shellnest stores SSH credentials, so security reports are taken seriously.
 
 ## Reporting a vulnerability
 
-Please do **not** open a public issue. Use GitHub's private reporting: the **Security** tab of this repository, then **Report a vulnerability**.
+Please do **not** open a public issue. Use GitHub's private reporting: the **Security** tab of this repository, then **Report a vulnerability**. If you cannot use GitHub, write to shellnest.dev@gmail.com and do not include exploit details in a public place.
 
 Include what you found, how to reproduce it, and the version or commit. You will get an answer as soon as the maintainer can, usually within a week. This is a spare-time project, so there is no bounty and no fixed fix deadline.
 
