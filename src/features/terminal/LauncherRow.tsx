@@ -1,8 +1,12 @@
 import { Check, LayoutGrid, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CommandItem } from "@/components/ui/command";
 import { OsIcon } from "@/components/OsIcon";
 import { cn } from "@/lib/utils";
 import type { LauncherResult } from "./launcher-results.mjs";
+
+// keeps Enter on a row button from reaching the list, which would also run the highlighted result
+const stopKey = (event: React.KeyboardEvent) => event.stopPropagation();
 
 export function LauncherRow({
   result,
@@ -10,7 +14,6 @@ export function LauncherRow({
   checked,
   armed,
   busy,
-  onHover,
   onActivate,
   onArmDelete,
   onDelete,
@@ -23,7 +26,6 @@ export function LauncherRow({
   // a second click on the delete button confirms
   armed: boolean;
   busy: boolean;
-  onHover: () => void;
   onActivate: () => void;
   onArmDelete: () => void;
   onDelete: () => void;
@@ -40,17 +42,12 @@ export function LauncherRow({
           : "odd:bg-[color-mix(in_oklab,var(--accent)_38%,transparent)]",
       )}
     >
-      <Button
-        variant="ghost"
-        type="button"
-        id={`connection-${result.key}`}
-        className="h-[42px] min-w-0 flex-1 justify-start gap-[11px] bg-transparent px-[10px] text-left hover:bg-transparent"
-        role="option"
-        aria-selected={selected}
+      <CommandItem
+        value={result.key}
+        className="h-[42px] min-w-0 flex-1 gap-[11px] rounded-[8px] px-[11px] py-0 text-[13px] data-selected:bg-transparent"
         aria-checked={checked}
         disabled={busy}
-        onMouseEnter={onHover}
-        onClick={onActivate}
+        onSelect={onActivate}
       >
         {checked !== undefined && (
           <span
@@ -85,7 +82,7 @@ export function LauncherRow({
         <span className="shrink-0 text-[12px] font-normal text-muted-foreground">
           {result.path}
         </span>
-      </Button>
+      </CommandItem>
       {open && (
         <Button
           variant="ghost"
@@ -94,6 +91,7 @@ export function LauncherRow({
           aria-label={`Nuova sessione ${result.title}`}
           title="Nuova sessione (Maiusc+Invio)"
           disabled={busy}
+          onKeyDown={stopKey}
           onClick={onNewSession}
         >
           <Plus size={14} />
@@ -109,6 +107,7 @@ export function LauncherRow({
           )}
           aria-label={`Elimina workspace ${result.title}`}
           disabled={busy}
+          onKeyDown={stopKey}
           onClick={armed ? onDelete : onArmDelete}
         >
           {armed ? "Conferma" : <Trash2 size={13} />}
