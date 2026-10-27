@@ -25,7 +25,7 @@ export function SelectionBar() {
         Connetti
       </Button>
       <strong>
-        {selected.size} {selected.size === 1 ? "selezionato" : "selezionati"}
+        {selected.size} selezionati
       </strong>
       <Button
         variant="ghost"

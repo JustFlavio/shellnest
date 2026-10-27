@@ -74,3 +74,13 @@ export function previewView(): View {
     })),
   };
 }
+
+/** First run: unlocked vault with no hosts, identities, keys or folders. */
+export function emptyPreviewView(): View {
+  return {
+    ...emptyView,
+    exists: true,
+    unlocked: true,
+    vaults: [{ id: "personal", name: "Personale", exists: true }],
+  };
+}

@@ -42,7 +42,7 @@ export function VaultContent() {
     <div
       className={cn(
         "flex min-h-0 flex-1 flex-col overflow-auto p-[22px] max-[1100px]:p-[18px]",
-        page === "hosts" && selected.size > 0 && "pb-[100px]",
+        page === "hosts" && selected.size > 1 && "pb-[100px]",
       )}
     >
       {page === "hosts" && group && (
