@@ -1,4 +1,13 @@
 import { test, expect } from "@playwright/test";
+test("clicking the Vault tab icon selects the tab", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Esplora interfaccia" }).click();
+  await page.getByRole("heading", { name: "Host", level: 1 }).waitFor();
+  await page.getByRole("button", { name: "Nuova connessione" }).first().click();
+  await expect(page.getByRole("heading", { name: "Host", level: 1 })).toHaveCount(0);
+  await page.locator('[role=navigation] svg').first().click();
+  await expect(page.getByRole("heading", { name: "Host", level: 1 })).toBeVisible();
+});
 
 test("long tab titles truncate and actions remain available at narrow widths", async ({ page }) => {
   await page.goto("/");

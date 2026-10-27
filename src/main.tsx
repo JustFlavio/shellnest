@@ -1941,7 +1941,11 @@ function App() {
           aria-label="Sessioni e connessioni"
           data-tauri-drag-region
         >
-          <TabShell fixed selected={active === "vault"}>
+          <TabShell
+            fixed
+            selected={active === "vault"}
+            onClick={() => setActive("vault")}
+          >
             <TabLead icon={<Server size={14} />} />
             <TabMain
               aria-current={active === "vault" ? "page" : undefined}
@@ -2010,7 +2014,6 @@ function App() {
                 icon={tabIcon(tab)}
                 onClose={() => askCloseTab(tab.id)}
                 label={tabLabel(tab)}
-                status={tab.status ?? "connecting"}
               />
               {renaming === tab.id ? (
                 <input
@@ -3263,9 +3266,6 @@ function App() {
                   setNotice("Configurazione salvata");
                 })
               }
-              onSyncNow={() => void synchronize(true)}
-              onSwitch={requestSwitch}
-              onCreate={() => {
               remembered={remembered}
               onRemember={(enabled) =>
                 void run(async () => {
@@ -3273,6 +3273,9 @@ function App() {
                   setRemembered(enabled);
                 })
               }
+              onSyncNow={() => void synchronize(true)}
+              onSwitch={requestSwitch}
+              onCreate={() => {
                 setError("");
                 setVaultDialog({ mode: "create", name: "" });
               }}

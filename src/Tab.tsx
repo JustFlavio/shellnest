@@ -65,12 +65,10 @@ export function TabLead({
   icon,
   onClose,
   label = "",
-  status,
 }: {
   icon: ReactNode;
   onClose?: () => void;
   label?: string;
-  status?: string;
 }) {
   const swap = "group-hover/tab:hidden group-data-[selected]/tab:hidden";
   return (
@@ -80,26 +78,18 @@ export function TabLead({
       aria-label={onClose ? `Chiudi ${label}` : undefined}
       tabIndex={onClose ? 0 : -1}
       onClick={onClose}
-      className="relative grid size-[26px] flex-none place-items-center rounded-[6px] bg-transparent p-0 text-inherit hover:bg-transparent aria-label:hover:bg-accent"
+      className={cn(
+        "relative grid size-[26px] flex-none place-items-center rounded-[6px] bg-transparent p-0 text-inherit hover:bg-transparent",
+        onClose && "hover:bg-accent",
+      )}
     >
-      <span
-        className={cn(
-          "grid place-items-center",
-          onClose && swap,
-        )}
-      >
+      <span className={cn("grid place-items-center", onClose && swap)}>
         {icon}
       </span>
       {onClose && (
         <X
           size={14}
           className="hidden group-hover/tab:block group-data-[selected]/tab:block"
-        />
-      )}
-      {status && (
-        <StatusDot
-          status={status}
-          className="absolute top-[1px] right-[1px] shadow-[0_0_0_2px_var(--header)]"
         />
       )}
     </Button>
