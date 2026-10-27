@@ -1,3 +1,4 @@
+import { browser } from "@wdio/globals";
 import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 

@@ -21,14 +21,19 @@ export function useSettingsDialog({
     [remembered, setRemembered] = useState<boolean | null>(null);
   const isOpen = section !== null;
   // Creating, switching or locking leaves the unlock screen; settings must not reappear on the next unlock.
-  useEffect(() => {
-    if (!view.unlocked) setSection(null);
-  }, [view.unlocked]);
-  useEffect(() => {
+  if (!view.unlocked && isOpen) setSection(null);
+  // The remembered flag is read again whenever the dialog opens or the vault changes.
+  const rememberedFor =
+    isOpen && view.unlocked && desktop ? view.vaultId : null;
+  const [loadedFor, setLoadedFor] = useState(rememberedFor);
+  if (rememberedFor !== loadedFor) {
+    setLoadedFor(rememberedFor);
     setRemembered(null);
-    if (!isOpen || !view.unlocked || !desktop) return;
+  }
+  useEffect(() => {
+    if (rememberedFor === null) return;
     let current = true;
-    void invoke<boolean>("is_remembered", { vaultId: view.vaultId }).then(
+    void invoke<boolean>("is_remembered", { vaultId: rememberedFor }).then(
       (on) => {
         if (current) setRemembered(on);
       },
@@ -36,7 +41,7 @@ export function useSettingsDialog({
     return () => {
       current = false;
     };
-  }, [isOpen, view.unlocked, view.vaultId]);
+  }, [rememberedFor]);
   const open = (next: SettingsSection = "vault") => {
     setSyncUrl(view.syncUrl);
     setError("");

@@ -74,7 +74,7 @@ export function useHostAutosave(
       pending.current = null;
       setSaving(false);
     }
-  }, []);
+  }, [latest]);
   const dirty =
     !!draft &&
     draft !== acknowledged.current &&

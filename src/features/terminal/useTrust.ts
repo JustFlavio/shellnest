@@ -11,7 +11,12 @@ import type { Workspaces } from "./useWorkspaces";
 export function useTrust(
   { run, update, invokeScoped }: VaultApi,
   list: TabList,
-  { queue, verifying, continueConnections }: HostConnections,
+  {
+    skipQueued,
+    dropQueue,
+    stopVerifying,
+    continueConnections,
+  }: HostConnections,
   { closeTab }: CloseTabs,
   { openWorkspaces }: Workspaces,
   trust: Trust | null,
@@ -51,7 +56,7 @@ export function useTrust(
           await openWorkspaces(trust.workspaces, next.hosts, trust.activeIndex);
           return;
         }
-        if (trust.tabId && verifying.current.delete(trust.tabId)) {
+        if (trust.tabId && stopVerifying(trust.tabId)) {
           list.setTabs((old) =>
             old.map((tab) =>
               tab.id === trust.tabId && tab.kind === "ssh"
@@ -60,7 +65,7 @@ export function useTrust(
             ),
           );
         }
-        queue.current.shift();
+        skipQueued();
       }
       setTrust(null);
       await continueConnections();
@@ -68,12 +73,12 @@ export function useTrust(
   // Closing the pane that waits for an answer is a refusal too: stop the remaining opens.
   useEffect(() => {
     if (!trust?.tabId || list.tabs.some((t) => t.id === trust.tabId)) return;
-    queue.current = [];
-    verifying.current.delete(trust.tabId);
+    dropQueue();
+    stopVerifying(trust.tabId);
     setTrust(null);
-  }, [trust, list.tabs]);
+  }, [trust, list.tabs, dropQueue, stopVerifying, setTrust]);
   const rejectTrust = () => {
-    queue.current = [];
+    dropQueue();
     if (trust?.tabId) closeTab(trust.tabId);
     setTrust(null);
   };

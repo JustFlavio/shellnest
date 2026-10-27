@@ -14,7 +14,7 @@ import type { TabList } from "./useTabList";
 /** Closing tabs and panes (asking first for live sessions) and reopening the last closed one. */
 export function useCloseTabs(
   list: TabList,
-  { queue, verifying, connect, startQuick, openLocal }: HostConnections,
+  { dropQueue, stopVerifying, connect, startQuick, openLocal }: HostConnections,
   closeGuard: ReturnType<typeof useCloseGuard>,
 ) {
   const { tabs, active } = list;
@@ -24,7 +24,7 @@ export function useCloseTabs(
     closed.current.push(...closedRecords(tabs, ids));
   };
   const closeTab = (id: string) => {
-    if (verifying.current.delete(id)) queue.current = [];
+    if (stopVerifying(id)) dropQueue();
     const ids = new Set(sessionIds(tabs, id));
     rememberClosed([...ids]);
     list.setTabs((old) => old.filter((t) => !ids.has(t.id)));
@@ -35,7 +35,7 @@ export function useCloseTabs(
     if (!moved) return closeTab(id);
     list.setTabs(moved.tabs);
     rememberClosed([id]);
-    verifying.current.delete(id);
+    stopVerifying(id);
     if (active === moved.leader.id) list.setActive(moved.next);
     list.setFocusedPane(moved.next);
   };

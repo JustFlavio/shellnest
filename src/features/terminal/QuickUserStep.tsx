@@ -32,6 +32,7 @@ export function QuickUserStep({
   const anyIdentity = pickableIdentities(identities, "").length > 0;
   const chosen = identities.find((i) => i.id === setup.identityId);
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Escape bubbles up from the form fields
     <form
       className="mt-[10px] rounded-[10px] border border-border bg-card p-[14px]"
       onSubmit={(e) => {

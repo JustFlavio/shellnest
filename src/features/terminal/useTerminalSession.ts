@@ -17,6 +17,7 @@ export type PasswordAsk = { refused: boolean; waiting: boolean; asks: number };
 /** A terminal in `container` wired to the tab's session, torn down together when the tab goes. */
 export function useTerminalSession({
   xterm,
+  onOpen,
   tab,
   container,
   enabled,
@@ -27,8 +28,9 @@ export function useTerminalSession({
   onSearch,
   onConfirmPaste,
 }: {
-  // set while the terminal is open
+  // set while the terminal is open, through onOpen
   xterm: RefObject<Xterm | null>;
+  onOpen: (instance: Xterm | null) => void;
   tab: TerminalTab;
   container: RefObject<HTMLDivElement | null>;
   // false while the host key still has to be trusted
@@ -41,12 +43,20 @@ export function useTerminalSession({
   onConfirmPaste: (text: string) => void;
 }) {
   const [opened, setOpened] = useState(false);
-  const [phase, setPhase] = useState("Verifica dell’impronta del server");
+  const [phase, setPhase] = useState(
+    enabled ? "Avvio della connessione" : "Verifica dell’impronta del server",
+  );
+  const [enabledFor, setEnabledFor] = useState(enabled ? tab.id : null);
+  if ((enabled ? tab.id : null) !== enabledFor) {
+    setEnabledFor(enabled ? tab.id : null);
+    if (enabled) setPhase("Avvio della connessione");
+  }
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [details, setDetails] = useState<Record<string, StepNote>>({});
   const [failure, setFailure] = useState("");
   // null until the server asks for a password; the password itself never lives here.
   const [password, setPassword] = useState<PasswordAsk | null>(null);
+  const openRef = useLatest(onOpen);
   const tabRef = useLatest(tab);
   const settingsRef = useLatest(settings);
   const callbacksRef = useLatest(callbacks);
@@ -57,13 +67,13 @@ export function useTerminalSession({
   });
   useEffect(() => {
     if (xterm.current) applySettings(xterm.current, settings);
-  }, [settings]);
+  }, [xterm, settings]);
   useEffect(() => {
     if (!enabled || !container.current) return;
-    setPhase("Avvio della connessione");
     const element = container.current;
     const instance = openXterm(element, settingsRef, handlers);
-    xterm.current = instance;
+    const attach = openRef.current;
+    attach(instance);
     terminalHandles.set(tab.id, instance.term);
     const observer = new ResizeObserver(instance.refit);
     observer.observe(element);
@@ -99,9 +109,18 @@ export function useTerminalSession({
       observer.disconnect();
       terminalHandles.delete(tab.id);
       instance.dispose();
-      xterm.current = null;
+      attach(null);
     };
-  }, [tab.id, enabled]);
+  }, [
+    tab.id,
+    enabled,
+    container,
+    openRef,
+    tabRef,
+    settingsRef,
+    handlers,
+    callbacksRef,
+  ]);
   useEffect(() => {
     if (!active) return;
     const frame = requestAnimationFrame(() => {
@@ -109,7 +128,7 @@ export function useTerminalSession({
       if (focused !== false) xterm.current?.term.focus();
     });
     return () => cancelAnimationFrame(frame);
-  }, [active, focused]);
+  }, [xterm, active, focused]);
   const submitPassword = (value: string) => {
     setPassword((old) => old && { ...old, waiting: false });
     sendSessionPassword(tab, value).catch((e) =>

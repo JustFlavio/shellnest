@@ -88,6 +88,7 @@ export function SessionTab({ tab }: { tab: TerminalTab }) {
       {renaming ? (
         <input
           className={tabRenameClass}
+          // eslint-disable-next-line jsx-a11y/no-autofocus -- the rename field opens on the user's own action
           autoFocus
           autoCapitalize="off"
           autoCorrect="off"

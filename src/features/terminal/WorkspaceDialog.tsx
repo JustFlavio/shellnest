@@ -9,7 +9,6 @@ export function WorkspaceDialog() {
   const {
     vault: { busy, error },
     tabs: { tabs, savingWs, setSavingWs, saveWorkspace },
-    library: {},
   } = useApp();
   const skippedQuick = (() => {
     const layout = tabs.find((t) => t.id === savingWs?.tabId)?.layout;

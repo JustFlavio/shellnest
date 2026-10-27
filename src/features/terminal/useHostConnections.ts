@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import type { VaultApi } from "@/features/vault/useVault";
 import { hostIdentity } from "@/features/hosts/host-draft";
 import { hostDraftIsValid } from "@/features/hosts/host-draft";
@@ -157,9 +157,26 @@ export function useHostConnections(
         patch({ status: "failed", error: String(e) });
       }
     }, "Connessione non riuscita");
+  // Other hooks drive the queue through these, so the refs stay private to this hook.
+  const skipQueued = useCallback(() => {
+    queue.current.shift();
+  }, []);
+  const dropQueue = useCallback(() => {
+    queue.current = [];
+  }, []);
+  const stopVerifying = useCallback(
+    (tabId: string) => verifying.current.delete(tabId),
+    [],
+  );
+  const resetConnections = useCallback(() => {
+    queue.current = [];
+    verifying.current.clear();
+  }, []);
   return {
-    queue,
-    verifying,
+    skipQueued,
+    dropQueue,
+    stopVerifying,
+    resetConnections,
     continueConnections,
     connectHosts,
     connect,

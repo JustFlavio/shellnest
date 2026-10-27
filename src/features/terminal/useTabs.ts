@@ -34,8 +34,7 @@ export function useTabs(
   const reset = () => {
     list.reset();
     workspaces.setSavingWs(null);
-    connections.queue.current = [];
-    connections.verifying.current.clear();
+    connections.resetConnections();
   };
   return {
     tabs: list.tabs,

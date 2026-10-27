@@ -99,6 +99,9 @@ export function TerminalPane({
   const { opened, phase, logs, details, failure, password, submitPassword } =
     useTerminalSession({
       xterm,
+      onOpen: (instance) => {
+        xterm.current = instance;
+      },
       tab,
       container,
       enabled: !pendingTrust,
@@ -116,6 +119,7 @@ export function TerminalPane({
   const endpoint = endpointOf(tab);
   const split = focused !== undefined;
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- focus follows pointer and focus anywhere inside the pane
     <div
       role="group"
       className={paneClass(split, focused, animate, ghost)}

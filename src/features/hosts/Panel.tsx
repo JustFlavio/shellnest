@@ -119,10 +119,7 @@ export function Panel({
             styles.header,
           )}
         >
-          <DialogTitle
-            render={<h2 />}
-            className={cn("mr-auto font-semibold", styles.title)}
-          >
+          <DialogTitle className={cn("mr-auto font-semibold", styles.title)}>
             {title}
           </DialogTitle>
           {status}
