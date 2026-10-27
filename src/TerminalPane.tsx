@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLatest } from "./useLatest";
 import {
   ChevronDown,
   ChevronUp,
@@ -115,11 +116,9 @@ export function TerminalPane({
   const el = useRef<HTMLDivElement>(null),
     fit = useRef<FitAddon | null>(null),
     terminal = useRef<Terminal | null>(null);
-  const settingsRef = useRef(settings),
-    refit = useRef<() => void>(() => {});
-  settingsRef.current = settings;
-  const callbacks = useRef({ onError, onStatus, onTitle, onMetadata });
-  callbacks.current = { onError, onStatus, onTitle, onMetadata };
+  const refit = useRef<() => void>(() => {});
+  const settingsRef = useLatest(settings);
+  const callbacks = useLatest({ onError, onStatus, onTitle, onMetadata });
   useEffect(() => {
     const term = terminal.current;
     if (!term) return;
@@ -224,10 +223,11 @@ export function TerminalPane({
         .then(paste)
         .catch(() => {});
     // Right click pastes (there is no context menu on the terminal).
-    term.element!.addEventListener("contextmenu", (e) => {
+    const onContextMenu = (e: MouseEvent) => {
       e.preventDefault();
       if (settingsRef.current.rightClickPaste) pasteClipboard();
-    });
+    };
+    term.element!.addEventListener("contextmenu", onContextMenu);
     const copied = term.onSelectionChange(() => {
       if (settingsRef.current.copyOnSelect && term.hasSelection())
         void navigator.clipboard.writeText(term.getSelection()).catch(() => {});
@@ -400,6 +400,8 @@ export function TerminalPane({
     return () => {
       disposed = true;
       observer.disconnect();
+      term.element?.removeEventListener("paste", onPaste, true);
+      term.element?.removeEventListener("contextmenu", onContextMenu);
       input.dispose();
       copied.dispose();
       bell.dispose();

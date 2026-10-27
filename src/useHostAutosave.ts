@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLatest } from "./useLatest";
 import type { Group, Host, HostDraft, Identity } from "./types";
 import { hostDraftIsDirty, hostDraftIsValid } from "./host-draft";
 
@@ -11,7 +12,7 @@ export function useHostAutosave(
   paused: boolean,
   persist: (draft: HostDraft) => Promise<Host>,
 ) {
-  const latest = useRef({
+  const latest = useLatest({
     draft,
     stored,
     identities,
@@ -19,7 +20,6 @@ export function useHostAutosave(
     vaultId,
     persist,
   });
-  latest.current = { draft, stored, identities, groups, vaultId, persist };
   const acknowledged = useRef<HostDraft | null>(null);
   const saved = useRef<Host | null>(null);
   const failed = useRef<HostDraft | null>(null);

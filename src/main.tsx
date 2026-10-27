@@ -1,5 +1,6 @@
 import { HostSummary } from "./HostSummary";
 import { useHostAutosave } from "./useHostAutosave";
+import { useLatest } from "./useLatest";
 import { hostDraftIsValid, hostInheritsIdentity } from "./host-draft";
 import {
   ancestry,
@@ -32,7 +33,14 @@ import {
   DropdownMenuItem,
   DropdownMenuShortcut,
 } from "./components/ui/dropdown-menu";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { invoke, isTauri } from "@tauri-apps/api/core";
@@ -275,8 +283,7 @@ function App() {
     syncing = useRef(false),
     epoch = useRef(0),
     search = useRef<HTMLInputElement>(null);
-  const currentVault = useRef(view.vaultId);
-  currentVault.current = view.vaultId;
+  const currentVault = useLatest(view.vaultId);
   const connectionQueue = useRef<Host[]>([]);
   const pendingVerification = useRef(new Set<string>());
   const [layout, setLayout] = useState<"list" | "cards">("cards");
@@ -1335,7 +1342,9 @@ function App() {
     pendingClose ||
     pendingLock
   );
-  panelOpen.current = anyPanel;
+  useLayoutEffect(() => {
+    panelOpen.current = anyPanel;
+  });
   const alert =
     error && !anyPanel ? (
       <div
