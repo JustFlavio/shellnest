@@ -2,7 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   MAX_WORKSPACE_HOSTS,
+  launcherKeyAction,
   launcherResults,
+  listHeading,
   togglePicked,
   workspaceSize,
 } from "./launcher-results.mjs";
@@ -67,4 +69,43 @@ test("picking stops at the limit and ignores a closed picker", () => {
   assert.deepEqual(togglePicked(["a", "b"], "a"), ["b"]);
   const full = Array.from({ length: MAX_WORKSPACE_HOSTS }, (_, i) => `h${i}`);
   assert.equal(togglePicked(full, "x"), full);
+});
+
+test("arrow keys wrap around the results", () => {
+  const state = { count: 3, selected: 2, busy: false, canQuickConnect: false };
+  assert.deepEqual(launcherKeyAction("ArrowDown", state), {
+    type: "select",
+    index: 0,
+  });
+  assert.deepEqual(launcherKeyAction("ArrowUp", { ...state, selected: 0 }), {
+    type: "select",
+    index: 2,
+  });
+  assert.equal(launcherKeyAction("ArrowDown", { ...state, count: 0 }), null);
+});
+
+test("Enter opens the selection, or quick-connects when nothing matches", () => {
+  const state = { count: 2, selected: 0, busy: false, canQuickConnect: true };
+  assert.deepEqual(launcherKeyAction("Enter", state), { type: "activate" });
+  assert.equal(launcherKeyAction("Enter", { ...state, busy: true }), null);
+  assert.deepEqual(launcherKeyAction("Enter", { ...state, count: 0 }), {
+    type: "quick",
+  });
+  assert.equal(
+    launcherKeyAction("Enter", { ...state, count: 0, canQuickConnect: false }),
+    null,
+  );
+  assert.deepEqual(launcherKeyAction("Escape", state), { type: "clear" });
+  assert.equal(launcherKeyAction("a", state), null);
+});
+
+test("the list heading follows picking, searching and history", () => {
+  const state = { picking: false, text: "", hasRecent: true };
+  assert.equal(listHeading(state), "Connessioni recenti");
+  assert.equal(listHeading({ ...state, hasRecent: false }), "Host salvati");
+  assert.equal(listHeading({ ...state, text: "a" }), "Risultati");
+  assert.equal(
+    listHeading({ ...state, picking: true, text: "a" }),
+    "Scegli gli host",
+  );
 });

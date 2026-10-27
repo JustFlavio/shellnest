@@ -79,3 +79,25 @@ export function launcherResults({
     results: selecting ? all.filter((r) => r.kind === "host") : all,
   };
 }
+
+// What a key press does in the search box: move the selection, open it, quick-connect to the
+// typed address when nothing matches, or clear the query. Null: leave the key alone.
+export function launcherKeyAction(
+  key,
+  { count, selected, busy, canQuickConnect },
+) {
+  if (key === "Escape") return { type: "clear" };
+  if (key === "ArrowDown" && count)
+    return { type: "select", index: (selected + 1) % count };
+  if (key === "ArrowUp" && count)
+    return { type: "select", index: (selected + count - 1) % count };
+  if (key !== "Enter") return null;
+  if (count) return busy ? null : { type: "activate" };
+  return canQuickConnect ? { type: "quick" } : null;
+}
+
+export function listHeading({ picking, text, hasRecent }) {
+  if (picking) return "Scegli gli host";
+  if (text) return "Risultati";
+  return hasRecent ? "Connessioni recenti" : "Host salvati";
+}

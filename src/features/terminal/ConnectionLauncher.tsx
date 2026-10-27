@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import type { Group, Host, Identity, Workspace } from "@/lib/types";
 import { parseConnectionTarget } from "./connection-target.mjs";
-import { launcherResults, togglePicked } from "./launcher-results.mjs";
+import {
+  launcherKeyAction,
+  launcherResults,
+  listHeading,
+  togglePicked,
+} from "./launcher-results.mjs";
 import type {
   LauncherResult,
   LauncherTab,
@@ -11,6 +14,7 @@ import type {
 } from "./launcher-results.mjs";
 import { LauncherActions } from "./LauncherActions";
 import { LauncherRow } from "./LauncherRow";
+import { LauncherSearch } from "./LauncherSearch";
 import { PickingActions } from "./PickingActions";
 import { QuickConnectForm } from "./QuickConnectForm";
 import type { QuickConnection } from "./tabs-types";
@@ -103,13 +107,14 @@ export function ConnectionLauncher({
     else if (picked) setPicked(togglePicked(picked, host!.id));
     else onConnect(host!);
   };
+  const pickedSet = new Set(picked);
   const row = (result: LauncherResult, index: number) => (
     <LauncherRow
       key={result.key}
       result={result}
       selected={selected === index}
       checked={
-        picked && result.host ? picked.includes(result.host.id) : undefined
+        picked && result.host ? pickedSet.has(result.host.id) : undefined
       }
       armed={!!result.workspace && armed === result.workspace.id}
       busy={busy}
@@ -122,71 +127,46 @@ export function ConnectionLauncher({
       }}
     />
   );
-  const rowsOf = (...kinds: string[]) =>
+  const rowsOf = (workspaces: boolean) =>
     results.flatMap((result, index) =>
-      kinds.includes(result.kind) ? [row(result, index)] : [],
+      (result.kind === "workspace") === workspaces ? [row(result, index)] : [],
     );
-  const workspaceRows = rowsOf("workspace");
-  const otherRows = rowsOf("tab", "host");
+  const workspaceRows = rowsOf(true);
+  const otherRows = rowsOf(false);
   const onKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === "ArrowDown" && results.length) {
-      event.preventDefault();
-      setSelection((selected + 1) % results.length);
-    }
-    if (event.key === "ArrowUp" && results.length) {
-      event.preventDefault();
-      setSelection((selected + results.length - 1) % results.length);
-    }
-    if (event.key === "Enter" && results.length && !busy) {
-      event.preventDefault();
-      activate(results[selected]);
-    }
-    if (
-      event.key === "Enter" &&
-      !results.length &&
-      target &&
-      !busy &&
-      !preview
-    ) {
-      event.preventDefault();
-      if (hasIdentity) quickConnect();
-      else identitySelect.current?.focus();
-    }
-    if (event.key === "Escape") {
+    const action = launcherKeyAction(event.key, {
+      count: results.length,
+      selected,
+      busy,
+      canQuickConnect: !!target && !busy && !preview,
+    });
+    if (!action) return;
+    if (action.type === "clear") {
       setQuery("");
       setSelection(0);
+      return;
     }
+    event.preventDefault();
+    if (action.type === "select") setSelection(action.index);
+    else if (action.type === "activate") activate(results[selected]);
+    else if (hasIdentity) quickConnect();
+    else identitySelect.current?.focus();
   };
   return (
     <section
       className="mx-auto min-h-0 w-full max-w-[760px] flex-1 overflow-auto px-[24px] pt-[40px] pb-[56px]"
       aria-label="Nuova scheda"
     >
-      <div className="mb-[20px] flex items-center gap-[10px] rounded-[9px] border border-input bg-field px-[12px] text-muted-foreground focus-within:border-ring">
-        <Search size={16} />
-        <Input
-          className="h-[40px] min-w-0 flex-1 rounded-none border-0 bg-transparent p-0 shadow-none outline-none focus-visible:border-0 focus-visible:outline-none"
-          autoFocus
-          aria-label="Cerca host o schede"
-          placeholder="Cerca host o schede · ssh utente@host -p 22"
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setSelection(0);
-          }}
-          aria-controls="connection-results"
-          aria-activedescendant={
-            results.length ? `connection-${results[selected].key}` : undefined
-          }
-          role="combobox"
-          aria-expanded={results.length > 0}
-          aria-autocomplete="list"
-          onKeyDown={onKeyDown}
-        />
-        {shortcut && (
-          <kbd className="text-[12px] whitespace-nowrap">{shortcut}</kbd>
-        )}
-      </div>
+      <LauncherSearch
+        value={query}
+        activeKey={results[selected]?.key}
+        shortcut={shortcut}
+        onChange={(value) => {
+          setQuery(value);
+          setSelection(0);
+        }}
+        onKeyDown={onKeyDown}
+      />
       <div
         id="connection-results"
         role="listbox"
@@ -203,13 +183,7 @@ export function ConnectionLauncher({
         <div className={sectionClass}>
           <div className={headerClass}>
             <h2 className="m-0 text-[13px]">
-              {picked
-                ? "Scegli gli host"
-                : text
-                  ? "Risultati"
-                  : hasRecent
-                    ? "Connessioni recenti"
-                    : "Host salvati"}
+              {listHeading({ picking: !!picked, text, hasRecent })}
             </h2>
             <div className="flex items-center gap-[2px]">
               {picked ? (

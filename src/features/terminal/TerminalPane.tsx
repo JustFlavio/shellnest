@@ -20,6 +20,38 @@ function endpointOf(tab: TerminalTab) {
     : "Shell del dispositivo";
 }
 
+type Box = { x: number; y: number; w: number; h: number };
+
+// A split pane keeps a 4px margin on each side, so the grid leaves 8px between panes.
+function paneStyle(active: boolean, box: Box | undefined, split: boolean) {
+  const { x, y, w, h } = box ?? { x: 0, y: 0, w: 1, h: 1 };
+  const margin = split ? 8 : 0;
+  return {
+    display: active ? "flex" : "none",
+    left: `${x * 100}%`,
+    top: `${y * 100}%`,
+    width: `calc(${w * 100}% - ${margin}px)`,
+    height: `calc(${h * 100}% - ${margin}px)`,
+  };
+}
+
+function paneClass(
+  split: boolean,
+  focused: boolean | undefined,
+  animate: boolean | undefined,
+  ghost: boolean | undefined,
+) {
+  return cn(
+    "group/pane absolute z-1 box-border min-h-0 flex-none flex-col bg-background px-[16px] pb-[12px]",
+    animate &&
+      "transition-[left,top,width,height,opacity] duration-200 ease-out",
+    ghost && "pointer-events-none z-0 opacity-0",
+    split &&
+      "m-[4px] rounded-[12px] border border-border bg-clip-padding px-[10px] pb-[8px]",
+    focused && "border-primary",
+  );
+}
+
 export function TerminalPane({
   tab,
   active,
@@ -41,7 +73,7 @@ export function TerminalPane({
   tab: TerminalTab;
   active: boolean;
   // fractions of the terminals area when the tab is split; undefined = fill
-  box?: { x: number; y: number; w: number; h: number };
+  box?: Box;
   settings: AppSettings;
   // undefined when the tab is not split
   focused?: boolean;
@@ -78,33 +110,19 @@ export function TerminalPane({
     xterm.current?.term.focus();
   };
   const endpoint = endpointOf(tab);
+  const split = focused !== undefined;
   return (
     <div
       role="group"
-      className={cn(
-        "group/pane absolute z-1 box-border min-h-0 flex-none flex-col bg-background px-[16px] pb-[12px]",
-        animate &&
-          "transition-[left,top,width,height,opacity] duration-200 ease-out",
-        ghost && "pointer-events-none z-0 opacity-0",
-        focused !== undefined &&
-          "m-[4px] rounded-[12px] border border-border bg-clip-padding px-[10px] pb-[8px]",
-        focused && "border-primary",
-      )}
-      style={{
-        display: active ? "flex" : "none",
-        left: `${(box?.x ?? 0) * 100}%`,
-        top: `${(box?.y ?? 0) * 100}%`,
-        // A split pane keeps a 4px margin on each side, so the grid leaves 8px between panes.
-        width: `calc(${(box?.w ?? 1) * 100}% - ${focused === undefined ? 0 : 8}px)`,
-        height: `calc(${(box?.h ?? 1) * 100}% - ${focused === undefined ? 0 : 8}px)`,
-      }}
+      className={paneClass(split, focused, animate, ghost)}
+      style={paneStyle(active, box, split)}
       onFocus={onFocus}
       onMouseDown={onFocus}
     >
       <PaneHeader
         tab={tab}
         endpoint={endpoint}
-        split={focused !== undefined}
+        split={split}
         onDragPane={onDragPane}
         onClose={onClose}
       />

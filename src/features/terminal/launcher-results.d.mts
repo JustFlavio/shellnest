@@ -31,3 +31,19 @@ export function launcherResults(input: {
   tabs: LauncherTab[];
   selecting: boolean;
 }): { text: string; hasRecent: boolean; results: LauncherResult[] };
+export type LauncherKeyAction =
+  { type: "clear" | "activate" | "quick" } | { type: "select"; index: number };
+export function launcherKeyAction(
+  key: string,
+  state: {
+    count: number;
+    selected: number;
+    busy: boolean;
+    canQuickConnect: boolean;
+  },
+): LauncherKeyAction | null;
+export function listHeading(state: {
+  picking: boolean;
+  text: string;
+  hasRecent: boolean;
+}): string;
