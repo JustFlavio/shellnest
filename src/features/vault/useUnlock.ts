@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { desktop } from "@/lib/platform";
+import { notifyError } from "@/lib/notify";
 import type { View } from "@/lib/types";
 import type { VaultApi } from "./useVault";
 
@@ -33,7 +34,7 @@ export function useUnlock({
         await invoke("set_remembered", {
           vaultId: next.vaultId,
           enabled: true,
-        }).catch((e) => setError(`Password non salvata: ${e}`));
+        }).catch((e) => notifyError("Password non salvata", e));
       setPassword("");
       setConfirmPassword("");
       setToken("");

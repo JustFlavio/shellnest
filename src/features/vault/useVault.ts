@@ -5,9 +5,10 @@ import { createPreviewBackend } from "@/lib/preview";
 import { emptyView } from "@/lib/types";
 import type { View } from "@/lib/types";
 import { useLatest } from "@/lib/useLatest";
+import { notifyError } from "@/lib/notify";
 import { useVaultStartup } from "./useVaultStartup";
 
-/** The open vault: its decrypted view, backend calls, and the busy/error/notice state around them. */
+/** The open vault: its decrypted view, backend calls, and the busy/form-error/notice state around them. */
 export function useVault() {
   const [view, setView] = useState<View>(emptyView),
     [busy, setBusy] = useState(false),
@@ -46,7 +47,8 @@ export function useVault() {
       );
     setView(next);
   };
-  const run = async (operation: () => Promise<void>) => {
+  // A failure shows inline in the form or dialog that started it, or as a toast titled `toastTitle` when none is open.
+  const run = async (operation: () => Promise<void>, toastTitle?: string) => {
     if (busyRef.current) return;
     busyRef.current = true;
     setBusy(true);
@@ -54,7 +56,8 @@ export function useVault() {
     try {
       await operation();
     } catch (e) {
-      setError(String(e));
+      if (toastTitle) notifyError(toastTitle, e);
+      else setError(String(e));
     } finally {
       busyRef.current = false;
       setBusy(false);
@@ -67,13 +70,15 @@ export function useVault() {
       .then((next) => {
         if (next.vaultId === currentVault.current) update(next);
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => notifyError("Aggiornamento del vault non riuscito", e));
   };
   const startPreview = () =>
     void run(async () => {
       previewBackend.current = createPreviewBackend(
         // `?empty` starts a first-run vault (used by the visual tests).
         new URLSearchParams(location.search).has("empty"),
+        // `?fail=a,b` makes those backend commands fail (used by the visual tests).
+        new Set(new URLSearchParams(location.search).get("fail")?.split(",")),
       );
       update(await previewBackend.current<View>("status"));
       setPreview(true);

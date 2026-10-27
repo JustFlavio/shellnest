@@ -7,7 +7,6 @@ export type HostActions = {
   onDuplicate: (host: Host) => void;
   onAssign: (host: Host) => void;
   onDelete: (host: Host) => void;
-  onError: (error: string) => void;
 };
 
 export const endpoint = (h: Host) =>

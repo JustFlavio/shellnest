@@ -32,7 +32,6 @@ type Props = {
   onAssign: (host: Host) => void;
   onDelete: (host: Host) => void;
   onEditIdentity: (identity: Identity) => void;
-  onError: (error: string) => void;
   busy: boolean;
 };
 const cardsGrid =
@@ -71,7 +70,6 @@ export function HostsView(p: Props) {
     onDuplicate: p.onDuplicate,
     onAssign: p.onAssign,
     onDelete: p.onDelete,
-    onError: p.onError,
   };
   return (
     <CollectionSelection

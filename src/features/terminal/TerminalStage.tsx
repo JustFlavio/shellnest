@@ -1,5 +1,6 @@
 import { TerminalPane } from "./TerminalPane";
 import { cn } from "@/lib/utils";
+import { notifyError } from "@/lib/notify";
 import { dropEdge } from "./workbench-state.ts";
 import { useRef } from "react";
 import { useApp } from "@/app/app-context";
@@ -13,7 +14,7 @@ const dropPreviewEdge = {
 
 export function TerminalStage() {
   const {
-    vault: { view, setError },
+    vault: { view },
     preferences: { appSettings },
     tabs: {
       tabs,
@@ -82,7 +83,9 @@ export function TerminalStage() {
             onDragPane={
               geo ? (on) => setDragPane(on ? tab.id : undefined) : undefined
             }
-            onError={setError}
+            onError={(message) =>
+              notifyError("Problema nel terminale", message)
+            }
             onStatus={tabStatus}
             onTitle={tabTitle}
             onMetadata={vault.refresh}

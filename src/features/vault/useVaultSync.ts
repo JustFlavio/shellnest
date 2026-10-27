@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { desktop } from "@/lib/platform";
 import type { View } from "@/lib/types";
+import { notifyError } from "@/lib/notify";
 import { useLatest } from "@/lib/useLatest";
 import type { VaultApi } from "./useVault";
 import type { SyncState } from "./vault-copy.ts";
@@ -20,7 +21,6 @@ export function useVaultSync(
     busyRef,
     epoch,
     setBusy,
-    setError,
     setNotice,
     update,
     invokeScoped,
@@ -55,7 +55,11 @@ export function useVaultSync(
       if (manual) setNotice("Vault sincronizzato");
     } catch (e) {
       failed = true;
-      if (generation === epoch.current) setError(String(e));
+      if (generation === epoch.current)
+        notifyError("Sincronizzazione non riuscita", e, {
+          label: "Riprova",
+          onClick: () => void latest.current(true),
+        });
     } finally {
       syncing.current = false;
       if (generation === epoch.current) setSyncState(failed ? "error" : "idle");

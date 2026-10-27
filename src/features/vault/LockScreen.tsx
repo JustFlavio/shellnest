@@ -1,9 +1,8 @@
 import { BrandIcon } from "@/app/BrandIcon";
 import { Button } from "@/components/ui/button";
-import { callout, help, muted } from "@/lib/editor-ui";
+import { callout, errorBox, help, muted } from "@/lib/editor-ui";
 import { desktop } from "@/lib/platform";
 import { useApp } from "@/app/app-context";
-import { ErrorBanner } from "@/app/Banners";
 import { TitleBar } from "@/app/TitleBar";
 import { BrowserGate } from "./BrowserGate";
 import { UnlockForm } from "./UnlockForm";
@@ -13,7 +12,7 @@ import { lockLead, lockTitle } from "./vault-copy.ts";
 
 export function LockScreen() {
   const {
-    vault: { view, busy, preview },
+    vault: { view, busy, preview, error },
     unlock,
   } = useApp();
   const interactive = desktop || preview;
@@ -42,7 +41,11 @@ export function LockScreen() {
             cifrato o conservato dopo il ricaricamento.
           </p>
         )}
-        <ErrorBanner />
+        {error && (
+          <p className={errorBox} role="alert">
+            {error}
+          </p>
+        )}
         {interactive ? <UnlockForm /> : <BrowserGate />}
         {desktop && !view.exists && (
           <Button

@@ -1,4 +1,5 @@
-import { Toaster as Sonner, type ToasterProps } from "sonner";
+import { useEffect } from "react";
+import { toast, Toaster as Sonner, type ToasterProps } from "sonner";
 import {
   CircleCheckIcon,
   InfoIcon,
@@ -10,6 +11,18 @@ import { useTheme } from "@/lib/use-theme";
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const theme = useTheme();
+  // Sonner only collapses the stack on Esc; with focus inside it, Esc should dismiss.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key === "Escape" &&
+        document.activeElement?.closest("[data-sonner-toaster]")
+      )
+        toast.dismiss();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   return (
     <Sonner
@@ -17,12 +30,15 @@ const Toaster = ({ ...props }: ToasterProps) => {
       position="bottom-right"
       visibleToasts={3}
       closeButton
-      className="toaster group"
+      containerAriaLabel="Notifiche"
+      className="toaster group [body.sheet-open_&]:[--toast-right:calc(var(--sheet-width)+24px)]"
+      // Keeps the stack clear of the editor sheet, whose save button sits at the bottom right.
+      offset={{ right: "var(--toast-right, 24px)", bottom: 24 }}
       icons={{
         success: <CircleCheckIcon className="size-4" />,
         info: <InfoIcon className="size-4" />,
         warning: <TriangleAlertIcon className="size-4" />,
-        error: <OctagonXIcon className="size-4" />,
+        error: <OctagonXIcon className="size-4 text-destructive" />,
         loading: <Loader2Icon className="size-4 animate-spin" />,
       }}
       style={
