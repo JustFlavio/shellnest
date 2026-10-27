@@ -3,12 +3,12 @@ mod model;
 mod sync;
 mod terminal;
 mod vault;
-use model::HostCredentials;
+use model::{Host, HostCredentials, Identity, SshKey};
 use serde::Serialize;
 use std::{collections::HashMap, path::PathBuf, sync::Mutex};
 use tauri::{Manager, State};
 use tokio::sync::mpsc::UnboundedSender;
-use vault::{Disk, Host, Identity, OpenVault, SshKey};
+use vault::{Disk, OpenVault};
 
 pub struct AppState {
     pub path: PathBuf,
@@ -103,7 +103,7 @@ struct HostView {
     last_connected_at: Option<u64>,
 }
 impl HostView {
-    fn new(h: &Host, data: &vault::Data) -> Self {
+    fn new(h: &Host, data: &model::Data) -> Self {
         Self {
             id: h.id.clone(),
             name: h.name.clone(),
@@ -580,7 +580,7 @@ fn delete(state: &AppState, id: &str) -> Result<View, String> {
     view(state)
 }
 // Persist a candidate before replacing the in-memory data, so write failures do not lose edits.
-pub fn commit(s: &AppState, v: &mut OpenVault, data: vault::Data) -> Result<(), String> {
+pub fn commit(s: &AppState, v: &mut OpenVault, data: model::Data) -> Result<(), String> {
     data.validate()?;
     let mut candidate = OpenVault {
         key: v.key.clone(),
@@ -616,7 +616,7 @@ fn save_host(
 fn mutate(
     state: &AppState,
     vault_id: &str,
-    operation: impl FnOnce(&mut vault::Data) -> Result<(), String>,
+    operation: impl FnOnce(&mut model::Data) -> Result<(), String>,
 ) -> Result<View, String> {
     let mut guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
     state.ensure_vault(vault_id)?;

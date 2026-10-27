@@ -1,4 +1,4 @@
-pub use crate::model::{Data, Host, Identity, SshKey};
+use crate::model::Data;
 use argon2::Argon2;
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use chacha20poly1305::{

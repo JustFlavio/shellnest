@@ -197,6 +197,7 @@ fn restore(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model;
     use std::{
         io::{BufRead, BufReader},
         path::PathBuf,
@@ -268,7 +269,7 @@ mod tests {
                 .unwrap();
         first
             .data
-            .upsert_key(vault::SshKey {
+            .upsert_key(model::SshKey {
                 id: "shared-key".into(),
                 name: "Personale".into(),
                 private_key: secret.to_openssh(Default::default()).unwrap().to_string(),
@@ -278,7 +279,7 @@ mod tests {
             .unwrap();
         first
             .data
-            .upsert_identity(vault::Identity {
+            .upsert_identity(model::Identity {
                 id: "shared-identity".into(),
                 name: "Deploy".into(),
                 username: "deploy".into(),
@@ -302,7 +303,7 @@ mod tests {
             let mut guard = state.vault.lock().unwrap();
             let v = guard.as_mut().unwrap();
             let mut data = v.data.clone();
-            data.hosts.push(vault::Host {
+            data.hosts.push(model::Host {
                 id: name.into(),
                 name: name.into(),
                 address: "192.0.2.1".into(),
