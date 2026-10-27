@@ -66,3 +66,33 @@ export function parseConnectionTarget(input) {
   if (port < 1 || port > 65535) return null;
   return { address, port, ...(username ? { username } : {}) };
 }
+
+/** Whether typed text is plainly a connection target, not just a word that happens to parse as a host name. */
+export function looksLikeTarget(input) {
+  const target = parseConnectionTarget(input);
+  if (!target) return false;
+  const text = input.trim();
+  return (
+    text.startsWith("ssh ") ||
+    text.includes("@") ||
+    text.includes(":") ||
+    target.address.replace(/\.$/, "").includes(".")
+  );
+}
+
+/**
+ * The target the quick-connect card shows for the typed text, or null. A saved host named or
+ * addressed exactly like the text already has its own row; `forced` (Cmd/Ctrl+Enter) shows
+ * the card for any text that parses.
+ */
+export function quickConnectTarget(input, hosts, forced = false) {
+  const target = parseConnectionTarget(input);
+  if (!target || !(forced || looksLikeTarget(input))) return null;
+  const text = input.trim().toLocaleLowerCase();
+  const saved = hosts.some(
+    (host) =>
+      host.name.toLocaleLowerCase() === text ||
+      host.address.toLocaleLowerCase() === text,
+  );
+  return saved ? null : target;
+}
