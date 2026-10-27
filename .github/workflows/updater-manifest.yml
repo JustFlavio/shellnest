@@ -1,0 +1,46 @@
+name: Updater manifest
+# The app looks for updates at releases/download/updater/latest.json. A release that is a
+# draft or a pre-release never answers GitHub's own /releases/latest, so the manifest of the
+# release that was just published is copied to a permanent release with the fixed tag "updater".
+# Publishing the draft by hand is the go-live moment: the installers are public by then.
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish-manifest:
+    if: startsWith(github.event.release.tag_name, 'v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Download latest.json of this release
+        run: gh release download "$TAG" --pattern latest.json --dir new
+      - name: Check that every platform is in it
+        run: node .github/scripts/updater-manifest.ts check new/latest.json "${TAG#v}"
+      - name: Create the permanent release once
+        run: |
+          gh release view updater >/dev/null 2>&1 || gh release create updater \
+            --target "${{ github.event.repository.default_branch }}" \
+            --title "Updater manifest" \
+            --notes "Holds latest.json for the in-app updater. Not a version: download Shellnest from the releases named v0.x.y." \
+            --latest=false
+      - name: Upload it, never going back to an older version
+        run: |
+          if gh release download updater --pattern latest.json --dir old 2>/dev/null; then
+            status=0
+            node .github/scripts/updater-manifest.ts newer new/latest.json old/latest.json || status=$?
+            if [ "$status" -eq 3 ]; then
+              echo "::warning::the manifest on 'updater' is already at this version or newer; left as is"
+              exit 0
+            fi
+            [ "$status" -eq 0 ]
+          fi
+          gh release upload updater new/latest.json --clobber

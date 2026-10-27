@@ -1,7 +1,12 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
-  "entry": ["src/**/*.test.ts", "e2e/**/*.ts", "sync/*.ts"],
-  "project": ["src/**", "e2e/**", "sync/**"],
+  "entry": [
+    "src/**/*.test.ts",
+    "e2e/**/*.ts",
+    "sync/*.ts",
+    ".github/scripts/*.ts"
+  ],
+  "project": ["src/**", "e2e/**", "sync/**", ".github/scripts/**"],
   "ignore": ["src/components/ui/**"],
   "ignoreIssues": {
     "src/components/ui/**": ["exports", "types"]
