@@ -22,6 +22,7 @@ export function LauncherToolbar({
   onRestore: () => void;
 }) {
   return (
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- Escape and arrow keys from the toolbar buttons must not reach the launcher list
     <div
       className="mb-[10px] flex items-center justify-end gap-[2px]"
       onKeyDown={(event) => event.stopPropagation()}

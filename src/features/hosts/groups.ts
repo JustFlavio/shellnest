@@ -52,7 +52,7 @@ export function portSource<T extends Group>(
 ): T | undefined {
   return ancestry(groups, groupId).find((g) => g.port);
 }
-export function inheritedPort(groups: Group[], groupId: string): number | null {
+function inheritedPort(groups: Group[], groupId: string): number | null {
   return portSource(groups, groupId)?.port ?? null;
 }
 // Effective port and identity of a host; a host with credentials of its own inherits no identity.

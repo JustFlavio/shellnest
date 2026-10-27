@@ -16,6 +16,7 @@ export function FingerprintCard({ value }: { value: string }) {
     return () => cancelAnimationFrame(frame);
   }, []);
   return (
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- Escape bubbles up from the focused button
     <div
       className="mt-[10px] rounded-[10px] border border-border bg-card p-[14px]"
       onKeyDown={(e) => {

@@ -11,6 +11,7 @@ labels: bug
 **Steps to reproduce**
 
 **Environment**
+
 - Shellnest version / commit:
 - OS and version:
 - Local vault or sync:

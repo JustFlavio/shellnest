@@ -1,5 +1,5 @@
 // App settings: one flat object in localStorage. Parsing never throws; every bad field falls back to its default.
-export type TerminalColors = Record<string, string>;
+type TerminalColors = Record<string, string>;
 export type TerminalThemeDef = {
   id: string;
   name: string;
@@ -20,7 +20,7 @@ export type AppSettings = {
 export const DEFAULT_FONT_SIZE = 13;
 export const MIN_FONT_SIZE = 8;
 export const MAX_FONT_SIZE = 32;
-export const DEFAULT_FONT_STACK =
+const DEFAULT_FONT_STACK =
   '"Cascadia Code", "SFMono-Regular", Consolas, monospace';
 
 const ansi = (c: string[]): TerminalColors => ({

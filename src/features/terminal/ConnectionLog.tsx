@@ -11,7 +11,9 @@ import { useStickToBottom } from "./useStickToBottom";
 export function ConnectionLog({ lines }: { lines: LogEntry[] }) {
   const [shown, setShown] = useState(false);
   const { copied, copy } = useCopied();
-  const scroll = useStickToBottom<HTMLOListElement>(shown ? lines.length : -1);
+  const { ref, onScroll } = useStickToBottom<HTMLOListElement>(
+    shown ? lines.length : -1,
+  );
   if (!lines.length) return null;
   return (
     <div className="mt-[12px]">
@@ -38,8 +40,8 @@ export function ConnectionLog({ lines }: { lines: LogEntry[] }) {
             {copied ? "Log copiato." : ""}
           </span>
           <ol
-            ref={scroll.ref}
-            onScroll={scroll.onScroll}
+            ref={ref}
+            onScroll={onScroll}
             aria-label="Log della connessione"
             className="m-0 max-h-[200px] list-none overflow-auto rounded-[10px] bg-muted p-[8px] pr-[40px] text-left font-mono text-[12px]"
           >

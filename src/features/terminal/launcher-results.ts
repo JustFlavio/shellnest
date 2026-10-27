@@ -19,7 +19,7 @@ export type RecentHost = Host & {
   os?: string | null;
 };
 // The titled sections of the list, in display order.
-export type LauncherGroup = "workspace" | "tabs" | "hosts" | "quick";
+type LauncherGroup = "workspace" | "tabs" | "hosts" | "quick";
 export type LauncherResult = {
   key: string;
   group: LauncherGroup;
@@ -73,7 +73,7 @@ const latestTab = (
     );
 
 // "user@host:port" as the quick-connect row shows it.
-export const formatTarget = ({ username, address, port }: ConnectionTarget) =>
+const formatTarget = ({ username, address, port }: ConnectionTarget) =>
   `${username ? `${username}@` : ""}${address.includes(":") ? `[${address}]` : address}:${port}`;
 
 // What the launcher lists for a query, in the order of its titled groups: saved workspaces,

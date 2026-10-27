@@ -20,7 +20,10 @@ function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
   return (
     <SelectPrimitive.Value
       data-slot="select-value"
-      className={cn("flex flex-1 overflow-hidden text-left text-ellipsis whitespace-nowrap", className)}
+      className={cn(
+        "flex flex-1 overflow-hidden text-left text-ellipsis whitespace-nowrap",
+        className,
+      )}
       {...props}
     />
   );

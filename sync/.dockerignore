@@ -1,5 +1,5 @@
 data
-*.test.mjs
+*.test.ts
 README.md
 Dockerfile
 .dockerignore

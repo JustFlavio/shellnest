@@ -161,7 +161,7 @@ const keyMatches = (e: KeyEvent, key: string): boolean =>
     ? /^[1-9]$/.test(keyOf(e))
     : keyOf(e).toLowerCase() === key.toLowerCase();
 
-export function matches(e: KeyEvent, combo: Combo, mac: boolean): boolean {
+function matches(e: KeyEvent, combo: Combo, mac: boolean): boolean {
   const letter = /^[a-z]$/i.test(combo.key);
   const shift = !!combo.shift || (!mac && !!combo.mod && letter);
   const alt = !!combo.alt || (!mac && !!combo.mod && letter && !!combo.shift);

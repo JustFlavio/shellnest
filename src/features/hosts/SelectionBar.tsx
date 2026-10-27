@@ -24,9 +24,7 @@ export function SelectionBar() {
         <TerminalSquare size={15} />
         Connetti
       </Button>
-      <strong>
-        {selected.size} selezionati
-      </strong>
+      <strong>{selected.size} selezionati</strong>
       <Button
         variant="ghost"
         type="button"

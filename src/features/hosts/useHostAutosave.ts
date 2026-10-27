@@ -34,47 +34,50 @@ export function useHostAutosave(
     setError("");
   }, [draft?.id, vaultId]);
 
-  const flush = useCallback(async function saveLatest(): Promise<Host | null> {
-    clearTimeout(timer.current);
-    if (pending.current) {
-      await pending.current;
-      return saveLatest();
-    }
-    const { draft, stored, identities, groups, vaultId, persist } =
-      latest.current;
-    if (!draft || !hostDraftIsValid(draft, identities, stored, groups))
-      return null;
-    if (draft === acknowledged.current) return saved.current;
-    if (!hostDraftIsDirty(draft, stored)) return stored ?? null;
-    setSaving(true);
-    setError("");
-    const request = Promise.resolve().then(() => persist(draft));
-    pending.current = request;
-    try {
-      const result = await request;
-      if (
-        latest.current.draft?.id === draft.id &&
-        latest.current.vaultId === vaultId
-      ) {
-        acknowledged.current = draft;
-        saved.current = result;
-        failed.current = null;
+  const flush = useCallback(
+    async function saveLatest(): Promise<Host | null> {
+      clearTimeout(timer.current);
+      if (pending.current) {
+        await pending.current;
+        return saveLatest();
       }
-      return result;
-    } catch (e) {
-      if (
-        latest.current.draft?.id === draft.id &&
-        latest.current.vaultId === vaultId
-      ) {
-        failed.current = draft;
-        setError(String(e));
+      const { draft, stored, identities, groups, vaultId, persist } =
+        latest.current;
+      if (!draft || !hostDraftIsValid(draft, identities, stored, groups))
+        return null;
+      if (draft === acknowledged.current) return saved.current;
+      if (!hostDraftIsDirty(draft, stored)) return stored ?? null;
+      setSaving(true);
+      setError("");
+      const request = Promise.resolve().then(() => persist(draft));
+      pending.current = request;
+      try {
+        const result = await request;
+        if (
+          latest.current.draft?.id === draft.id &&
+          latest.current.vaultId === vaultId
+        ) {
+          acknowledged.current = draft;
+          saved.current = result;
+          failed.current = null;
+        }
+        return result;
+      } catch (e) {
+        if (
+          latest.current.draft?.id === draft.id &&
+          latest.current.vaultId === vaultId
+        ) {
+          failed.current = draft;
+          setError(String(e));
+        }
+        throw e;
+      } finally {
+        pending.current = null;
+        setSaving(false);
       }
-      throw e;
-    } finally {
-      pending.current = null;
-      setSaving(false);
-    }
-  }, []);
+    },
+    [latest],
+  );
   const dirty =
     !!draft &&
     draft !== acknowledged.current &&

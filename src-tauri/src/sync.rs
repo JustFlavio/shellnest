@@ -217,7 +217,7 @@ mod tests {
         let module = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .parent()
             .unwrap()
-            .join("sync/server.mjs");
+            .join("sync/server.ts");
         let module_url = Url::from_file_path(module).unwrap().to_string();
         let script=format!("import {{createSyncServer}} from {}; const s=await createSyncServer({{token:process.env.SYNC_TOKEN,directory:process.env.SYNC_DATA_DIR}});s.listen(0,'127.0.0.1',()=>console.log(s.address().port));",serde_json::to_string(&module_url).unwrap());
         let child = Command::new("node")

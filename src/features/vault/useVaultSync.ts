@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { desktop } from "@/lib/platform";
 import type { View } from "@/lib/types";
 import { notifyError } from "@/lib/notify";
@@ -31,6 +31,8 @@ export function useVaultSync(
     [lastSync, setLastSync] = useState("");
   const syncing = useRef(false);
   const canAuto = useLatest(canAutoSync);
+  // The retry button of a failure toast runs the newest synchronize, which `latest` is set to below.
+  const latest = useRef<(manual?: boolean) => Promise<void>>(async () => {});
   const synchronize = async (manual = false) => {
     if (!manual && !canAuto.current()) return;
     if (syncing.current || busyRef.current) return;
@@ -69,7 +71,9 @@ export function useVaultSync(
       }
     }
   };
-  const latest = useLatest(synchronize);
+  useLayoutEffect(() => {
+    latest.current = synchronize;
+  });
   useEffect(() => {
     if (
       !desktop ||
@@ -89,12 +93,13 @@ export function useVaultSync(
     view.syncConfigured,
     view.vaultId,
     busy,
+    latest,
   ]);
   useEffect(() => {
     if (!desktop || !view.unlocked || !view.syncConfigured) return;
     const timer = setInterval(() => void latest.current(), 30000);
     return () => clearInterval(timer);
-  }, [view.unlocked, view.syncConfigured, view.vaultId]);
+  }, [view.unlocked, view.syncConfigured, view.vaultId, latest]);
   const reset = () => {
     setLastSync("");
     setSyncState("idle");

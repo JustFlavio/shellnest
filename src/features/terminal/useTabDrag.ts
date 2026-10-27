@@ -39,14 +39,16 @@ export function useTabDrag({ tabs, active, setActive, dropOnPane }: TabsApi) {
     const srcId = dragPane ?? drag?.id;
     if (srcId) dropOnPane(srcId, !!dragPane, targetId, edge);
   };
+  const [settledFor, setSettledFor] = useState(dragPane);
+  if (dragPane !== settledFor) {
+    setSettledFor(dragPane);
+    if (dragPane) setSettling(true);
+    else setReflow(false);
+  }
   useEffect(() => {
-    if (dragPane) {
-      setSettling(true);
-      const timer = window.setTimeout(() => setReflow(true), 150);
-      return () => window.clearTimeout(timer);
-    }
-    setReflow(false);
-    const timer = window.setTimeout(() => setSettling(false), 300);
+    const timer = dragPane
+      ? window.setTimeout(() => setReflow(true), 150)
+      : window.setTimeout(() => setSettling(false), 300);
     return () => window.clearTimeout(timer);
   }, [dragPane]);
   const geos = new Map(

@@ -121,5 +121,5 @@ export function useShortcuts(app: AppState) {
     };
     window.addEventListener("keydown", listener, true);
     return () => window.removeEventListener("keydown", listener, true);
-  }, []);
+  }, [latest]);
 }

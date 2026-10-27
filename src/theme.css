@@ -30,7 +30,8 @@
   --ring: #f5a524;
   --radius: 0.5rem;
   --font-ui: "Geist Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Consolas, monospace;
+  --font-mono:
+    "Geist Mono Variable", ui-monospace, "SF Mono", Consolas, monospace;
 }
 
 @theme inline {

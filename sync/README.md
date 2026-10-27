@@ -1,6 +1,6 @@
 # Shellnest Sync server
 
-A small self-hosted server that keeps the **encrypted** Shellnest vault in step between your devices. Plain Node.js (22+), no dependencies, no build step.
+A small self-hosted server that keeps the **encrypted** Shellnest vault in step between your devices. Plain Node.js (22.18+ or 24), no dependencies, no build step: the TypeScript sources run directly through Node's built-in type stripping.
 
 It is a personal service: **one token, no accounts, no multi-user support.** Anyone holding the token can read, replace and overwrite every vault stored on this server (never decrypt them).
 
@@ -50,11 +50,11 @@ docker run -d --name shellnest-sync --restart unless-stopped \
 
 ## Run with plain Node
 
-From the repository root, or copy the `sync/` folder (`server.mjs` and `src/`) anywhere:
+From the repository root, or copy the `sync/` folder (`server.ts` and `src/`) anywhere:
 
 ```sh
 export SYNC_TOKEN="$(cat /path/to/token-file)"
-npm run sync              # or: node sync/server.mjs
+npm run sync              # or: node sync/server.ts
 ```
 
 To keep it running on a VPS, use a service manager. Example systemd unit (`/etc/systemd/system/shellnest-sync.service`):
@@ -69,7 +69,7 @@ User=shellnest
 # Contains SYNC_TOKEN=..., chmod 600
 EnvironmentFile=/etc/shellnest-sync.env
 Environment=SYNC_DATA_DIR=/var/lib/shellnest-sync
-ExecStart=/usr/bin/node /opt/shellnest-sync/server.mjs
+ExecStart=/usr/bin/node /opt/shellnest-sync/server.ts
 Restart=on-failure
 NoNewPrivileges=true
 ProtectSystem=strict
@@ -165,7 +165,7 @@ All vault routes need `Authorization: Bearer <token>` (`401` otherwise). Other s
 ## Development
 
 ```sh
-node --test "sync/*.test.mjs"
+node --test "sync/*.test.ts"
 ```
 
-Layout: `server.mjs` (entry, re-exports `createSyncServer`), `src/app.mjs` (HTTP routing), `src/storage.mjs` (files, ETags, serialized writes), `src/auth.mjs`, `src/vault-id.mjs`, `src/envelope.mjs`, `src/body.mjs`, `src/config.mjs`, `src/main.mjs` (startup and shutdown).
+Layout: `server.ts` (entry, re-exports `createSyncServer`), `src/app.ts` (HTTP routing), `src/storage.ts` (files, ETags, serialized writes), `src/auth.ts`, `src/vault-id.ts`, `src/envelope.ts`, `src/body.ts`, `src/config.ts`, `src/main.ts` (startup and shutdown).

@@ -3,20 +3,14 @@ import { Button } from "@/components/ui/button";
 import { AlertDialogDescription } from "@/components/ui/alert-dialog";
 import { Panel } from "@/features/hosts/Panel";
 
-export const CONFIRM_CLOSE_KEY = "shellnest.confirmClose";
+const CONFIRM_CLOSE_KEY = "shellnest.confirmClose";
 
-export function confirmCloseEnabled() {
+function confirmCloseEnabled() {
   try {
     return localStorage.getItem(CONFIRM_CLOSE_KEY) !== "off";
   } catch {
     return true;
   }
-}
-// Back to asking every time (for a future settings screen).
-export function resetConfirmClose() {
-  try {
-    localStorage.removeItem(CONFIRM_CLOSE_KEY);
-  } catch {}
 }
 
 // ask(live, run): runs `run` at once unless a connected session is about to be closed

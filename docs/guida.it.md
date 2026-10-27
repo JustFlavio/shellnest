@@ -15,7 +15,6 @@ npm run desktop
 
 `npm run dev` apre solo l'interfaccia in un browser: non salva credenziali e non effettua connessioni SSH. `npm run desktop:build` genera il pacchetto desktop. Firma e notarizzazione non sono configurate: al primo avvio macOS e Windows mostrano un avviso.
 
-
 ## Funzioni presenti
 
 L'interfaccia usa componenti shadcn/ui (stile Base Nova) basati su Base UI, con Tailwind CSS 4. I componenti necessari sono nel repository in `src/components/ui`; i colori condivisi sono in `src/theme.css`, il layout desktop in `src/style.css`. Select e menu sono personalizzati; i pannelli usano il focus e la gestione tastiera di Base UI. I test dei controlli usano il runner Node esistente, senza un framework di test aggiuntivo.
@@ -38,6 +37,7 @@ Il menu applicazione nell’header raccoglie navigazione, nuove connessioni, vis
 - Terminali interattivi in schede riordinabili, duplicazione, riconnessione e chiusura delle altre sessioni; verifica esplicita dell'impronta SHA-256 prima dell'autenticazione e blocco se cambia. Durante la connessione il riquadro mostra i passaggi (connessione, impronta, autenticazione, sessione); la verifica dell’impronta e, se la chiave viene rifiutata, la richiesta della password avvengono dentro il riquadro, senza finestre. Ogni passaggio mostra il suo esito (con un avviso, non un segno di spunta, se c’è stato un ripiego, ad esempio chiave rifiutata e poi password); dopo 3 password errate il tentativo termina con «Ricomincia» e «Chiudi». «Mostra log» apre il registro della connessione (indirizzo, server, algoritmi, impronta, tentativi), una riga per evento con il tempo trascorso, un’icona per tipo ed errori e rifiuti in evidenza, e dal cui angolo in alto a destra l’icona «Copia log» copia il testo; non contiene mai password o chiavi e resta solo in memoria.
 
 La connessione rapida (indirizzo digitato nella ricerca, anche con Ctrl/Cmd+Invio) avvia lo stesso riquadro e vi pone le domande: «Utente» (precompilato da `utente@host`, oppure un’identità salvata che porta con sé le credenziali) e, senza identità, «Metodo di accesso» (password o chiave del portachiavi). «Continua» si collega senza salvare nulla; «Continua e salva» crea anche l’host nel vault (nome predefinito: l’indirizzo; con una chiave viene creata, o riusata, un’identità). L’impronta di una connessione rapida non viene mai salvata.
+
 - Sincronizzazione del vault cifrato tramite il servizio incluso; controllo ogni 30 secondi mentre il vault è aperto e pulsante manuale.
 - Collegamento di un dispositivo nuovo scaricando il vault esistente; protezione dalle sovrascritture concorrenti tramite ETag e scritture condizionali.
 - Blocco manuale e cambio vault chiudono tutte le sessioni, comprese quelle locali, con conferma quando sono aperte.
