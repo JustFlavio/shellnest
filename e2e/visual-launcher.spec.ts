@@ -173,3 +173,10 @@ test("Cmd+J lists only the open tabs, newest first", async ({ page }) => {
   await expect(jump).toHaveCount(0);
   await expect(page.locator(".xterm")).toHaveCount(2);
 });
+
+test("the launcher explains no keyboard commands", async ({ page }) => {
+  await openLauncher(page);
+  await expect(page.getByText(/Maiusc\+Invio|Invio apre/)).toHaveCount(0);
+  await page.keyboard.press("Meta+j");
+  await expect(page.getByText("Invio passa alla scheda")).toHaveCount(0);
+});

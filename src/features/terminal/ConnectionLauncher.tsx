@@ -10,7 +10,6 @@ import {
 } from "./launcher-results.ts";
 import type { LauncherResult } from "./launcher-results.ts";
 import type { ConnectionLauncherProps } from "./launcher-props.ts";
-import { LauncherFooter } from "./LauncherFooter";
 import { launcherKeyHandler } from "./launcher-keys";
 import { LauncherList } from "./LauncherList";
 import { LauncherRow } from "./LauncherRow";
@@ -190,7 +189,12 @@ export function ConnectionLauncher({
           renderRow={row}
         />
       </Command>
-      <LauncherFooter jump={jump} preview={preview} quickKey={quickKey} />
+      {preview && (
+        <p className="help mt-[16px]">
+          Anteprima: connessioni SSH e terminale locale sono disponibili
+          nell’app desktop.
+        </p>
+      )}
     </section>
   );
 }
