@@ -10,6 +10,13 @@ import ts from "typescript";
 // The existing Node runner can check TSX controls without another test framework.
 registerHooks({
   resolve(specifier, context, nextResolve) {
+    if (specifier.startsWith("@/")) {
+      const base = new URL(`./${specifier.slice(2)}`, import.meta.url);
+      for (const extension of ["", ".tsx", ".ts"]) {
+        const url = new URL(base.href + extension);
+        if (existsSync(url)) return { url: url.href, shortCircuit: true };
+      }
+    }
     if (specifier.startsWith(".") && context.parentURL) {
       for (const extension of [".tsx", ".ts"]) {
         const url = new URL(specifier + extension, context.parentURL);
@@ -37,13 +44,13 @@ registerHooks({
   },
 });
 
-const { VaultPicker } = await import("./VaultPicker.tsx");
-const { SelectField } = await import("./SelectField.tsx");
+const { VaultPicker } = await import("./features/vault/VaultPicker.tsx");
+const { SelectField } = await import("./components/SelectField.tsx");
 const { Button } = await import("./components/ui/button.tsx");
-const { HostsView } = await import("./HostsView.tsx");
-const { WindowControls } = await import("./WindowControls.tsx");
-const { HostEditor, IdentityEditor } = await import("./Editors.tsx");
-const { HostPasswordInput } = await import("./HostPasswordInput.tsx");
+const { HostsView } = await import("./features/hosts/HostsView.tsx");
+const { WindowControls } = await import("./app/WindowControls.tsx");
+const { HostEditor, IdentityEditor } = await import("./features/hosts/Editors.tsx");
+const { HostPasswordInput } = await import("./features/hosts/HostPasswordInput.tsx");
 
 test("saved host password stays masked without requesting the secret during render", () => {
   let reads = 0;
@@ -381,7 +388,7 @@ test("single click selects, Ctrl and Cmd toggle, double click and Enter connect 
   }
 });
 
-const { createPreviewBackend } = await import("./preview.ts");
+const { createPreviewBackend } = await import("./lib/preview.ts");
 
 test("private credentials stay local and omitted passwords survive edits", async () => {
   const invoke = createPreviewBackend();
@@ -452,7 +459,7 @@ test("private credentials stay local and omitted passwords survive edits", async
   );
 });
 
-const { hostDraftIsDirty, hostDraftIsValid } = await import("./host-draft.ts");
+const { hostDraftIsDirty, hostDraftIsValid } = await import("./features/hosts/host-draft.ts");
 test("draft validation requires its own password or an explicit shared identity", () => {
   const host = {
     id: "a",
@@ -610,8 +617,8 @@ test("preview vaults switch, lock and unlock without losing or mixing data", asy
 });
 
 const { selectionBounds, selectInRectangle } =
-  await import("./CollectionSelection.tsx");
-const { HostSummary } = await import("./HostSummary.tsx");
+  await import("./features/hosts/CollectionSelection.tsx");
+const { HostSummary } = await import("./features/hosts/HostSummary.tsx");
 
 test("rectangle selection works in every direction, intersects items and keeps folders out of host actions", () => {
   const bounds = selectionBounds({ x: 100, y: 100 }, { x: 10, y: 10 });
@@ -727,7 +734,7 @@ test("bulk summaries identify every affected host with its login and nondefault 
 });
 
 test("identity and key tables disable deletion while in use", async () => {
-  const { IdentitiesTable, KeysTable } = await import("./CollectionTables.tsx");
+  const { IdentitiesTable, KeysTable } = await import("./features/hosts/CollectionTables.tsx");
   const btn = (html, name) =>
     html.match(new RegExp(`<button[^>]*aria-label="Elimina ${name}"[^>]*>`))[0];
   const noop = () => {};

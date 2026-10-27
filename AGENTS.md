@@ -7,9 +7,9 @@ Desktop SSH client (Tauri 2, React 19, Rust). Encrypted local vaults, optional s
 ```sh
 npm ci
 npm run desktop        # app with hot reload
-npm run dev            # UI only in a browser, demo backend (src/preview.ts)
+npm run dev            # UI only in a browser, demo backend (src/lib/preview.ts)
 npx tsc --noEmit
-npm test               # node:test, src/*.test.mjs and sync/*.test.mjs
+npm test               # node:test, src/**/*.test.mjs and sync/*.test.mjs
 cargo test --locked --manifest-path src-tauri/Cargo.toml
 npm run test:visual    # Playwright screenshots on the browser preview, macOS only, not in CI
 npm run test:desktop   # WebDriver tests on the real app (e2e/)
@@ -17,9 +17,11 @@ npm run test:desktop   # WebDriver tests on the real app (e2e/)
 
 ## Layout
 
-- `src/main.tsx`: app shell and state. Components are in `src/*.tsx`; shadcn/Base UI primitives in `src/components/ui`.
-- `src/*.mjs` (+ `.d.mts`, `.test.mjs`): pure logic with no React or Tauri imports (settings, shortcuts, groups, connection parsing, workbench state). Put testable logic here.
-- `src/preview.ts`: in-memory backend used when the UI runs in a browser. It does no encryption or SSH. Keep its commands in step with the Tauri ones.
+- `src/main.tsx`: entry point only. `src/app/` is the shell (header, layout, `useAppState` and the `useApp()` context that components read).
+- `src/features/`: `hosts` (vault browser, editors, groups), `terminal` (tabs, panes, launcher, workbench state), `vault` (unlock, sync, vault switching), `settings` (settings dialog, shortcuts). Import across features with the `@/` alias.
+- `src/components/` shared widgets, `src/components/ui` shadcn/Base UI primitives, `src/lib/` helpers (types, platform, preview backend).
+- `src/features/*/*.mjs` (+ `.d.mts`, `.test.mjs`): pure logic with no React or Tauri imports (settings, shortcuts, groups, connection parsing, workbench state). Put testable logic here, next to its feature.
+- `src/lib/preview.ts`: in-memory backend used when the UI runs in a browser. It does no encryption or SSH. Keep its commands in step with the Tauri ones.
 - `src-tauri/src/`: `main.rs` (Tauri commands, app state, keychain), `vault.rs` (encryption, files), `model.rs` (data model, migrations), `terminal.rs` (SSH via russh, PTY), `local.rs` (local shell), `sync.rs` (sync client).
 - `sync/`: standalone Node.js sync server, no dependencies.
 - `docs/`: `guida.it.md` is the detailed guide; `settings.md` lists the settings.
