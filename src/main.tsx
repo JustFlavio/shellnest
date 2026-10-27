@@ -1,9 +1,14 @@
 import { HostSummary } from "./HostSummary";
 import { desktop, mac } from "./platform";
+import { useVault } from "./useVault";
+import { useVaultSync } from "./useVaultSync";
+import { useVaultSession } from "./useVaultSession";
+import { useUnlock } from "./useUnlock";
+import { useSettingsDialog } from "./useSettingsDialog";
+import { usePreferences } from "./usePreferences";
 import { useTabs } from "./useTabs";
 import { useTabDrag } from "./useTabDrag";
 import { useHostAutosave } from "./useHostAutosave";
-import { useLatest } from "./useLatest";
 import { hostDraftIsValid, hostInheritsIdentity } from "./host-draft";
 import {
   ancestry,
@@ -36,17 +41,9 @@ import {
   DropdownMenuItem,
   DropdownMenuShortcut,
 } from "./components/ui/dropdown-menu";
-import {
-  Fragment,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import type { ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { invoke, isTauri } from "@tauri-apps/api/core";
+import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   ArrowUpDown,
@@ -57,7 +54,6 @@ import {
   FolderPlus,
   KeyRound,
   LockKeyhole,
-  Pencil,
   Plus,
   SquarePlus,
   Search,
@@ -74,52 +70,22 @@ import {
   Menu,
   RefreshCw,
 } from "lucide-react";
-import { createPreviewBackend } from "./preview";
 import { WindowControls } from "./WindowControls";
 import { TerminalPane, terminalHandles } from "./TerminalPane";
-import { SettingsDialog, type SettingsSection } from "./SettingsDialog";
+import { SettingsDialog } from "./SettingsDialog";
 import { VaultSettings } from "./VaultSettings";
 import { Switch } from "./components/ui/switch";
-import {
-  DEFAULT_FONT_SIZE,
-  DEFAULT_SETTINGS,
-  clampFontSize,
-  parseSettings,
-  type AppSettings,
-} from "./settings.mjs";
+import { DEFAULT_FONT_SIZE, clampFontSize } from "./settings.mjs";
 import { useCloseGuard } from "./CloseGuard";
-import {
-  actionFor,
-  hint as shortcutHint,
-  parseOverrides,
-  resolve,
-  type Combo,
-} from "./shortcuts.mjs";
+import { actionFor } from "./shortcuts.mjs";
 import { OsIcon } from "./OsIcon";
 import { HostEditor, IdentityEditor, KeyEditor, Panel } from "./Editors";
 import { HostsView } from "./HostsView";
 import { VaultPicker } from "./VaultPicker";
 import { ActionMenu } from "./ActionMenu";
 import { ConnectionLauncher } from "./ConnectionLauncher";
-import type { QuickConnection } from "./ConnectionLauncher";
-import type { Edge } from "./workbench-state.mjs";
-import {
-  dropEdge,
-  fromTemplate,
-  gridLayout,
-  insertLeaf,
-  layoutRects,
-  leafIds,
-  pruneTemplate,
-  removeLeaf,
-  replaceLeaf,
-  reorderTabs,
-  setRatio,
-  snapshotSession,
-  syncUrlForVault,
-  toTemplate,
-} from "./workbench-state.mjs";
-import { emptyView, newGroup, newHost, newIdentity, newKey } from "./types";
+import { dropEdge, leafIds } from "./workbench-state.mjs";
+import { newGroup, newHost, newIdentity, newKey } from "./types";
 import type {
   Host,
   HostDraft,
@@ -129,12 +95,8 @@ import type {
   SshKey,
   TerminalTab,
   View,
-  QuickTarget,
   GroupForm,
-  Workspace,
-  WorkspaceDraft,
 } from "./types";
-import type { SavedNode } from "./workbench-state.mjs";
 import "./theme.css";
 import { callout, fingerprint, help, muted } from "./editor-ui";
 
@@ -157,20 +119,22 @@ const labels: Record<Page, string> = {
   keys: "Chiavi SSH",
 };
 function App() {
-  const [view, setView] = useState<View>(emptyView),
-    [loading, setLoading] = useState(true),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
-    [notice, setNotice] = useState("");
-  const [remember, setRemember] = useState(true);
-  const [remembered, setRemembered] = useState<boolean | null>(null);
-  const [trying, setTrying] = useState(false);
-  const triedSaved = useRef(new Set<string>());
-  const [password, setPassword] = useState(""),
-    [confirmPassword, setConfirmPassword] = useState(""),
-    [restore, setRestore] = useState(false),
-    [syncUrl, setSyncUrl] = useState(""),
-    [syncToken, setSyncToken] = useState("");
+  const vault = useVault();
+  const {
+    view,
+    busy,
+    busyRef,
+    error,
+    setError,
+    notice,
+    setNotice,
+    preview,
+    update,
+    run,
+    invokeScoped,
+    epoch,
+  } = vault;
+  const unlock = useUnlock(vault);
   const [page, setPage] = useState<Page>("hosts"),
     [group, setGroup] = useState(""),
     [query, setQuery] = useState(""),
@@ -191,96 +155,29 @@ function App() {
   useEffect(() => {
     clearSelection();
   }, [group, query, page, view.vaultId]);
-  const [settingsSection, setSettingsSection] =
-      useState<SettingsSection | null>(null),
-    [deletion, setDeletion] = useState<{
-      kind: Page | "groups";
-      id: string;
-      name: string;
-      ids?: string[];
-    } | null>(null);
-  const [renaming, setRenaming] = useState<string>(),
-    [lastSync, setLastSync] = useState(""),
-    [preview, setPreview] = useState(false);
-  const [syncState, setSyncState] = useState<"idle" | "syncing" | "error">(
-    "idle",
-  );
-  const [appSettings, setAppSettings] = useState<AppSettings>(() => {
-    try {
-      const stored = localStorage.getItem("shellnest.settings");
-      if (stored) return parseSettings(stored);
-      // Before the settings dialog the zoom shortcuts kept the size on its own.
-      const legacy = Number(localStorage.getItem("shellnest.fontSize"));
-      return legacy
-        ? { ...DEFAULT_SETTINGS, fontSize: clampFontSize(legacy) }
-        : DEFAULT_SETTINGS;
-    } catch {
-      return DEFAULT_SETTINGS;
-    }
-  });
-  // Creating, switching or locking leaves the unlock screen; settings must not reappear on the next unlock.
-  useEffect(() => {
-    if (!view.unlocked) setSettingsSection(null);
-  }, [view.unlocked]);
-  const openSettings = (section: SettingsSection = "vault") => {
-    setSyncUrl(view.syncUrl);
-    setError("");
-    setSettingsSection(section);
-  };
-  const saveSettings = (next: AppSettings) => {
-    setAppSettings(next);
-    try {
-      localStorage.setItem("shellnest.settings", JSON.stringify(next));
-    } catch {}
-  };
-  const [overrides, setOverrides] = useState<Record<string, Combo[]>>(() => {
-    try {
-      return parseOverrides(localStorage.getItem("shellnest.shortcuts") ?? "");
-    } catch {
-      return {};
-    }
-  });
-  const bindings = useMemo(() => resolve(overrides), [overrides]);
-  const hint = (id: string) => shortcutHint(id, mac, bindings);
-  const saveOverrides = (next: Record<string, Combo[]>) => {
-    setOverrides(next);
-    try {
-      localStorage.setItem("shellnest.shortcuts", JSON.stringify(next));
-    } catch {}
-  };
+  const settings = useSettingsDialog(vault);
+  const [deletion, setDeletion] = useState<{
+    kind: Page | "groups";
+    id: string;
+    name: string;
+    ids?: string[];
+  } | null>(null);
+  const {
+    appSettings,
+    saveSettings,
+    overrides,
+    saveOverrides,
+    bindings,
+    hint,
+  } = usePreferences();
+  const [renaming, setRenaming] = useState<string>();
   const [usage, setUsage] = useState<{ ids: string[]; label: string } | null>(
     null,
   );
-  const busyRef = useRef(false),
-    panelOpen = useRef(false),
-    syncing = useRef(false),
-    epoch = useRef(0),
-    search = useRef<HTMLInputElement>(null);
-  const currentVault = useLatest(view.vaultId);
+  const search = useRef<HTMLInputElement>(null);
   const [layout, setLayout] = useState<"list" | "cards">("cards");
   const [sort, setSort] = useState<"name" | "recent">("name");
-  const [vaultDialog, setVaultDialog] = useState<{
-    mode: "create" | "rename";
-    name: string;
-  } | null>(null);
-  const [pendingSwitch, setPendingSwitch] = useState<string | null>(null);
   const closeGuard = useCloseGuard();
-  const [pendingLock, setPendingLock] = useState(false);
-  const previewBackend = useRef<ReturnType<typeof createPreviewBackend> | null>(
-    null,
-  );
-  const invokeCommand = <T,>(
-    command: string,
-    args: Record<string, unknown> = {},
-  ): Promise<T> => {
-    if (desktop) return invoke<T>(command, args);
-    if (previewBackend.current) return previewBackend.current<T>(command, args);
-    return Promise.reject(new Error("Avvia prima l'anteprima."));
-  };
-  const invokeScoped = <T,>(
-    command: string,
-    args: Record<string, unknown> = {},
-  ) => invokeCommand<T>(command, { ...args, vaultId: view.vaultId });
   useEffect(() => {
     try {
       const saved = localStorage.getItem(`shellnest.layout.${view.vaultId}`);
@@ -297,47 +194,15 @@ function App() {
       /* Preference storage is optional. */
     }
   };
-  const update = (next: View) => {
-    if (
-      !Array.isArray(next.keys) ||
-      !Array.isArray(next.identities) ||
-      !Array.isArray(next.workspaces) ||
-      !Array.isArray(next.vaults) ||
-      !next.vaultId
-    )
-      throw new Error(
-        "La versione desktop aperta usa ancora il vecchio modello. Chiudi e riavvia l’app aggiornata.",
-      );
-    setView(next);
-    setSelected(
-      (old) =>
-        new Set([...old].filter((id) => next.hosts.some((h) => h.id === id))),
+  useEffect(() => {
+    const ids = new Set(view.hosts.map((h) => h.id));
+    setSelected((old) =>
+      [...old].every((id) => ids.has(id))
+        ? old
+        : new Set([...old].filter((id) => ids.has(id))),
     );
-  };
-  const run = async (operation: () => Promise<void>) => {
-    if (busyRef.current) return;
-    busyRef.current = true;
-    setBusy(true);
-    setError("");
-    try {
-      await operation();
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      busyRef.current = false;
-      setBusy(false);
-    }
-  };
-  const tabsApi = useTabs({
-    view,
-    preview,
-    run,
-    update,
-    invokeScoped,
-    setError,
-    setNotice,
-    closeGuard,
-  });
+  }, [view.hosts]);
+  const tabsApi = useTabs(vault, closeGuard);
   const {
     tabs,
     bar,
@@ -403,89 +268,6 @@ function App() {
     setActive,
     dropOnPane: tabsApi.dropOnPane,
   });
-  useEffect(() => {
-    if (desktop)
-      void invoke<View>("status")
-        .then(update)
-        .catch((e) => setError(String(e)))
-        .finally(() => setLoading(false));
-    else setLoading(false);
-  }, []);
-  // Reopens a vault whose key is in the system keychain, once per vault and app run (a manual lock stays locked).
-  const waitingSaved =
-    desktop &&
-    !loading &&
-    !view.unlocked &&
-    view.exists &&
-    !triedSaved.current.has(view.vaultId);
-  useEffect(() => {
-    if (!waitingSaved) return;
-    triedSaved.current.add(view.vaultId);
-    setTrying(true);
-    invoke<View>("unlock_saved", { vaultId: view.vaultId })
-      .then(update)
-      .catch(() => {})
-      .finally(() => setTrying(false));
-  }, [waitingSaved, view.vaultId]);
-  useEffect(() => {
-    setRemembered(null);
-    if (!settingsSection || !view.unlocked || !desktop) return;
-    const id = view.vaultId;
-    void invoke<boolean>("is_remembered", { vaultId: id }).then((on) => {
-      if (id === currentVault.current) setRemembered(on);
-    });
-  }, [!!settingsSection, view.unlocked, view.vaultId]);
-  useEffect(() => {
-    if (!notice) return;
-    const timer = setTimeout(() => setNotice(""), 4500);
-    return () => clearTimeout(timer);
-  }, [notice]);
-  const synchronize = async (manual = false) => {
-    if (
-      !manual &&
-      panelOpen.current &&
-      (!hostForm ||
-        !hostDraftIsValid(
-          hostForm,
-          view.identities,
-          view.hosts.find((h) => h.id === hostForm.id),
-          view.groups,
-        ))
-    )
-      return;
-    if (syncing.current || busyRef.current) return;
-    syncing.current = true;
-    if (manual) {
-      busyRef.current = true;
-      setBusy(true);
-    }
-    setSyncState("syncing");
-    const generation = epoch.current;
-    try {
-      const next = await invokeScoped<View>("sync_vault");
-      if (generation !== epoch.current) return;
-      update(next);
-      setSyncState("idle");
-      setLastSync(
-        new Date().toLocaleTimeString("it-IT", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      );
-      if (manual) setNotice("Vault sincronizzato");
-    } catch (e) {
-      if (generation === epoch.current) {
-        setSyncState("error");
-        setError(String(e));
-      }
-    } finally {
-      syncing.current = false;
-      if (manual) {
-        busyRef.current = false;
-        setBusy(false);
-      }
-    }
-  };
   const hostAutosave = useHostAutosave(
     hostForm,
     view.hosts.find((h) => h.id === hostForm?.id),
@@ -520,30 +302,47 @@ function App() {
       return next.hosts.find((h) => h.id === draft.id)!;
     },
   );
-  useEffect(() => {
-    if (
-      !desktop ||
-      !view.unlocked ||
-      !view.syncConfigured ||
-      !view.dirty ||
-      hostAutosave.status !== "saved" ||
-      busy
-    )
-      return;
-    const timer = setTimeout(() => void synchronize(), 400);
-    return () => clearTimeout(timer);
-  }, [
-    hostAutosave.status,
-    view.dirty,
-    view.syncConfigured,
-    view.vaultId,
-    busy,
-  ]);
-  useEffect(() => {
-    if (!desktop || !view.unlocked || !view.syncConfigured) return;
-    const timer = setInterval(() => void synchronize(), 30000);
-    return () => clearInterval(timer);
-  }, [view.unlocked, view.syncConfigured, view.vaultId]);
+  const sync = useVaultSync(vault, {
+    hostSaved: hostAutosave.status === "saved",
+    canAutoSync: () =>
+      !anyPanel ||
+      (!!hostForm &&
+        hostDraftIsValid(
+          hostForm,
+          view.identities,
+          view.hosts.find((h) => h.id === hostForm.id),
+          view.groups,
+        )),
+  });
+  const { synchronize, syncState, lastSync } = sync;
+  const session = useVaultSession({
+    vault,
+    tabs: { tabs, reset: tabsApi.reset },
+    sync,
+    hideSettings: settings.hide,
+    onReset: () => {
+      setQuery("");
+      setGroup("");
+      setUsage(null);
+      clearSelection();
+      unlock.reset();
+      settings.clearToken();
+      setHostForm(null);
+      setIdentityForm(null);
+      setKeyForm(null);
+    },
+  });
+  const {
+    vaultDialog,
+    setVaultDialog,
+    pendingSwitch,
+    setPendingSwitch,
+    pendingLock,
+    setPendingLock,
+    lockVault,
+    requestSwitch,
+    requestLock,
+  } = session;
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
       if (
@@ -552,7 +351,7 @@ function App() {
         hostForm ||
         identityForm ||
         keyForm ||
-        settingsSection ||
+        settings.section ||
         bulkOpen ||
         deletion ||
         trust ||
@@ -608,11 +407,8 @@ function App() {
           setActive("vault");
           requestAnimationFrame(() => search.current?.focus());
         },
-        lockVault: () => {
-          if (tabs.length) setPendingLock(true);
-          else lockVault();
-        },
-        openSettings: () => openSettings(),
+        lockVault: requestLock,
+        openSettings: () => settings.open(),
         closePane: () =>
           active === "launcher"
             ? closeLauncher()
@@ -651,7 +447,7 @@ function App() {
     hostForm,
     identityForm,
     keyForm,
-    settingsSection,
+    settings.section,
     bulkOpen,
     deletion,
     trust,
@@ -700,14 +496,6 @@ function App() {
     );
   const tabLabel = (t: TerminalTab) =>
     t.name ?? (t.layout ? "Workspace" : t.termTitle || t.title);
-  const metadataUpdated = (vaultId: string) => {
-    if (vaultId !== currentVault.current) return;
-    void invoke<View>("status")
-      .then((next) => {
-        if (next.vaultId === currentVault.current) update(next);
-      })
-      .catch((e) => setError(String(e)));
-  };
   const skippedQuick = (() => {
     const layout = tabs.find((t) => t.id === savingWs?.tabId)?.layout;
     return layout
@@ -716,47 +504,6 @@ function App() {
         ).length
       : 0;
   })();
-  const resetWorkspace = (next: View) => {
-    epoch.current++;
-    update(next);
-    tabsApi.reset();
-    setQuery("");
-    setGroup("");
-    setUsage(null);
-    clearSelection();
-    setPassword("");
-    setConfirmPassword("");
-    setRestore(false);
-    setSyncToken("");
-    setHostForm(null);
-    setIdentityForm(null);
-    setKeyForm(null);
-    setLastSync("");
-    setSyncState("idle");
-    setNotice("");
-    setPendingSwitch(null);
-    setVaultDialog(null);
-  };
-  const switchVault = (id: string) =>
-    void run(async () => {
-      epoch.current++;
-      resetWorkspace(
-        await invokeCommand<View>("select_vault", { vaultId: id }),
-      );
-    });
-  const lockVault = () =>
-    void run(async () => {
-      epoch.current++;
-      resetWorkspace(await invokeScoped<View>("lock"));
-      setPendingLock(false);
-    });
-  const requestSwitch = (id: string) => {
-    if (id === view.vaultId) return;
-    if (tabs.length) {
-      setPendingSwitch(id);
-      setError("");
-    } else switchVault(id);
-  };
   const showUsage = (ids: string[], label: string) => {
     navigate("hosts");
     setUsage({ ids, label });
@@ -853,7 +600,7 @@ function App() {
     groupForm ||
     identityForm ||
     keyForm ||
-    settingsSection ||
+    settings.section ||
     trust ||
     deletion ||
     bulkOpen ||
@@ -862,9 +609,6 @@ function App() {
     pendingClose ||
     pendingLock
   );
-  useLayoutEffect(() => {
-    panelOpen.current = anyPanel;
-  });
   const alert =
     error && !anyPanel ? (
       <div
@@ -899,14 +643,8 @@ function App() {
       busy={busy}
       disabled={anyPanel}
       onSelect={requestSwitch}
-      onCreate={() => {
-        setError("");
-        setVaultDialog({ mode: "create", name: "" });
-      }}
-      onRename={() => {
-        setError("");
-        setVaultDialog({ mode: "rename", name: view.vaultName });
-      }}
+      onCreate={session.openCreateDialog}
+      onRename={session.openRenameDialog}
     />
   );
   const vaultPanels = (
@@ -927,24 +665,7 @@ function App() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              void run(async () => {
-                if (vaultDialog.mode === "create") {
-                  epoch.current++;
-                  resetWorkspace(
-                    await invokeScoped<View>("create_vault", {
-                      name: vaultDialog.name,
-                    }),
-                  );
-                } else {
-                  update(
-                    await invokeCommand<View>("rename_vault", {
-                      vaultId: view.vaultId,
-                      name: vaultDialog.name,
-                    }),
-                  );
-                  setVaultDialog(null);
-                }
-              });
+              session.submitVaultDialog();
             }}
           >
             <label>
@@ -1021,7 +742,7 @@ function App() {
               type="button"
               className="primary"
               disabled={busy}
-              onClick={() => switchVault(pendingSwitch)}
+              onClick={() => session.switchVault(pendingSwitch)}
             >
               Chiudi sessioni e cambia
             </Button>
@@ -1081,7 +802,7 @@ function App() {
       )}
     </>
   );
-  if (loading || trying || waitingSaved)
+  if (vault.opening)
     return (
       <main className="relative grid h-dvh place-items-center overflow-auto px-[20px] pt-[64px] pb-[24px]">
         <header
@@ -1136,7 +857,7 @@ function App() {
           <h1 className="mb-[12px] text-[22px]">
             {view.exists
               ? "Sblocca vault"
-              : restore
+              : unlock.restore
                 ? "Collega dispositivo"
                 : desktop || preview
                   ? "Crea vault locale"
@@ -1147,7 +868,7 @@ function App() {
               ? "Client SSH open source per Windows e macOS, con sincronizzazione self-hosted opzionale."
               : view.exists
                 ? "Inserisci la password principale."
-                : restore
+                : unlock.restore
                   ? "Apri il vault già presente nel tuo servizio di sincronizzazione."
                   : "Host, identità e chiavi SSH vengono salvati sul dispositivo, cifrati."}
           </p>
@@ -1162,40 +883,18 @@ function App() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                void run(async () => {
-                  if (!view.exists && !restore && password !== confirmPassword)
-                    throw new Error("Le password non coincidono.");
-                  const next = restore
-                    ? await invokeScoped<View>("restore_vault", {
-                        url: syncUrl,
-                        token: syncToken,
-                        password,
-                      })
-                    : await invokeScoped<View>("unlock", {
-                        password,
-                        create: !view.exists,
-                      });
-                  update(next);
-                  if (desktop && !restore && remember)
-                    await invoke("set_remembered", {
-                      vaultId: next.vaultId,
-                      enabled: true,
-                    }).catch((e) => setError(`Password non salvata: ${e}`));
-                  setPassword("");
-                  setConfirmPassword("");
-                  setSyncToken("");
-                });
+                unlock.submit();
               }}
             >
-              {restore && (
+              {unlock.restore && (
                 <>
                   <label>
                     URL completo del vault remoto
                     <Input
                       required
                       type="url"
-                      value={syncUrl}
-                      onChange={(e) => setSyncUrl(e.target.value)}
+                      value={unlock.url}
+                      onChange={(e) => unlock.setUrl(e.target.value)}
                       placeholder="https://sync.example.com"
                     />
                   </label>
@@ -1204,13 +903,13 @@ function App() {
                     <PasswordInput
                       autoComplete="off"
                       required
-                      value={syncToken}
-                      onChange={(e) => setSyncToken(e.target.value)}
+                      value={unlock.token}
+                      onChange={(e) => unlock.setToken(e.target.value)}
                     />
                   </label>
                 </>
               )}
-              {restore && (
+              {unlock.restore && (
                 <p className={help}>
                   Copia l’URL completo dalle impostazioni dell’altro
                   dispositivo, incluso /vaults/… quando presente.
@@ -1224,30 +923,30 @@ function App() {
                   autoComplete={
                     view.exists ? "current-password" : "new-password"
                   }
-                  minLength={view.exists || restore ? 1 : 12}
+                  minLength={view.exists || unlock.restore ? 1 : 12}
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={unlock.password}
+                  onChange={(e) => unlock.setPassword(e.target.value)}
                 />
               </label>
-              {!view.exists && !restore && (
+              {!view.exists && !unlock.restore && (
                 <label>
                   Conferma password
                   <PasswordInput
                     autoComplete="new-password"
                     required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    value={unlock.confirmPassword}
+                    onChange={(e) => unlock.setConfirmPassword(e.target.value)}
                   />
                 </label>
               )}
-              {desktop && !restore && (
+              {desktop && !unlock.restore && (
                 <div className="mt-[16px] flex items-center justify-between gap-[12px] text-[13px]">
                   Ricorda su questo dispositivo
                   <Switch
                     label="Ricorda su questo dispositivo"
-                    checked={remember}
-                    onChange={setRemember}
+                    checked={unlock.remember}
+                    onChange={unlock.setRemember}
                   />
                 </div>
               )}
@@ -1261,7 +960,7 @@ function App() {
                   ? "Attendi…"
                   : view.exists
                     ? "Sblocca"
-                    : restore
+                    : unlock.restore
                       ? "Collega dispositivo"
                       : "Crea vault"}
               </Button>
@@ -1276,13 +975,7 @@ function App() {
                 variant="default"
                 type="button"
                 className="mt-[8px] h-[40px] w-full"
-                onClick={() =>
-                  void run(async () => {
-                    previewBackend.current = createPreviewBackend();
-                    update(await previewBackend.current<View>("status"));
-                    setPreview(true);
-                  })
-                }
+                onClick={vault.startPreview}
               >
                 Esplora interfaccia
               </Button>
@@ -1293,20 +986,19 @@ function App() {
               variant="link"
               type="button"
               className="mx-auto my-[18px] flex"
-              onClick={() => {
-                setRestore(!restore);
-                setError("");
-              }}
+              onClick={unlock.toggleRestore}
               disabled={busy}
             >
-              {restore ? "Crea un vault locale" : "Collega un vault esistente"}
+              {unlock.restore
+                ? "Crea un vault locale"
+                : "Collega un vault esistente"}
             </Button>
           )}
           <p className="mt-[28px] text-[12px] leading-[1.7] text-muted-foreground">
             La sincronizzazione è opzionale. Nessun account necessario per l’uso
             locale.
           </p>
-          {(desktop || preview) && !view.exists && !restore && (
+          {(desktop || preview) && !view.exists && !unlock.restore && (
             <p className={help}>
               Usa almeno 12 caratteri. La password principale non è
               recuperabile: conservala in un gestore di password.
@@ -1386,7 +1078,7 @@ function App() {
               Terminale locale
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem disabled={busy} onClick={() => openSettings()}>
+            <DropdownMenuItem disabled={busy} onClick={() => settings.open()}>
               <Settings2 size={15} />
               Impostazioni
               {hint("openSettings") && (
@@ -1400,10 +1092,7 @@ function App() {
               Chiudi tutte le sessioni
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              disabled={busy}
-              onClick={() => (tabs.length ? setPendingLock(true) : lockVault())}
-            >
+            <DropdownMenuItem disabled={busy} onClick={requestLock}>
               <LockKeyhole size={15} />
               Blocca vault
             </DropdownMenuItem>
@@ -1664,7 +1353,7 @@ function App() {
             disabled={busy || syncState === "syncing" || preview}
             onClick={() => {
               if (view.syncConfigured) void synchronize(true);
-              else openSettings("vault");
+              else settings.open("vault");
             }}
             aria-live="polite"
           >
@@ -2330,7 +2019,7 @@ function App() {
                 onError={setError}
                 onStatus={tabStatus}
                 onTitle={tabTitle}
-                onMetadata={metadataUpdated}
+                onMetadata={vault.refresh}
                 onClose={() => askClosePane(tab.id)}
                 onRetry={() => {
                   if (geo) return reconnectPane(tab.id);
@@ -2719,18 +2408,11 @@ function App() {
           </footer>
         </Panel>
       )}
-      {settingsSection && (
+      {settings.section && (
         <SettingsDialog
-          section={settingsSection}
-          onSection={(next) => {
-            setError("");
-            setSettingsSection(next);
-          }}
-          onClose={() => {
-            setSettingsSection(null);
-            setSyncToken("");
-            setError("");
-          }}
+          section={settings.section}
+          onSection={settings.changeSection}
+          onClose={settings.close}
           error={error}
           busy={busy}
           settings={appSettings}
@@ -2743,48 +2425,20 @@ function App() {
             <VaultSettings
               view={view}
               busy={busy}
-              syncUrl={syncUrl}
-              syncToken={syncToken}
+              syncUrl={settings.syncUrl}
+              syncToken={settings.syncToken}
               syncing={syncState === "syncing"}
               lastSync={lastSync}
-              onSyncUrl={setSyncUrl}
-              onSyncToken={setSyncToken}
-              onSaveSync={() =>
-                void run(async () => {
-                  update(
-                    await invokeScoped<View>("configure_sync", {
-                      url: syncUrlForVault(syncUrl, view.vaultId),
-                      token: syncToken,
-                    }),
-                  );
-                  setSyncToken("");
-                  setNotice("Configurazione salvata");
-                })
-              }
-              remembered={remembered}
-              onRemember={(enabled) =>
-                void run(async () => {
-                  await invokeScoped("set_remembered", { enabled });
-                  setRemembered(enabled);
-                })
-              }
+              onSyncUrl={settings.setSyncUrl}
+              onSyncToken={settings.setSyncToken}
+              onSaveSync={settings.saveSync}
+              remembered={settings.remembered}
+              onRemember={settings.remember}
               onSyncNow={() => void synchronize(true)}
               onSwitch={requestSwitch}
-              onCreate={() => {
-                setError("");
-                setVaultDialog({ mode: "create", name: "" });
-              }}
-              onRename={() => {
-                setError("");
-                setVaultDialog({ mode: "rename", name: view.vaultName });
-              }}
-              onDelete={() =>
-                void run(async () => {
-                  epoch.current++;
-                  setSettingsSection(null);
-                  resetWorkspace(await invokeScoped<View>("delete_vault"));
-                })
-              }
+              onCreate={session.openCreateDialog}
+              onRename={session.openRenameDialog}
+              onDelete={session.deleteVault}
             />
           }
         />

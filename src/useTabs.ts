@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { desktop } from "./platform";
 import type { useCloseGuard } from "./CloseGuard";
+import type { VaultApi } from "./useVault";
 import type { QuickConnection } from "./ConnectionLauncher";
 import { hostIdentity } from "./host-draft";
 import {
@@ -46,31 +47,11 @@ export type WorkspaceSave = {
   hostIds?: string[];
   name: string;
 };
-export type TabsDeps = {
-  view: View;
-  preview: boolean;
-  run: (operation: () => Promise<void>) => Promise<void>;
-  update: (next: View) => void;
-  invokeScoped: <T>(
-    command: string,
-    args?: Record<string, unknown>,
-  ) => Promise<T>;
-  setError: (message: string) => void;
-  setNotice: (message: string) => void;
-  closeGuard: ReturnType<typeof useCloseGuard>;
-};
-
 /** Open sessions: the tab bar, split workspaces and the connection flow (host key trust included). */
-export function useTabs({
-  view,
-  preview,
-  run,
-  update,
-  invokeScoped,
-  setError,
-  setNotice,
-  closeGuard,
-}: TabsDeps) {
+export function useTabs(
+  { view, preview, run, update, invokeScoped, setError, setNotice }: VaultApi,
+  closeGuard: ReturnType<typeof useCloseGuard>,
+) {
   const [tabs, setTabs] = useState<TerminalTab[]>([]),
     [active, setActive] = useState("vault"),
     [focusedPane, setFocusedPane] = useState(""),

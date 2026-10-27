@@ -1,0 +1,84 @@
+import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { desktop } from "./platform";
+import type { SettingsSection } from "./SettingsDialog";
+import type { View } from "./types";
+import type { VaultApi } from "./useVault";
+import { syncUrlForVault } from "./workbench-state.mjs";
+
+/** The settings dialog and the vault options in it: sync service and remembered password. */
+export function useSettingsDialog({
+  view,
+  run,
+  update,
+  invokeScoped,
+  setError,
+  setNotice,
+}: VaultApi) {
+  const [section, setSection] = useState<SettingsSection | null>(null),
+    [syncUrl, setSyncUrl] = useState(""),
+    [syncToken, setSyncToken] = useState(""),
+    [remembered, setRemembered] = useState<boolean | null>(null);
+  // Creating, switching or locking leaves the unlock screen; settings must not reappear on the next unlock.
+  useEffect(() => {
+    if (!view.unlocked) setSection(null);
+  }, [view.unlocked]);
+  useEffect(() => {
+    setRemembered(null);
+    if (!section || !view.unlocked || !desktop) return;
+    let current = true;
+    void invoke<boolean>("is_remembered", { vaultId: view.vaultId }).then(
+      (on) => {
+        if (current) setRemembered(on);
+      },
+    );
+    return () => {
+      current = false;
+    };
+  }, [!!section, view.unlocked, view.vaultId]);
+  const open = (next: SettingsSection = "vault") => {
+    setSyncUrl(view.syncUrl);
+    setError("");
+    setSection(next);
+  };
+  const close = () => {
+    setSection(null);
+    setSyncToken("");
+    setError("");
+  };
+  const changeSection = (next: SettingsSection) => {
+    setError("");
+    setSection(next);
+  };
+  const saveSync = () =>
+    void run(async () => {
+      update(
+        await invokeScoped<View>("configure_sync", {
+          url: syncUrlForVault(syncUrl, view.vaultId),
+          token: syncToken,
+        }),
+      );
+      setSyncToken("");
+      setNotice("Configurazione salvata");
+    });
+  const remember = (enabled: boolean) =>
+    void run(async () => {
+      await invokeScoped("set_remembered", { enabled });
+      setRemembered(enabled);
+    });
+  return {
+    section,
+    hide: () => setSection(null),
+    open,
+    close,
+    changeSection,
+    syncUrl,
+    setSyncUrl,
+    syncToken,
+    setSyncToken,
+    clearToken: () => setSyncToken(""),
+    saveSync,
+    remembered,
+    remember,
+  };
+}
