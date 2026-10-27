@@ -1,4 +1,5 @@
 use crate::{
+    error::Error,
     model::{self, Host},
     state::AppState,
     vault,
@@ -94,17 +95,14 @@ pub(crate) struct View {
     pub(crate) sync_configured: bool,
     pub(crate) dirty: bool,
 }
-pub(crate) fn view(s: &AppState) -> Result<View, String> {
-    let guard = s.vault.lock().map_err(|_| "Stato non disponibile")?;
-    let catalog = s
-        .catalog
-        .lock()
-        .map_err(|_| "Registro vault non disponibile")?;
+pub(crate) fn view(s: &AppState) -> Result<View, Error> {
+    let guard = s.vault()?;
+    let catalog = s.catalog()?;
     let selected = catalog
         .vaults
         .iter()
         .find(|v| v.id == catalog.selected)
-        .ok_or("Vault non trovato")?;
+        .ok_or(Error::VaultNotFound)?;
     let vaults = || -> Vec<VaultView> {
         catalog
             .vaults

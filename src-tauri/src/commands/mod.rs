@@ -11,6 +11,7 @@ pub(crate) mod vaults;
 pub(crate) mod workspaces;
 
 use crate::{
+    error::Error,
     model::{Data, ModelError},
     state::{commit, AppState},
     view::{view, View},
@@ -22,10 +23,10 @@ pub(crate) fn mutate(
     state: &AppState,
     vault_id: &str,
     operation: impl FnOnce(&mut Data) -> Result<(), ModelError>,
-) -> Result<View, String> {
-    let mut guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
+) -> Result<View, Error> {
+    let mut guard = state.vault()?;
     state.ensure_vault(vault_id)?;
-    let v = guard.as_mut().ok_or("Vault bloccato")?;
+    let v = guard.as_mut().ok_or(Error::VaultLocked)?;
     let mut data = v.data.clone();
     operation(&mut data)?;
     commit(state, v, data)?;

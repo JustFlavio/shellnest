@@ -1,4 +1,8 @@
-use super::host_key::{config, handler, Handler};
+use super::{
+    host_key::{config, handler, Handler},
+    TerminalError,
+};
+use crate::locks::MutexExt;
 use crate::model::Connection;
 use russh::{
     client::{self, AuthResult},
@@ -45,24 +49,6 @@ fn password_step(n: usize) -> String {
         format!("password-{n}")
     }
 }
-fn refusal(auth: &AuthResult) -> String {
-    let methods = methods_of(auth);
-    if methods.is_empty() {
-        return "Autenticazione fallita".into();
-    }
-    let unsupported = methods
-        .iter()
-        .any(|m| !matches!(*m, "password" | "publickey"));
-    format!(
-        "Autenticazione fallita. Metodi accettati dal server: {}.{}",
-        methods.join(", "),
-        if unsupported {
-            " Shellnest supporta solo chiave e password."
-        } else {
-            ""
-        }
-    )
-}
 /// Connects and authenticates. When the key or the stored password is refused (or missing), `ask`
 /// is called with whether a typed password was already refused; `None` means the user gave up.
 /// After `MAX_PASSWORD_ATTEMPTS` refused passwords it stops asking.
@@ -76,7 +62,7 @@ pub(super) async fn open<Ask, Answer>(
         russh::Channel<client::Msg>,
         Vec<u8>,
     ),
-    String,
+    TerminalError,
 >
 where
     Ask: FnMut(bool) -> Answer,
@@ -104,18 +90,24 @@ where
     let h = handler(Some(host.fingerprint.clone()));
     let seen = h.seen.clone();
     let info = h.info.clone();
-    let mut session=client::connect(config(),(host.address.as_str(),port),h).await.map_err(|e|{
-        let found = seen.lock().ok().and_then(|s|s.clone());
-        if found.as_ref().is_some_and(|f|*f!=host.fingerprint){
-            log(format!("Impronta del server cambiata: attesa {}, ricevuta {}", host.fingerprint, found.unwrap_or_default()));
-            "Identità del server cambiata. Connessione bloccata: verifica la nuova impronta fuori dall’app.".into()
-        }else{
-            log(format!("Connessione non riuscita: {e}"));
-            e.to_string()
-        }
-    })?;
+    let mut session = client::connect(config(), (host.address.as_str(), port), h)
+        .await
+        .map_err(|e| {
+            let found = seen.lock_recovering().clone();
+            if found.as_ref().is_some_and(|f| *f != host.fingerprint) {
+                log(format!(
+                    "Impronta del server cambiata: attesa {}, ricevuta {}",
+                    host.fingerprint,
+                    found.unwrap_or_default()
+                ));
+                TerminalError::ServerKeyChanged
+            } else {
+                log(format!("Connessione non riuscita: {e}"));
+                e.into()
+            }
+        })?;
     log("Connessione stabilita".into());
-    let server = info.lock().ok().and_then(|i| i.clone());
+    let server = info.lock_recovering().clone();
     if let Some(server) = &server {
         log(format!("Server remoto: {}", server.banner));
         log(format!("Algoritmi negoziati: {}", server.algorithms));
@@ -135,13 +127,8 @@ where
             } else {
                 Some(&connection.passphrase)
             },
-        )
-        .map_err(|e| e.to_string())?;
-        let algorithm = session
-            .best_supported_rsa_hash()
-            .await
-            .map_err(|e| e.to_string())?
-            .flatten();
+        )?;
+        let algorithm = session.best_supported_rsa_hash().await?.flatten();
         log(format!(
             "Autenticazione con chiave per l’utente {}",
             connection.username
@@ -166,8 +153,7 @@ where
         session
             .authenticate_password(&connection.username, &connection.password)
             .await
-    }
-    .map_err(|e| e.to_string())?;
+    }?;
     let tried_something = is_key || !connection.password.is_empty();
     if auth.success() {
         let how = if is_key { "chiave" } else { "password" };
@@ -207,14 +193,14 @@ where
     let (mut asked, mut sent) = (0, 0);
     while !auth.success() {
         if !accepts_password(&auth) {
-            let message = refusal(&auth);
-            log(message.clone());
-            return Err(message);
+            let error = TerminalError::AuthRefused(methods_of(&auth));
+            log(error.to_string());
+            return Err(error);
         }
         asked += 1;
         let password = ask(refused).await.ok_or_else(|| {
             log("Autenticazione annullata dall’utente".into());
-            "Autenticazione annullata".to_string()
+            TerminalError::AuthCancelled
         })?;
         refused = true;
         // Nothing to send: ask again, without bothering the server.
@@ -227,8 +213,7 @@ where
         ));
         auth = session
             .authenticate_password(&connection.username, password.as_str())
-            .await
-            .map_err(|e| e.to_string())?;
+            .await?;
         let step = password_step(asked);
         if auth.success() {
             log("Password accettata".into());
@@ -237,27 +222,19 @@ where
             log("Password rifiutata dal server".into());
             detail(&step, true, "Password non accettata");
             if sent >= MAX_PASSWORD_ATTEMPTS {
-                let message =
-                    format!("Password non accettata dopo {MAX_PASSWORD_ATTEMPTS} tentativi.");
-                log(message.clone());
-                return Err(message);
+                let error = TerminalError::PasswordsExhausted(MAX_PASSWORD_ATTEMPTS);
+                log(error.to_string());
+                return Err(error);
             }
         }
     }
     report(Note::Stage("Apertura del terminale remoto"));
     log("Apertura di terminale e shell remota".into());
-    let mut channel = session
-        .channel_open_session()
-        .await
-        .map_err(|e| e.to_string())?;
+    let mut channel = session.channel_open_session().await?;
     channel
         .request_pty(true, "xterm-256color", 100, 30, 0, 0, &[])
-        .await
-        .map_err(|e| e.to_string())?;
-    channel
-        .request_shell(true)
-        .await
-        .map_err(|e| e.to_string())?;
+        .await?;
+    channel.request_shell(true).await?;
     let mut accepted = 0;
     let mut buffered = Vec::new();
     while accepted < 2 {
@@ -265,15 +242,13 @@ where
             Some(ChannelMsg::Success) => accepted += 1,
             Some(ChannelMsg::Data { data }) | Some(ChannelMsg::ExtendedData { data, .. }) => {
                 if buffered.len() + data.len() > 262144 {
-                    return Err("Risposta iniziale del server troppo grande".into());
+                    return Err(TerminalError::InitialOutputTooLarge);
                 }
                 buffered.extend_from_slice(&data);
             }
-            Some(ChannelMsg::Failure) => {
-                return Err("Il server ha rifiutato terminale o shell".into())
-            }
+            Some(ChannelMsg::Failure) => return Err(TerminalError::ShellRefused),
             Some(ChannelMsg::Close) | Some(ChannelMsg::Eof) | None => {
-                return Err("Il server ha chiuso la connessione prima di aprire la shell".into())
+                return Err(TerminalError::ClosedBeforeShell)
             }
             _ => {}
         }
@@ -373,14 +348,14 @@ mod tests {
             }
             host.auth = "password".into();
             allow_shell.store(false,Ordering::SeqCst);
-            assert!(matches!(open(&host, |_| {}, |_| async { None }).await,Err(error) if error.contains("rifiutato terminale o shell")));
+            assert!(matches!(open(&host, |_| {}, |_| async { None }).await,Err(error) if error.to_string().contains("rifiutato terminale o shell")));
             allow_shell.store(true,Ordering::SeqCst);
             host.password = "incorrect".into();
             assert!(open(&host, |_| {}, |_| async { None }).await.is_err());
             let before = attempts.load(Ordering::SeqCst);
             host.host.fingerprint = "SHA256:wrong".into();
             let result = open(&host, |_| {}, |_| async { None }).await;
-            assert!(matches!(result,Err(e) if e.contains("Identità del server cambiata")));
+            assert!(matches!(result,Err(e) if e.to_string().contains("Identità del server cambiata")));
             assert_eq!(
                 attempts.load(Ordering::SeqCst),
                 before,
@@ -425,7 +400,7 @@ mod tests {
             // Cancelling ends the attempt without a session.
             let asked = Arc::new(Mutex::new(Vec::new()));
             let result = open(&connection, |_| {}, answers(vec![None], asked.clone())).await;
-            assert!(matches!(result, Err(e) if e == "Autenticazione annullata"));
+            assert!(matches!(result, Err(e) if e.to_string() == "Autenticazione annullata"));
             assert_eq!(*asked.lock().unwrap(), vec![false]);
 
             // An empty answer asks again without a server round trip counting as a refusal by the server.
@@ -453,7 +428,7 @@ mod tests {
             let (connection, task) = fixture(false).await;
             let asked = Arc::new(Mutex::new(Vec::new()));
             let result = open(&connection, |_| {}, answers(vec![Some("x")], asked.clone())).await;
-            assert!(matches!(result, Err(e) if e == "Autenticazione fallita. Metodi accettati dal server: publickey."));
+            assert!(matches!(result, Err(e) if e.to_string() == "Autenticazione fallita. Metodi accettati dal server: publickey."));
             assert!(asked.lock().unwrap().is_empty());
             task.abort();
         })
@@ -489,7 +464,7 @@ mod tests {
                 asked.clone(),
             );
             let result = open(&connection, collect(&notes), ask).await;
-            assert!(matches!(result, Err(e) if e == "Password non accettata dopo 3 tentativi."));
+            assert!(matches!(result, Err(e) if e.to_string() == "Password non accettata dopo 3 tentativi."));
             assert_eq!(*asked.lock().unwrap(), vec![false, true, true]);
             let notes = notes.lock().unwrap().join("\n");
             assert!(notes.contains("log: Server remoto: SSH-2.0-"), "{notes}");

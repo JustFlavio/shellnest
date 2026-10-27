@@ -25,9 +25,3 @@ pub(crate) enum KeychainError {
     #[error("Portachiavi non disponibile su questo sistema")]
     Unsupported,
 }
-// Until the commands return the crate error, they still speak `String`.
-impl From<KeychainError> for String {
-    fn from(error: KeychainError) -> Self {
-        error.to_string()
-    }
-}

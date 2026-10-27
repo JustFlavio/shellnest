@@ -1,8 +1,14 @@
 use crate::{
+    error::Error,
+    locks::MutexExt,
     model, terminal,
-    vault::{self, OpenVault},
+    vault::{self, OpenVault, VaultError},
 };
-use std::{collections::HashMap, path::PathBuf, sync::Mutex};
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    sync::{Mutex, MutexGuard},
+};
 use tokio::sync::mpsc::UnboundedSender;
 
 pub(crate) struct AppState {
@@ -12,7 +18,7 @@ pub(crate) struct AppState {
     pub(crate) sessions: Mutex<HashMap<String, UnboundedSender<terminal::Input>>>,
 }
 impl AppState {
-    pub(crate) fn new(path: PathBuf) -> Result<Self, String> {
+    pub(crate) fn new(path: PathBuf) -> Result<Self, VaultError> {
         let catalog = vault::VaultCatalog::load(&path)?;
         Ok(Self {
             path,
@@ -21,59 +27,54 @@ impl AppState {
             sessions: Mutex::new(HashMap::new()),
         })
     }
+    /// The open vault. A poisoned lock is an error: after a panic its contents are not vouched for.
+    pub(crate) fn vault(&self) -> Result<MutexGuard<'_, Option<OpenVault>>, Error> {
+        self.vault.lock().map_err(|_| Error::StatePoisoned)
+    }
+    pub(crate) fn catalog(&self) -> Result<MutexGuard<'_, vault::VaultCatalog>, Error> {
+        self.catalog.lock().map_err(|_| Error::CatalogPoisoned)
+    }
+    /// The open sessions are a plain registry, so it stays usable after a panic (see `locks`).
+    pub(crate) fn sessions(
+        &self,
+    ) -> MutexGuard<'_, HashMap<String, UnboundedSender<terminal::Input>>> {
+        self.sessions.lock_recovering()
+    }
     // The vault mutex owns selection changes; callers hold it before checking scope or resolving paths.
-    pub(crate) fn ensure_vault(&self, id: &str) -> Result<(), String> {
-        if self
-            .catalog
-            .lock()
-            .map_err(|_| "Registro vault non disponibile")?
-            .selected
-            != id
-        {
-            return Err(
-                "Il vault attivo è cambiato. Ripeti l’operazione nel vault corretto.".into(),
-            );
+    pub(crate) fn ensure_vault(&self, id: &str) -> Result<(), Error> {
+        if self.catalog()?.selected != id {
+            return Err(Error::VaultSwitched);
         }
         Ok(())
     }
-    pub(crate) fn active_path(&self) -> Result<PathBuf, String> {
-        Ok(self
-            .catalog
-            .lock()
-            .map_err(|_| "Registro vault non disponibile")?
-            .selected_path(&self.path)?)
+    pub(crate) fn active_path(&self) -> Result<PathBuf, Error> {
+        Ok(self.catalog()?.selected_path(&self.path)?)
     }
-    pub(crate) fn host_password(&self, vault_id: &str, id: &str) -> Result<String, String> {
-        let guard = self.vault.lock().map_err(|_| "Stato non disponibile")?;
+    pub(crate) fn host_password(&self, vault_id: &str, id: &str) -> Result<String, Error> {
+        let guard = self.vault()?;
         self.ensure_vault(vault_id)?;
-        let vault = guard.as_ref().ok_or("Vault bloccato")?;
+        let vault = guard.as_ref().ok_or(Error::VaultLocked)?;
         let host = vault
             .data
             .hosts
             .iter()
             .find(|h| h.id == id)
-            .ok_or("Host non trovato")?;
+            .ok_or(model::ModelError::HostNotFound)?;
         let credentials = host
             .credentials
             .as_ref()
             .filter(|_| host.identity_id.is_empty())
-            .ok_or("Questo host non ha una password privata salvata")?;
+            .ok_or(Error::NoPrivatePassword)?;
         Ok(credentials.password.clone())
     }
-    pub(crate) fn close_sessions(&self) -> Result<(), String> {
-        for (_, tx) in self
-            .sessions
-            .lock()
-            .map_err(|_| "Sessioni non disponibili")?
-            .drain()
-        {
+    pub(crate) fn close_sessions(&self) {
+        for (_, tx) in self.sessions().drain() {
             let _ = tx.send(terminal::Input::Close);
         }
-        Ok(())
     }
 }
 // Persist a candidate before replacing the in-memory data, so write failures do not lose edits.
-pub(crate) fn commit(s: &AppState, v: &mut OpenVault, data: model::Data) -> Result<(), String> {
+pub(crate) fn commit(s: &AppState, v: &mut OpenVault, data: model::Data) -> Result<(), Error> {
     data.validate()?;
     let mut candidate = OpenVault {
         key: v.key.clone(),
@@ -94,10 +95,10 @@ pub(crate) fn record_connection(
     expected_port: u16,
     os: Option<String>,
     now_ms: u64,
-) -> Result<(), String> {
-    let mut guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
+) -> Result<(), Error> {
+    let mut guard = state.vault()?;
     state.ensure_vault(vault_id)?;
-    let v = guard.as_mut().ok_or("Vault bloccato")?;
+    let v = guard.as_mut().ok_or(Error::VaultLocked)?;
     if !v.data.hosts.iter().any(|host| {
         host.id == host_id
             && host.address == expected_address

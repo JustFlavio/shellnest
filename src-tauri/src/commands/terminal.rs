@@ -1,7 +1,9 @@
 use crate::{
+    error::Error,
     local,
+    model::ModelError,
     state::{commit, AppState},
-    terminal::{probe, register, send, session_scope, Input, Output},
+    terminal::{probe, register, send, session_scope, Input, Output, TerminalError},
 };
 use std::sync::Arc;
 use tauri::{ipc::Channel, Manager, State};
@@ -12,22 +14,22 @@ pub(crate) async fn probe_host(
     app: tauri::AppHandle,
     vault_id: String,
     id: String,
-) -> Result<String, String> {
+) -> Result<String, Error> {
     let (host, port) = {
         let state = app.state::<AppState>();
-        let guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
+        let guard = state.vault()?;
         state.ensure_vault(&vault_id)?;
-        let data = &guard.as_ref().ok_or("Vault bloccato")?.data;
+        let data = &guard.as_ref().ok_or(Error::VaultLocked)?.data;
         let host = data
             .hosts
             .iter()
             .find(|h| h.id == id)
             .cloned()
-            .ok_or("Host non trovato")?;
+            .ok_or(ModelError::HostNotFound)?;
         let port = data.effective_port(&host);
         (host, port)
     };
-    probe(&host.address, port).await
+    Ok(probe(&host.address, port).await?)
 }
 #[tauri::command]
 pub(crate) async fn probe_target(
@@ -35,15 +37,15 @@ pub(crate) async fn probe_target(
     vault_id: String,
     address: String,
     port: u16,
-) -> Result<String, String> {
+) -> Result<String, Error> {
     {
         let state = app.state::<AppState>();
-        let guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
+        let guard = state.vault()?;
         state.ensure_vault(&vault_id)?;
-        guard.as_ref().ok_or("Vault bloccato")?;
+        guard.as_ref().ok_or(Error::VaultLocked)?;
     }
     crate::model::validate_endpoint(&address, port)?;
-    probe(&address, port).await
+    Ok(probe(&address, port).await?)
 }
 #[tauri::command]
 pub(crate) fn trust_host(
@@ -53,30 +55,30 @@ pub(crate) fn trust_host(
     expected: String,
     address: String,
     port: u16,
-) -> Result<(), String> {
+) -> Result<(), Error> {
     if !expected.starts_with("SHA256:") || expected.len() != 50 {
-        return Err("Impronta non valida".into());
+        return Err(TerminalError::FingerprintInvalid.into());
     }
-    let mut guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
+    let mut guard = state.vault()?;
     state.ensure_vault(&vault_id)?;
-    let v = guard.as_mut().ok_or("Vault bloccato")?;
+    let v = guard.as_mut().ok_or(Error::VaultLocked)?;
     let mut data = v.data.clone();
     let effective = data
         .hosts
         .iter()
         .find(|h| h.id == id)
         .map(|h| data.effective_port(h))
-        .ok_or("Host non trovato")?;
+        .ok_or(ModelError::HostNotFound)?;
     let host = data
         .hosts
         .iter_mut()
         .find(|h| h.id == id)
-        .ok_or("Host non trovato")?;
+        .ok_or(ModelError::HostNotFound)?;
     if !host.fingerprint.is_empty() {
-        return Err("Questo host ha già un’impronta salvata".into());
+        return Err(TerminalError::FingerprintAlreadySaved.into());
     }
     if host.address != address || effective != port {
-        return Err("La destinazione è cambiata. Ripeti la verifica dell’impronta.".into());
+        return Err(TerminalError::DestinationChanged.into());
     }
     host.fingerprint = expected;
     commit(&state, v, data)
@@ -89,14 +91,20 @@ pub(crate) fn connect(
     id: String,
     session_id: String,
     output: Channel<Output>,
-) -> Result<(), String> {
-    let guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
+) -> Result<(), Error> {
+    let guard = state.vault()?;
     state.ensure_vault(&vault_id)?;
-    let host = guard.as_ref().ok_or("Vault bloccato")?.data.resolve(&id)?;
+    let host = guard
+        .as_ref()
+        .ok_or(Error::VaultLocked)?
+        .data
+        .resolve(&id)?;
     if host.host.fingerprint.is_empty() {
-        return Err("Verifica prima l’impronta del server".into());
+        return Err(ModelError::FingerprintUnverified.into());
     }
-    register(app, &state, vault_id, session_id, host, true, output)
+    Ok(register(
+        app, &state, vault_id, session_id, host, true, output,
+    )?)
 }
 // The argument list is the IPC contract with the frontend, so it cannot be grouped into a struct.
 #[allow(clippy::too_many_arguments)]
@@ -114,17 +122,17 @@ pub(crate) fn connect_quick(
     password: Option<String>,
     expected_fingerprint: String,
     output: Channel<Output>,
-) -> Result<(), String> {
+) -> Result<(), Error> {
     let password = Zeroizing::new(password.unwrap_or_default());
     if password.len() > 1024 {
-        return Err("Password troppo lunga".into());
+        return Err(TerminalError::PasswordTooLong.into());
     }
     crate::model::validate_endpoint(&address, port)?;
-    let guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
+    let guard = state.vault()?;
     state.ensure_vault(&vault_id)?;
     let connection = guard
         .as_ref()
-        .ok_or("Vault bloccato")?
+        .ok_or(Error::VaultLocked)?
         .data
         .resolve_target(
             &address,
@@ -134,7 +142,9 @@ pub(crate) fn connect_quick(
             (&key_id, password.as_str()),
             &expected_fingerprint,
         )?;
-    register(app, &state, vault_id, session_id, connection, false, output)
+    Ok(register(
+        app, &state, vault_id, session_id, connection, false, output,
+    )?)
 }
 #[tauri::command]
 pub(crate) fn terminal_input(
@@ -142,9 +152,9 @@ pub(crate) fn terminal_input(
     vault_id: String,
     session_id: String,
     data: String,
-) -> Result<(), String> {
+) -> Result<(), Error> {
     if data.len() > 65536 {
-        return Err("Invia al massimo 64 KiB per messaggio al terminale".into());
+        return Err(TerminalError::InputTooLarge.into());
     }
     send(
         &state,
@@ -159,10 +169,10 @@ pub(crate) fn terminal_password(
     vault_id: String,
     session_id: String,
     password: String,
-) -> Result<(), String> {
+) -> Result<(), Error> {
     let password = Zeroizing::new(password);
     if password.len() > 1024 {
-        return Err("Password troppo lunga".into());
+        return Err(TerminalError::PasswordTooLong.into());
     }
     send(&state, &vault_id, &session_id, Input::Password(password))
 }
@@ -173,7 +183,7 @@ pub(crate) fn terminal_resize(
     session_id: String,
     cols: u32,
     rows: u32,
-) -> Result<(), String> {
+) -> Result<(), Error> {
     send(
         &state,
         &vault_id,
@@ -186,14 +196,9 @@ pub(crate) fn disconnect(
     state: State<AppState>,
     vault_id: String,
     session_id: String,
-) -> Result<(), String> {
+) -> Result<(), Error> {
     let _scope = session_scope(&state, &vault_id)?;
-    if let Some(tx) = state
-        .sessions
-        .lock()
-        .map_err(|_| "Sessioni non disponibili")?
-        .remove(&session_id)
-    {
+    if let Some(tx) = state.sessions().remove(&session_id) {
         let _ = tx.send(Input::Close);
     }
     Ok(())
@@ -206,16 +211,13 @@ pub(crate) fn connect_local(
     output: Channel<Output>,
     cols: u32,
     rows: u32,
-) -> Result<(), String> {
-    let guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
+) -> Result<(), Error> {
+    let guard = state.vault()?;
     state.ensure_vault(&vault_id)?;
-    guard.as_ref().ok_or("Vault bloccato")?;
-    let mut sessions = state
-        .sessions
-        .lock()
-        .map_err(|_| "Sessioni non disponibili")?;
+    guard.as_ref().ok_or(Error::VaultLocked)?;
+    let mut sessions = state.sessions();
     if session_id.is_empty() || session_id.len() > 80 || sessions.contains_key(&session_id) {
-        return Err("Identificativo sessione non valido o già aperto".into());
+        return Err(TerminalError::SessionIdInvalidOrOpen.into());
     }
     let tx = local::start(
         session_id.clone(),

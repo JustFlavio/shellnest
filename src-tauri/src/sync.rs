@@ -1,4 +1,5 @@
 use crate::{
+    error::Error,
     state::AppState,
     vault::{self, Disk, Envelope, OpenVault},
     view::{view, View},
@@ -6,92 +7,130 @@ use crate::{
 use reqwest::{blocking::Client, StatusCode, Url};
 use std::time::Duration;
 
-pub(crate) fn endpoint(raw: &str) -> Result<Url, String> {
-    let mut url = Url::parse(raw.trim_end_matches('/')).map_err(|_| "URL non valido")?;
+/// Why the sync client refused a URL or the server refused the sync. The messages are shown to the user.
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum SyncError {
+    #[error("URL non valido")]
+    UrlInvalid,
+    #[error("Usa HTTPS; HTTP è consentito solo su localhost")]
+    InsecureUrl,
+    #[error("URL con credenziali, query o frammenti non consentito")]
+    UrlParts,
+    #[error("Identificativo vault remoto non valido")]
+    RemoteIdInvalid,
+    #[error("Per questo vault usa un URL completo /vaults/<id>, uguale su tutti i dispositivi.")]
+    VaultUrlRequired,
+    #[error("{0}")]
+    Http(#[from] reqwest::Error),
+    #[error("Token di sincronizzazione non valido")]
+    Unauthorized,
+    #[error("Conflitto: il vault remoto è cambiato. I dati locali sono conservati; risolvi il conflitto prima di sincronizzare.")]
+    RemoteChanged,
+    #[error("Sync non riuscita (HTTP {0})")]
+    Status(StatusCode),
+    #[error("Revisione remota assente")]
+    RevisionMissing,
+    #[error("Vault remoto non valido")]
+    RemoteInvalid,
+    #[error("Conflitto: esistono modifiche locali e una revisione remota diversa. Nessun dato è stato sovrascritto.")]
+    LocalChanges,
+    #[error("Vault remoto rimosso: dati locali conservati")]
+    RemoteRemoved,
+    #[error("Il server contiene un vault differente")]
+    DifferentVault,
+    #[error("Il ripristino è disponibile solo su un dispositivo senza vault locale")]
+    RestoreUnavailable,
+    #[error("Il token deve avere almeno 32 caratteri")]
+    TokenTooShort,
+}
+
+pub(crate) fn endpoint(raw: &str) -> Result<Url, SyncError> {
+    let mut url = Url::parse(raw.trim_end_matches('/')).map_err(|_| SyncError::UrlInvalid)?;
     if url.scheme() != "https"
         && !(url.scheme() == "http"
             && matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]")))
     {
-        return Err("Usa HTTPS; HTTP è consentito solo su localhost".into());
+        return Err(SyncError::InsecureUrl);
     }
     if !url.username().is_empty()
         || url.password().is_some()
         || url.query().is_some()
         || url.fragment().is_some()
     {
-        return Err("URL con credenziali, query o frammenti non consentito".into());
+        return Err(SyncError::UrlParts);
     }
     let path = url.path().trim_end_matches('/').to_owned();
     if let Some((_, id)) = path.rsplit_once("/vaults/") {
         if !vault::valid_vault_id(id) {
-            return Err("Identificativo vault remoto non valido".into());
+            return Err(SyncError::RemoteIdInvalid);
         }
     } else if !path.ends_with("/vault") {
         url.set_path(&format!("{path}/vault"));
     }
     Ok(url)
 }
-fn client() -> Result<Client, String> {
+fn client() -> Result<Client, SyncError> {
     Client::builder()
         .timeout(Duration::from_secs(20))
         .redirect(reqwest::redirect::Policy::none())
         .build()
-        .map_err(|e| e.to_string())
+        .map_err(Into::into)
 }
-pub(crate) fn endpoint_for_vault(raw: &str, vault_id: &str) -> Result<Url, String> {
+pub(crate) fn endpoint_for_vault(raw: &str, vault_id: &str) -> Result<Url, SyncError> {
     let url = endpoint(raw)?;
     if vault_id != "personal" {
         let remote_id = url.path().rsplit_once("/vaults/").map(|(_, id)| id);
         if remote_id.is_none() || remote_id == Some("personal") {
-            return Err(
-                "Per questo vault usa un URL completo /vaults/<id>, uguale su tutti i dispositivi."
-                    .into(),
-            );
+            return Err(SyncError::VaultUrlRequired);
         }
     }
     Ok(url)
 }
-fn error(status: StatusCode) -> String {
-    match status{StatusCode::UNAUTHORIZED=>"Token di sincronizzazione non valido".into(),StatusCode::PRECONDITION_FAILED=>"Conflitto: il vault remoto è cambiato. I dati locali sono conservati; risolvi il conflitto prima di sincronizzare.".into(),_=>format!("Sync non riuscita (HTTP {status})")}
+fn refused(status: StatusCode) -> SyncError {
+    match status {
+        StatusCode::UNAUTHORIZED => SyncError::Unauthorized,
+        StatusCode::PRECONDITION_FAILED => SyncError::RemoteChanged,
+        _ => SyncError::Status(status),
+    }
 }
-fn revision(response: &reqwest::blocking::Response) -> Result<String, String> {
+fn revision(response: &reqwest::blocking::Response) -> Result<String, SyncError> {
     response
         .headers()
         .get("etag")
         .and_then(|v| v.to_str().ok())
         .map(str::to_owned)
-        .ok_or("Revisione remota assente".into())
+        .ok_or(SyncError::RevisionMissing)
 }
-pub(crate) fn synchronize(state: &AppState, vault_id: &str) -> Result<View, String> {
-    let mut guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
+pub(crate) fn synchronize(state: &AppState, vault_id: &str) -> Result<View, Error> {
+    let mut guard = state.vault()?;
     state.ensure_vault(vault_id)?;
     let path = state.active_path()?;
-    let v = guard.as_mut().ok_or("Vault bloccato")?;
+    let v = guard.as_mut().ok_or(Error::VaultLocked)?;
     let url = endpoint_for_vault(&v.data.sync_url, vault_id)?;
     let c = client()?;
     let response = c
         .get(url.clone())
         .bearer_auth(&v.data.sync_token)
         .send()
-        .map_err(|e| e.to_string())?;
+        .map_err(SyncError::from)?;
     let remote = if response.status() == StatusCode::NOT_FOUND {
         None
     } else {
         if !response.status().is_success() {
-            return Err(error(response.status()));
+            return Err(refused(response.status()).into());
         }
         let rev = revision(&response)?;
-        let env: Envelope = response.json().map_err(|_| "Vault remoto non valido")?;
+        let env: Envelope = response.json().map_err(|_| SyncError::RemoteInvalid)?;
         Some((rev, env))
     };
     let remote_rev = remote.as_ref().map(|(r, _)| r.clone());
     if remote_rev != v.disk.revision {
         if v.disk.dirty {
-            return Err("Conflitto: esistono modifiche locali e una revisione remota diversa. Nessun dato è stato sovrascritto.".into());
+            return Err(SyncError::LocalChanges.into());
         }
-        let (rev, env) = remote.ok_or("Vault remoto rimosso: dati locali conservati")?;
+        let (rev, env) = remote.ok_or(SyncError::RemoteRemoved)?;
         if env.salt != v.disk.envelope.salt {
-            return Err("Il server contiene un vault differente".into());
+            return Err(SyncError::DifferentVault.into());
         }
         let mut data = vault::decrypt(&v.key, &env)?;
         // Connection settings belong to this device, even if the encrypted payload contains a copy.
@@ -120,9 +159,9 @@ pub(crate) fn synchronize(state: &AppState, vault_id: &str) -> Result<View, Stri
         } else {
             request.header("If-None-Match", "*")
         };
-        let response = request.send().map_err(|e| e.to_string())?;
+        let response = request.send().map_err(SyncError::from)?;
         if !response.status().is_success() {
-            return Err(error(response.status()));
+            return Err(refused(response.status()).into());
         }
         let mut disk = v.disk.clone();
         disk.revision = Some(revision(&response)?);
@@ -139,23 +178,23 @@ pub(crate) fn restore(
     url: &str,
     token: &str,
     password: &str,
-) -> Result<View, String> {
-    let mut guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
+) -> Result<View, Error> {
+    let mut guard = state.vault()?;
     state.ensure_vault(vault_id)?;
     let path = state.active_path()?;
     if path.exists() || guard.is_some() {
-        return Err("Il ripristino è disponibile solo su un dispositivo senza vault locale".into());
+        return Err(SyncError::RestoreUnavailable.into());
     }
     let response = client()?
         .get(endpoint_for_vault(url, vault_id)?)
         .bearer_auth(token)
         .send()
-        .map_err(|e| e.to_string())?;
+        .map_err(SyncError::from)?;
     if !response.status().is_success() {
-        return Err(error(response.status()));
+        return Err(refused(response.status()).into());
     }
     let rev = revision(&response)?;
-    let env: Envelope = response.json().map_err(|_| "Vault remoto non valido")?;
+    let env: Envelope = response.json().map_err(|_| SyncError::RemoteInvalid)?;
     let mut v = OpenVault::unlock(
         password,
         Disk {
@@ -319,6 +358,7 @@ mod tests {
         assert!(synchronize(&b, "personal")
             .err()
             .unwrap()
+            .to_string()
             .contains("Conflitto"));
         assert_eq!(before, std::fs::read(&b.path).unwrap());
         assert!(b

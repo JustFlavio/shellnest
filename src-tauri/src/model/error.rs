@@ -76,9 +76,3 @@ pub(crate) enum ModelError {
     #[error("Indica l’utente SSH")]
     UsernameMissing,
 }
-// Until the commands return the crate error, they still speak `String`.
-impl From<ModelError> for String {
-    fn from(error: ModelError) -> Self {
-        error.to_string()
-    }
-}

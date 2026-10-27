@@ -39,10 +39,16 @@ pub(crate) enum VaultError {
     NameInvalid,
     #[error("Esiste già un vault con questo nome")]
     NameTaken,
-}
-// Until the commands return the crate error, they still speak `String`.
-impl From<VaultError> for String {
-    fn from(error: VaultError) -> Self {
-        error.to_string()
-    }
+    #[error("Vault già aperto")]
+    AlreadyOpen,
+    #[error("Esiste già un vault locale")]
+    AlreadyExists,
+    #[error("Serve la password per creare il vault")]
+    PasswordRequired,
+    #[error("Il vault Personale non può essere eliminato")]
+    DefaultNotDeletable,
+    #[error("Il vault non è vuoto: eliminane prima il contenuto")]
+    NotEmpty,
+    #[error("Sblocca il vault per eliminarlo")]
+    LockedForDeletion,
 }
