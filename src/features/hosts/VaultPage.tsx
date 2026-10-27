@@ -16,7 +16,7 @@ export function VaultPage() {
       <SearchField />
       <VaultToolbar />
       <UsageFilter />
-      {page === "hosts" && selected.size > 0 && <SelectionBar />}
+      {page === "hosts" && selected.size > 1 && <SelectionBar />}
       <VaultContent />
     </section>
   );

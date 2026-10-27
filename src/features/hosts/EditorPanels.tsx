@@ -3,10 +3,12 @@ import { IdentityEditor } from "./IdentityEditor";
 import { KeyEditor } from "./KeyEditor";
 import { GroupEditor } from "./GroupEditor";
 import { useApp } from "@/app/app-context";
+import { BackgroundPanels } from "./Panel";
 
 export function EditorPanels() {
   const {
     vault: { view, busy, error, invokeScoped },
+    tabs: { active },
     library: {
       hostForm,
       setHostForm,
@@ -31,7 +33,7 @@ export function EditorPanels() {
     },
   } = useApp();
   return (
-    <>
+    <BackgroundPanels value={{ hidden: active !== "vault" }}>
       {hostForm && !identityForm && !keyForm && !groupForm && (
         <HostEditor
           value={hostForm}
@@ -88,6 +90,6 @@ export function EditorPanels() {
           onSubmit={saveKey}
         />
       )}
-    </>
+    </BackgroundPanels>
   );
 }

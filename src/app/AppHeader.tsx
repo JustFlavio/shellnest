@@ -13,6 +13,7 @@ export function AppHeader() {
     <header
       className="col-span-full flex min-w-0 items-stretch border-b border-border bg-header select-none"
       data-tauri-drag-region
+      data-app-header
     >
       <div
         className="flex w-[var(--sidebar-width)] shrink-0 items-center gap-[9px] px-[16px] text-[13px] font-semibold whitespace-nowrap [.mac_&]:w-[82px]"

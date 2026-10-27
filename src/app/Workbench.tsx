@@ -19,7 +19,10 @@ export function Workbench() {
   const {
     vault: { preview },
     tabs: { active },
+    library: { editing },
   } = useApp();
+  // The editor sheets are not modal (the tab strip stays usable), so the page behind is made inert here.
+  const behindSheet = active === "vault" && editing;
   return (
     <div
       className={cn(
@@ -31,7 +34,11 @@ export function Workbench() {
     >
       <AppHeader />
       <Sidebar />
-      <main className="flex min-h-0 min-w-0 flex-col overflow-hidden">
+      <main
+        className="flex min-h-0 min-w-0 flex-col overflow-hidden"
+        inert={behindSheet}
+        aria-hidden={behindSheet || undefined}
+      >
         {preview && <PreviewBanner />}
         <ErrorBanner />
         <NoticeBanner />

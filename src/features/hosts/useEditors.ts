@@ -244,7 +244,10 @@ export function useEditors(
     setIdentityForm(null);
     setKeyForm(null);
   };
+  // A form sheet is up: the page behind it is not reachable.
+  const editing = !!(hostForm || groupForm || identityForm || keyForm);
   return {
+    editing,
     hostForm,
     setHostForm,
     groupForm,

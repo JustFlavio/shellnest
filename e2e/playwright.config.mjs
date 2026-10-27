@@ -11,8 +11,21 @@ export default defineConfig({
     deviceScaleFactor: 1,
     colorScheme: "dark",
   },
+  projects: [
+    { name: "chromium" },
+    // The macOS app renders with WebKit: only the engine-specific specs run there.
+    {
+      name: "webkit",
+      use: { browserName: "webkit" },
+      testMatch: ["visual-overlay.spec.mjs", "visual-first-run.spec.mjs"],
+    },
+  ],
   expect: {
-    toHaveScreenshot: { animations: "disabled", caret: "hide", maxDiffPixelRatio: 0.0002 },
+    toHaveScreenshot: {
+      animations: "disabled",
+      caret: "hide",
+      maxDiffPixelRatio: 0.0002,
+    },
   },
   webServer: {
     command: "npm run dev",

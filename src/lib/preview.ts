@@ -16,7 +16,7 @@ import {
 import { deleteGroup, saveGroup } from "./preview/groups";
 import { deleteWorkspace, saveWorkspace } from "./preview/workspaces";
 import { configureSync } from "./preview/sync";
-import { previewView } from "./preview/sample-view";
+import { emptyPreviewView, previewView } from "./preview/sample-view";
 import { requireValue } from "./preview/require";
 import type { Args } from "./preview/require";
 
@@ -37,8 +37,10 @@ const editors: Record<string, (next: View, args: Args) => void> = {
 };
 
 // Only UI metadata lives here: passwords, private keys and tokens are discarded.
-export function createPreviewBackend() {
-  const vaults = new Map<string, View>([["personal", previewView()]]);
+export function createPreviewBackend(empty = false) {
+  const vaults = new Map<string, View>([
+    ["personal", empty ? emptyPreviewView() : previewView()],
+  ]);
   let selected = "personal";
   return async <T>(
     command: string,

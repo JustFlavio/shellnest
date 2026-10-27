@@ -12,7 +12,7 @@ export const panelStyles = {
     // A nested dialog has no backdrop of its own, so the sheet's backdrop dims
     // the page once a centered panel or a confirmation sits on top of it.
     overlay:
-      "bg-transparent supports-backdrop-filter:backdrop-blur-none [body:has(.centered-panel):not(:has(.alert-panel))_&]:bg-[#080b1026] max-[1100px]:[body:has(.centered-panel):not(:has(.alert-panel))_&]:bg-[#080b1070] [body:has(.alert-panel)_&]:bg-[#04060ccc]",
+      "bg-transparent supports-backdrop-filter:backdrop-blur-none [body.dialog-open:not(.alert-open)_&]:bg-[#080b1026] max-[1100px]:[body.dialog-open:not(.alert-open)_&]:bg-[#080b1070] [body.alert-open_&]:bg-[#04060ccc] [body.dialog-open_&]:top-0 [body.alert-open_&]:top-0",
     content:
       "side-sheet fixed top-[46px] flex flex-col gap-0 p-0 right-0 bottom-0 left-auto h-[calc(100dvh-46px)] w-[var(--sheet-width)] max-w-[100vw] translate-x-0 translate-y-0 rounded-none border-0 border-l border-border bg-background shadow-none ring-0 sm:max-w-[100vw] max-[760px]:w-[min(var(--sheet-width),100vw)] [body:not(:has(.app))_&]:top-0 [body:not(:has(.app))_&]:h-dvh data-closed:pointer-events-none data-open:animate-[sheet-in_0.22s_cubic-bezier(0.2,0.7,0.2,1)] " +
       "[&>footer]:flex [&>footer]:shrink-0 [&>footer]:justify-end [&>footer]:gap-[8px] [&>footer]:border-t [&>footer]:border-border [&>footer]:bg-[color-mix(in_srgb,var(--background)_92%,black)] [&>footer]:px-[14px] [&>footer]:py-[12px] " +
