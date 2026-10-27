@@ -6,6 +6,16 @@ Built with Tauri 2, React and Rust. Windows and macOS.
 
 > **Alpha.** Shellnest is under active development and has not had a security audit. Local use is the tested path. **Sync between devices is experimental.** Back up your vault before trusting it with anything important. The interface is currently in Italian only; translations are welcome.
 
+## Screenshots
+
+The screenshots come from the browser demo (`npm run dev`) with sample data.
+
+![Hosts and folders](docs/images/hosts.png)
+
+![Quick launcher](docs/images/launcher.png)
+
+![Connection timeline with the host key check](docs/images/connection.png)
+
 ## Features
 
 - Encrypted local vault (Argon2id + XChaCha20-Poly1305), several independent vaults, optional unlock key in the system keychain.
