@@ -11,10 +11,12 @@ export function Sidebar() {
   const {
     vault: { view },
     tabs: { active },
-    library: { page, group, navigate, showFolder, groupHostCount },
+    library: { page, group, navigate, showFolder, groupHostCount, editing },
   } = useApp();
   return (
     <aside
+      inert={active === "vault" && editing}
+      aria-hidden={(active === "vault" && editing) || undefined}
       className={cn(
         "flex min-h-0 flex-col border-r border-border bg-sidebar px-[10px] pt-[14px] max-[760px]:px-[8px] max-[760px]:pt-[12px]",
         active !== "vault" && "hidden",

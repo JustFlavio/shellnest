@@ -83,3 +83,49 @@ test("first host: folder created inline", async ({ page }) => {
     "Produzione",
   );
 });
+
+test("host draft survives a visit to a terminal tab", async ({ page }) => {
+  await addHost(page, "uno", "192.0.2.1");
+  await page.getByRole("button", { name: "Seleziona uno" }).dblclick();
+  const nav = page.getByRole("navigation", { name: "Sessioni e connessioni" });
+  const session = nav.locator("[draggable=true]").first();
+  await session.waitFor();
+  await nav.getByRole("button", { name: "Vault", exact: true }).click();
+  await newHost(page);
+  await page.getByPlaceholder("Nome dell’host").fill("bozza");
+  // A short window makes the sheet scroll; the position must survive too.
+  await page.setViewportSize({ width: 1280, height: 420 });
+  const body = page.locator(".host-editor > div");
+  await expect
+    .poll(() => body.evaluate((el) => el.scrollHeight - el.clientHeight))
+    .toBeGreaterThan(120);
+  await body.evaluate((el) => (el.scrollTop = 120));
+  await expect.poll(() => body.evaluate((el) => el.scrollTop)).toBe(120);
+  const discard = page.getByRole("heading", { name: "Scartare le modifiche?" });
+  // A real click: with a modal sheet open its backdrop would intercept it.
+  await session.locator("button", { hasText: "uno" }).click({ timeout: 3000 });
+  await expect(
+    page.getByRole("heading", { name: "Host", level: 1 }),
+  ).toBeHidden();
+  await expect(page.getByRole("heading", { name: "Nuovo host" })).toBeHidden();
+  await expect(discard).toHaveCount(0);
+  await nav.getByRole("button", { name: "Vault", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Nuovo host" })).toBeVisible();
+  await expect(page.getByPlaceholder("Nome dell’host")).toHaveValue("bozza");
+  await expect.poll(() => body.evaluate((el) => el.scrollTop)).toBe(120);
+});
+
+test("leaving a dirty draft from inside the vault still asks", async ({
+  page,
+}) => {
+  await newHost(page);
+  await page.getByPlaceholder("Nome dell’host").fill("bozza");
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("heading", { name: "Scartare le modifiche?" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Scarta modifiche" }).click();
+  await expect(page.getByRole("heading", { name: "Nuovo host" })).toHaveCount(
+    0,
+  );
+});

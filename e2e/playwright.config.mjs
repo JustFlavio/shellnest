@@ -17,7 +17,7 @@ export default defineConfig({
     {
       name: "webkit",
       use: { browserName: "webkit" },
-      testMatch: "visual-overlay.spec.mjs",
+      testMatch: ["visual-overlay.spec.mjs", "visual-first-run.spec.mjs"],
     },
   ],
   expect: {
