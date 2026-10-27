@@ -1,3 +1,4 @@
+import type { Host } from "@/lib/types";
 import type { Edge, LayoutNode, SavedNode } from "./workbench-state.mjs";
 
 export type TabLike = {
@@ -51,3 +52,26 @@ export function parseSession(
   active: number;
   count: number;
 } | null;
+export function closedRecords<T extends TabLike>(tabs: T[], ids: string[]): T[];
+export function setTermTitle<T extends TabLike & { termTitle?: string }>(
+  tabs: T[],
+  id: string,
+  termTitle?: string,
+): T[];
+export function workspaceTemplate(
+  tabs: (TabLike & { kind: string; host?: { id: string } })[],
+  layout: LayoutNode,
+): SavedNode | null;
+export function planWorkspaces(
+  list: { name?: string; layout: SavedNode }[],
+  hostsById: Map<string, Host>,
+  newId: () => string,
+): {
+  built: {
+    name?: string;
+    layout: LayoutNode;
+    specs: { id: string; local: boolean; host?: Host }[];
+  }[];
+  missing: boolean;
+  untrusted?: Host;
+};

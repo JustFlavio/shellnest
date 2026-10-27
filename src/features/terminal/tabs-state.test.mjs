@@ -2,14 +2,18 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   appendWorkspaces,
+  closedRecords,
   joinWorkspace,
   neighbourInBar,
   parseSession,
+  planWorkspaces,
   rearrangePane,
   replaceTab,
   sessionIds,
+  setTermTitle,
   splitPane,
   unlinkPane,
+  workspaceTemplate,
 } from "./tabs-state.mjs";
 import { leafIds } from "./workbench-state.mjs";
 
@@ -129,4 +133,76 @@ test("a stored session drops hosts that no longer exist", () => {
   assert.equal(parseSession("{", new Set()), null);
   assert.equal(parseSession(null, new Set()), null);
   assert.equal(parseSession(raw, new Set()).items.length, 1);
+});
+
+test("closed sessions lose their place in a workspace", () => {
+  const tabs = [
+    { id: "a", layout: { id: "a" } },
+    { id: "b", parent: "a", kind: "local" },
+    { id: "c" },
+  ];
+  assert.deepEqual(closedRecords(tabs, ["a", "b"]), [
+    { id: "a" },
+    { id: "b", kind: "local" },
+  ]);
+});
+
+test("a title change returns a new list only when something changed", () => {
+  const tabs = [{ id: "a", termTitle: "vim" }, { id: "b" }];
+  assert.equal(setTermTitle(tabs, "a", "vim"), tabs);
+  assert.equal(setTermTitle(tabs, "gone", "x"), tabs);
+  assert.equal(setTermTitle(tabs, "a", undefined)[0].termTitle, undefined);
+});
+
+test("only a split of saveable sessions becomes a workspace template", () => {
+  const tabs = [
+    { id: "a", kind: "ssh", host: { id: "h1" } },
+    { id: "b", kind: "local" },
+    { id: "c", kind: "quick" },
+  ];
+  const row = (a, b) => ({
+    dir: "row",
+    ratio: 0.5,
+    a: { id: a },
+    b: { id: b },
+  });
+  assert.deepEqual(workspaceTemplate(tabs, row("a", "b")), {
+    dir: "row",
+    ratio: 0.5,
+    a: { hostId: "h1" },
+    b: { local: true },
+  });
+  assert.equal(workspaceTemplate(tabs, row("a", "c")), null);
+  assert.equal(workspaceTemplate(tabs, { id: "a" }), null);
+});
+
+test("planning workspaces flags missing and untrusted hosts", () => {
+  const hosts = new Map([
+    ["h1", { id: "h1", fingerprint: "fp" }],
+    ["h2", { id: "h2" }],
+  ]);
+  let n = 0;
+  const newId = () => `s${n++}`;
+  const row = (a, b) => ({ dir: "row", ratio: 0.5, a, b });
+  const ok = planWorkspaces(
+    [{ name: "W", layout: row({ hostId: "h1" }, { local: true }) }],
+    hosts,
+    newId,
+  );
+  assert.deepEqual(
+    ok.built[0].specs.map((s) => s.id),
+    ["s0", "s1"],
+  );
+  assert.equal(ok.missing, false);
+  assert.equal(ok.untrusted, undefined);
+  const mixed = planWorkspaces(
+    [{ layout: row({ hostId: "h2" }, { hostId: "h1" }) }],
+    hosts,
+    newId,
+  );
+  assert.equal(mixed.untrusted?.id, "h2");
+  assert.equal(
+    planWorkspaces([{ layout: { hostId: "gone" } }], hosts, newId).missing,
+    true,
+  );
 });
