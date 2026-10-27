@@ -15,6 +15,10 @@ export const MAX_PASSWORD_ATTEMPTS = 3;
 
 const CHANGED = "Identità del server cambiata";
 
+/** "indirizzo", or "indirizzo:porta" when the port is not the default 22. */
+export const targetLabel = (address: string, port: number) =>
+  port === 22 ? address : `${address}:${port}`;
+
 function stageOf(phase: string): "connect" | "auth" | "session" {
   if (/^(Apertura del terminale|Connesso)/.test(phase)) return "session";
   if (
@@ -26,7 +30,7 @@ function stageOf(phase: string): "connect" | "auth" | "session" {
 }
 
 /**
- * kind: tab kind. target: "host:porta". askedTrust: the host key had to be verified in this pane.
+ * kind: tab kind. target: as shown after "Connessione a". askedTrust: the host key had to be verified in this pane.
  * awaitingTrust: the user has not answered yet. phase/failure: last status and error. opened: terminal is up.
  * passwords: how many times the server asked for a password so far (each question is a step).
  * details: how finished steps ended, by step id.
@@ -111,9 +115,7 @@ export function timelineSteps({
     if (done && step.id === "trust" && askedTrust)
       detail = "Nuova impronta confermata";
     if (done && step.id === "connect" && remote && !askedTrust && !changed)
-      detail = [detail, "host già noto, impronta coincide"]
-        .filter(Boolean)
-        .join(" · ");
+      detail = "Host già noto, impronta coincide";
     return { ...step, state, detail: done ? detail : undefined };
   });
 }

@@ -31,7 +31,7 @@ test("the target row and Cmd+Enter only start the timeline; the user comes from 
   await expect(steps(page)).toHaveText([
     /Utente/,
     /Metodo di accesso/,
-    /Connessione a 192\.0\.2\.50:22/,
+    /Connessione a 192\.0\.2\.50(?!:)/,
     /Verifica impronta/,
     /Autenticazione/,
     /Sessione aperta/,

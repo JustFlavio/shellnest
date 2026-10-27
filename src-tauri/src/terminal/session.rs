@@ -13,6 +13,37 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{ipc::Channel, Manager};
 use tokio::sync::mpsc;
 
+/// Time allowed to connect and authenticate, not counting the time spent on a password question.
+const OPEN_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// Drives `opening` to its end. Lock/close cancels transport establishment and authentication as well
+/// as live sessions, so `None` is a close. The timeout does not run while the user is typing a password.
+async fn until_open<T>(
+    opening: impl std::future::Future<Output = Result<T, String>>,
+    prompt: &PasswordPrompt,
+    rx: &mut mpsc::UnboundedReceiver<Input>,
+    limit: Duration,
+) -> Result<Option<T>, String> {
+    tokio::pin!(opening);
+    let mut deadline = tokio::time::Instant::now() + limit;
+    loop {
+        // A branch precondition is only looked at when the select starts, so `prompt.opened()` ends it
+        // when a question opens: the timer is held while asking, and starts over once it is answered.
+        tokio::select! {
+            result=&mut opening=>return result.map(Some),
+            _=tokio::time::sleep_until(deadline),if !prompt.asking()=>return Err("Timeout connessione SSH".into()),
+            _=prompt.opened()=>{},
+            input=rx.recv()=>match input{
+                Some(Input::Password(password))=>{
+                    if prompt.answer(password){deadline=tokio::time::Instant::now()+limit;}
+                },
+                Some(Input::Close)|None=>return Ok(None),
+                Some(_)=>{}
+            },
+        }
+    }
+}
+
 async fn run(
     app: tauri::AppHandle,
     vault_id: String,
@@ -40,24 +71,10 @@ async fn run(
             async move { answer.await.ok() }
         },
     );
-    tokio::pin!(opening);
-    // The timeout does not run while the user is typing a password.
-    let limit = || tokio::time::Instant::now() + Duration::from_secs(30);
-    let timeout = tokio::time::sleep_until(limit());
-    tokio::pin!(timeout);
-    // Lock/close cancels transport establishment and authentication as well as live sessions.
-    let (session, mut channel, buffered) = loop {
-        tokio::select! {
-            result=&mut opening=>break result?,
-            _=&mut timeout,if !prompt.asking()=>return Err("Timeout connessione SSH".into()),
-            input=rx.recv()=>match input{
-                Some(Input::Password(password))=>{
-                    if prompt.answer(password){timeout.as_mut().reset(limit());}
-                },
-                Some(Input::Close)|None=>return Ok(()),
-                Some(_)=>{}
-            },
-        }
+    let Some((session, mut channel, buffered)) =
+        until_open(opening, &prompt, &mut rx, OPEN_TIMEOUT).await?
+    else {
+        return Ok(());
     };
     let _ = output.send(Output::Status("Connesso".into()));
     if !buffered.is_empty() {
@@ -209,6 +226,80 @@ pub(crate) fn session_scope<'a>(
 mod tests {
     use super::*;
     use std::sync::Arc;
+    use tokio::time::{sleep, Instant};
+    use zeroize::Zeroizing;
+    const LIMIT: Duration = Duration::from_millis(300);
+    // What `open` does at a password step: open the question, wait for the answer, then finish.
+    async fn asks_then(prompt: &PasswordPrompt, after: Duration, then: bool) -> Result<u8, String> {
+        sleep(Duration::from_millis(50)).await;
+        let answer = prompt.ask();
+        answer.await.map_err(|e| e.to_string())?;
+        if then {
+            sleep(after).await;
+            return Ok(1);
+        }
+        std::future::pending().await
+    }
+    #[tokio::test]
+    async fn the_timeout_waits_while_a_password_question_is_open() {
+        let prompt = PasswordPrompt::default();
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        // The question opens inside `opening`, after the timer started; the answer comes well past the limit.
+        let typing = async {
+            sleep(LIMIT * 3).await;
+            tx.send(Input::Password(Zeroizing::new("p".into())))
+                .unwrap();
+        };
+        let (result, ()) = tokio::join!(
+            until_open(
+                asks_then(&prompt, Duration::from_millis(50), true),
+                &prompt,
+                &mut rx,
+                LIMIT
+            ),
+            typing
+        );
+        assert_eq!(result, Ok(Some(1)));
+    }
+    #[tokio::test]
+    async fn the_timeout_restarts_after_the_answer() {
+        let prompt = PasswordPrompt::default();
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        let answered = std::sync::Mutex::new(None);
+        let typing = async {
+            sleep(LIMIT * 2).await;
+            *answered.lock().unwrap() = Some(Instant::now());
+            tx.send(Input::Password(Zeroizing::new("p".into())))
+                .unwrap();
+        };
+        let (result, ()) = tokio::join!(
+            until_open(
+                asks_then(&prompt, Duration::ZERO, false),
+                &prompt,
+                &mut rx,
+                LIMIT
+            ),
+            typing
+        );
+        assert_eq!(result.unwrap_err(), "Timeout connessione SSH");
+        let since = answered.lock().unwrap().unwrap().elapsed();
+        assert!(
+            since >= LIMIT - Duration::from_millis(20),
+            "restarted too soon: {since:?}"
+        );
+    }
+    #[tokio::test]
+    async fn without_a_question_the_timeout_fires_and_close_wins() {
+        let prompt = PasswordPrompt::default();
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        let never = || std::future::pending::<Result<u8, String>>();
+        let started = Instant::now();
+        let result = until_open(never(), &prompt, &mut rx, LIMIT).await;
+        assert_eq!(result.unwrap_err(), "Timeout connessione SSH");
+        assert!(started.elapsed() >= LIMIT);
+        tx.send(Input::Close).unwrap();
+        assert_eq!(until_open(never(), &prompt, &mut rx, LIMIT).await, Ok(None));
+    }
     #[test]
     fn terminal_io_is_not_blocked_by_sync_and_rejects_stale_vault_scope() {
         let state = Arc::new(
