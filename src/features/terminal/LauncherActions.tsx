@@ -1,37 +1,23 @@
-import { History, LayoutGrid, TerminalSquare } from "lucide-react";
+import { History, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const ghostButton = "h-[28px] text-[12px] text-muted-foreground";
 
 export function LauncherActions({
   busy,
-  preview,
   canPickHosts,
   session,
-  onLocalTerminal,
   onPickHosts,
   onRestore,
 }: {
   busy: boolean;
-  preview: boolean;
   canPickHosts: boolean;
   session: { count: number } | null;
-  onLocalTerminal: () => void;
   onPickHosts: () => void;
   onRestore: () => void;
 }) {
   return (
     <>
-      <Button
-        variant="ghost"
-        type="button"
-        className={ghostButton}
-        disabled={busy || preview}
-        onClick={onLocalTerminal}
-      >
-        <TerminalSquare size={14} />
-        Terminale locale
-      </Button>
       <Button
         variant="ghost"
         type="button"

@@ -1,58 +1,23 @@
 import { useEffect, useState } from "react";
-import type { Group, Host, Identity, Workspace } from "@/lib/types";
 import { quickConnectTarget } from "./connection-target.ts";
-import type { ConnectionTarget } from "./connection-target.ts";
-import {
-  Command,
-  CommandGroup,
-  CommandList,
-} from "@/components/ui/command";
+import { Command } from "@/components/ui/command";
 import { mac } from "@/lib/platform";
 import {
-  launcherKeyAction,
+  emptyMessage,
+  groupResults,
   launcherResults,
-  listHeading,
   togglePicked,
 } from "./launcher-results.ts";
-import type {
-  LauncherResult,
-  LauncherTab,
-  RecentHost,
-} from "./launcher-results.ts";
-import { LauncherActions } from "./LauncherActions";
+import type { LauncherResult } from "./launcher-results.ts";
+import type { ConnectionLauncherProps } from "./launcher-props.ts";
+import { LauncherFooter } from "./LauncherFooter";
+import { launcherKeyHandler } from "./launcher-keys";
+import { LauncherList } from "./LauncherList";
 import { LauncherRow } from "./LauncherRow";
 import { LauncherSearch } from "./LauncherSearch";
-import { PickingActions } from "./PickingActions";
-import { QuickConnectForm } from "./QuickConnectForm";
-
-export type ConnectionLauncherProps = {
-  vaultName: string;
-  groups: Group[];
-  hosts: RecentHost[];
-  identities: Identity[];
-  workspaces: Workspace[];
-  tabs: LauncherTab[];
-  onConnect: (host: Host) => void;
-  onOpenWorkspace: (workspace: Workspace) => void;
-  onDeleteWorkspace: (workspace: Workspace) => void;
-  session: { count: number } | null;
-  onRestore: () => void;
-  onCreateWorkspace: (hostIds: string[]) => void;
-  onActivateTab: (id: string) => void;
-  onLocalTerminal: () => void;
-  onQuickConnect: (target: ConnectionTarget) => void;
-  preview: boolean;
-  // formatted binding of the quick-connect shortcut; empty when unbound
-  shortcut: string;
-  busy: boolean;
-};
+import { LauncherToolbar } from "./LauncherToolbar";
 
 const quickKey = mac ? "⌘Invio" : "Ctrl+Invio";
-
-const sectionClass =
-  "mb-[18px] rounded-[12px] border border-border bg-card p-[6px]";
-const headerClass =
-  "flex min-h-[38px] items-center justify-between pr-[6px] pl-[10px]";
 
 export function ConnectionLauncher({
   vaultName,
@@ -71,9 +36,11 @@ export function ConnectionLauncher({
   onLocalTerminal,
   onQuickConnect,
   preview,
+  mode,
   shortcut,
   busy,
 }: ConnectionLauncherProps) {
+  const jump = mode === "jump";
   const [query, setQuery] = useState("");
   const [selection, setSelection] = useState(0);
   const [armed, setArmed] = useState<string>();
@@ -84,6 +51,9 @@ export function ConnectionLauncher({
     const timer = setTimeout(() => setArmed(undefined), 3000);
     return () => clearTimeout(timer);
   }, [armed]);
+  // Cmd/Ctrl+Enter takes any text that parses as an address, not only what looks like one.
+  const forcedTarget = jump ? null : quickConnectTarget(query, hosts, true);
+  const target = jump || picked ? null : quickConnectTarget(query, hosts);
   const { text, hasRecent, results } = launcherResults({
     query,
     vaultName,
@@ -93,10 +63,9 @@ export function ConnectionLauncher({
     workspaces,
     tabs,
     selecting: picked !== null,
+    target,
+    jump,
   });
-  const target = quickConnectTarget(query, hosts);
-  // Cmd/Ctrl+Enter takes any text that parses as an address, not only what looks like one.
-  const forcedTarget = quickConnectTarget(query, hosts, true);
   const selected = Math.min(selection, Math.max(0, results.length - 1));
   useEffect(() => {
     document
@@ -109,9 +78,12 @@ export function ConnectionLauncher({
     tab,
     host,
     openTab,
+    target,
   }: LauncherResult) => {
-    if (busy) return;
-    if (kind === "workspace") onOpenWorkspace(workspace!);
+    if (busy || (kind === "local" && preview)) return;
+    if (kind === "local") onLocalTerminal();
+    else if (kind === "target") onQuickConnect(target!);
+    else if (kind === "workspace") onOpenWorkspace(workspace!);
     else if (kind === "tab") onActivateTab(tab!.id);
     else if (picked) setPicked(togglePicked(picked, host!.id));
     else if (openTab) onActivateTab(openTab.id);
@@ -127,7 +99,7 @@ export function ConnectionLauncher({
         picked && result.host ? pickedSet.has(result.host.id) : undefined
       }
       armed={!!result.workspace && armed === result.workspace.id}
-      busy={busy}
+      busy={busy || (result.kind === "local" && preview)}
       onActivate={() => activate(result)}
       onNewSession={() => onConnect(result.host!)}
       onArmDelete={() => setArmed(result.workspace!.id)}
@@ -137,60 +109,36 @@ export function ConnectionLauncher({
       }}
     />
   );
-  const rowsOf = (workspaces: boolean) =>
-    results.flatMap((result, index) =>
-      (result.kind === "workspace") === workspaces ? [row(result, index)] : [],
-    );
-  const workspaceRows = rowsOf(true);
-  const otherRows = rowsOf(false);
-  const onKeyDown = (event: React.KeyboardEvent) => {
-    const current = results[selected];
-    if (
-      event.key === "Enter" &&
-      event.shiftKey &&
-      current?.openTab &&
-      !picked &&
-      !busy
-    ) {
-      event.preventDefault();
-      onConnect(current.host!);
-      return;
-    }
-    const action = launcherKeyAction(event.key, {
-      count: results.length,
-      selected,
-      busy,
-      canQuickConnect:
-        !busy &&
-        !!(event.metaKey || event.ctrlKey ? forcedTarget : target),
-      modified: event.metaKey || event.ctrlKey,
-    });
-    if (!action) {
-      if (event.key === "Enter") event.preventDefault();
-      return;
-    }
-    if (action.type === "clear") {
+  const onKeyDown = launcherKeyHandler({
+    results,
+    selected,
+    picked: !!picked,
+    busy,
+    target,
+    forcedTarget,
+    activate,
+    select: setSelection,
+    clear: () => {
       setQuery("");
       setSelection(0);
-      return;
-    }
-    event.preventDefault();
-    if (action.type === "select") setSelection(action.index);
-    else if (action.type === "activate") activate(results[selected]);
-    else onQuickConnect((event.metaKey || event.ctrlKey ? forcedTarget : target)!);
-  };
-  const nothingSaved = !hosts.length && !tabs.length;
-  const emptyMessage = nothingSaved
-    ? text
-      ? target
-        ? "Nessun host o scheda corrisponde alla ricerca."
-        : `Nessun host salvato. Premi ${quickKey} per una connessione rapida o crea un host dal Vault.`
-      : "Nessun host salvato. Aggiungine uno dal Vault o digita un indirizzo SSH."
-    : "Nessun host o scheda corrisponde alla ricerca.";
+    },
+    onConnect,
+    onQuickConnect,
+  });
+  const listed = results.some((r) => r.group === "tabs" || r.group === "hosts");
+  const empty = listed
+    ? null
+    : emptyMessage({
+        jump,
+        text,
+        hasTarget: !!target,
+        nothingSaved: !hosts.length && !tabs.length,
+        quickKey,
+      });
   return (
     <section
       className="mx-auto min-h-0 w-full max-w-[760px] flex-1 overflow-auto px-[24px] pt-[40px] pb-[56px]"
-      aria-label="Nuova scheda"
+      aria-label={jump ? "Vai alla scheda" : "Nuova scheda"}
     >
       <Command
         shouldFilter={false}
@@ -205,81 +153,44 @@ export function ConnectionLauncher({
         <LauncherSearch
           value={query}
           shortcut={shortcut}
+          placeholder={
+            jump
+              ? "Vai alla scheda"
+              : "Cerca host o schede · ssh utente@host -p 22"
+          }
           onChange={(value) => {
             setQuery(value);
             setSelection(0);
           }}
           onKeyDown={onKeyDown}
         />
-        <CommandList
+        {!jump && (
+          <LauncherToolbar
+            picked={picked}
+            busy={busy}
+            canPickHosts={hosts.length >= 2}
+            session={session}
+            onCancel={() => setPicked(null)}
+            onCreate={() => {
+              onCreateWorkspace(picked!);
+              setPicked(null);
+            }}
+            onPickHosts={() => setPicked([])}
+            onRestore={onRestore}
+          />
+        )}
+        <LauncherList
           label={text ? "Risultati ricerca" : "Connessioni disponibili"}
-          className="max-h-none overflow-visible"
-        >
-          {workspaceRows.length > 0 && (
-            <div className={sectionClass}>
-              <div className={headerClass}>
-                <h2 className="m-0 text-[13px]">Workspace</h2>
-              </div>
-              <CommandGroup className="p-0">{workspaceRows}</CommandGroup>
-            </div>
-          )}
-          <div className={sectionClass}>
-            <div className={headerClass}>
-              <h2 className="m-0 text-[13px]">
-                {listHeading({ picking: !!picked, text, hasRecent })}
-              </h2>
-              <div
-                className="flex items-center gap-[2px]"
-                onKeyDown={(event) => event.stopPropagation()}
-              >
-                {picked ? (
-                  <PickingActions
-                    count={picked.length}
-                    busy={busy}
-                    onCancel={() => setPicked(null)}
-                    onCreate={() => {
-                      onCreateWorkspace(picked);
-                      setPicked(null);
-                    }}
-                  />
-                ) : (
-                  <LauncherActions
-                    busy={busy}
-                    preview={preview}
-                    canPickHosts={hosts.length >= 2}
-                    session={session}
-                    onLocalTerminal={onLocalTerminal}
-                    onPickHosts={() => setPicked([])}
-                    onRestore={onRestore}
-                  />
-                )}
-              </div>
-            </div>
-            <CommandGroup className="p-0">{otherRows}</CommandGroup>
-            {!otherRows.length && (
-              <p className="px-[10px] pt-[18px] pb-[14px] text-[13px] text-muted-foreground">
-                {emptyMessage}
-              </p>
-            )}
-          </div>
-        </CommandList>
-      </Command>
-      {target && (
-        <QuickConnectForm
-          target={target}
-          canConnect={!busy}
-          onSubmit={() => onQuickConnect(target)}
+          groups={groupResults(results, {
+            picking: !!picked,
+            text,
+            hasRecent,
+          })}
+          empty={empty}
+          renderRow={row}
         />
-      )}
-      <p className="help mt-[16px]">
-        Invio apre · Maiusc+Invio nuova sessione · {quickKey} connessione rapida
-      </p>
-      {preview && (
-        <p className="help mt-[16px]">
-          Anteprima: connessioni SSH e terminale locale sono disponibili
-          nell’app desktop.
-        </p>
-      )}
+      </Command>
+      <LauncherFooter jump={jump} preview={preview} quickKey={quickKey} />
     </section>
   );
 }

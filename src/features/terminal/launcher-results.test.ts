@@ -2,6 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   MAX_WORKSPACE_HOSTS,
+  emptyMessage,
+  groupResults,
   launcherKeyAction,
   launcherResults,
   listHeading,
@@ -53,17 +55,23 @@ const keys = (input: Partial<Input>) =>
   launcherResults({ ...base, ...input }).results.map((r) => r.key);
 
 test("hosts come most recently used first, then by name", () => {
-  assert.deepEqual(keys({}), ["workspace-w1", "host-b", "host-a", "host-c"]);
+  assert.deepEqual(keys({}), [
+    "workspace-w1",
+    "host-b",
+    "host-a",
+    "host-c",
+    "local",
+  ]);
   assert.equal(launcherResults(base).hasRecent, true);
 });
 
 test("open tabs only show while searching", () => {
   assert.ok(!keys({}).includes("tab-t1"));
-  assert.deepEqual(keys({ query: "web" }), ["tab-t1"]);
+  assert.deepEqual(keys({ query: "web" }), ["tab-t1", "local"]);
 });
 
 test("a search matches the identity's user name", () => {
-  assert.deepEqual(keys({ query: "DEPLOY" }), ["host-c"]);
+  assert.deepEqual(keys({ query: "DEPLOY" }), ["host-c", "local"]);
 });
 
 test("picking hosts lists hosts only", () => {
@@ -115,7 +123,7 @@ test("the list heading follows picking, searching and history", () => {
   const state = { picking: false, text: "", hasRecent: true };
   assert.equal(listHeading(state), "Connessioni recenti");
   assert.equal(listHeading({ ...state, hasRecent: false }), "Host salvati");
-  assert.equal(listHeading({ ...state, text: "a" }), "Risultati");
+  assert.equal(listHeading({ ...state, text: "a" }), "Host");
   assert.equal(
     listHeading({ ...state, picking: true, text: "a" }),
     "Scegli gli host",
@@ -144,7 +152,7 @@ test("a host with open sessions is one row that switches to the latest", () => {
   const { results } = launcherResults({ ...base, ...input });
   assert.deepEqual(
     results.map((r) => r.key),
-    ["host-a"],
+    ["host-a", "local"],
   );
   assert.equal(results[0].openTab?.id, "t2");
 });
@@ -159,10 +167,13 @@ test("the row also matches on the tab and carries panes of a split", () => {
   const r = launcherResults({ ...base, query: "gamma", tabs: [split] }).results;
   assert.deepEqual(
     r.map((x) => x.key),
-    ["host-c"],
+    ["host-c", "local"],
   );
   assert.equal(r[0].openTab?.id, "t9");
-  assert.deepEqual(keys({ query: "workspace", tabs: [split] }), ["tab-t9"]);
+  assert.deepEqual(keys({ query: "workspace", tabs: [split] }), [
+    "tab-t9",
+    "local",
+  ]);
 });
 
 test("open hosts and tabs come first, newest first, then the other hosts", () => {
@@ -176,13 +187,14 @@ test("open hosts and tabs come first, newest first, then the other hosts", () =>
     "host-b",
     "host-a",
     "host-c",
+    "local",
   ]);
 });
 
 test("a tab of a deleted host keeps its own row", () => {
   assert.deepEqual(
     keys({ query: "ghost", tabs: [session("t1", "ghost", 1)] }),
-    ["tab-t1"],
+    ["tab-t1", "local"],
   );
 });
 
@@ -211,5 +223,107 @@ test("Cmd/Ctrl+Enter starts the timeline for a target, and does nothing otherwis
   assert.equal(
     launcherKeyAction("Enter", { ...state, canQuickConnect: false }),
     null,
+  );
+});
+
+const groupsOf = (input: Partial<Input>) => {
+  const { text, hasRecent, results } = launcherResults({ ...base, ...input });
+  return groupResults(results, { picking: false, text, hasRecent }).map((g) => [
+    g.heading,
+    g.items.map((i) => i.result.key),
+  ]);
+};
+
+test("an open host is listed once, under Schede, not under Host", () => {
+  const tabs = [session("t1", "a", 4)];
+  assert.deepEqual(groupsOf({ query: "a", tabs, workspaces: [] }), [
+    ["Schede", ["host-a"]],
+    ["Host", ["host-b", "host-c"]],
+    ["Connessione rapida", ["local"]],
+  ]);
+});
+
+test("groups come in order, empty ones are left out, indexes are flat", () => {
+  const tabs = [
+    { id: "q", title: "quick", subtitle: "root@x.example", lastActive: 9 },
+  ];
+  const target = { address: "web.example", port: 22, username: "root" };
+  const { results } = launcherResults({
+    ...base,
+    query: "e",
+    tabs,
+    target,
+    workspaces: [],
+  });
+  const groups = groupResults(results, {
+    picking: false,
+    text: "e",
+    hasRecent: true,
+  });
+  assert.deepEqual(
+    groups.map((g) => g.heading),
+    ["Schede", "Host", "Connessione rapida"],
+  );
+  assert.deepEqual(
+    groups.flatMap((g) => g.items.map((i) => i.index)),
+    results.map((_, i) => i),
+  );
+  assert.deepEqual(
+    groups[2].items.map((i) => i.result.key),
+    ["target", "local"],
+  );
+  assert.equal(groups[2].items[0].result.title, "root@web.example:22");
+});
+
+test("without a search the history and the local terminal are listed", () => {
+  assert.deepEqual(groupsOf({ workspaces: [] }), [
+    ["Connessioni recenti", ["host-b", "host-a", "host-c"]],
+    ["Connessione rapida", ["local"]],
+  ]);
+  assert.deepEqual(groupsOf({ workspaces: [], hosts: [] }), [
+    ["Connessione rapida", ["local"]],
+  ]);
+});
+
+test("picking hosts lists no quick connect group", () => {
+  assert.deepEqual(
+    keys({ selecting: true, target: { address: "a", port: 22 } }),
+    ["host-b", "host-a", "host-c"],
+  );
+});
+
+test("the jump mode lists open tabs only, newest first", () => {
+  const tabs = [
+    session("t1", "a", 2),
+    { id: "t2", title: "quick", subtitle: "root@x.example", lastActive: 9 },
+    session("t3", "b", 5),
+  ];
+  const target = { address: "a", port: 22 };
+  assert.deepEqual(keys({ jump: true, tabs, target }), [
+    "tab-t2",
+    "tab-t3",
+    "tab-t1",
+  ]);
+  assert.deepEqual(keys({ jump: true, tabs, query: "root@x" }), ["tab-t2"]);
+  assert.deepEqual(keys({ jump: true, tabs: [] }), []);
+});
+
+test("the empty message tells why nothing is listed", () => {
+  const state = {
+    jump: false,
+    text: "x",
+    hasTarget: false,
+    nothingSaved: false,
+    quickKey: "⌘Invio",
+  };
+  assert.match(emptyMessage(state), /corrisponde/);
+  assert.match(emptyMessage({ ...state, nothingSaved: true }), /⌘Invio/);
+  assert.match(
+    emptyMessage({ ...state, jump: true }),
+    /Nessuna scheda corrisponde/,
+  );
+  assert.equal(
+    emptyMessage({ ...state, jump: true, text: "" }),
+    "Nessuna scheda aperta.",
   );
 });
