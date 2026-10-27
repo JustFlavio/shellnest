@@ -24,12 +24,12 @@ La barra delle sessioni occupa la parte superiore; la sidebar raccoglie navigazi
 
 Gli editor usano sezioni di form e azioni fisse nel footer. Gli host validi si salvano automaticamente; gli altri editor usano il salvataggio esplicito. Creare identità e chiavi dall'host conserva la bozza. Le conferme brevi usano dialoghi centrati; le modifiche incomplete richiedono conferma prima di essere scartate.
 
-Il menu applicazione nell’header raccoglie navigazione, nuove connessioni, visualizzazione, impostazioni, scorciatoie, blocco del vault e comandi della finestra. **Scorciatoie da tastiera** elenca i comandi disponibili: `Ctrl/Cmd T` o `Ctrl/Cmd K` per una nuova connessione, `Ctrl/Cmd N` per un nuovo host, `Ctrl/Cmd Maiusc F` per la ricerca nella raccolta e `Ctrl/Cmd Maiusc L` per bloccare il vault, con conferma se ci sono sessioni aperte. Chiudere la sessione attiva seleziona una sessione adiacente quando disponibile.
+Il menu applicazione nell’header raccoglie navigazione, nuove connessioni, visualizzazione, impostazioni, scorciatoie, blocco del vault e comandi della finestra. **Scorciatoie da tastiera** elenca i comandi disponibili: `Ctrl/Cmd T` o `Ctrl/Cmd K` per una nuova connessione, `Ctrl/Cmd J` per passare a una scheda aperta, `Ctrl/Cmd N` per un nuovo host, `Ctrl/Cmd Maiusc F` per la ricerca nella raccolta e `Ctrl/Cmd Maiusc L` per bloccare il vault, con conferma se ci sono sessioni aperte. Chiudere la sessione attiva seleziona una sessione adiacente quando disponibile.
 
 - Vault locale cifrato con Argon2id e XChaCha20-Poly1305, nonce casuali a ogni salvataggio.
 - Più vault indipendenti, ciascuno con password, host, identità e configurazione sync propri; creazione, selezione e rinomina.
 - Elenco e cards compatte degli host, cartelle, ricerca, modifica, menu azioni e selezione multipla.
-- Nuova scheda `+`, `Ctrl/Cmd T` e `Ctrl/Cmd K`: ricerca di host e schede, accessi recenti agli host salvati e connessione rapida con identità esistente.
+- Nuova scheda `+`, `Ctrl/Cmd T` e `Ctrl/Cmd K`: ricerca di host e schede in gruppi con titolo («Schede», «Host», «Connessione rapida»), accessi recenti agli host salvati, terminale locale e connessione rapida con identità esistente. Un host con una scheda aperta compare solo sotto «Schede». `Ctrl/Cmd J` apre lo stesso riquadro in modalità «Vai alla scheda»: elenca soltanto le schede aperte, le più recenti per prime.
 - Terminale locale del dispositivo con PTY nativo (ConPTY su Windows), input e ridimensionamento.
 - Riconoscimento del sistema remoto dopo l'accesso, con icona e ultimo collegamento memorizzati nel vault.
 - Portachiavi: importazione da file o testo, chiave privata e passphrase conservate una sola volta, riconoscimento dei duplicati per impronta pubblica.

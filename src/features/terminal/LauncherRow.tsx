@@ -1,4 +1,11 @@
-import { Check, LayoutGrid, Plus, Trash2 } from "lucide-react";
+import {
+  Check,
+  LayoutGrid,
+  Plus,
+  TerminalSquare,
+  Trash2,
+  Zap,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommandItem } from "@/components/ui/command";
 import { OsIcon } from "@/components/OsIcon";
@@ -63,6 +70,14 @@ export function LauncherRow({
         {result.kind === "workspace" ? (
           <span className="grid size-[24px] shrink-0 place-items-center rounded-[6px] bg-[color-mix(in_oklab,#76c5a0_16%,transparent)] text-[#76c5a0]">
             <LayoutGrid size={14} />
+          </span>
+        ) : result.kind === "target" || result.kind === "local" ? (
+          <span className="grid size-[24px] shrink-0 place-items-center rounded-[6px] bg-accent text-muted-foreground">
+            {result.kind === "target" ? (
+              <Zap size={14} />
+            ) : (
+              <TerminalSquare size={14} />
+            )}
           </span>
         ) : (
           <OsIcon os={result.os} size="launch" />

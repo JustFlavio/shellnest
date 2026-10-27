@@ -22,11 +22,11 @@ const edit = (page, label) =>
 
 test("rebind, persist and reset one shortcut", async ({ page }) => {
   await edit(page, "Chiudi pane o scheda");
-  await page.keyboard.press("Meta+j");
-  await expect(row(page, "Chiudi pane o scheda")).toContainText("⌘J");
+  await page.keyboard.press("Meta+y");
+  await expect(row(page, "Chiudi pane o scheda")).toContainText("⌘Y");
   expect(
     await page.evaluate(() => localStorage.getItem("shellnest.shortcuts")),
-  ).toContain('"j"');
+  ).toContain('"y"');
   await page
     .getByRole("button", { name: "Ripristina “Chiudi pane o scheda”" })
     .click();
@@ -68,11 +68,11 @@ test("a rebound shortcut drives the app, the old one stops", async ({
   page,
 }) => {
   await edit(page, "Connessione rapida");
-  await page.keyboard.press("Meta+j");
+  await page.keyboard.press("Meta+y");
   await page.keyboard.press("Escape");
   const launcher = page.getByPlaceholder(/Cerca host o schede/);
   await page.keyboard.press("Meta+t");
   await expect(launcher).toHaveCount(0);
-  await page.keyboard.press("Meta+j");
+  await page.keyboard.press("Meta+y");
   await expect(launcher).toBeVisible();
 });

@@ -1,5 +1,6 @@
 import type { Group, Host, Identity, Workspace } from "../../lib/types.ts";
 import { groupPath } from "../hosts/groups.ts";
+import type { ConnectionTarget } from "./connection-target.ts";
 import type { SavedNode } from "./workbench-state.ts";
 
 export type LauncherTab = {
@@ -17,9 +18,12 @@ export type RecentHost = Host & {
   lastConnectedAt?: number | null;
   os?: string | null;
 };
+// The titled sections of the list, in display order.
+export type LauncherGroup = "workspace" | "tabs" | "hosts" | "quick";
 export type LauncherResult = {
   key: string;
-  kind: "workspace" | "tab" | "host";
+  group: LauncherGroup;
+  kind: "workspace" | "tab" | "host" | "target" | "local";
   title: string;
   path: string;
   os?: string | null;
@@ -28,6 +32,8 @@ export type LauncherResult = {
   host?: RecentHost;
   // for a host: the open tab that row switches to
   openTab?: LauncherTab;
+  // for a typed connection target: what Enter on the row connects to
+  target?: ConnectionTarget;
 };
 
 export const MAX_WORKSPACE_HOSTS = 16;
@@ -66,10 +72,16 @@ const latestTab = (
       undefined,
     );
 
-// What the launcher lists for a query: saved workspaces, then (only when searching) what is
-// open, then the other saved hosts, most recently used first. A host with an open session is
-// one row that switches to it; tabs that are not saved hosts keep their own row. Picking
-// hosts for a new workspace shows plain host rows only.
+// "user@host:port" as the quick-connect row shows it.
+export const formatTarget = ({ username, address, port }: ConnectionTarget) =>
+  `${username ? `${username}@` : ""}${address.includes(":") ? `[${address}]` : address}:${port}`;
+
+// What the launcher lists for a query, in the order of its titled groups: saved workspaces,
+// then (only when searching) what is open, then the other saved hosts, most recently used
+// first, then quick connect: the typed target and the local terminal. A host with an open
+// session is one row that switches to it, never listed again with the hosts; tabs that are not
+// saved hosts keep their own row. Picking hosts for a new workspace shows plain host rows only.
+// The jump mode lists the open tabs only, newest first.
 export function launcherResults({
   query,
   vaultName,
@@ -79,6 +91,8 @@ export function launcherResults({
   workspaces,
   tabs,
   selecting,
+  target = null,
+  jump = false,
 }: {
   query: string;
   vaultName: string;
@@ -88,11 +102,16 @@ export function launcherResults({
   workspaces: Workspace[];
   tabs: LauncherTab[];
   selecting: boolean;
+  // the typed text as a quick-connect target, when it looks like one
+  target?: ConnectionTarget | null;
+  jump?: boolean;
 }): { text: string; hasRecent: boolean; results: LauncherResult[] } {
   const text = query.trim().toLocaleLowerCase();
   const matches = (value: string) =>
     !text || value.toLocaleLowerCase().includes(text);
   const identityById = new Map(identities.map((i) => [i.id, i]));
+  if (jump)
+    return { text, hasRecent: false, results: jumpRows(tabs, hosts, matches) };
   const sorted = [...hosts].sort(recentFirst);
   const savedIds = new Set(hosts.map((h) => h.id));
   const searching = !!text && !selecting;
@@ -109,6 +128,7 @@ export function launcherResults({
       ));
   const hostRow = (host: RecentHost, tab?: LauncherTab): LauncherResult => ({
     key: `host-${host.id}`,
+    group: tab ? "tabs" : "hosts",
     kind: "host",
     title: host.name,
     path: host.groupId
@@ -131,6 +151,7 @@ export function launcherResults({
     .filter((t) => matches(`${t.title} ${t.subtitle ?? ""}`))
     .map((tab): LauncherResult => ({
       key: `tab-${tab.id}`,
+      group: "tabs",
       kind: "tab",
       title: tab.title,
       path: tab.subtitle ?? "Scheda aperta",
@@ -147,6 +168,7 @@ export function launcherResults({
       .filter((workspace) => matches(workspace.name))
       .map((workspace): LauncherResult => ({
         key: `workspace-${workspace.id}`,
+        group: "workspace",
         kind: "workspace",
         title: workspace.name,
         path: `${workspaceSize(workspace)} connessioni`,
@@ -155,11 +177,84 @@ export function launcherResults({
     ...open,
     ...restRows,
   ];
+  const quick: LauncherResult[] = [
+    ...(target
+      ? [
+          {
+            key: "target",
+            group: "quick",
+            kind: "target",
+            title: formatTarget(target),
+            path: "SSH",
+            target,
+          } as const,
+        ]
+      : []),
+    {
+      key: "local",
+      group: "quick",
+      kind: "local",
+      title: "Terminale locale",
+      path: "Questo computer",
+    },
+  ];
   return {
     text,
     hasRecent: sorted.some((h) => (h.lastConnectedAt ?? 0) > 0),
-    results: selecting ? all.filter((r) => r.kind === "host") : all,
+    results: selecting
+      ? all.filter((r) => r.kind === "host")
+      : [...all, ...quick],
   };
+}
+
+function jumpRows(
+  tabs: LauncherTab[],
+  hosts: RecentHost[],
+  matches: (value: string) => boolean,
+): LauncherResult[] {
+  const hostById = new Map(hosts.map((h) => [h.id, h]));
+  return tabs
+    .filter((t) => matches(`${t.title} ${t.subtitle ?? ""}`))
+    .sort((a, b) => b.lastActive - a.lastActive)
+    .map((tab) => ({
+      key: `tab-${tab.id}`,
+      group: "tabs",
+      kind: "tab",
+      title: tab.title,
+      path: tab.subtitle ?? "Scheda aperta",
+      os: tab.hostId ? hostById.get(tab.hostId)?.os : undefined,
+      tab,
+    }));
+}
+
+export type ResultGroup = {
+  id: LauncherGroup;
+  heading: string;
+  items: { result: LauncherResult; index: number }[];
+};
+
+// Splits the ordered results into their titled groups; `index` is the position in the flat
+// list, which the arrow keys walk across groups.
+export function groupResults(
+  results: LauncherResult[],
+  heading: { picking: boolean; text: string; hasRecent: boolean },
+): ResultGroup[] {
+  const titles: Record<LauncherGroup, string> = {
+    workspace: "Workspace",
+    tabs: "Schede",
+    hosts: listHeading(heading),
+    quick: "Connessione rapida",
+  };
+  const groups: ResultGroup[] = [];
+  results.forEach((result, index) => {
+    let group = groups.find((g) => g.id === result.group);
+    if (!group) {
+      group = { id: result.group, heading: titles[result.group], items: [] };
+      groups.push(group);
+    }
+    group.items.push({ result, index });
+  });
+  return groups;
 }
 
 // What a key press does in the search box: move the selection, open it, quick-connect to the
@@ -167,8 +262,7 @@ export function launcherResults({
 // connect: it connects when the text is a target and an identity is picked, otherwise it
 // reveals the quick-connect card so the identity can be chosen. Null: leave the key alone.
 export type LauncherKeyAction =
-  | { type: "clear" | "activate" | "quick" }
-  | { type: "select"; index: number };
+  { type: "clear" | "activate" | "quick" } | { type: "select"; index: number };
 
 export function launcherKeyAction(
   key: string,
@@ -210,6 +304,32 @@ export function listHeading({
   hasRecent: boolean;
 }): string {
   if (picking) return "Scegli gli host";
-  if (text) return "Risultati";
+  if (text) return "Host";
   return hasRecent ? "Connessioni recenti" : "Host salvati";
+}
+
+// Why the tab and host groups are empty; asked only when they are.
+export function emptyMessage({
+  jump,
+  text,
+  hasTarget,
+  nothingSaved,
+  quickKey,
+}: {
+  jump: boolean;
+  text: string;
+  hasTarget: boolean;
+  nothingSaved: boolean;
+  quickKey: string;
+}): string {
+  if (jump)
+    return text
+      ? "Nessuna scheda corrisponde alla ricerca."
+      : "Nessuna scheda aperta.";
+  if (!nothingSaved) return "Nessun host o scheda corrisponde alla ricerca.";
+  if (!text)
+    return "Nessun host salvato. Aggiungine uno dal Vault o digita un indirizzo SSH.";
+  return hasTarget
+    ? "Nessun host o scheda corrisponde alla ricerca."
+    : `Nessun host salvato. Premi ${quickKey} per una connessione rapida o crea un host dal Vault.`;
 }

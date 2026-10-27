@@ -24,9 +24,9 @@ const goVault = async (page) => {
   await page.getByRole("heading", { name: "Host", level: 1 }).waitFor();
 };
 
-test("the card and Cmd+Enter only start the timeline; the user comes from user@host", async ({ page }) => {
+test("the target row and Cmd+Enter only start the timeline; the user comes from user@host", async ({ page }) => {
   await search(page).fill("root@192.0.2.50");
-  await page.getByRole("button", { name: "Connetti", exact: true }).click();
+  await page.getByRole("option", { name: /root@192\.0\.2\.50:22/ }).click();
   await expect(page.getByLabel("Utente", { exact: true })).toHaveValue("root");
   await expect(steps(page)).toHaveText([
     /Utente/,

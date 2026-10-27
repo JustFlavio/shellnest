@@ -9,7 +9,8 @@ export function useTabList() {
     [active, setActive] = useState("vault"),
     [focusedPane, setFocusedPane] = useState(""),
     [launcherOpen, setLauncherOpen] = useState(false),
-    [launcherKey, setLauncherKey] = useState(0);
+    [launcherKey, setLauncherKey] = useState(0),
+    [launcherMode, setLauncherMode] = useState<"search" | "jump">("search");
   const bar = tabs.filter((t) => !t.parent);
   // when each tab was last shown, so the launcher can switch to the latest session of a host
   const shown = useRef(new Map<string, number>());
@@ -34,11 +35,14 @@ export function useTabList() {
     setLauncherOpen(false);
     if (active === "launcher") setActive(bar[bar.length - 1]?.id ?? "vault");
   };
-  const openLauncher = () => {
+  const showLauncher = (mode: "search" | "jump") => {
+    setLauncherMode(mode);
     setLauncherOpen(true);
     setActive("launcher");
     setLauncherKey((k) => k + 1);
   };
+  const openLauncher = () => showLauncher("search");
+  const openJump = () => showLauncher("jump");
   const reorder = (movingId: string, targetId: string) =>
     setTabs((old) => reorderTabs(old, movingId, targetId));
   const renameTab = (id: string, name?: string) =>
@@ -65,10 +69,12 @@ export function useTabList() {
     launcherOpen,
     setLauncherOpen,
     launcherKey,
+    launcherMode,
     addTab,
     activateTab,
     closeLauncher,
     openLauncher,
+    openJump,
     reorder,
     renameTab,
     tabStatus,

@@ -4,12 +4,14 @@ import { InputGroupAddon } from "@/components/ui/input-group";
 export function LauncherSearch({
   value,
   shortcut,
+  placeholder,
   onChange,
   onKeyDown,
 }: {
   value: string;
   // formatted binding of the quick-connect shortcut; empty when unbound
   shortcut: string;
+  placeholder: string;
   onChange: (value: string) => void;
   onKeyDown: (event: React.KeyboardEvent) => void;
 }) {
@@ -20,7 +22,7 @@ export function LauncherSearch({
       className="h-[40px] min-w-0 flex-1 px-0! text-[14px] placeholder:text-muted-foreground caret-primary"
       autoFocus
       autoCapitalize="off"
-      placeholder="Cerca host o schede · ssh utente@host -p 22"
+      placeholder={placeholder}
       value={value}
       onValueChange={onChange}
       onKeyDown={onKeyDown}

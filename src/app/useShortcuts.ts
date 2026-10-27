@@ -76,6 +76,7 @@ export function useShortcuts(app: AppState) {
         saveSettings({ ...appSettings, fontSize: clampFontSize(to) });
       const handled: Record<string, () => boolean | void> = {
         quickConnect: tabs.openLauncher,
+        jumpTab: tabs.openJump,
         newHost: () => library.newHostIn(""),
         newFolder: () => {
           setActive("vault");

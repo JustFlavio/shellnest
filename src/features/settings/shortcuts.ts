@@ -24,6 +24,11 @@ export const SHORTCUTS: Binding[] = [
     label: "Connessione rapida",
     combos: [{ key: "t", mod: true }],
   },
+  {
+    id: "jumpTab",
+    label: "Vai alla scheda",
+    combos: [{ key: "j", mod: true }],
+  },
   { id: "newHost", label: "Nuovo host", combos: [{ key: "n", mod: true }] },
   {
     id: "newFolder",

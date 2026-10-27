@@ -10,6 +10,7 @@ export function LauncherPage() {
       bar,
       lastActive,
       launcherKey,
+      launcherMode,
       setSavingWs,
       connect,
       activateTab,
@@ -23,7 +24,8 @@ export function LauncherPage() {
   } = useApp();
   return (
     <ConnectionLauncher
-      shortcut={hint("quickConnect")}
+      mode={launcherMode}
+      shortcut={hint(launcherMode === "jump" ? "jumpTab" : "quickConnect")}
       key={`${view.vaultId}-${launcherKey}`}
       vaultName={view.vaultName}
       groups={view.groups}
