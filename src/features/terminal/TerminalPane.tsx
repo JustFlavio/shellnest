@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import type { TerminalTab } from "@/lib/types";
 import type { AppSettings } from "@/features/settings/settings.mjs";
 import { PaneHeader } from "./PaneHeader";
-import { PaneStatus } from "./PaneStatus";
+import { ConnectionTimeline } from "./ConnectionTimeline";
 import { PasteConfirmDialog } from "./PasteConfirmDialog";
 import { TerminalSearchBar } from "./TerminalSearchBar";
 import type { SessionCallbacks } from "./terminal-session";
@@ -147,14 +147,11 @@ export function TerminalPane({
         />
       )}
       {!opened && (
-        <PaneStatus
+        <ConnectionTimeline
           tab={tab}
-          endpoint={endpoint}
           phase={phase}
           logs={logs}
           failure={failure}
-          pendingTrust={pendingTrust}
-          onClose={onClose}
           onRetry={onRetry}
           onEdit={onEdit}
         />

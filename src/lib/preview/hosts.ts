@@ -121,3 +121,21 @@ export function assignIdentity(next: View, args: Args): void {
       : h,
   );
 }
+
+// The preview has no network: every unverified host shows the same sample key.
+export const PREVIEW_FINGERPRINT = "SHA256:impronta-dimostrativa";
+
+export function probeHost(next: View, args: Args): string {
+  requireValue(
+    next.hosts.some((h) => h.id === args.id),
+    "Host non trovato",
+  );
+  return PREVIEW_FINGERPRINT;
+}
+
+export function trustHost(next: View, args: Args): void {
+  const host = next.hosts.find((h) => h.id === args.id);
+  requireValue(host, "Host non trovato");
+  requireValue(args.expected === PREVIEW_FINGERPRINT, "Impronta non valida");
+  host!.fingerprint = PREVIEW_FINGERPRINT;
+}

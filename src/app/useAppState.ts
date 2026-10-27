@@ -42,7 +42,7 @@ export function useAppState() {
     library.bulkOpen ||
     library.deletion ||
     settings.section ||
-    tabs.trust ||
+    (tabs.trust && !tabs.trust.tabId) ||
     tabs.pendingClose ||
     session.vaultDialog ||
     session.pendingSwitch ||

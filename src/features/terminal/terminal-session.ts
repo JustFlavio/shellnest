@@ -141,20 +141,44 @@ export function startSession(
     listeners.forEach((listener) => listener.dispose());
   };
   if (!desktop) {
-    const timers = [
-      window.setTimeout(
-        () => handle({ type: "status", data: "Connesso" }),
-        250,
-      ),
-      window.setTimeout(
-        () =>
-          term.write(
-            "\x1b[90mSessione dimostrativa: nessuna connessione reale.\x1b[0m\r\n" +
-              prompt,
-          ),
-        300,
-      ),
+    // The preview replays the stages of a real connection. Addresses ending in .slow.test
+    // stay in the authentication stage, .fail.test ends there with an error.
+    const address = tab.kind === "ssh" ? tab.host.address : "";
+    const stages = [
+      "Connessione al server SSH",
+      "Impronta del server verificata",
+      "Autenticazione SSH",
     ];
+    const timers = stages.map((text, i) =>
+      window.setTimeout(() => handle({ type: "status", data: text }), i * 60),
+    );
+    if (address.endsWith(".fail.test"))
+      timers.push(
+        window.setTimeout(
+          () => handle({ type: "error", data: "Autenticazione fallita" }),
+          250,
+        ),
+      );
+    else if (!address.endsWith(".slow.test"))
+      timers.push(
+        window.setTimeout(
+          () =>
+            handle({ type: "status", data: "Apertura del terminale remoto" }),
+          180,
+        ),
+        window.setTimeout(
+          () => handle({ type: "status", data: "Connesso" }),
+          250,
+        ),
+        window.setTimeout(
+          () =>
+            term.write(
+              "\x1b[90mSessione dimostrativa: nessuna connessione reale.\x1b[0m\r\n" +
+                prompt,
+            ),
+          300,
+        ),
+      );
     return () => {
       stop();
       timers.forEach(window.clearTimeout);

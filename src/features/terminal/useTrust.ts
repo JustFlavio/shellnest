@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import type { VaultApi } from "@/features/vault/useVault";
 import type { View } from "@/lib/types";
 import type { Trust } from "./tabs-types";
@@ -51,6 +52,13 @@ export function useTrust(
       setTrust(null);
       await continueConnections();
     });
+  // Closing the pane that waits for an answer is a refusal too: stop the remaining opens.
+  useEffect(() => {
+    if (!trust?.tabId || list.tabs.some((t) => t.id === trust.tabId)) return;
+    queue.current = [];
+    verifying.current.delete(trust.tabId);
+    setTrust(null);
+  }, [trust, list.tabs]);
   const rejectTrust = () => {
     queue.current = [];
     if (trust?.tabId) closeTab(trust.tabId);
