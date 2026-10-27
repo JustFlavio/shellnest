@@ -10,7 +10,11 @@ import { vaultIdFromPath } from "./vault-id.mjs";
  * shortcut: one deployment token authorizes every vault; add per-vault ACLs
  * before multi-user hosting.
  */
-export async function createSyncServer({ token, directory }) {
+export async function createSyncServer({
+  token,
+  directory,
+  onError = () => {},
+}) {
   const authorized = createAuthenticator(token);
   const storage = await createStorage(directory);
 
@@ -21,9 +25,11 @@ export async function createSyncServer({ token, directory }) {
       res.writeHead(status, { "Content-Type": "application/json" });
       res.end(JSON.stringify(value));
     };
+    // Refuse without reading a body we do not want: answer, then drop the connection.
     const reject = (status, error) => {
-      req.resume();
+      res.setHeader("Connection", "close");
       reply(status, { error });
+      res.once("finish", () => req.destroy());
     };
 
     if (req.url === "/health" && req.method === "GET")
@@ -58,7 +64,8 @@ export async function createSyncServer({ token, directory }) {
       res.setHeader("ETag", written.etag);
       return reply(200, { ok: true });
     } catch (error) {
-      if (error.status) return reply(error.status, { error: error.message });
+      if (error.status) return reject(error.status, error.message);
+      onError(error);
       if (!res.headersSent) reply(500, { error: "Storage unavailable" });
       else res.destroy();
     }

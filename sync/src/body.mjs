@@ -11,10 +11,8 @@ const httpError = (status, message) =>
  * Content-Length and the bytes actually received.
  */
 export async function readEnvelope(req) {
-  if (Number(req.headers["content-length"] ?? 0) > MAX_BYTES) {
-    req.resume();
+  if (Number(req.headers["content-length"] ?? 0) > MAX_BYTES)
     throw httpError(413, "Too large");
-  }
   let size = 0;
   const chunks = [];
   for await (const chunk of req) {

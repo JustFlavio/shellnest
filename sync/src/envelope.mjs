@@ -23,7 +23,9 @@ export function isEnvelope(value) {
     typeof value === "object" &&
     value.version === 1 &&
     Object.keys(value).sort().join(",") === "ciphertext,nonce,salt,version" &&
-    ["salt", "nonce", "ciphertext"].every((k) => typeof value[k] === "string") &&
+    ["salt", "nonce", "ciphertext"].every(
+      (k) => typeof value[k] === "string",
+    ) &&
     base64(value.salt, 16) &&
     base64(value.nonce, 24) &&
     base64(value.ciphertext)

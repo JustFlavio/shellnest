@@ -1,5 +1,5 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, open, readFile, rename, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { isEnvelope, revision } from "./envelope.mjs";
 import { LEGACY_VAULT } from "./vault-id.mjs";
 
@@ -34,7 +34,8 @@ export async function createStorage(directory) {
       if (error.code === "ENOENT") return null;
       throw error;
     }
-    if (!isEnvelope(JSON.parse(bytes))) throw new Error("Invalid stored envelope");
+    if (!isEnvelope(JSON.parse(bytes)))
+      throw new Error("Invalid stored envelope");
     return bytes;
   }
   // Write to a temporary file, then rename: a crash leaves the old or the new
@@ -42,6 +43,11 @@ export async function createStorage(directory) {
   async function replace(file, bytes) {
     await writeFile(`${file}.tmp`, bytes, { mode: 0o600, flush: true });
     await rename(`${file}.tmp`, file);
+    // Make the rename itself durable. Not supported everywhere (Windows), so best effort.
+    try {
+      const dir = await open(dirname(file));
+      await dir.sync().finally(() => dir.close());
+    } catch {}
   }
 
   return {
