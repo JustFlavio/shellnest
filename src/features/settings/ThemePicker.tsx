@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { TERMINAL_THEMES, type AppSettings } from "./settings.mjs";
+import { TERMINAL_THEMES, type AppSettings } from "./settings.ts";
 
 export function ThemePicker({
   value,

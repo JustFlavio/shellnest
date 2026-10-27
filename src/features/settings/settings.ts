@@ -1,11 +1,29 @@
 // App settings: one flat object in localStorage. Parsing never throws; every bad field falls back to its default.
+export type TerminalColors = Record<string, string>;
+export type TerminalThemeDef = {
+  id: string;
+  name: string;
+  colors: TerminalColors;
+};
+export type AppSettings = {
+  fontFamily: string;
+  fontSize: number;
+  terminalTheme: string;
+  copyOnSelect: boolean;
+  rightClickPaste: boolean;
+  bell: boolean;
+  optionAsMeta: boolean;
+  brightBold: boolean;
+  scrollback: number;
+};
+
 export const DEFAULT_FONT_SIZE = 13;
 export const MIN_FONT_SIZE = 8;
 export const MAX_FONT_SIZE = 32;
 export const DEFAULT_FONT_STACK =
   '"Cascadia Code", "SFMono-Regular", Consolas, monospace';
 
-const ansi = (c) => ({
+const ansi = (c: string[]): TerminalColors => ({
   black: c[0],
   red: c[1],
   green: c[2],
@@ -24,7 +42,7 @@ const ansi = (c) => ({
   brightWhite: c[15],
 });
 
-export const TERMINAL_THEMES = [
+export const TERMINAL_THEMES: TerminalThemeDef[] = [
   {
     id: "shellnest",
     name: "Shellnest",
@@ -121,7 +139,7 @@ export const TERMINAL_THEMES = [
   },
 ];
 
-export const DEFAULT_SETTINGS = {
+export const DEFAULT_SETTINGS: AppSettings = {
   // "" = the default stack
   fontFamily: "",
   fontSize: DEFAULT_FONT_SIZE,
@@ -135,30 +153,42 @@ export const DEFAULT_SETTINGS = {
   scrollback: 5000,
 };
 
-export const clampFontSize = (n) =>
+export const clampFontSize = (n: number): number =>
   Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, Math.round(n)));
 
-export const fontStack = (family) => {
+export const fontStack = (family: string): string => {
   const f = family.trim();
   if (!f) return DEFAULT_FONT_STACK;
   return f.includes('"') || f.includes(",") ? f : `"${f}", monospace`;
 };
 
-export const terminalTheme = (id) =>
+export const terminalTheme = (id: string): TerminalThemeDef =>
   TERMINAL_THEMES.find((t) => t.id === id) ?? TERMINAL_THEMES[0];
 
-export function parseSettings(text) {
-  let raw = {};
+type BoolKey = {
+  [K in keyof AppSettings]: AppSettings[K] extends boolean ? K : never;
+}[keyof AppSettings];
+type NumKey = {
+  [K in keyof AppSettings]: AppSettings[K] extends number ? K : never;
+}[keyof AppSettings];
+
+export function parseSettings(text: string | null): AppSettings {
+  let raw: Record<string, unknown> = {};
   try {
     const parsed = JSON.parse(text ?? "");
     if (parsed && typeof parsed === "object") raw = parsed;
   } catch {}
   const d = DEFAULT_SETTINGS;
-  const bool = (k) => (typeof raw[k] === "boolean" ? raw[k] : d[k]);
-  const int = (k, min, max) =>
-    Number.isFinite(raw[k])
-      ? Math.min(max, Math.max(min, Math.round(raw[k])))
+  const bool = (k: BoolKey): boolean => {
+    const v = raw[k];
+    return typeof v === "boolean" ? v : d[k];
+  };
+  const int = (k: NumKey, min: number, max: number): number => {
+    const v = raw[k];
+    return typeof v === "number" && Number.isFinite(v)
+      ? Math.min(max, Math.max(min, Math.round(v)))
       : d[k];
+  };
   return {
     fontFamily:
       typeof raw.fontFamily === "string" &&
@@ -167,9 +197,9 @@ export function parseSettings(text) {
         ? raw.fontFamily
         : d.fontFamily,
     fontSize: int("fontSize", MIN_FONT_SIZE, MAX_FONT_SIZE),
-    terminalTheme: TERMINAL_THEMES.some((t) => t.id === raw.terminalTheme)
-      ? raw.terminalTheme
-      : d.terminalTheme,
+    terminalTheme:
+      TERMINAL_THEMES.find((t) => t.id === raw.terminalTheme)?.id ??
+      d.terminalTheme,
     copyOnSelect: bool("copyOnSelect"),
     rightClickPaste: bool("rightClickPaste"),
     bell: bool("bell"),

@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Row } from "./Row";
 import { card, cardTitle } from "./settings-ui";
-import type { AppSettings } from "./settings.mjs";
+import type { AppSettings } from "./settings.ts";
 
 export function TerminalBehavior({
   settings,

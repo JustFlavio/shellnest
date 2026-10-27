@@ -1,7 +1,24 @@
 // Shortcut registry. A combo is { key, mod?, ctrl?, shift?, alt? }: `mod` is Cmd on macOS and Ctrl elsewhere, `ctrl` is the literal Control key.
 // Elsewhere letter combos also need Shift (and Alt when the combo already has Shift) so Ctrl+<letter> stays free for the shell.
-const arrow = (key, extra) => ({ key, mod: true, ...extra });
-export const SHORTCUTS = [
+export type Combo = {
+  key: string;
+  mod?: boolean;
+  ctrl?: boolean;
+  shift?: boolean;
+  alt?: boolean;
+};
+export type Binding = { id: string; label: string; combos: Combo[] };
+type KeyEvent = Pick<
+  KeyboardEvent,
+  "key" | "code" | "metaKey" | "ctrlKey" | "altKey" | "shiftKey"
+>;
+
+const arrow = (key: string, extra?: Partial<Combo>): Combo => ({
+  key,
+  mod: true,
+  ...extra,
+});
+export const SHORTCUTS: Binding[] = [
   {
     id: "quickConnect",
     label: "Connessione rapida",
@@ -123,7 +140,7 @@ export const SHORTCUTS = [
 ];
 
 // Normalised key of an event: the typed character when it is a letter or digit, else the physical key (Option and Shift change e.key).
-const keyOf = (e) => {
+const keyOf = (e: KeyEvent): string => {
   const k = e.key.toLowerCase();
   if (/^[a-z0-9]$/.test(k)) return k;
   if (k === "=" || k === "+") return "+";
@@ -134,12 +151,12 @@ const keyOf = (e) => {
   return e.key.length === 1 ? k : e.key;
 };
 
-const keyMatches = (e, key) =>
+const keyMatches = (e: KeyEvent, key: string): boolean =>
   key === "1-9"
     ? /^[1-9]$/.test(keyOf(e))
     : keyOf(e).toLowerCase() === key.toLowerCase();
 
-export function matches(e, combo, mac) {
+export function matches(e: KeyEvent, combo: Combo, mac: boolean): boolean {
   const letter = /^[a-z]$/i.test(combo.key);
   const shift = !!combo.shift || (!mac && !!combo.mod && letter);
   const alt = !!combo.alt || (!mac && !!combo.mod && letter && !!combo.shift);
@@ -155,12 +172,21 @@ export function matches(e, combo, mac) {
   );
 }
 
-export function actionFor(e, mac, bindings = SHORTCUTS) {
+export function actionFor(
+  e: KeyEvent,
+  mac: boolean,
+  bindings: Binding[] = SHORTCUTS,
+): string | undefined {
   return bindings.find((s) => s.combos.some((c) => matches(e, c, mac)))?.id;
 }
 
-const names = { ArrowLeft: "←", ArrowRight: "→", ArrowUp: "↑", ArrowDown: "↓" };
-export function format(combo, mac) {
+const names: Record<string, string> = {
+  ArrowLeft: "←",
+  ArrowRight: "→",
+  ArrowUp: "↑",
+  ArrowDown: "↓",
+};
+export function format(combo: Combo, mac: boolean): string {
   const key =
     names[combo.key] ??
     (combo.key === "1-9"
@@ -183,43 +209,54 @@ export function format(combo, mac) {
     .join("+");
 }
 
-export const hint = (id, mac, bindings = SHORTCUTS) => {
-  const combo = bindings.find((s) => s.id === id).combos[0];
+export const hint = (
+  id: string,
+  mac: boolean,
+  bindings: Binding[] = SHORTCUTS,
+): string => {
+  // callers pass registry ids, so the binding exists
+  const combo = bindings.find((s) => s.id === id)!.combos[0];
   return combo ? format(combo, mac) : "";
 };
 
-export const resolve = (overrides = {}) =>
+export const resolve = (overrides: Record<string, Combo[]> = {}): Binding[] =>
   SHORTCUTS.map((s) => ({ ...s, combos: overrides[s.id] ?? s.combos }));
 
-const flags = ["mod", "ctrl", "shift", "alt"];
+type RawCombo = Record<string, unknown>;
+const flags = ["mod", "ctrl", "shift", "alt"] as const;
 // Ignores unknown actions and malformed combos, so a corrupt or outdated store falls back to the defaults.
-export function parseOverrides(text) {
-  const out = {};
+export function parseOverrides(text: string): Record<string, Combo[]> {
+  const out: Record<string, Combo[]> = {};
   try {
-    const raw = JSON.parse(text);
+    const raw: Record<string, unknown> = JSON.parse(text);
     for (const s of SHORTCUTS) {
-      if (!Array.isArray(raw[s.id])) continue;
-      const combos = raw[s.id]
-        .filter((c) => c && typeof c.key === "string" && c.key)
-        .map((c) => ({
-          key: c.key,
+      const list = raw[s.id];
+      if (!Array.isArray(list)) continue;
+      const combos: Combo[] = list
+        .filter((c: RawCombo | null) => c && typeof c.key === "string" && c.key)
+        .map((c: RawCombo) => ({
+          key: c.key as string,
           ...Object.fromEntries(
             flags.filter((f) => c[f] === true).map((f) => [f, true]),
           ),
         }));
-      if (combos.length === raw[s.id].length) out[s.id] = combos;
+      if (combos.length === list.length) out[s.id] = combos;
     }
   } catch {}
   return out;
 }
 
 // The combo the user just pressed, in registry form; null for a lone modifier or a key without Cmd/Ctrl/Alt.
-export function comboFromEvent(e, mac, id) {
+export function comboFromEvent(
+  e: KeyEvent,
+  mac: boolean,
+  id: string,
+): Combo | null {
   if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return null;
   let key = keyOf(e);
   if (id === "gotoTab" && /^[1-9]$/.test(key)) key = "1-9";
   const letter = /^[a-z]$/.test(key);
-  let c;
+  let c: Omit<Combo, "key">;
   if (mac)
     c = { mod: e.metaKey, ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey };
   else if (e.metaKey) return null;
@@ -232,7 +269,7 @@ export function comboFromEvent(e, mac, id) {
 }
 
 // Why a combo cannot be bound, or "" when it can.
-export function reservedReason(combo, mac) {
+export function reservedReason(combo: Combo, mac: boolean): string {
   const letter = /^[a-z]$/.test(combo.key);
   if (combo.ctrl && letter && !combo.shift && !combo.alt)
     return "è riservata ai comandi del terminale";
@@ -244,7 +281,12 @@ export function reservedReason(combo, mac) {
   return "";
 }
 
-export const findConflict = (bindings, id, combo, mac) =>
+export const findConflict = (
+  bindings: Binding[],
+  id: string,
+  combo: Combo,
+  mac: boolean,
+): Binding | undefined =>
   bindings.find(
     (s) =>
       s.id !== id &&

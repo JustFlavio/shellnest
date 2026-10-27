@@ -2,7 +2,7 @@
 
 Dialog unico (menu ☰ → Impostazioni, `⌘,`) con sezioni: **Vault**, **Terminale**, **Scorciatoie**. In fondo: Documentazione e Changelog ("Presto") e la versione.
 
-Le impostazioni dell'app stanno in `localStorage` (`shellnest.settings`, `shellnest.shortcuts`): valgono per questo dispositivo, non si sincronizzano con il vault. Il parsing (`src/features/settings/settings.mjs`, `src/features/settings/shortcuts.mjs`) non lancia mai errori: ogni campo non valido torna al default.
+Le impostazioni dell'app stanno in `localStorage` (`shellnest.settings`, `shellnest.shortcuts`): valgono per questo dispositivo, non si sincronizzano con il vault. Il parsing (`src/features/settings/settings.ts`, `src/features/settings/shortcuts.ts`) non lancia mai errori: ogni campo non valido torna al default.
 
 ## Fatto
 

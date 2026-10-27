@@ -10,7 +10,7 @@ import {
   reservedReason,
   type Binding,
   type Combo,
-} from "./shortcuts.mjs";
+} from "./shortcuts.ts";
 
 type Overrides = Record<string, Combo[]>;
 

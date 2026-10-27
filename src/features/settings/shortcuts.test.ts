@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { SHORTCUTS, actionFor, format } from "./shortcuts.mjs";
+import { SHORTCUTS, actionFor, format } from "./shortcuts.ts";
 
-const ev = (key, m = {}, code = "") => ({
+const ev = (key: string, m: Record<string, unknown> = {}, code = "") => ({
   key,
   code,
   metaKey: false,
@@ -90,7 +90,7 @@ test("no two actions share a binding on either platform", () => {
 });
 
 test("format", () => {
-  const closePane = SHORTCUTS.find((s) => s.id === "closePane").combos[0];
+  const closePane = SHORTCUTS.find((s) => s.id === "closePane")!.combos[0]!;
   assert.equal(format(closePane, true), "⌘W");
   assert.equal(format(closePane, false), "Ctrl+Maiusc+W");
 });
@@ -101,7 +101,7 @@ import {
   parseOverrides,
   reservedReason,
   resolve,
-} from "./shortcuts.mjs";
+} from "./shortcuts.ts";
 
 test("comboFromEvent round-trips through matching", () => {
   for (const mac of [true, false])
@@ -122,7 +122,10 @@ test("comboFromEvent round-trips through matching", () => {
           },
           c.key === "[" ? "BracketLeft" : c.key === "]" ? "BracketRight" : "",
         );
-        assert.equal(format(comboFromEvent(e, mac, s.id), mac), format(c, mac));
+        assert.equal(
+          format(comboFromEvent(e, mac, s.id)!, mac),
+          format(c, mac),
+        );
         assert.equal(actionFor(e, mac), s.id);
       }
 });
@@ -154,7 +157,7 @@ test("overrides replace defaults, bad input falls back", () => {
   );
   assert.deepEqual(parseOverrides('{"closePane":[]}'), { closePane: [] });
   assert.equal(
-    findConflict(resolve(), "closePane", { key: "t", mod: true }, true).id,
+    findConflict(resolve(), "closePane", { key: "t", mod: true }, true)?.id,
     "quickConnect",
   );
 });
