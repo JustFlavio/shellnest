@@ -79,7 +79,7 @@ test("Cmd+Enter starts the connection timeline with the target", async ({
   await expect(page.getByLabel("Utente", { exact: true })).toBeFocused();
   await expect(
     page.getByRole("list", { name: "Avanzamento della connessione" }),
-  ).toContainText("Connessione a rc:22");
+  ).toContainText(/Connessione a rc(?!:)/);
 });
 
 test("an empty vault explains how to connect", async ({ page }) => {

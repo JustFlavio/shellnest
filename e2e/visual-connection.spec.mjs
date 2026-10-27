@@ -34,7 +34,7 @@ test("new host: fingerprint card inside the pane, no dialog", async ({ page }) =
   await expect(approve).toBeFocused();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByText("SHA256:impronta-dimostrativa")).toBeVisible();
-  await expect(steps(page)).toHaveText([/Connessione a nuovo\.slow\.test:22/, /Verifica impronta/, /Autenticazione/, /Sessione aperta/]);
+  await expect(steps(page)).toHaveText([/Connessione a nuovo\.slow\.test(?!:)/, /Verifica impronta/, /Autenticazione/, /Sessione aperta/]);
   await expect(steps(page).nth(1)).toHaveAttribute("aria-current", "step");
 
   await approve.click();

@@ -57,7 +57,8 @@ test("saved host with a key: only the usual steps, with their outcome", async ({
   expect(text).not.toContain("Password");
   expect(text).not.toContain("avviso");
   expect(text).toContain("Autenticato con la chiave “Deploy”");
-  expect(text).toContain("SSH-2.0-OpenSSH_9.6 · host già noto, impronta coincide");
+  expect(text).toContain("Host già noto, impronta coincide");
+  expect(text).not.toContain("SSH-2.0");
 });
 
 test("key refused, then the password: warning on the key, one Password step", async ({ page }) => {
@@ -133,8 +134,12 @@ test("the log toggles, copies and stays out of storage", async ({ page }) => {
   await page.getByRole("button", { name: "Nascondi log" }).click();
   await expect(log).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Copia log" }).click();
-  await expect(page.getByText("Log copiato.")).toBeVisible();
+  await page.getByRole("button", { name: "Mostra log" }).click();
+  const copy = page.getByRole("button", { name: "Copia log" });
+  await expect(copy.locator("svg.lucide-copy")).toBeVisible();
+  await copy.click();
+  await expect(copy.locator("svg.lucide-check")).toBeVisible();
+  await expect(copy.locator("svg.lucide-copy")).toBeVisible({ timeout: 4000 });
   const copied = await page.evaluate(() => window.__copied.join("\n"));
   expect(copied).toContain("Risoluzione di guasto.fail.test:22");
   expect(copied).toContain("Errore: Autenticazione fallita");

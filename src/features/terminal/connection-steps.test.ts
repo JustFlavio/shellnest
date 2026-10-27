@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { timelineSteps } from "./connection-steps.ts";
+import { targetLabel, timelineSteps } from "./connection-steps.ts";
 
 const base = {
   kind: "ssh" as const,
@@ -127,7 +127,7 @@ test("a fallback ends in a warning, not a success", () => {
   assert.deepEqual(
     steps.map((s) => s.id + ":" + s.state + ":" + (s.detail ?? "")),
     [
-      "connect:done:host già noto, impronta coincide",
+      "connect:done:Host già noto, impronta coincide",
       "auth:warning:Chiave rifiutata dal server",
       "password:done:Password accettata",
       "session:current:",
@@ -135,21 +135,14 @@ test("a fallback ends in a warning, not a success", () => {
   );
 });
 
-test("details: server banner, known host, new fingerprint, key name", () => {
+test("details: known host, new fingerprint, key name", () => {
   const detail = (
     o: Partial<Parameters<typeof timelineSteps>[0]>,
     id: string,
   ) => timelineSteps({ ...base, ...o }).find((s) => s.id === id)?.detail;
   const done = { phase: "Apertura del terminale remoto" };
-  const banner = { connect: { text: "SSH-2.0-OpenSSH_9.6", warn: false } };
-  assert.equal(
-    detail({ ...done, details: banner }, "connect"),
-    "SSH-2.0-OpenSSH_9.6 · host già noto, impronta coincide",
-  );
-  assert.equal(
-    detail({ ...done, askedTrust: true, details: banner }, "connect"),
-    "SSH-2.0-OpenSSH_9.6",
-  );
+  assert.equal(detail(done, "connect"), "Host già noto, impronta coincide");
+  assert.equal(detail({ ...done, askedTrust: true }, "connect"), undefined);
   assert.equal(
     detail({ ...done, askedTrust: true }, "trust"),
     "Nuova impronta confermata",
@@ -201,4 +194,9 @@ test("a quick connection asks user, then the login, before connecting", () => {
       "session:pending",
     ],
   );
+});
+
+test("the port shows only when it is not 22", () => {
+  assert.equal(targetLabel("srv.example", 22), "srv.example");
+  assert.equal(targetLabel("srv.example", 2222), "srv.example:2222");
 });

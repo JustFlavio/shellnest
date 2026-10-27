@@ -254,7 +254,6 @@ function startPreview(
   at(0, log("Indirizzi trovati: 192.0.2.10"));
   at(60, status("Impronta del server verificata"));
   at(60, log("Connessione stabilita"));
-  at(60, detail("connect", "SSH-2.0-OpenSSH_9.6"));
   at(60, log("Server remoto: SSH-2.0-OpenSSH_9.6"));
   at(
     60,

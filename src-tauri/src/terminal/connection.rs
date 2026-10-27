@@ -119,7 +119,6 @@ where
     if let Some(server) = &server {
         log(format!("Server remoto: {}", server.banner));
         log(format!("Algoritmi negoziati: {}", server.algorithms));
-        detail("connect", false, &server.banner);
     }
     log(format!(
         "Impronta del server nota e coincidente: {}",

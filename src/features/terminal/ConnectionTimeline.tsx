@@ -11,7 +11,7 @@ import { PasswordStep } from "./PasswordStep";
 import { QuickMethodStep } from "./QuickMethodStep";
 import { QuickUserStep } from "./QuickUserStep";
 import type { PasswordAsk } from "./useTerminalSession";
-import { timelineSteps } from "./connection-steps.ts";
+import { targetLabel, timelineSteps } from "./connection-steps.ts";
 import { needsMethod } from "./quick-setup.ts";
 import { useQuickSetup } from "./useQuickSetup";
 import type { StepNote, StepState } from "./connection-steps.ts";
@@ -62,7 +62,6 @@ export function ConnectionTimeline({
   );
   // A quick connection asks for user and login here until it has them.
   const asking = tab.kind === "quick" && !tab.target.login;
-  const [copy, setCopy] = useState("");
   const target =
     tab.kind === "ssh" ? tab.host : tab.kind === "quick" ? tab.target : null;
   const message = failure || tab.error || "";
@@ -97,7 +96,7 @@ export function ConnectionTimeline({
       : {};
   const steps = timelineSteps({
     kind: tab.kind,
-    target: target ? `${target.address}:${target.port}` : "",
+    target: target ? targetLabel(target.address, target.port) : "",
     askedTrust,
     awaitingTrust,
     phase,
@@ -119,8 +118,7 @@ export function ConnectionTimeline({
   return (
     <div className="grid min-h-0 flex-1 place-items-center overflow-auto p-[24px]">
       <div className="w-[min(100%,460px)]">
-        <h2 className="mb-[2px] text-[18px] font-semibold">{tab.title}</h2>
-        <p className={help + " mt-0 mb-[20px]"}>{tab.username}</p>
+        <h2 className="mb-[20px] text-[18px] font-semibold">{tab.title}</h2>
         <ol
           aria-label="Avanzamento della connessione"
           className="m-0 list-none p-0"
@@ -259,22 +257,6 @@ export function ConnectionTimeline({
             <Button variant="outline" onClick={onCancel}>
               Chiudi
             </Button>
-            <Button
-              variant="ghost"
-              onClick={() =>
-                void navigator.clipboard
-                  .writeText(lines.join("\n"))
-                  .then(() => setCopy("Log copiato."))
-                  .catch(() => setCopy("Copia non riuscita."))
-              }
-            >
-              Copia log
-            </Button>
-            {copy && (
-              <p role="status" className={help + " m-0 self-center"}>
-                {copy}
-              </p>
-            )}
           </div>
         )}
         <ConnectionLog lines={lines} />
