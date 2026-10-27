@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
-import { App } from "./App";
-import { trackOpener } from "./opener";
-import { desktop } from "./platform";
+import { App } from "@/app/App";
+import { trackOpener } from "@/lib/opener";
+import { desktop } from "@/lib/platform";
 import "./theme.css";
 
 if (import.meta.env.MODE === "desktop-e2e") {

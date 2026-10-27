@@ -48,7 +48,7 @@ Shellnest è il nome dell’app (il logo è provvisorio). Il progetto è open so
 
 - README.md: funzionamento, avvio, modello delle credenziali, protezioni, migrazione, sync e limiti dichiarati.
 - ROADMAP.md: flusso quotidiano, funzioni pianificate e verifiche ancora aperte.
-- src/: interfaccia React condivisa fra desktop e anteprima, componenti UI e backend dimostrativo in src/preview.ts.
+- src/: interfaccia React condivisa fra desktop e anteprima, componenti UI e backend dimostrativo in src/lib/preview.ts.
 - src-tauri/: backend desktop Rust/Tauri; sync/: servizio personale Node.js e relativi test.
 - I test e le verifiche riportati nella documentazione sono evidenza storica; questa inizializzazione non li ha rieseguiti. I dati dimostrativi non sono testimonianze o risultati di clienti.
 
