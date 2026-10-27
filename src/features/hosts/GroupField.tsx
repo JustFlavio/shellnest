@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { groupOptions, groupPath, inheritedIdentity } from "./groups.mjs";
+import { groupOptions, groupPath, inheritedIdentity } from "./groups.ts";
 import type { Group, HostDraft } from "@/lib/types";
 import {
   fieldIcon,

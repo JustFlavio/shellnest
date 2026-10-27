@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Group, Host, Identity, Workspace } from "@/lib/types";
-import { quickConnectTarget } from "./connection-target.mjs";
+import { quickConnectTarget } from "./connection-target.ts";
 import {
   Command,
   CommandGroup,
@@ -12,12 +12,12 @@ import {
   launcherResults,
   listHeading,
   togglePicked,
-} from "./launcher-results.mjs";
+} from "./launcher-results.ts";
 import type {
   LauncherResult,
   LauncherTab,
   RecentHost,
-} from "./launcher-results.mjs";
+} from "./launcher-results.ts";
 import { LauncherActions } from "./LauncherActions";
 import { LauncherRow } from "./LauncherRow";
 import { LauncherSearch } from "./LauncherSearch";

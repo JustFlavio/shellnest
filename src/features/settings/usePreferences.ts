@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { DEFAULT_SETTINGS, clampFontSize, parseSettings } from "./settings.mjs";
-import type { AppSettings } from "./settings.mjs";
-import { hint as shortcutHint, parseOverrides, resolve } from "./shortcuts.mjs";
-import type { Combo } from "./shortcuts.mjs";
+import { DEFAULT_SETTINGS, clampFontSize, parseSettings } from "./settings.ts";
+import type { AppSettings } from "./settings.ts";
+import { hint as shortcutHint, parseOverrides, resolve } from "./shortcuts.ts";
+import type { Combo } from "./shortcuts.ts";
 import { mac } from "@/lib/platform";
 
 const SETTINGS_KEY = "shellnest.settings";

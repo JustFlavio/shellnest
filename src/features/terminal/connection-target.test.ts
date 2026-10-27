@@ -4,7 +4,7 @@ import {
   looksLikeTarget,
   parseConnectionTarget,
   quickConnectTarget,
-} from "./connection-target.mjs";
+} from "./connection-target.ts";
 
 test("SSH destinations, optional usernames and ports are parsed as structured data", () => {
   for (const text of [

@@ -10,7 +10,7 @@ import {
   groupOptions,
   MAX_GROUP_DEPTH,
   subtreeIds,
-} from "./groups.mjs";
+} from "./groups.ts";
 import type { GroupForm, View } from "@/lib/types";
 import { portInline, sectionHelp, sheetField } from "@/lib/editor-ui";
 

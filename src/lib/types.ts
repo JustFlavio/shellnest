@@ -1,7 +1,7 @@
 import type {
   LayoutNode,
   SavedNode,
-} from "@/features/terminal/workbench-state.mjs";
+} from "@/features/terminal/workbench-state.ts";
 export type Host = {
   id: string;
   name: string;

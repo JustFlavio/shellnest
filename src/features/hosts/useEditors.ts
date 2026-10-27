@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { inheritedIdentity } from "./groups.mjs";
+import { inheritedIdentity } from "./groups.ts";
 import { hostDraftIsValid, hostInheritsIdentity } from "./host-draft";
 import { newGroup, newHost, newIdentity, newKey } from "@/lib/types";
 import type {

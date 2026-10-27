@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { childGroups } from "./groups.mjs";
+import { childGroups } from "./groups.ts";
 import { Plus } from "lucide-react";
 import { useApp } from "@/app/app-context";
 import type { Page } from "./useLibrary";

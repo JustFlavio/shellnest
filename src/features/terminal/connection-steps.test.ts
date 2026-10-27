@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { timelineSteps } from "./connection-steps.mjs";
+import { timelineSteps } from "./connection-steps.ts";
 
 const base = {
-  kind: "ssh",
+  kind: "ssh" as const,
   target: "h:22",
   askedTrust: false,
   awaitingTrust: false,
@@ -11,7 +11,7 @@ const base = {
   failure: "",
   opened: false,
 };
-const states = (o) =>
+const states = (o: Partial<Parameters<typeof timelineSteps>[0]>) =>
   timelineSteps({ ...base, ...o }).map((s) => s.id + ":" + s.state);
 
 test("known host skips the fingerprint step", () => {

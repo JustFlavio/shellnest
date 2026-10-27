@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { subtreeIds } from "./groups.mjs";
+import { subtreeIds } from "./groups.ts";
 import type { View } from "@/lib/types";
 
 export type Page = "hosts" | "identities" | "keys";

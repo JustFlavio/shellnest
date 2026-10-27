@@ -2,7 +2,7 @@ import { muted } from "@/lib/editor-ui";
 import { TerminalAppearance } from "./TerminalAppearance";
 import { TerminalBehavior } from "./TerminalBehavior";
 import { card, cardTitle, soon } from "./settings-ui";
-import type { AppSettings } from "./settings.mjs";
+import type { AppSettings } from "./settings.ts";
 
 export function TerminalSettings({
   settings,

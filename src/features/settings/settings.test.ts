@@ -6,7 +6,7 @@ import {
   fontStack,
   parseSettings,
   terminalTheme,
-} from "./settings.mjs";
+} from "./settings.ts";
 
 test("missing or corrupt storage gives the defaults", () => {
   assert.deepEqual(parseSettings(null), DEFAULT_SETTINGS);

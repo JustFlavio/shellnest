@@ -3,7 +3,7 @@ import { Row } from "./Row";
 import { FontSizeControl } from "./FontSizeControl";
 import { ThemePicker } from "./ThemePicker";
 import { card, cardTitle } from "./settings-ui";
-import type { AppSettings } from "./settings.mjs";
+import type { AppSettings } from "./settings.ts";
 
 const fontSuggestions = [
   "SF Mono",

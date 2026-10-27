@@ -4,7 +4,7 @@ Thanks for helping. Shellnest is a small project: keep changes focused and easy 
 
 ## Setup
 
-Node.js 22.15+, Rust and the [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/).
+Node.js 22.18+, Rust and the [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/).
 
 ```sh
 npm ci
@@ -21,7 +21,7 @@ cargo test --locked --manifest-path src-tauri/Cargo.toml
 ```
 
 - One topic per pull request. Open an issue first for anything large.
-- Add a test for new logic. Rust tests live next to the code; JS tests are `src/**/*.test.mjs` and `sync/*.test.mjs`.
+- Add a test for new logic. Rust tests live next to the code; JS tests are `src/**/*.test.{ts,mjs}` and `sync/*.test.mjs`.
 - Match the surrounding code style. There is no formatter config to fight with.
 - The interface is in Italian. Keep new UI strings in Italian for now; a translation layer is a welcome contribution.
 - Visual tests (`npm run test:visual`) compare screenshots made on macOS and are not run in CI. Update snapshots only if you changed the UI on purpose.

@@ -22,7 +22,7 @@ Not implemented yet: SFTP, port forwarding, jump hosts, agent forwarding, keyboa
 
 Prebuilt binaries are not published yet. Until then, build from source.
 
-You need Node.js 22.15+, Rust, and the [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/) (Xcode Command Line Tools on macOS; Visual Studio C++ Build Tools and WebView2 on Windows).
+You need Node.js 22.18+, Rust, and the [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/) (Xcode Command Line Tools on macOS; Visual Studio C++ Build Tools and WebView2 on Windows).
 
 ```sh
 git clone https://github.com/JustFlavio/shellnest.git

@@ -6,11 +6,11 @@ import {
   appendWorkspaces,
   planWorkspaces,
   workspaceTemplate,
-} from "./tabs-state.mjs";
+} from "./tabs-state.ts";
 import type { Trust, WorkspaceSave } from "./tabs-types";
 import { hostIdentity } from "@/features/hosts/host-draft";
-import { gridLayout } from "./workbench-state.mjs";
-import type { SavedNode } from "./workbench-state.mjs";
+import { gridLayout } from "./workbench-state.ts";
+import type { SavedNode } from "./workbench-state.ts";
 import type { useLastSession } from "./useLastSession";
 import type { TabList } from "./useTabList";
 

@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { help } from "@/lib/editor-ui";
 import { desktop } from "@/lib/platform";
 import { useApp } from "@/app/app-context";
-import { unlockLabel } from "./vault-copy.mjs";
+import { unlockLabel } from "./vault-copy.ts";
 
 function RemoteVaultFields() {
   const { unlock } = useApp();

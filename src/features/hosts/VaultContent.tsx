@@ -1,7 +1,7 @@
 import { IdentitiesTable, KeysTable } from "./CollectionTables";
 import { HostsView } from "./HostsView";
 import { Button } from "@/components/ui/button";
-import { ancestry } from "./groups.mjs";
+import { ancestry } from "./groups.ts";
 import { cn } from "@/lib/utils";
 import { ArrowLeft } from "lucide-react";
 import { Fragment } from "react";

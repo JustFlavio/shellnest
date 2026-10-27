@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { TerminalTab } from "@/lib/types";
-import type { AppSettings } from "@/features/settings/settings.mjs";
+import type { AppSettings } from "@/features/settings/settings.ts";
 import { PaneHeader } from "./PaneHeader";
 import { ConnectionTimeline } from "./ConnectionTimeline";
 import { PasteConfirmDialog } from "./PasteConfirmDialog";

@@ -5,8 +5,8 @@ import { SettingsNav } from "./SettingsNav";
 import type { SettingsSection } from "./SettingsNav";
 import { TerminalSettings } from "./TerminalSettings";
 import { help } from "@/lib/editor-ui";
-import type { AppSettings } from "./settings.mjs";
-import type { Binding, Combo } from "./shortcuts.mjs";
+import type { AppSettings } from "./settings.ts";
+import type { Binding, Combo } from "./shortcuts.ts";
 
 export function SettingsDialog({
   section,

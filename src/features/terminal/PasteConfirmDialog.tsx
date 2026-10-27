@@ -1,7 +1,7 @@
 import { AlertDialogDescription } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/features/hosts/Panel";
-import { pasteLineCount } from "./terminal-input.mjs";
+import { pasteLineCount } from "./terminal-input.ts";
 
 const PREVIEW_CHARS = 600;
 

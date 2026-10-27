@@ -14,38 +14,46 @@ import {
   splitPane,
   unlinkPane,
   workspaceTemplate,
-} from "./tabs-state.mjs";
-import { leafIds } from "./workbench-state.mjs";
+} from "./tabs-state.ts";
+import type { TabLike } from "./tabs-state.ts";
+import { leafIds } from "./workbench-state.ts";
+import type { LayoutNode, SavedNode } from "./workbench-state.ts";
+import type { Host } from "../../lib/types.ts";
 
-const ids = (tabs) => tabs.map((t) => t.id);
+function defined<V>(value: V | null | undefined): V {
+  assert.ok(value);
+  return value;
+}
+
+const ids = (tabs: TabLike[]) => tabs.map((t) => t.id);
 const split = () => {
-  const tabs = [{ id: "a" }, { id: "x" }];
+  const tabs: TabLike[] = [{ id: "a" }, { id: "x" }];
   return splitPane(tabs, "a", "a", { id: "b", parent: "a" }, "right");
 };
 
 test("splitting adds the clone and starts the leader's layout", () => {
   const tabs = split();
   assert.deepEqual(ids(tabs), ["a", "x", "b"]);
-  assert.deepEqual(leafIds(tabs[0].layout), ["a", "b"]);
+  assert.deepEqual(leafIds(defined(tabs[0].layout)), ["a", "b"]);
   assert.equal(tabs[1].layout, undefined);
 });
 
 test("rearranging moves a pane inside its workspace only", () => {
-  const tabs = rearrangePane(split(), "a", "b", "a", "left");
-  assert.deepEqual(leafIds(tabs[0].layout), ["b", "a"]);
+  const tabs = defined(rearrangePane(split(), "a", "b", "a", "left"));
+  assert.deepEqual(leafIds(defined(tabs[0].layout)), ["b", "a"]);
   assert.equal(rearrangePane(split(), "x", "b", "a", "left"), null);
 });
 
 test("joining adopts every session of the dropped tab", () => {
-  let tabs = splitPane(
+  let tabs = splitPane<TabLike>(
     [{ id: "a" }, { id: "x" }],
     "x",
     "x",
     { id: "y", parent: "x" },
     "right",
   );
-  tabs = joinWorkspace(tabs, "a", "x", "a", "bottom");
-  assert.deepEqual(leafIds(tabs[0].layout), ["a", "x", "y"]);
+  tabs = defined(joinWorkspace(tabs, "a", "x", "a", "bottom"));
+  assert.deepEqual(leafIds(defined(tabs[0].layout)), ["a", "x", "y"]);
   const [, x, y] = tabs;
   assert.equal(x.parent, "a");
   assert.equal(x.layout, undefined);
@@ -54,24 +62,27 @@ test("joining adopts every session of the dropped tab", () => {
 });
 
 test("unlinking keeps or drops the pane and promotes a new leader", () => {
-  const kept = unlinkPane(split(), "b", true);
+  const kept = defined(unlinkPane(split(), "b", true));
   assert.equal(kept.next, "a");
   assert.deepEqual(ids(kept.tabs), ["a", "x", "b"]);
   assert.equal(kept.tabs[0].layout, undefined);
   assert.equal(kept.tabs[2].parent, undefined);
-  const dropped = unlinkPane(split(), "b", false);
+  const dropped = defined(unlinkPane(split(), "b", false));
   assert.deepEqual(ids(dropped.tabs), ["a", "x"]);
   const promoted = unlinkPane(
-    [
-      { id: "a", name: "Db" },
-      { id: "b", parent: "a" },
-    ].map((t, i) => (i ? t : { ...t, layout: split()[0].layout })),
+    (
+      [
+        { id: "a", name: "Db" },
+        { id: "b", parent: "a" },
+      ] as TabLike[]
+    ).map((t, i) => (i ? t : { ...t, layout: split()[0].layout })),
     "a",
     false,
   );
-  assert.equal(promoted.next, "b");
-  assert.equal(promoted.tabs[0].name, "Db");
-  assert.equal(promoted.tabs[0].parent, undefined);
+  const next = defined(promoted);
+  assert.equal(next.next, "b");
+  assert.equal(next.tabs[0].name, "Db");
+  assert.equal(next.tabs[0].parent, undefined);
   assert.equal(unlinkPane(split(), "x", false), null);
 });
 
@@ -79,11 +90,11 @@ test("replacing a tab rewires panes and layouts that point to it", () => {
   const tabs = replaceTab(split(), "a", { id: "n", layout: split()[0].layout });
   assert.equal(tabs[2].parent, "n");
   const pane = replaceTab(split(), "b", { id: "n", parent: "a" });
-  assert.deepEqual(leafIds(pane[0].layout), ["a", "n"]);
+  assert.deepEqual(leafIds(defined(pane[0].layout)), ["a", "n"]);
 });
 
 test("workspaces are appended with their panes under the leader", () => {
-  const tabs = appendWorkspaces(
+  const tabs = appendWorkspaces<TabLike>(
     [{ id: "x" }],
     [
       {
@@ -104,7 +115,7 @@ test("workspaces are appended with their panes under the leader", () => {
 test("closing resolves workspace sessions and the next tab", () => {
   assert.deepEqual(sessionIds(split(), "a"), ["a", "b"]);
   assert.deepEqual(sessionIds(split(), "x"), ["x"]);
-  const tabs = [{ id: "a" }, { id: "b", parent: "a" }, { id: "c" }];
+  const tabs: TabLike[] = [{ id: "a" }, { id: "b", parent: "a" }, { id: "c" }];
   assert.equal(neighbourInBar(tabs, "a"), "c");
   assert.equal(neighbourInBar(tabs, "c"), "a");
   assert.equal(neighbourInBar([{ id: "a" }], "a"), undefined);
@@ -126,17 +137,17 @@ test("a stored session drops hosts that no longer exist", () => {
       },
     ],
   });
-  const session = parseSession(raw, new Set(["h1"]));
+  const session = defined(parseSession(raw, new Set(["h1"])));
   assert.equal(session.items.length, 2);
   assert.equal(session.active, 1);
   assert.equal(session.count, 3);
   assert.equal(parseSession("{", new Set()), null);
   assert.equal(parseSession(null, new Set()), null);
-  assert.equal(parseSession(raw, new Set()).items.length, 1);
+  assert.equal(defined(parseSession(raw, new Set())).items.length, 1);
 });
 
 test("closed sessions lose their place in a workspace", () => {
-  const tabs = [
+  const tabs: (TabLike & { kind?: string })[] = [
     { id: "a", layout: { id: "a" } },
     { id: "b", parent: "a", kind: "local" },
     { id: "c" },
@@ -148,19 +159,22 @@ test("closed sessions lose their place in a workspace", () => {
 });
 
 test("a title change returns a new list only when something changed", () => {
-  const tabs = [{ id: "a", termTitle: "vim" }, { id: "b" }];
+  const tabs: (TabLike & { termTitle?: string })[] = [
+    { id: "a", termTitle: "vim" },
+    { id: "b" },
+  ];
   assert.equal(setTermTitle(tabs, "a", "vim"), tabs);
   assert.equal(setTermTitle(tabs, "gone", "x"), tabs);
   assert.equal(setTermTitle(tabs, "a", undefined)[0].termTitle, undefined);
 });
 
 test("only a split of saveable sessions becomes a workspace template", () => {
-  const tabs = [
+  const tabs: Parameters<typeof workspaceTemplate>[0] = [
     { id: "a", kind: "ssh", host: { id: "h1" } },
     { id: "b", kind: "local" },
     { id: "c", kind: "quick" },
   ];
-  const row = (a, b) => ({
+  const row = (a: string, b: string): LayoutNode => ({
     dir: "row",
     ratio: 0.5,
     a: { id: a },
@@ -178,12 +192,17 @@ test("only a split of saveable sessions becomes a workspace template", () => {
 
 test("planning workspaces flags missing and untrusted hosts", () => {
   const hosts = new Map([
-    ["h1", { id: "h1", fingerprint: "fp" }],
-    ["h2", { id: "h2" }],
+    ["h1", { id: "h1", fingerprint: "fp" } as Host],
+    ["h2", { id: "h2" } as Host],
   ]);
   let n = 0;
   const newId = () => `s${n++}`;
-  const row = (a, b) => ({ dir: "row", ratio: 0.5, a, b });
+  const row = (a: SavedNode, b: SavedNode): SavedNode => ({
+    dir: "row",
+    ratio: 0.5,
+    a,
+    b,
+  });
   const ok = planWorkspaces(
     [{ name: "W", layout: row({ hostId: "h1" }, { local: true }) }],
     hosts,

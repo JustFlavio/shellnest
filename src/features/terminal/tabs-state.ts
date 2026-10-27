@@ -1,3 +1,4 @@
+import type { Host } from "../../lib/types.ts";
 import {
   fromTemplate,
   insertLeaf,
@@ -6,13 +7,28 @@ import {
   removeLeaf,
   replaceLeaf,
   toTemplate,
-} from "./workbench-state.mjs";
+} from "./workbench-state.ts";
+import type { Edge, LayoutNode, SavedNode } from "./workbench-state.ts";
+
+type StoredItem = { name?: string; layout: SavedNode };
+export type TabLike = {
+  id: string;
+  name?: string;
+  parent?: string;
+  layout?: LayoutNode;
+};
 
 // Tab-list transitions behind the tab bar and split workspaces. A tab with a `layout` leads a
 // workspace; its panes are tabs whose `parent` is the leader and are hidden from the bar.
 
 // Adds `clone` beside `paneId` in the leader's layout, which is created on the first split.
-export function splitPane(tabs, leaderId, paneId, clone, edge) {
+export function splitPane<T extends TabLike>(
+  tabs: T[],
+  leaderId: string,
+  paneId: string,
+  clone: T,
+  edge: Edge,
+): T[] {
   return [
     ...tabs.map((t) =>
       t.id === leaderId
@@ -32,7 +48,13 @@ export function splitPane(tabs, leaderId, paneId, clone, edge) {
 }
 
 // Moves a pane of the leader's workspace next to `targetId`; null when it cannot move.
-export function rearrangePane(tabs, leaderId, paneId, targetId, edge) {
+export function rearrangePane<T extends TabLike>(
+  tabs: T[],
+  leaderId: string,
+  paneId: string,
+  targetId: string,
+  edge: Edge,
+): T[] | null {
   const leader = tabs.find((t) => t.id === leaderId);
   const rest = leader?.layout && removeLeaf(leader.layout, paneId);
   if (!rest) return null;
@@ -41,7 +63,13 @@ export function rearrangePane(tabs, leaderId, paneId, targetId, edge) {
 }
 
 // Joins the sessions of tab `srcId` to the leader's workspace, next to `targetId`.
-export function joinWorkspace(tabs, leaderId, srcId, targetId, edge) {
+export function joinWorkspace<T extends TabLike>(
+  tabs: T[],
+  leaderId: string,
+  srcId: string,
+  targetId: string,
+  edge: Edge,
+): T[] | null {
   const leader = tabs.find((t) => t.id === leaderId);
   const src = tabs.find((t) => t.id === srcId);
   if (!leader || !src) return null;
@@ -66,7 +94,11 @@ export function joinWorkspace(tabs, leaderId, srcId, targetId, edge) {
 
 // Takes a pane out of its workspace (keep: it stays as its own tab). A pane is promoted if the
 // leader goes. Null when the tab is not a pane of a split workspace.
-export function unlinkPane(tabs, id, keep) {
+export function unlinkPane<T extends TabLike>(
+  tabs: T[],
+  id: string,
+  keep: boolean,
+): { leader: T; next: string; tabs: T[] } | null {
   const tab = tabs.find((t) => t.id === id);
   const leader = tab?.parent ? tabs.find((t) => t.id === tab.parent) : tab;
   const rest = leader?.layout && removeLeaf(leader.layout, id);
@@ -97,7 +129,11 @@ export function unlinkPane(tabs, id, keep) {
 }
 
 // New session `next` in the slot of `id`, in the tab bar or in a split layout.
-export function replaceTab(tabs, id, next) {
+export function replaceTab<T extends TabLike>(
+  tabs: T[],
+  id: string,
+  next: T,
+): T[] {
   return tabs.map((t) =>
     t.id === id
       ? next
@@ -110,7 +146,10 @@ export function replaceTab(tabs, id, next) {
 }
 
 // Appends workspaces built from `{ leader, rest, layout, name }`; panes follow their leader.
-export function appendWorkspaces(tabs, groups) {
+export function appendWorkspaces<T extends TabLike>(
+  tabs: T[],
+  groups: { leader: T; rest: T[]; layout: LayoutNode; name?: string }[],
+): T[] {
   return [
     ...tabs,
     ...groups.flatMap((g) => [
@@ -125,38 +164,51 @@ export function appendWorkspaces(tabs, groups) {
 }
 
 // Ids of every session closed together with the tab.
-export function sessionIds(tabs, id) {
+export function sessionIds(tabs: TabLike[], id: string): string[] {
   const layout = tabs.find((t) => t.id === id)?.layout;
   return layout ? leafIds(layout) : [id];
 }
 
 // The tab to show once `id` is gone: its right neighbour in the bar, else the left one.
-export function neighbourInBar(tabs, id) {
+export function neighbourInBar(
+  tabs: TabLike[],
+  id: string,
+): string | undefined {
   const bar = tabs.filter((t) => !t.parent),
     index = bar.findIndex((t) => t.id === id);
   return bar[index + 1]?.id ?? bar[index - 1]?.id;
 }
 
-const leafCount = (node) =>
+const leafCount = (node: SavedNode): number =>
   "dir" in node ? leafCount(node.a) + leafCount(node.b) : 1;
 
 // Reads the stored session of a vault, keeping only the hosts that still exist.
-export function parseSession(raw, knownHostIds) {
+export function parseSession(
+  raw: string | null,
+  knownHostIds: Set<string>,
+): {
+  items: { name?: string; layout: SavedNode }[];
+  active: number;
+  count: number;
+} | null {
   try {
+    // stored text, validated field by field below
     const saved = raw && JSON.parse(raw);
     if (!saved || !Array.isArray(saved.items)) return null;
-    const items = saved.items.flatMap((item) => {
-      const layout = pruneTemplate(
-        item.layout,
-        (leaf) => !("hostId" in leaf) || knownHostIds.has(leaf.hostId),
-      );
-      return layout ? [{ name: item.name, layout }] : [];
-    });
+    const items: StoredItem[] = saved.items.flatMap(
+      (item: { name?: string; layout: SavedNode }): StoredItem[] => {
+        const layout = pruneTemplate(
+          item.layout,
+          (leaf) => !("hostId" in leaf) || knownHostIds.has(leaf.hostId),
+        );
+        return layout ? [{ name: item.name, layout }] : [];
+      },
+    );
     return items.length
       ? {
           items,
           active: Number(saved.active) || 0,
-          count: items.reduce((sum, i) => sum + leafCount(i.layout), 0),
+          count: items.reduce((sum: number, i) => sum + leafCount(i.layout), 0),
         }
       : null;
   } catch {
@@ -164,16 +216,28 @@ export function parseSession(raw, knownHostIds) {
   }
 }
 
+// Distributes over a union of tab kinds so each kind keeps its own fields.
+export type Closed<T> = T extends unknown
+  ? Omit<T, "parent" | "layout">
+  : never;
+
 // A closed session as `reopen` needs it: the tab without its place in a workspace.
-export function closedRecords(tabs, ids) {
+export function closedRecords<T extends TabLike>(
+  tabs: T[],
+  ids: string[],
+): Closed<T>[] {
   const gone = new Set(ids);
   return tabs
     .filter((t) => gone.has(t.id))
-    .map(({ parent, layout, ...t }) => t);
+    .map(({ parent, layout, ...t }) => t as Closed<T>); // Omit of a generic is not narrowed by TS
 }
 
 // Terminal-set title of a tab; the list is returned as is when nothing changes.
-export function setTermTitle(tabs, id, termTitle) {
+export function setTermTitle<T extends TabLike & { termTitle?: string }>(
+  tabs: T[],
+  id: string,
+  termTitle?: string,
+): T[] {
   return tabs.some((t) => t.id === id && t.termTitle !== termTitle)
     ? tabs.map((t) => (t.id === id ? { ...t, termTitle } : t))
     : tabs;
@@ -181,12 +245,15 @@ export function setTermTitle(tabs, id, termTitle) {
 
 // The saved form of a split workspace; null unless two or more of its sessions can be saved
 // (host or local shell: quick connections are left out).
-export function workspaceTemplate(tabs, layout) {
+export function workspaceTemplate(
+  tabs: (TabLike & { kind: string; host?: { id: string } })[],
+  layout: LayoutNode,
+): SavedNode | null {
   const byId = new Map(tabs.map((t) => [t.id, t]));
   const template = toTemplate(layout, (id) => {
     const t = byId.get(id);
     return t?.kind === "ssh"
-      ? { hostId: t.host.id }
+      ? { hostId: t.host!.id } // an ssh tab always has its host
       : t?.kind === "local"
         ? { local: true }
         : null;
@@ -196,7 +263,19 @@ export function workspaceTemplate(tabs, layout) {
 
 // Fresh session ids for saved workspaces. `missing`: a saved host is gone; `untrusted`: the
 // first host whose key is not stored yet.
-export function planWorkspaces(list, hostsById, newId) {
+export function planWorkspaces(
+  list: { name?: string; layout: SavedNode }[],
+  hostsById: Map<string, Host>,
+  newId: () => string,
+): {
+  built: {
+    name?: string;
+    layout: LayoutNode;
+    specs: { id: string; local: boolean; host?: Host }[];
+  }[];
+  missing: boolean;
+  untrusted?: Host;
+} {
   const built = list.map((item) => {
     const { layout, leaves } = fromTemplate(item.layout, newId);
     const specs = leaves.map(({ id, spec }) => ({

@@ -3,12 +3,12 @@ import { mac } from "@/lib/platform";
 import {
   DEFAULT_FONT_SIZE,
   clampFontSize,
-} from "@/features/settings/settings.mjs";
-import { actionFor } from "@/features/settings/shortcuts.mjs";
+} from "@/features/settings/settings.ts";
+import { actionFor } from "@/features/settings/shortcuts.ts";
 import { terminalHandles } from "@/features/terminal/terminal-handles";
 import type { AppState } from "./useAppState";
 import { useLatest } from "@/lib/useLatest";
-import { leafIds } from "@/features/terminal/workbench-state.mjs";
+import { leafIds } from "@/features/terminal/workbench-state.ts";
 
 /** Global keyboard shortcuts; they stand down while a dialog or editor is open. */
 export function useShortcuts(app: AppState) {

@@ -7,8 +7,8 @@ import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import "@xterm/xterm/css/xterm.css";
 import { mac } from "@/lib/platform";
-import { fontStack, terminalTheme } from "@/features/settings/settings.mjs";
-import type { AppSettings } from "@/features/settings/settings.mjs";
+import { fontStack, terminalTheme } from "@/features/settings/settings.ts";
+import type { AppSettings } from "@/features/settings/settings.ts";
 import {
   LINE_KILL,
   WORD_BACK,
@@ -16,7 +16,7 @@ import {
   needsPasteConfirm,
   sanitizePaste,
   terminalKeyAction,
-} from "./terminal-input.mjs";
+} from "./terminal-input.ts";
 
 export type XtermHandlers = {
   // a paste big enough to ask first

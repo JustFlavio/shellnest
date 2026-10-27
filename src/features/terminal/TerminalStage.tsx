@@ -1,6 +1,6 @@
 import { TerminalPane } from "./TerminalPane";
 import { cn } from "@/lib/utils";
-import { dropEdge } from "./workbench-state.mjs";
+import { dropEdge } from "./workbench-state.ts";
 import { useRef } from "react";
 import { useApp } from "@/app/app-context";
 

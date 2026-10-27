@@ -8,7 +8,7 @@
     "build": "tsc && vite build",
     "desktop": "tauri dev",
     "desktop:build": "tauri build",
-    "test": "node --test \"src/**/*.test.mjs\" \"sync/*.test.mjs\"",
+    "test": "node --test \"src/**/*.test.{ts,mjs}\" \"sync/*.test.mjs\"",
     "test:desktop": "node e2e/desktop.mjs",
     "sync": "node sync/server.mjs",
     "test:visual": "playwright test -c e2e/playwright.config.mjs"

@@ -2,17 +2,20 @@
 
 // Pasted text may carry ESC (closing bracketed paste early and running what follows),
 // other C0 controls, DEL and C1 controls. Only line breaks and tabs are legitimate.
-export function sanitizePaste(text) {
+export function sanitizePaste(text: string): string {
   return text
     .replace(/\r\n?/g, "\n")
     .replace(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/g, "");
 }
 
 export const PASTE_CONFIRM_LINES = 20;
-export function pasteLineCount(text) {
+export function pasteLineCount(text: string): number {
   return text.split("\n").length;
 }
-export function needsPasteConfirm(text, limit = PASTE_CONFIRM_LINES) {
+export function needsPasteConfirm(
+  text: string,
+  limit = PASTE_CONFIRM_LINES,
+): boolean {
   return pasteLineCount(text) > limit;
 }
 
@@ -21,9 +24,25 @@ export function needsPasteConfirm(text, limit = PASTE_CONFIRM_LINES) {
 export const RESET_MODES =
   "\x1b[?2004l\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l\x1b[?1049l\x1b[?25h";
 
+export type TerminalKeyAction =
+  | "copy"
+  | "paste"
+  | "search"
+  | "line-kill"
+  | "word-back"
+  | "word-forward"
+  | "swallow";
+
 // Shortcut the pane handles itself, or "swallow" to keep the key away from the shell.
 // `e` is a keydown event; returns undefined for keys xterm should process as usual.
-export function terminalKeyAction(e, mac, hasSelection) {
+export function terminalKeyAction(
+  e: Pick<
+    KeyboardEvent,
+    "type" | "key" | "metaKey" | "ctrlKey" | "altKey" | "shiftKey"
+  >,
+  mac: boolean,
+  hasSelection: boolean,
+): TerminalKeyAction | undefined {
   if (e.type !== "keydown") return undefined;
   const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   const primary = mac ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey;

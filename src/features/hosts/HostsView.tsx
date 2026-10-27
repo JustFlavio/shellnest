@@ -1,6 +1,6 @@
 import type { MouseEvent } from "react";
 import type { Group, Host, Identity } from "@/lib/types";
-import { childGroups } from "./groups.mjs";
+import { childGroups } from "./groups.ts";
 import { CollectionSelection } from "./CollectionSelection";
 import { FolderCard } from "./FolderCard";
 import { HostCard } from "./HostCard";

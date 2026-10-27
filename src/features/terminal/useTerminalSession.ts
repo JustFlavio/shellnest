@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { RefObject } from "react";
 import { useLatest } from "@/lib/useLatest";
 import type { TerminalTab } from "@/lib/types";
-import type { AppSettings } from "@/features/settings/settings.mjs";
+import type { AppSettings } from "@/features/settings/settings.ts";
 import { terminalHandles } from "./terminal-handles";
 import { sendSessionPassword, startSession } from "./terminal-session";
 import type { SessionCallbacks } from "./terminal-session";

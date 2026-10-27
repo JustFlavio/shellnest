@@ -16,7 +16,16 @@ import {
   setRatio,
   terminalInputChunks,
   syncUrlForVault,
-} from "./workbench-state.mjs";
+} from "./workbench-state.ts";
+import type { LayoutNode, SavedNode } from "./workbench-state.ts";
+
+// Narrows a node the test knows is a split.
+function split<N extends LayoutNode | SavedNode>(
+  node: N,
+): Extract<N, { dir: unknown }> {
+  assert.ok("dir" in node);
+  return node as Extract<N, { dir: unknown }>;
+}
 test("reordering preserves tab identity, input and unknown drags", () => {
   const tabs = [{ id: "a" }, { id: "b" }, { id: "c" }];
   const moved = reorderTabs(tabs, "a", "c");
@@ -73,18 +82,23 @@ test("split layout: split, rects, resize and remove", () => {
     dividers.map((d) => d.path),
     ["", "b"],
   );
-  const moved = setRatio(l, "", 0.99);
-  assert.equal(moved.ratio, 0.9);
-  assert.equal(setRatio(l, "b", 0.25).b.ratio, 0.25);
-  assert.deepEqual(removeLeaf(l, "a"), l.b);
-  assert.deepEqual(removeLeaf(l, "c"), { ...l, b: { id: "b" } });
+  const root = split(l);
+  assert.equal(split(setRatio(l, "", 0.99)).ratio, 0.9);
+  assert.equal(split(split(setRatio(l, "b", 0.25)).b).ratio, 0.25);
+  assert.deepEqual(removeLeaf(l, "a"), root.b);
+  assert.deepEqual(removeLeaf(l, "c"), { ...root, b: { id: "b" } });
   assert.equal(removeLeaf({ id: "a" }, "a"), null);
 });
 test("dropping on an edge nests a subtree on that side; the middle is no drop", () => {
-  const sub = { dir: "col", ratio: 0.5, a: { id: "x" }, b: { id: "y" } };
+  const sub: LayoutNode = {
+    dir: "col",
+    ratio: 0.5,
+    a: { id: "x" },
+    b: { id: "y" },
+  };
   const l = insertLeaf({ id: "a" }, "a", sub, "left");
   assert.deepEqual(leafIds(l), ["x", "y", "a"]);
-  assert.equal(l.dir, "row");
+  assert.equal(split(l).dir, "row");
   assert.deepEqual(leafIds(insertLeaf(l, "a", { id: "z" }, "top")), [
     "x",
     "y",
@@ -131,42 +145,47 @@ test("templates save hosts, drop unsavable sessions and restore with fresh ids",
   ]);
 });
 test("grid layouts are near-square and stay within the saved ratio range", () => {
-  const leaves = (n) =>
+  const leaves = (n: number) =>
     Array.from({ length: n }, (_, i) => ({ hostId: `h${i}` }));
-  const ids = (n) => {
-    const out = [];
-    const walk = (x) => (x.dir ? (walk(x.a), walk(x.b)) : out.push(x.hostId));
+  const ids = (n: number) => {
+    const out: string[] = [];
+    const walk = (x: SavedNode): void => {
+      if ("dir" in x) {
+        walk(x.a);
+        walk(x.b);
+      } else if ("hostId" in x) out.push(x.hostId);
+    };
     walk(gridLayout(leaves(n)));
     return out;
   };
   assert.deepEqual(gridLayout(leaves(1)), { hostId: "h0" });
-  assert.equal(gridLayout(leaves(2)).dir, "row");
-  const four = gridLayout(leaves(4));
+  assert.equal(split(gridLayout(leaves(2))).dir, "row");
+  const four = split(gridLayout(leaves(4)));
   assert.equal(four.dir, "col");
-  assert.equal(four.a.dir, "row");
+  assert.equal(split(four.a).dir, "row");
   assert.deepEqual(ids(7), ["h0", "h1", "h2", "h3", "h4", "h5", "h6"]);
-  const ratios = (x) =>
-    x.dir ? [x.ratio, ...ratios(x.a), ...ratios(x.b)] : [];
+  const ratios = (x: SavedNode): number[] =>
+    "dir" in x ? [x.ratio, ...ratios(x.a), ...ratios(x.b)] : [];
   assert.ok(
     ratios(gridLayout(leaves(16))).every((r) => r >= 0.05 && r <= 0.95),
   );
 });
 test("pruning a saved layout collapses splits; sessions snapshot per tab", () => {
-  const l = {
+  const l: SavedNode = {
     dir: "row",
     ratio: 0.5,
     a: { hostId: "gone" },
     b: { local: true },
   };
   assert.deepEqual(
-    pruneTemplate(l, (x) => x.hostId !== "gone"),
+    pruneTemplate(l, (x) => !("hostId" in x) || x.hostId !== "gone"),
     { local: true },
   );
   assert.equal(
     pruneTemplate({ hostId: "gone" }, () => false),
     null,
   );
-  const tabs = [
+  const tabs: Parameters<typeof snapshotSession>[0] = [
     {
       id: "a",
       kind: "ssh",

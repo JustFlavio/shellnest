@@ -1,6 +1,6 @@
 import { Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MAX_FONT_SIZE, MIN_FONT_SIZE, clampFontSize } from "./settings.mjs";
+import { MAX_FONT_SIZE, MIN_FONT_SIZE, clampFontSize } from "./settings.ts";
 
 export function FontSizeControl({
   value,

@@ -5,7 +5,7 @@ import {
   needsPasteConfirm,
   RESET_MODES,
   terminalKeyAction,
-} from "./terminal-input.mjs";
+} from "./terminal-input.ts";
 
 test("sanitizePaste strips ESC and controls but keeps newlines and tabs", () => {
   assert.equal(
@@ -26,7 +26,7 @@ test("RESET_MODES turns off the sticky modes", () => {
     assert.ok(RESET_MODES.includes(`\x1b[?${m}`), m);
 });
 
-const ev = (key, mods = {}) => ({
+const ev = (key: string, mods: Partial<KeyboardEvent> = {}) => ({
   type: "keydown",
   key,
   metaKey: false,
@@ -37,7 +37,8 @@ const ev = (key, mods = {}) => ({
 });
 
 test("mac keys", () => {
-  const k = (e, sel = false) => terminalKeyAction(e, true, sel);
+  const k = (e: ReturnType<typeof ev>, sel = false) =>
+    terminalKeyAction(e, true, sel);
   assert.equal(k(ev("c", { metaKey: true }), true), "copy");
   assert.equal(k(ev("c", { metaKey: true })), "swallow");
   assert.equal(k(ev("c", { ctrlKey: true }), true), undefined);
@@ -59,7 +60,8 @@ test("mac keys", () => {
 });
 
 test("windows keys", () => {
-  const k = (e, sel = false) => terminalKeyAction(e, false, sel);
+  const k = (e: ReturnType<typeof ev>, sel = false) =>
+    terminalKeyAction(e, false, sel);
   assert.equal(k(ev("c", { ctrlKey: true }), true), "copy");
   assert.equal(k(ev("c", { ctrlKey: true })), undefined);
   assert.equal(k(ev("C", { ctrlKey: true, shiftKey: true })), "copy");

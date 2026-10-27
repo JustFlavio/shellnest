@@ -4,7 +4,7 @@ import { HostCredentialsField } from "./HostCredentialsField";
 import { HostPortField } from "./HostPortField";
 import { InheritedIdentityNotice } from "./InheritedIdentityNotice";
 import { OfferedIdentityNotice } from "./OfferedIdentityNotice";
-import { inheritedIdentity } from "./groups.mjs";
+import { inheritedIdentity } from "./groups.ts";
 import {
   divider,
   section,

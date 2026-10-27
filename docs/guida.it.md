@@ -6,7 +6,7 @@ Client SSH open source per utenti individuali su Windows e macOS, con sincronizz
 
 ## Avvio
 
-Servono Node.js 22.15+, Rust e i prerequisiti Tauri 2 (su Windows: Visual Studio C++ Build Tools e WebView2; su macOS: Xcode Command Line Tools). SSH usa russh con backend ring, senza richiedere OpenSSL o Perl. Riferimento: https://v2.tauri.app/start/prerequisites/.
+Servono Node.js 22.18+, Rust e i prerequisiti Tauri 2 (su Windows: Visual Studio C++ Build Tools e WebView2; su macOS: Xcode Command Line Tools). SSH usa russh con backend ring, senza richiedere OpenSSL o Perl. Riferimento: https://v2.tauri.app/start/prerequisites/.
 
 ```sh
 npm ci
