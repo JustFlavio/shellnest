@@ -1,6 +1,6 @@
 # Impostazioni
 
-Dialog unico (menu ☰ → Impostazioni, `⌘,`) con sezioni: **Vault**, **Terminale**, **Scorciatoie**. In fondo: Documentazione e Changelog ("Presto") e la versione.
+Dialog unico (menu ☰ → Impostazioni, `⌘,`) con sezioni: **Vault**, **Terminale**, **Scorciatoie**, **Aggiornamenti**. In fondo: Documentazione e Changelog ("Presto") e la versione.
 
 Le impostazioni dell'app stanno in `localStorage` (`shellnest.settings`, `shellnest.shortcuts`): valgono per questo dispositivo, non si sincronizzano con il vault. Il parsing (`src/features/settings/settings.ts`, `src/features/settings/shortcuts.ts`) non lancia mai errori: ogni campo non valido torna al default.
 
@@ -9,6 +9,7 @@ Le impostazioni dell'app stanno in `localStorage` (`shellnest.settings`, `shelln
 - Vault: elenco, nuovo, rinomina, elimina (solo il vault attivo, solo se vuoto, mai `personal`: il controllo è nel backend, `delete_vault`), sync per vault con "Sincronizza ora".
 - Terminale: font, dimensione, tema colori (Shellnest, Nord, Dracula, Solarized Dark), copia alla selezione, incolla col tasto destro, bell, Option come Meta (spento di default: le tastiere italiane digitano `@ # [ ]` con Option), colori vivaci per il grassetto, scrollback.
 - Scorciatoie: rimappatura con reset e controllo dei conflitti.
+- Aggiornamenti: versione installata, "Controlla ora", interruttore "Controlla all'avvio" (`checkUpdates`, acceso di default). Il controllo contatta GitHub; scarica e riavvia solo su clic (vedi `docs/releases.md`).
 
 ## In arrivo (mostrato nella UI come "Presto")
 

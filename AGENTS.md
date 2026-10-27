@@ -32,7 +32,7 @@ npm run test:desktop   # WebDriver tests on the real app (e2e/)
 - `sync/`: standalone Node.js sync server, no dependencies, TypeScript run directly by Node (type stripping, no build step; the Docker image is `node:24-alpine`).
 - `e2e/`: Playwright visual specs and the WebDriver desktop test, in TypeScript. Tooling configs (`eslint.config.mjs`) are the only `.mjs` files.
 - `knip.json`, `eslint.config.mjs`, `.prettierrc`, `src-tauri/deny.toml`: the quality gates CI runs; see `.github/workflows/ci.yml`.
-- `docs/`: `guida.it.md` is the detailed guide; `settings.md` lists the settings.
+- `docs/`: `guida.it.md` is the detailed guide; `settings.md` lists the settings; `releases.md` covers releases, the updater key and the `updater` manifest release (`tauri build` needs `TAURI_SIGNING_PRIVATE_KEY` while `createUpdaterArtifacts` is on).
 
 ## Rules that are easy to break
 

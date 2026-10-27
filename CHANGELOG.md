@@ -13,6 +13,7 @@ First public alpha, not audited and not code-signed.
 - SSH terminals in tabs with split panes (russh, native PTY), host key verification on first access and a hard stop when it changes.
 - A connection timeline with step outcomes, an inline password prompt when key authentication is refused, a retry cap and a readable connection log.
 - Local terminal, terminal themes, fonts and rebindable keyboard shortcuts.
+- Automatic update check with in-app install (signed with a Tauri updater key).
 - Optional sync of the encrypted vault through the self-hosted Node.js server in `sync/` (experimental).
 
 ### Known limitations
