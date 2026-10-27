@@ -1,10 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { groupPath, inheritedIdentity, subtreeIds } from "./groups.mjs";
-import {
-  hostDraftIsValid,
-  hostIdentity,
-  hostInheritsIdentity,
-} from "./host-draft";
+import { hostDraftIsValid, hostInheritsIdentity } from "./host-draft";
 import { newGroup, newHost, newIdentity, newKey } from "./types";
 import type {
   Group,
@@ -134,7 +130,8 @@ export function useLibrary(
         view.hosts.find((h) => h.id === hostForm.id),
         view.groups,
       ));
-  const identity = (host: Host) => hostIdentity(view.identities, host);
+  const identitiesById = new Map(view.identities.map((i) => [i.id, i]));
+  const keysById = new Map(view.keys.map((k) => [k.id, k]));
   const navigate = (next: Page) => {
     setPage(next);
     tabs.setActive("vault");
@@ -389,16 +386,21 @@ export function useLibrary(
       closeKeyEditor();
       setNotice("Chiave salvata nel portachiavi");
     });
+  const usageIds = usage && new Set(usage.ids);
   const hostRows = view.hosts
-    .filter(
-      (h) =>
+    .filter((h) => {
+      const identity = identitiesById.get(
+        h.effectiveIdentityId || h.identityId,
+      );
+      return (
         (!group || h.groupId === group) &&
-        (!usage || usage.ids.includes(h.identityId)) &&
+        (!usageIds || usageIds.has(h.identityId)) &&
         matches(
-          `${h.name} ${h.address} ${groupPath(view.groups, h.groupId)} ${identity(h)?.name ?? ""} ${identity(h)?.username ?? h.username ?? ""}`,
+          `${h.name} ${h.address} ${groupPath(view.groups, h.groupId)} ${identity?.name ?? ""} ${identity?.username ?? h.username ?? ""}`,
           query,
-        ),
-    )
+        )
+      );
+    })
     .sort((a, b) =>
       sort === "recent"
         ? (b.lastConnectedAt ?? 0) - (a.lastConnectedAt ?? 0)
@@ -407,7 +409,7 @@ export function useLibrary(
   const identityRows = view.identities
     .filter((i) =>
       matches(
-        `${i.name} ${i.username} ${view.keys.find((k) => k.id === i.keyId)?.name ?? ""}`,
+        `${i.name} ${i.username} ${keysById.get(i.keyId)?.name ?? ""}`,
         query,
       ),
     )
@@ -457,7 +459,6 @@ export function useLibrary(
     deletion,
     hostAutosave,
     editorBlocksSync,
-    identity,
     navigate,
     openGroup,
     showFolder,

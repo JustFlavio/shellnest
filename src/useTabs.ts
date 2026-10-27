@@ -223,8 +223,10 @@ export function useTabs(
     if (active === moved.leader.id) setActive(moved.next);
     setFocusedPane(moved.next);
   };
-  const isLive = (ids: string[]) =>
-    tabs.some((t) => ids.includes(t.id) && t.status === "connected");
+  const isLive = (ids: string[]) => {
+    const wanted = new Set(ids);
+    return tabs.some((t) => wanted.has(t.id) && t.status === "connected");
+  };
   const askClosePane = (id: string) =>
     closeGuard.ask(isLive([id]), () => closePane(id));
   const askCloseTab = (id: string) =>
