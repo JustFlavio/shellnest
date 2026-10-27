@@ -15,6 +15,7 @@ export type AppSettings = {
   optionAsMeta: boolean;
   brightBold: boolean;
   scrollback: number;
+  checkUpdates: boolean;
 };
 
 export const DEFAULT_FONT_SIZE = 13;
@@ -151,6 +152,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   optionAsMeta: false,
   brightBold: false,
   scrollback: 5000,
+  checkUpdates: true,
 };
 
 export const clampFontSize = (n: number): number =>
@@ -206,5 +208,6 @@ export function parseSettings(text: string | null): AppSettings {
     optionAsMeta: bool("optionAsMeta"),
     brightBold: bool("brightBold"),
     scrollback: int("scrollback", 500, 100000),
+    checkUpdates: bool("checkUpdates"),
   };
 }

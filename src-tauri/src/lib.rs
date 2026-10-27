@@ -18,7 +18,9 @@ mod view;
 
 /// Builds and runs the Tauri app. `main.rs` only calls this, so the binary stays a one-liner.
 pub fn run() {
-    let builder = tauri::Builder::default();
+    let builder = tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init());
     #[cfg(feature = "desktop-e2e")]
     let builder = builder
         .plugin(tauri_plugin_wdio_webdriver::init())

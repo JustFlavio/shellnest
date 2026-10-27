@@ -17,6 +17,14 @@ ignore = [
     # keys, used only on the local machine to sign an SSH challenge, where the
     # advisory itself says local use is fine. Drop this when russh moves off rsa.
     { id = "RUSTSEC-2023-0071", reason = "no fix upstream; rsa only signs locally, no remote timing oracle" },
+    # zip 4.x (tauri-plugin-updater): ZipArchive::extract follows symlinks and keeps SUID bits.
+    # The plugin ties the crate to the same cargo feature that provides tar/flate2, which the
+    # macOS updater needs, so it cannot be dropped. The zip code runs only for legacy Windows
+    # .zip updates; we ship NSIS .exe updates, and any archive is minisign-verified before it is
+    # opened. Drop these when tauri-plugin-updater moves to zip >= 9.
+    { id = "RUSTSEC-2026-0367", reason = "zip extract only reached for legacy Windows .zip updates, never used; archive is signature-verified first" },
+    { id = "RUSTSEC-2026-0368", reason = "zip extract only reached for legacy Windows .zip updates, never used; archive is signature-verified first" },
+    { id = "RUSTSEC-2026-0369", reason = "zip extract only reached for legacy Windows .zip updates, never used; archive is signature-verified first" },
 ]
 
 [licenses]

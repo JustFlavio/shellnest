@@ -6,5 +6,7 @@ declare global {
     __copied: string[];
     __seen: (string | null)[][];
     __terminals: Map<string, Terminal>;
+    __releaseUpdate?: () => void;
+    __relaunched?: boolean;
   }
 }

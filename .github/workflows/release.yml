@@ -15,6 +15,15 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check that the tag matches the app version
         run: test "v$(node -p "require('./package.json').version")" = "${{ github.ref_name }}"
+      - name: Check that the updater public key is set
+        run: |
+          node -e '
+            const key = require("./src-tauri/tauri.conf.json").plugins.updater.pubkey;
+            if (Buffer.from(key, "base64").toString().includes("PLACEHOLDER")) {
+              console.error("plugins.updater.pubkey in src-tauri/tauri.conf.json is still the placeholder (see docs/releases.md)");
+              process.exit(1);
+            }
+          '
       - id: create
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -57,6 +66,12 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Signs the update packages; unrelated to OS code signing. See docs/releases.md.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
+          # Each job merges its platform into latest.json on the release; updater-manifest.yml checks it is complete.
+          uploadUpdaterJson: true
+          updaterJsonPreferNsis: true

@@ -44,6 +44,10 @@ npm run desktop:build  # produce an installer
 
 Builds are not code-signed, so macOS and Windows will warn on first launch.
 
+## Updates
+
+Shellnest checks GitHub for a newer release a few seconds after launch (turn it off in Settings, Aggiornamenti) and when you choose "Controlla aggiornamenti"; the request contains nothing from your vault. Updates are signed, are downloaded only when you click, and the app restarts only when you click again. How releases work: [docs/releases.md](docs/releases.md).
+
 ## Tests
 
 ```sh

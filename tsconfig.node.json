@@ -13,5 +13,5 @@
     "erasableSyntaxOnly": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["e2e", "sync", "vite.config.ts"]
+  "include": ["e2e", "sync", ".github/scripts", "vite.config.ts"]
 }

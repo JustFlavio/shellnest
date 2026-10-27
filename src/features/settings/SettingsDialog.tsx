@@ -15,6 +15,7 @@ export function SettingsDialog({
   error,
   busy,
   vault,
+  updates,
   settings,
   onSettings,
   bindings,
@@ -28,6 +29,7 @@ export function SettingsDialog({
   error: string;
   busy: boolean;
   vault: ReactNode;
+  updates: ReactNode;
   settings: AppSettings;
   onSettings: (next: AppSettings) => void;
   bindings: Binding[];
@@ -56,6 +58,7 @@ export function SettingsDialog({
             </p>
           )}
           {section === "vault" && vault}
+          {section === "updates" && updates}
           {section === "terminal" && (
             <TerminalSettings
               settings={settings}
