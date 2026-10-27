@@ -1,6 +1,6 @@
 # Roadmap di prodotto
 
-Obiettivo: un'alternativa open source a un altro client SSH per utenti individuali su Windows e macOS, con credenziali riutilizzabili e sync self-hosted opzionale. Il caso d'uso iniziale è la gestione quotidiana di circa trenta server. Parità funzionale fra sistemi e uso completo da tastiera sono requisiti; le schermate un altro client SSH fornite dall'utente sono riferimenti di prodotto.
+Obiettivo: un client SSH open source per utenti individuali su Windows e macOS, con credenziali riutilizzabili e sync self-hosted opzionale. Il caso d'uso iniziale è la gestione quotidiana di circa trenta server. Parità funzionale fra sistemi e uso completo da tastiera sono requisiti.
 
 ## 1. Flusso quotidiano — implementato, verifica visiva da completare
 
@@ -36,7 +36,7 @@ Verifica del 25 ottobre 2026 su Windows: build TypeScript/Vite riuscita, 21 test
 - Snippet; broadcast soltanto con destinatari chiaramente verificabili.
 - Firma/notarizzazione, build e test su macOS, revisione di sicurezza prima di una release stabile.
 
-Non pianificati per la prima release: seriale, collaborazione in tempo reale, account multiutente e compatibilità con il cloud un altro client SSH.
+Non pianificati per la prima release: seriale, collaborazione in tempo reale, account multiutente e compatibilità con servizi cloud di terzi.
 
 ## Idee future
 

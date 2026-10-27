@@ -37,3 +37,9 @@ Desktop.ini
 .vscode/
 test-results/
 playwright-report/
+
+# Local agent instructions and internal review notes
+CLAUDE.md
+AGENTS.md
+RTK.md
+UX_REVIEW.md
