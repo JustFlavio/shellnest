@@ -1,8 +1,8 @@
 use crate::{commit, model::Connection, AppState};
 use russh::{
-    client,
+    client::{self, AuthResult},
     keys::{decode_secret_key, HashAlg, PrivateKeyWithHashAlg, PublicKeyOrCertificate},
-    ChannelMsg, Disconnect,
+    ChannelMsg, Disconnect, MethodKind, MethodSet,
 };
 use serde::Serialize;
 use std::{
@@ -10,11 +10,14 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tauri::{ipc::Channel, Manager, State};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot};
+use zeroize::Zeroizing;
 
 pub enum Input {
     Data(Vec<u8>),
     Resize(u32, u32),
+    // The answer to Output::Password; never logged, zeroized once used.
+    Password(Zeroizing<String>),
     Close,
 }
 #[derive(Clone, Serialize)]
@@ -22,6 +25,9 @@ pub enum Input {
 pub enum Output {
     Data(Vec<u8>),
     Status(String),
+    // Authentication needs a password from the user; true when the previous one was refused.
+    #[serde(rename = "password")]
+    PasswordNeeded(bool),
     Error(String),
     Metadata(ConnectionMetadata),
     Closed,
@@ -57,6 +63,30 @@ fn handler(expected: Option<String>) -> Handler {
         expected,
         seen: Arc::new(Mutex::new(None)),
     }
+}
+/// The one question to the user that may be open: the password for the session being authenticated.
+#[derive(Clone, Default)]
+struct PasswordPrompt(Arc<Mutex<Option<oneshot::Sender<Zeroizing<String>>>>>);
+impl PasswordPrompt {
+    fn ask(&self) -> oneshot::Receiver<Zeroizing<String>> {
+        let (tx, rx) = oneshot::channel();
+        if let Ok(mut slot) = self.0.lock() {
+            *slot = Some(tx);
+        }
+        rx
+    }
+    fn asking(&self) -> bool {
+        self.0.lock().is_ok_and(|slot| slot.is_some())
+    }
+    // An answer nobody asked for is dropped, and zeroized with it.
+    fn answer(&self, password: Zeroizing<String>) -> bool {
+        let tx = self.0.lock().ok().and_then(|mut slot| slot.take());
+        tx.is_some_and(|tx| tx.send(password).is_ok())
+    }
+}
+// Only a server that still offers passwords can be asked for one.
+fn accepts_password(auth: &AuthResult) -> bool {
+    matches!(auth, AuthResult::Failure { remaining_methods, .. } if remaining_methods.contains(&MethodKind::Password))
 }
 fn config() -> Arc<client::Config> {
     Arc::new(client::Config {
@@ -163,9 +193,12 @@ pub fn trust_host(
     host.fingerprint = expected;
     commit(&state, v, data)
 }
-async fn open(
+/// Connects and authenticates. When the key or the stored password is refused (or missing), `ask`
+/// is called with whether a typed password was already refused; `None` means the user gave up.
+async fn open<Ask, Answer>(
     connection: &Connection,
     report: impl Fn(&str),
+    mut ask: Ask,
 ) -> Result<
     (
         client::Handle<Handler>,
@@ -173,7 +206,11 @@ async fn open(
         Vec<u8>,
     ),
     String,
-> {
+>
+where
+    Ask: FnMut(bool) -> Answer,
+    Answer: std::future::Future<Output = Option<Zeroizing<String>>>,
+{
     let host = &connection.host;
     report("Connessione al server SSH");
     let h = handler(Some(host.fingerprint.clone()));
@@ -183,7 +220,7 @@ async fn open(
     })?;
     report("Impronta del server verificata");
     report("Autenticazione SSH");
-    let auth = if connection.auth == "key" {
+    let mut auth = if connection.auth == "key" {
         let secret = decode_secret_key(
             &connection.private_key,
             if connection.passphrase.is_empty() {
@@ -204,14 +241,35 @@ async fn open(
                 PrivateKeyWithHashAlg::new(Arc::new(secret), algorithm),
             )
             .await
+    } else if connection.password.is_empty() {
+        // Nothing stored to try: go straight to asking.
+        Ok(AuthResult::Failure {
+            remaining_methods: MethodSet::from(&[MethodKind::Password][..]),
+            partial_success: false,
+        })
     } else {
         session
             .authenticate_password(&connection.username, &connection.password)
             .await
     }
     .map_err(|e| e.to_string())?;
-    if !auth.success() {
-        return Err("Autenticazione fallita".into());
+    let mut refused = false;
+    while !auth.success() {
+        if !accepts_password(&auth) {
+            return Err("Autenticazione fallita".into());
+        }
+        let password = ask(refused)
+            .await
+            .ok_or("Autenticazione annullata".to_string())?;
+        refused = true;
+        // Nothing to send: ask again, without bothering the server.
+        if password.is_empty() {
+            continue;
+        }
+        auth = session
+            .authenticate_password(&connection.username, password.as_str())
+            .await
+            .map_err(|e| e.to_string())?;
     }
     report("Apertura del terminale remoto");
     let mut channel = session
@@ -316,10 +374,36 @@ async fn run(
     output: &Channel<Output>,
 ) -> Result<(), String> {
     let _ = output.send(Output::Status("Connessione…".into()));
+    let prompt = PasswordPrompt::default();
+    let opening = open(
+        &host,
+        |stage| {
+            let _ = output.send(Output::Status(stage.into()));
+        },
+        |refused| {
+            let answer = prompt.ask();
+            let _ = output.send(Output::PasswordNeeded(refused));
+            async move { answer.await.ok() }
+        },
+    );
+    tokio::pin!(opening);
+    // The timeout does not run while the user is typing a password.
+    let limit = || tokio::time::Instant::now() + Duration::from_secs(30);
+    let timeout = tokio::time::sleep_until(limit());
+    tokio::pin!(timeout);
     // Lock/close cancels transport establishment and authentication as well as live sessions.
-    let (session, mut channel, buffered) = tokio::select! {
-        result=tokio::time::timeout(Duration::from_secs(30),open(&host, |stage| { let _ = output.send(Output::Status(stage.into())); }))=>result.map_err(|_|"Timeout connessione SSH")??,
-        _=rx.recv()=>return Ok(()),
+    let (session, mut channel, buffered) = loop {
+        tokio::select! {
+            result=&mut opening=>break result?,
+            _=&mut timeout,if !prompt.asking()=>return Err("Timeout connessione SSH".into()),
+            input=rx.recv()=>match input{
+                Some(Input::Password(password))=>{
+                    if prompt.answer(password){timeout.as_mut().reset(limit());}
+                },
+                Some(Input::Close)|None=>return Ok(()),
+                Some(_)=>{}
+            },
+        }
     };
     let _ = output.send(Output::Status("Connesso".into()));
     if !buffered.is_empty() {
@@ -342,6 +426,7 @@ async fn run(
             input=rx.recv()=>match input{
                 Some(Input::Data(bytes))=>channel.data(&bytes[..]).await.map_err(|e|e.to_string())?,
                 Some(Input::Resize(cols,rows))=>channel.window_change(cols,rows,0,0).await.map_err(|e|e.to_string())?,
+                Some(Input::Password(_))=>{}
                 Some(Input::Close)|None=>{let _=channel.close().await;break;}
             },
             msg=channel.wait()=>match msg{
@@ -504,6 +589,19 @@ pub fn terminal_input(
     )
 }
 #[tauri::command]
+pub fn terminal_password(
+    state: State<AppState>,
+    vault_id: String,
+    session_id: String,
+    password: String,
+) -> Result<(), String> {
+    let password = Zeroizing::new(password);
+    if password.len() > 1024 {
+        return Err("Password troppo lunga".into());
+    }
+    send(&state, &vault_id, &session_id, Input::Password(password))
+}
+#[tauri::command]
 pub fn terminal_resize(
     state: State<AppState>,
     vault_id: String,
@@ -574,6 +672,16 @@ mod tests {
         key: PublicKey,
         attempts: Arc<AtomicUsize>,
         allow_shell: Arc<AtomicBool>,
+        // What a refusal keeps offering, like a real server (the default would drop the method just tried).
+        offered: MethodSet,
+    }
+    impl Echo {
+        fn refuse(&self) -> server::Auth {
+            server::Auth::Reject {
+                proceed_with_methods: Some(self.offered.clone()),
+                partial_success: false,
+            }
+        }
     }
     impl server::Handler for Echo {
         type Error = russh::Error;
@@ -586,7 +694,7 @@ mod tests {
             Ok(if user == "test" && password == "test-only-password" {
                 server::Auth::Accept
             } else {
-                server::Auth::reject()
+                self.refuse()
             })
         }
         async fn auth_publickey(
@@ -598,7 +706,7 @@ mod tests {
             Ok(if user == "test" && key == &self.key {
                 server::Auth::Accept
             } else {
-                server::Auth::reject()
+                self.refuse()
             })
         }
         async fn channel_open_session(
@@ -675,6 +783,7 @@ mod tests {
                 key: key.public_key().clone(),
                 attempts: attempts.clone(),
                 allow_shell:allow_shell.clone(),
+                offered: MethodSet::from(&[MethodKind::Password, MethodKind::PublicKey][..]),
             };
             let config = Arc::new(server::Config {
                 keys: vec![server_key],
@@ -715,7 +824,7 @@ mod tests {
             };
             for auth in ["password", "key"] {
                 host.auth = auth.into();
-                let (session, mut channel, buffered) = open(&host, |_| {}).await.unwrap();
+                let (session, mut channel, buffered) = open(&host, |_| {}, |_| async { None }).await.unwrap();
                 assert_eq!(buffered,b"fixture login banner\r\n");
                 assert_eq!(detect_os(&session).await.as_deref(), Some("ubuntu"));
                 channel.window_change(120, 40, 0, 0).await.unwrap();
@@ -733,13 +842,13 @@ mod tests {
             }
             host.auth = "password".into();
             allow_shell.store(false,Ordering::SeqCst);
-            assert!(matches!(open(&host, |_| {}).await,Err(error) if error.contains("rifiutato terminale o shell")));
+            assert!(matches!(open(&host, |_| {}, |_| async { None }).await,Err(error) if error.contains("rifiutato terminale o shell")));
             allow_shell.store(true,Ordering::SeqCst);
             host.password = "incorrect".into();
-            assert!(open(&host, |_| {}).await.is_err());
+            assert!(open(&host, |_| {}, |_| async { None }).await.is_err());
             let before = attempts.load(Ordering::SeqCst);
             host.host.fingerprint = "SHA256:wrong".into();
-            let result = open(&host, |_| {}).await;
+            let result = open(&host, |_| {}, |_| async { None }).await;
             assert!(matches!(result,Err(e) if e.contains("Identità del server cambiata")));
             assert_eq!(
                 attempts.load(Ordering::SeqCst),
@@ -750,6 +859,162 @@ mod tests {
         })
         .await
         .expect("SSH fixture timed out");
+    }
+    async fn fixture(password_ok: bool) -> (Connection, tokio::task::JoinHandle<()>) {
+        let key = PrivateKey::random(&mut rand10::rng(), Algorithm::Ed25519).unwrap();
+        let server_key = PrivateKey::random(&mut rand10::rng(), Algorithm::Ed25519).unwrap();
+        let fingerprint = server_key
+            .public_key()
+            .fingerprint(HashAlg::Sha256)
+            .to_string();
+        let echo = Echo {
+            key: key.public_key().clone(),
+            attempts: Arc::new(AtomicUsize::new(0)),
+            allow_shell: Arc::new(AtomicBool::new(true)),
+            offered: if password_ok {
+                MethodSet::from(&[MethodKind::Password, MethodKind::PublicKey][..])
+            } else {
+                MethodSet::from(&[MethodKind::PublicKey][..])
+            },
+        };
+        let config = Arc::new(server::Config {
+            keys: vec![server_key],
+            auth_rejection_time: Duration::ZERO,
+            methods: if password_ok {
+                MethodSet::from(&[MethodKind::Password, MethodKind::PublicKey][..])
+            } else {
+                MethodSet::from(&[MethodKind::PublicKey][..])
+            },
+            ..Default::default()
+        });
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let task = tokio::spawn(async move {
+            while let Ok((socket, _)) = listener.accept().await {
+                let (config, echo) = (config.clone(), echo.clone());
+                tokio::spawn(async move {
+                    if let Ok(session) = server::run_stream(config, socket, echo).await {
+                        let _ = session.await;
+                    }
+                });
+            }
+        });
+        let connection = Connection {
+            host: crate::model::Host {
+                id: "test".into(),
+                name: "test".into(),
+                address: "127.0.0.1".into(),
+                port: Some(port),
+                group_id: String::new(),
+                identity_id: "test-identity".into(),
+                credentials: None,
+                fingerprint,
+                os: None,
+                last_connected_at: None,
+            },
+            username: "test".into(),
+            auth: "key".into(),
+            password: String::new(),
+            // A key the server does not know.
+            private_key: PrivateKey::random(&mut rand10::rng(), Algorithm::Ed25519)
+                .unwrap()
+                .to_openssh(Default::default())
+                .unwrap()
+                .to_string(),
+            passphrase: String::new(),
+        };
+        (connection, task)
+    }
+    fn answers(
+        script: Vec<Option<&'static str>>,
+        asked: Arc<Mutex<Vec<bool>>>,
+    ) -> impl FnMut(bool) -> std::future::Ready<Option<Zeroizing<String>>> {
+        let mut script = script.into_iter();
+        move |refused| {
+            asked.lock().unwrap().push(refused);
+            std::future::ready(
+                script
+                    .next()
+                    .flatten()
+                    .map(|p| Zeroizing::new(p.to_string())),
+            )
+        }
+    }
+    #[tokio::test]
+    async fn refused_key_asks_for_a_password_and_allows_another_attempt() {
+        tokio::time::timeout(Duration::from_secs(15), async {
+            let (connection, task) = fixture(true).await;
+            let asked = Arc::new(Mutex::new(Vec::new()));
+            // Wrong password first, then the right one.
+            let ask = answers(vec![Some("wrong"), Some("test-only-password")], asked.clone());
+            let (session, _, _) = open(&connection, |_| {}, ask).await.unwrap();
+            assert_eq!(*asked.lock().unwrap(), vec![false, true]);
+            let _ = session.disconnect(Disconnect::ByApplication, "", "en").await;
+
+            // Cancelling ends the attempt without a session.
+            let asked = Arc::new(Mutex::new(Vec::new()));
+            let result = open(&connection, |_| {}, answers(vec![None], asked.clone())).await;
+            assert!(matches!(result, Err(e) if e == "Autenticazione annullata"));
+            assert_eq!(*asked.lock().unwrap(), vec![false]);
+
+            // An empty answer asks again without a server round trip counting as a refusal by the server.
+            let asked = Arc::new(Mutex::new(Vec::new()));
+            let ask = answers(vec![Some(""), Some("test-only-password")], asked.clone());
+            assert!(open(&connection, |_| {}, ask).await.is_ok());
+            assert_eq!(*asked.lock().unwrap(), vec![false, true]);
+
+            // A stored password that is refused also falls back to asking.
+            let mut stored = connection.clone();
+            stored.auth = "password".into();
+            stored.password = "stale".into();
+            let asked = Arc::new(Mutex::new(Vec::new()));
+            let ask = answers(vec![Some("test-only-password")], asked.clone());
+            assert!(open(&stored, |_| {}, ask).await.is_ok());
+            assert_eq!(*asked.lock().unwrap(), vec![false]);
+            task.abort();
+        })
+        .await
+        .expect("SSH fixture timed out");
+    }
+    #[tokio::test]
+    async fn no_prompt_when_the_server_does_not_take_passwords() {
+        tokio::time::timeout(Duration::from_secs(15), async {
+            let (connection, task) = fixture(false).await;
+            let asked = Arc::new(Mutex::new(Vec::new()));
+            let result = open(&connection, |_| {}, answers(vec![Some("x")], asked.clone())).await;
+            assert!(matches!(result, Err(e) if e == "Autenticazione fallita"));
+            assert!(asked.lock().unwrap().is_empty());
+            task.abort();
+        })
+        .await
+        .expect("SSH fixture timed out");
+    }
+    #[tokio::test]
+    async fn a_password_is_delivered_only_to_an_open_question() {
+        let prompt = PasswordPrompt::default();
+        assert!(!prompt.asking());
+        assert!(!prompt.answer(Zeroizing::new("early".into())));
+        let answer = prompt.ask();
+        assert!(prompt.asking());
+        assert!(prompt.answer(Zeroizing::new("typed".into())));
+        assert!(!prompt.asking());
+        assert_eq!(answer.await.unwrap().as_str(), "typed");
+        // A second answer to the same question has nowhere to go.
+        assert!(!prompt.answer(Zeroizing::new("again".into())));
+        // Dropping the question (session closed) ends the wait.
+        let answer = prompt.ask();
+        drop(prompt);
+        assert!(answer.await.is_err());
+    }
+    #[test]
+    fn only_a_refusal_that_offers_passwords_prompts() {
+        let refused = |methods: &[MethodKind]| AuthResult::Failure {
+            remaining_methods: MethodSet::from(methods),
+            partial_success: false,
+        };
+        assert!(accepts_password(&refused(&[MethodKind::PublicKey, MethodKind::Password])));
+        assert!(!accepts_password(&refused(&[MethodKind::PublicKey])));
+        assert!(!accepts_password(&AuthResult::Success));
     }
     #[test]
     fn os_metadata_is_bounded_and_never_includes_arbitrary_remote_text() {
