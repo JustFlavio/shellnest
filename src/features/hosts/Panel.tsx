@@ -12,9 +12,11 @@ import type { ReactNode } from "react";
 import { errorBox } from "@/lib/editor-ui";
 import { panelStyles } from "./panel-styles";
 
-// Sheets reserve a grid column through a body class: WebKit does not reliably
-// re-evaluate a `body:has(.side-sheet)` rule once the portalled sheet is removed.
-let openSheets = 0;
+// Open panels are tracked through body classes (`sheet-open`, `dialog-open`,
+// `alert-open`): WebKit does not reliably re-evaluate a `body:has(...)` rule once
+// a portalled panel is removed, which left the sheet backdrop dark after a
+// confirmation closed. Sheets also use the class to reserve a grid column.
+const openPanels: Record<string, number> = {};
 
 export function Panel({
   title,
@@ -44,11 +46,11 @@ export function Panel({
   const [opener] = useState(currentOpener);
   const styles = panelStyles[variant];
   useEffect(() => {
-    if (variant !== "sheet") return;
-    openSheets++;
-    document.body.classList.add("sheet-open");
+    const cls = `${variant}-open`;
+    openPanels[cls] = (openPanels[cls] ?? 0) + 1;
+    document.body.classList.add(cls);
     return () => {
-      if (!--openSheets) document.body.classList.remove("sheet-open");
+      if (!--openPanels[cls]) document.body.classList.remove(cls);
     };
   }, [variant]);
   const Root = variant === "alert" ? AlertDialog : Dialog;

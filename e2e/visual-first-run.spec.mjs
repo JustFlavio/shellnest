@@ -21,12 +21,18 @@ const addHost = async (page, name, address) => {
   await page.getByRole("combobox", { name: "Utente SSH" }).fill("root");
   await page.getByPlaceholder("Password", { exact: true }).fill("segreto");
   await page.getByRole("button", { name: "Chiudi pannello" }).click();
-  await expect(page.getByRole("heading", { name: "Nuovo host" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Seleziona " + name })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nuovo host" })).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole("button", { name: "Seleziona " + name }),
+  ).toBeVisible();
 };
 
 test("empty vault has no sample data", async ({ page }) => {
-  await expect(page.getByRole("button", { name: /^Seleziona / })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Seleziona / })).toHaveCount(
+    0,
+  );
 });
 
 test("selection bar needs two or more hosts", async ({ page }) => {
@@ -35,10 +41,14 @@ test("selection bar needs two or more hosts", async ({ page }) => {
   const bar = page.getByRole("toolbar", { name: "Azioni host selezionati" });
   await page.getByRole("button", { name: "Seleziona uno" }).click();
   await expect(bar).toHaveCount(0);
-  await page.getByRole("button", { name: "Seleziona due" }).click({ modifiers: ["ControlOrMeta"] });
+  await page
+    .getByRole("button", { name: "Seleziona due" })
+    .click({ modifiers: ["ControlOrMeta"] });
   await expect(bar).toBeVisible();
   await expect(bar.getByText("2 selezionati")).toBeVisible();
-  await page.getByRole("button", { name: "Seleziona due" }).click({ modifiers: ["ControlOrMeta"] });
+  await page
+    .getByRole("button", { name: "Seleziona due" })
+    .click({ modifiers: ["ControlOrMeta"] });
   await expect(bar).toHaveCount(0);
 });
 
@@ -48,20 +58,28 @@ test("first host: identity created inline", async ({ page }) => {
   await page.getByRole("heading", { name: "Nuova identità" }).waitFor();
   await page.getByRole("textbox", { name: "Nome" }).fill("Amministrazione");
   await page.getByRole("textbox", { name: "Utente SSH" }).fill("root");
-  await page.getByRole("combobox", { name: "Metodo di autenticazione" }).click();
+  await page
+    .getByRole("combobox", { name: "Metodo di autenticazione" })
+    .click();
   await page.getByRole("option", { name: "Password" }).click();
   await page.getByLabel("Password", { exact: true }).fill("segreto");
   await page.getByRole("button", { name: "Salva e torna all’host" }).click();
   await expect(page.getByText("Identità:")).toBeVisible();
-  await expect(page.getByRole("combobox", { name: "Utente SSH" })).toHaveValue("root");
+  await expect(page.getByRole("combobox", { name: "Utente SSH" })).toHaveValue(
+    "root",
+  );
 });
 
 test("first host: folder created inline", async ({ page }) => {
   await newHost(page);
   await page.getByRole("combobox", { name: "Cartella" }).click();
-  await page.getByRole("button", { name: "Crea cartella", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Crea cartella", exact: true })
+    .click();
   await page.getByRole("heading", { name: "Nuovo gruppo" }).waitFor();
   await page.getByRole("textbox", { name: "Nome" }).fill("Produzione");
   await page.getByRole("button", { name: "Salva e torna all’host" }).click();
-  await expect(page.getByRole("combobox", { name: "Cartella" })).toHaveValue("Produzione");
+  await expect(page.getByRole("combobox", { name: "Cartella" })).toHaveValue(
+    "Produzione",
+  );
 });
