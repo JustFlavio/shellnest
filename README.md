@@ -14,7 +14,7 @@ Built with Tauri 2, React and Rust. Windows and macOS.
 - Tabbed terminals with split panes, reconnect, duplicate and reorder; local terminal with a native PTY.
 - Host key fingerprint check before authenticating, and a hard stop if it changes.
 - Terminal themes, fonts and rebindable keyboard shortcuts.
-- Optional sync of the encrypted vault through the small Node.js server in [`sync/`](sync).
+- Optional sync of the encrypted vault through the small Node.js server in [`sync/`](sync) ([deployment guide](sync/README.md)).
 
 Not implemented yet: SFTP, port forwarding, jump hosts, agent forwarding, keyboard-interactive/2FA. See the [roadmap](ROADMAP.md).
 
