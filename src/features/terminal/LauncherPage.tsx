@@ -14,7 +14,7 @@ export function LauncherPage() {
       connect,
       activateTab,
       openLocal,
-      quickConnect,
+      startQuick,
       lastSession,
       openWorkspace,
       restoreSession,
@@ -38,7 +38,7 @@ export function LauncherPage() {
             ? "Terminale locale"
             : t.kind === "ssh"
               ? `${t.username}@${t.host.address}`
-              : `${t.username}@${t.target.address}`,
+              : `${t.username ? `${t.username}@` : ""}${t.target.address}`,
         hostId: t.kind === "ssh" ? t.host.id : undefined,
         paneHostIds: tabs.flatMap((pane) =>
           pane.parent === t.id && pane.kind === "ssh" ? [pane.host.id] : [],
@@ -53,7 +53,7 @@ export function LauncherPage() {
       onDeleteWorkspace={deleteWorkspace}
       onActivateTab={activateTab}
       onLocalTerminal={openLocal}
-      onQuickConnect={quickConnect}
+      onQuickConnect={startQuick}
       preview={preview}
       busy={busy}
     />

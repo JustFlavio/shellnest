@@ -3,13 +3,15 @@ import type { RefObject } from "react";
 import { useLatest } from "@/lib/useLatest";
 import type { TerminalTab } from "@/lib/types";
 import type { AppSettings } from "@/features/settings/settings.ts";
+import type { StepNote } from "./connection-steps.ts";
 import { terminalHandles } from "./terminal-handles";
 import { sendSessionPassword, startSession } from "./terminal-session";
 import type { SessionCallbacks } from "./terminal-session";
 import { applySettings, openXterm } from "./xterm";
 import type { Xterm } from "./xterm";
 
-export type PasswordAsk = { refused: boolean; waiting: boolean };
+// asks: how many times the server has asked so far; each question is a timeline step.
+export type PasswordAsk = { refused: boolean; waiting: boolean; asks: number };
 
 /** A terminal in `container` wired to the tab's session, torn down together when the tab goes. */
 export function useTerminalSession({
@@ -40,6 +42,7 @@ export function useTerminalSession({
   const [opened, setOpened] = useState(false);
   const [phase, setPhase] = useState("Verifica dell’impronta del server");
   const [logs, setLogs] = useState<string[]>([]);
+  const [details, setDetails] = useState<Record<string, StepNote>>({});
   const [failure, setFailure] = useState("");
   // null until the server asks for a password; the password itself never lives here.
   const [password, setPassword] = useState<PasswordAsk | null>(null);
@@ -67,15 +70,20 @@ export function useTerminalSession({
       tabRef.current,
       instance,
       {
-        status: (text) => {
-          setPhase(text);
-          setLogs((old) => [...old, text]);
-        },
+        status: setPhase,
+        log: (text) => setLogs((old) => [...old, text]),
+        detail: (step, text, warn) =>
+          setDetails((old) => ({ ...old, [step]: { text, warn } })),
         opened: () => setOpened(true),
-        password: (refused) => setPassword({ refused, waiting: true }),
+        password: (refused) =>
+          setPassword((old) => ({
+            refused,
+            waiting: true,
+            asks: (old?.asks ?? 0) + 1,
+          })),
         failure: (text, log = true) => {
           setFailure(text);
-          if (log) setLogs((old) => [...old, text]);
+          if (log) setLogs((old) => [...old, `Errore: ${text}`]);
         },
       },
       callbacksRef,
@@ -102,5 +110,5 @@ export function useTerminalSession({
       callbacksRef.current.onError(String(e)),
     );
   };
-  return { opened, phase, logs, failure, password, submitPassword };
+  return { opened, phase, logs, details, failure, password, submitPassword };
 }

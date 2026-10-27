@@ -11,7 +11,7 @@ import type { Workspaces } from "./useWorkspaces";
 export function useTrust(
   { run, update, invokeScoped }: VaultApi,
   list: TabList,
-  { queue, verifying, continueConnections, openQuick }: HostConnections,
+  { queue, verifying, continueConnections }: HostConnections,
   { closeTab }: CloseTabs,
   { openWorkspaces }: Workspaces,
   trust: Trust | null,
@@ -21,7 +21,20 @@ export function useTrust(
     void run(async () => {
       if (!trust) return;
       if (trust.quick) {
-        openQuick({ ...trust.quick, expectedFingerprint: trust.fingerprint });
+        // The pane that asked starts its session now; the fingerprint is not kept.
+        list.setTabs((old) =>
+          old.map((tab) =>
+            tab.id === trust.tabId && tab.kind === "quick"
+              ? {
+                  ...tab,
+                  target: {
+                    ...tab.target,
+                    expectedFingerprint: trust.fingerprint,
+                  },
+                }
+              : tab,
+          ),
+        );
       } else if (trust.host) {
         await invokeScoped("trust_host", {
           id: trust.host.id,

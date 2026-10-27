@@ -1,18 +1,24 @@
 import { useState } from "react";
-import { Check, LoaderCircle, X } from "lucide-react";
+import { Check, LoaderCircle, TriangleAlert, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { help } from "@/lib/editor-ui";
 import type { TerminalTab } from "@/lib/types";
 import { useApp } from "@/app/app-context";
+import { ConnectionLog } from "./ConnectionLog";
 import { FingerprintCard } from "./FingerprintCard";
 import { PasswordStep } from "./PasswordStep";
+import { QuickMethodStep } from "./QuickMethodStep";
+import { QuickUserStep } from "./QuickUserStep";
 import type { PasswordAsk } from "./useTerminalSession";
 import { timelineSteps } from "./connection-steps.ts";
-import type { StepState } from "./connection-steps.ts";
+import { needsMethod } from "./quick-setup.ts";
+import { useQuickSetup } from "./useQuickSetup";
+import type { StepNote, StepState } from "./connection-steps.ts";
 
 const dot: Record<StepState, string> = {
   done: "border-primary bg-primary text-primary-foreground",
+  warning: "border-primary bg-background text-primary",
   current: "border-primary text-primary",
   failed: "border-destructive bg-destructive text-background",
   pending: "border-border text-transparent",
@@ -23,6 +29,7 @@ export function ConnectionTimeline({
   tab,
   phase,
   logs,
+  details,
   failure,
   password,
   onPassword,
@@ -33,6 +40,7 @@ export function ConnectionTimeline({
   tab: TerminalTab;
   phase: string;
   logs: string[];
+  details: Record<string, StepNote>;
   failure: string;
   password: PasswordAsk | null;
   onPassword: (password: string) => void;
@@ -41,16 +49,52 @@ export function ConnectionTimeline({
   onEdit?: () => void;
 }) {
   const {
-    tabs: { trust },
+    vault: { view, busy },
+    tabs: { trust, finishQuick },
   } = useApp();
   // Whether this pane had to ask for the host key: decided once, when it opened.
-  const [askedTrust] = useState(tab.kind === "ssh" && !tab.host.fingerprint);
-  const [showLogs, setShowLogs] = useState(false);
-  const [copyError, setCopyError] = useState("");
+  const [askedTrust] = useState(
+    (tab.kind === "ssh" && !tab.host.fingerprint) || tab.kind === "quick",
+  );
+  const quick = useQuickSetup(
+    tab.kind === "quick" ? tab.target.address : "",
+    tab.username,
+  );
+  // A quick connection asks for user and login here until it has them.
+  const asking = tab.kind === "quick" && !tab.target.login;
+  const [copy, setCopy] = useState("");
   const target =
     tab.kind === "ssh" ? tab.host : tab.kind === "quick" ? tab.target : null;
   const message = failure || tab.error || "";
-  const awaitingTrust = tab.kind === "ssh" && !tab.host.fingerprint && !message;
+  const awaitingTrust =
+    ((tab.kind === "ssh" && !tab.host.fingerprint) ||
+      (tab.kind === "quick" && !asking && !tab.target.expectedFingerprint)) &&
+    !message;
+  const chosen = view.identities.find((i) => i.id === quick.setup.identityId);
+  const quickDetails: Record<string, StepNote> =
+    tab.kind === "quick" && (!asking || quick.stage === "method")
+      ? {
+          user: {
+            text: chosen
+              ? `${quick.setup.username} · identità “${chosen.name}”`
+              : quick.setup.username,
+            warn: false,
+          },
+          ...(asking && quick.stage !== "method"
+            ? {}
+            : tab.kind === "quick" && tab.target.login?.kind !== "identity"
+              ? {
+                  method: {
+                    text:
+                      quick.setup.method === "key"
+                        ? `Chiave “${view.keys.find((k) => k.id === quick.setup.keyId)?.name ?? ""}”`
+                        : "Password",
+                    warn: false,
+                  },
+                }
+              : {}),
+        }
+      : {};
   const steps = timelineSteps({
     kind: tab.kind,
     target: target ? `${target.address}:${target.port}` : "",
@@ -59,9 +103,19 @@ export function ConnectionTimeline({
     phase,
     failure: message,
     opened: false,
-    password: password && password.waiting,
+    passwords: password?.asks ?? 0,
+    details: { ...quickDetails, ...details },
+    setup:
+      tab.kind === "quick"
+        ? {
+            stage: asking ? quick.stage : null,
+            method: asking
+              ? needsMethod(quick.setup)
+              : tab.target.login?.kind !== "identity",
+          }
+        : undefined,
   });
-  const details = [...logs, ...(tab.error ? [tab.error] : [])].join("\n");
+  const lines = tab.error && !logs.length ? [tab.error] : logs;
   return (
     <div className="grid min-h-0 flex-1 place-items-center overflow-auto p-[24px]">
       <div className="w-[min(100%,460px)]">
@@ -96,6 +150,9 @@ export function ConnectionTimeline({
                   )}
                 >
                   {step.state === "done" && <Check size={12} strokeWidth={3} />}
+                  {step.state === "warning" && (
+                    <TriangleAlert size={12} strokeWidth={3} />
+                  )}
                   {step.state === "failed" && <X size={12} strokeWidth={3} />}
                   {step.state === "current" && (
                     <LoaderCircle
@@ -115,24 +172,57 @@ export function ConnectionTimeline({
                   <span className="sr-only">
                     {step.state === "done"
                       ? " — completato"
-                      : step.state === "failed"
-                        ? " — non riuscito"
-                        : ""}
+                      : step.state === "warning"
+                        ? " — completato con avviso"
+                        : step.state === "failed"
+                          ? " — non riuscito"
+                          : ""}
                   </span>
                 </div>
+                {step.detail && (
+                  <p
+                    className={cn(
+                      help,
+                      "mt-[2px]",
+                      step.state === "warning" && "text-primary",
+                    )}
+                  >
+                    {step.detail}
+                  </p>
+                )}
                 {step.state === "current" &&
-                  step.id === "password" &&
+                  step.id.startsWith("password") &&
                   password?.waiting && (
                     <PasswordStep
-                      key={String(password.refused)}
+                      key={password.asks}
                       refused={password.refused}
                       onSubmit={onPassword}
                       onCancel={onCancel}
                     />
                   )}
+                {step.state === "current" && step.id === "user" && (
+                  <QuickUserStep
+                    state={quick}
+                    identities={view.identities}
+                    busy={busy}
+                    onSubmit={(save) => finishQuick(tab, quick.setup, save)}
+                    onCancel={onCancel}
+                  />
+                )}
+                {step.state === "current" && step.id === "method" && (
+                  <QuickMethodStep
+                    state={quick}
+                    keys={view.keys}
+                    busy={busy}
+                    onSubmit={(save) => finishQuick(tab, quick.setup, save)}
+                    onCancel={onCancel}
+                  />
+                )}
                 {step.state === "current" &&
                   step.id !== "trust" &&
-                  !(step.id === "password" && password?.waiting) && (
+                  step.id !== "user" &&
+                  step.id !== "method" &&
+                  !(step.id.startsWith("password") && password?.waiting) && (
                     <p role="status" className={help + " mt-[2px]"}>
                       {phase}
                     </p>
@@ -159,38 +249,35 @@ export function ConnectionTimeline({
           })}
         </ol>
         {message && (
-          <div className="mt-[20px]">
-            <div className="flex flex-wrap gap-[8px]">
-              <Button onClick={onRetry}>Riprova</Button>
-              {onEdit && (
-                <Button variant="outline" onClick={onEdit}>
-                  Modifica host
-                </Button>
-              )}
-              <Button variant="ghost" onClick={() => setShowLogs(!showLogs)}>
-                {showLogs ? "Nascondi dettagli" : "Mostra dettagli"}
+          <div className="mt-[20px] flex flex-wrap gap-[8px]">
+            <Button onClick={onRetry}>Ricomincia</Button>
+            {onEdit && (
+              <Button variant="outline" onClick={onEdit}>
+                Modifica host
               </Button>
-            </div>
-            {showLogs && (
-              <>
-                <pre className="mt-[12px] max-h-[200px] overflow-auto rounded-[10px] bg-muted p-[14px] text-left text-[12px] whitespace-pre-wrap [overflow-wrap:anywhere]">
-                  {details || phase}
-                </pre>
-                <Button
-                  variant="ghost"
-                  onClick={() =>
-                    void navigator.clipboard
-                      .writeText(details)
-                      .catch(() => setCopyError("Copia non riuscita."))
-                  }
-                >
-                  Copia log
-                </Button>
-              </>
             )}
-            {copyError && <p role="alert">{copyError}</p>}
+            <Button variant="outline" onClick={onCancel}>
+              Chiudi
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() =>
+                void navigator.clipboard
+                  .writeText(lines.join("\n"))
+                  .then(() => setCopy("Log copiato."))
+                  .catch(() => setCopy("Copia non riuscita."))
+              }
+            >
+              Copia log
+            </Button>
+            {copy && (
+              <p role="status" className={help + " m-0 self-center"}>
+                {copy}
+              </p>
+            )}
           </div>
         )}
+        <ConnectionLog lines={lines} />
       </div>
     </div>
   );

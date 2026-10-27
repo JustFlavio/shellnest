@@ -16,7 +16,7 @@ function endpointOf(tab: TerminalTab) {
   const target =
     tab.kind === "ssh" ? tab.host : tab.kind === "quick" ? tab.target : null;
   return target
-    ? `${tab.username}@${target.address}${target.port === 22 ? "" : `:${target.port}`}`
+    ? `${tab.username ? `${tab.username}@` : ""}${target.address}${target.port === 22 ? "" : `:${target.port}`}`
     : "Shell del dispositivo";
 }
 
@@ -90,22 +90,25 @@ export function TerminalPane({
 } & SessionCallbacks) {
   const [pendingPaste, setPendingPaste] = useState<string | null>(null);
   const container = useRef<HTMLDivElement>(null);
-  const pendingTrust = tab.kind === "ssh" && !tab.host.fingerprint;
+  // No session until the host key is confirmed (and, for a quick connection, the login chosen).
+  const pendingTrust =
+    (tab.kind === "ssh" && !tab.host.fingerprint) ||
+    (tab.kind === "quick" && !tab.target.expectedFingerprint);
   const xterm = useRef<Xterm | null>(null);
   const search = useTerminalSearch(xterm);
-  const { opened, phase, logs, failure, password, submitPassword } =
+  const { opened, phase, logs, details, failure, password, submitPassword } =
     useTerminalSession({
-    xterm,
-    tab,
-    container,
-    enabled: !pendingTrust,
-    settings,
-    active,
-    focused,
-    callbacks: { onError, onStatus, onTitle, onMetadata },
-    onSearch: search.open,
-    onConfirmPaste: setPendingPaste,
-  });
+      xterm,
+      tab,
+      container,
+      enabled: !pendingTrust,
+      settings,
+      active,
+      focused,
+      callbacks: { onError, onStatus, onTitle, onMetadata },
+      onSearch: search.open,
+      onConfirmPaste: setPendingPaste,
+    });
   const closePasteConfirm = () => {
     setPendingPaste(null);
     xterm.current?.term.focus();
@@ -152,6 +155,7 @@ export function TerminalPane({
           tab={tab}
           phase={phase}
           logs={logs}
+          details={details}
           failure={failure}
           password={password}
           onPassword={submitPassword}

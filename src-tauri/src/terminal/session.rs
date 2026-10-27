@@ -1,6 +1,6 @@
 use super::{
-    connection::open,
-    messages::{ConnectionMetadata, Input, Output},
+    connection::{open, Note},
+    messages::{ConnectionMetadata, Input, Output, StepDetail},
     os_probe::detect_os,
     password::PasswordPrompt,
 };
@@ -25,8 +25,14 @@ async fn run(
     let prompt = PasswordPrompt::default();
     let opening = open(
         &host,
-        |stage| {
-            let _ = output.send(Output::Status(stage.into()));
+        |note| {
+            let _ = output.send(match note {
+                Note::Stage(stage) => Output::Status(stage.into()),
+                Note::Log(line) => Output::Log(line),
+                Note::Detail { step, warn, text } => {
+                    Output::Detail(StepDetail { step, warn, text })
+                }
+            });
         },
         |refused| {
             let answer = prompt.ask();
@@ -75,12 +81,12 @@ async fn run(
                 Some(Input::Data(bytes))=>channel.data(&bytes[..]).await.map_err(|e|e.to_string())?,
                 Some(Input::Resize(cols,rows))=>channel.window_change(cols,rows,0,0).await.map_err(|e|e.to_string())?,
                 Some(Input::Password(_))=>{}
-                Some(Input::Close)|None=>{let _=channel.close().await;break;}
+                Some(Input::Close)|None=>{let _=channel.close().await;let _=output.send(Output::Log("Connessione chiusa dall’utente".into()));break;}
             },
             msg=channel.wait()=>match msg{
                 Some(ChannelMsg::Data{data})|Some(ChannelMsg::ExtendedData{data,..})=>{if output.send(Output::Data(data.to_vec())).is_err(){break;}},
                 Some(ChannelMsg::Failure)=>return Err("Il server ha rifiutato terminale o shell".into()),
-                Some(ChannelMsg::Close)|None=>break,
+                Some(ChannelMsg::Close)|None=>{let _=output.send(Output::Log("Connessione chiusa dal server".into()));break;},
                 _=>{}
             }
         }

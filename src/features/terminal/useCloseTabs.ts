@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import type { VaultApi } from "@/features/vault/useVault";
 import type { TerminalTab } from "@/lib/types";
 import type { useCloseGuard } from "./CloseGuard";
 import {
@@ -14,9 +13,8 @@ import type { TabList } from "./useTabList";
 
 /** Closing tabs and panes (asking first for live sessions) and reopening the last closed one. */
 export function useCloseTabs(
-  { setError }: VaultApi,
   list: TabList,
-  { queue, verifying, connect, openQuick, openLocal }: HostConnections,
+  { queue, verifying, connect, startQuick, openLocal }: HostConnections,
   closeGuard: ReturnType<typeof useCloseGuard>,
 ) {
   const { tabs, active } = list;
@@ -58,13 +56,9 @@ export function useCloseTabs(
     const tab = closed.current.pop();
     if (!tab) return;
     if (tab.kind === "ssh") connect(tab.host);
-    else if (tab.kind === "quick") {
-      try {
-        openQuick(tab.target);
-      } catch (e) {
-        setError(String(e));
-      }
-    } else openLocal();
+    else if (tab.kind === "quick")
+      startQuick({ ...tab.target, username: tab.username || undefined });
+    else openLocal();
   };
   return {
     pendingClose,

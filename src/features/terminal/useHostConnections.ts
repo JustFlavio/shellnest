@@ -1,14 +1,21 @@
 import { useRef } from "react";
 import type { VaultApi } from "@/features/vault/useVault";
 import { hostIdentity } from "@/features/hosts/host-draft";
-import type { Host, QuickTarget } from "@/lib/types";
+import { hostDraftIsValid } from "@/features/hosts/host-draft";
+import { saveHostCommand } from "@/features/hosts/save-host";
+import { newHost } from "@/lib/types";
+import type { Host, TerminalTab, View } from "@/lib/types";
+import type { ConnectionTarget } from "./connection-target.ts";
+import { holdQuickPassword, takeQuickPassword } from "./quick-password";
+import { hostToSave, identityForKey, quickLogin } from "./quick-setup.ts";
+import type { QuickSetup } from "./quick-setup.ts";
 import { localTab, quickTab, sshTab } from "./tab-factory";
-import type { QuickConnection, Trust } from "./tabs-types";
+import type { Trust } from "./tabs-types";
 import type { TabList } from "./useTabList";
 
 /** Opening sessions: hosts one after the other (verifying unknown host keys), local shell, quick connections. */
 export function useHostConnections(
-  { view, preview, run, invokeScoped, setError }: VaultApi,
+  { view, preview, run, invokeScoped, setError, update }: VaultApi,
   list: TabList,
   setTrust: (trust: Trust) => void,
 ) {
@@ -73,20 +80,76 @@ export function useHostConnections(
     }
     list.addTab(localTab(view.vaultId));
   };
-  const openQuick = (target: QuickTarget) => {
-    const i = view.identities.find((i) => i.id === target.identityId);
-    if (!i) throw new Error("Identità non disponibile");
-    list.addTab(quickTab(target, i, view.vaultId));
-  };
-  const quickConnect = (target: QuickConnection) =>
+  // A quick connection starts as a draft tab: the timeline asks for the rest.
+  const startQuick = (target: ConnectionTarget) =>
+    list.addTab(quickTab(target, view.vaultId));
+  // The answers of the quick-connection form: optionally save the host, then verify the host key.
+  const finishQuick = (tab: TerminalTab, setup: QuickSetup, save: boolean) =>
     void run(async () => {
-      if (preview)
-        throw new Error("Le connessioni funzionano nell’app desktop.");
-      const fingerprint = await invokeScoped<string>("probe_target", {
-        address: target.address,
-        port: target.port,
-      });
-      setTrust({ quick: target, fingerprint });
+      const login = quickLogin(setup);
+      if (tab.kind !== "quick" || !login)
+        throw new Error("Completa i dati di accesso.");
+      const keyName = (id: string) =>
+        view.keys.find((k) => k.id === id)?.name ?? "";
+      let identityId = login.kind === "identity" ? login.id : "";
+      let identities = view.identities;
+      if (save) {
+        if (login.kind === "key") {
+          const found = identityForKey(
+            identities,
+            setup.username,
+            login.id,
+            keyName(login.id),
+          );
+          if (found.isNew) {
+            const next = await invokeScoped<View>("save_identity", {
+              identity: {
+                id: found.id,
+                name: found.name,
+                username: setup.username,
+                auth: "key",
+                keyId: login.id,
+                password: "",
+              },
+            });
+            update(next);
+            identities = next.identities;
+          }
+          identityId = found.id;
+        }
+        const draft = hostToSave(setup, tab.target, newHost(), identityId);
+        if (!hostDraftIsValid(draft, identities, undefined, view.groups))
+          throw new Error(
+            "I dati dell’host non sono validi per il salvataggio.",
+          );
+        update(await saveHostCommand(invokeScoped, draft));
+      }
+      if (login.kind === "password" && setup.password)
+        holdQuickPassword(tab.id, setup.password);
+      const target = { ...tab.target, username: setup.username, login };
+      const identityName =
+        login.kind === "identity"
+          ? (view.identities.find((i) => i.id === login.id)?.name ?? "")
+          : login.kind === "key"
+            ? keyName(login.id)
+            : "Password";
+      const patch = (change: Partial<TerminalTab>) =>
+        list.setTabs((old) =>
+          old.map((t) =>
+            t.id === tab.id ? ({ ...t, ...change } as TerminalTab) : t,
+          ),
+        );
+      patch({ username: setup.username, identityName, target });
+      try {
+        const fingerprint = await invokeScoped<string>("probe_target", {
+          address: target.address,
+          port: target.port,
+        });
+        setTrust({ quick: target, fingerprint, tabId: tab.id });
+      } catch (e) {
+        takeQuickPassword(tab.id);
+        patch({ status: "failed", error: String(e) });
+      }
     });
   return {
     queue,
@@ -95,8 +158,8 @@ export function useHostConnections(
     connectHosts,
     connect,
     openLocal,
-    openQuick,
-    quickConnect,
+    startQuick,
+    finishQuick,
   };
 }
 

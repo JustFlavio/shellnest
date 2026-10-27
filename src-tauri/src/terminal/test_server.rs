@@ -177,6 +177,7 @@ pub(super) async fn fixture(password_ok: bool) -> (Connection, tokio::task::Join
             .unwrap()
             .to_string(),
         passphrase: String::new(),
+        key_name: "chiave di prova".into(),
     };
     (connection, task)
 }

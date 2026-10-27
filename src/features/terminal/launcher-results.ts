@@ -167,7 +167,7 @@ export function launcherResults({
 // connect: it connects when the text is a target and an identity is picked, otherwise it
 // reveals the quick-connect card so the identity can be chosen. Null: leave the key alone.
 export type LauncherKeyAction =
-  | { type: "clear" | "activate" | "quick" | "reveal" }
+  | { type: "clear" | "activate" | "quick" }
   | { type: "select"; index: number };
 
 export function launcherKeyAction(
@@ -178,8 +178,6 @@ export function launcherKeyAction(
     busy,
     canQuickConnect,
     modified = false,
-    hasText = false,
-    ready = false,
   }: {
     count: number;
     selected: number;
@@ -188,9 +186,6 @@ export function launcherKeyAction(
     canQuickConnect: boolean;
     // Cmd/Ctrl is held
     modified?: boolean;
-    hasText?: boolean;
-    // an identity is picked
-    ready?: boolean;
   },
 ): LauncherKeyAction | null {
   if (key === "Escape") return { type: "clear" };
@@ -199,10 +194,8 @@ export function launcherKeyAction(
   if (key === "ArrowUp" && count)
     return { type: "select", index: (selected + count - 1) % count };
   if (key !== "Enter") return null;
-  if (modified) {
-    if (!hasText || busy) return null;
-    return canQuickConnect && ready ? { type: "quick" } : { type: "reveal" };
-  }
+  // Cmd/Ctrl+Enter starts the connection timeline for any text that parses as a target.
+  if (modified) return canQuickConnect ? { type: "quick" } : null;
   if (count) return busy ? null : { type: "activate" };
   return canQuickConnect ? { type: "quick" } : null;
 }

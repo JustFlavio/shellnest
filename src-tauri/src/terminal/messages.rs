@@ -17,8 +17,18 @@ pub(crate) enum Output {
     #[serde(rename = "password")]
     PasswordNeeded(bool),
     Error(String),
+    // One line of the connection log: plain text, never a secret.
+    Log(String),
+    // The outcome of a timeline step; `warn` marks a partial result that must not look like a success.
+    Detail(StepDetail),
     Metadata(ConnectionMetadata),
     Closed,
+}
+#[derive(Clone, Serialize)]
+pub(crate) struct StepDetail {
+    pub step: String,
+    pub warn: bool,
+    pub text: String,
 }
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

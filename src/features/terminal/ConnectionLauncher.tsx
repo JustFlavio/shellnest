@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Group, Host, Identity, Workspace } from "@/lib/types";
 import { quickConnectTarget } from "./connection-target.ts";
+import type { ConnectionTarget } from "./connection-target.ts";
 import {
   Command,
   CommandGroup,
@@ -23,7 +24,6 @@ import { LauncherRow } from "./LauncherRow";
 import { LauncherSearch } from "./LauncherSearch";
 import { PickingActions } from "./PickingActions";
 import { QuickConnectForm } from "./QuickConnectForm";
-import type { QuickConnection } from "./tabs-types";
 
 export type ConnectionLauncherProps = {
   vaultName: string;
@@ -40,7 +40,7 @@ export type ConnectionLauncherProps = {
   onCreateWorkspace: (hostIds: string[]) => void;
   onActivateTab: (id: string) => void;
   onLocalTerminal: () => void;
-  onQuickConnect: (target: QuickConnection) => void;
+  onQuickConnect: (target: ConnectionTarget) => void;
   preview: boolean;
   // formatted binding of the quick-connect shortcut; empty when unbound
   shortcut: string;
@@ -75,25 +75,15 @@ export function ConnectionLauncher({
   busy,
 }: ConnectionLauncherProps) {
   const [query, setQuery] = useState("");
-  const identitySelect = useRef<HTMLButtonElement>(null);
   const [selection, setSelection] = useState(0);
   const [armed, setArmed] = useState<string>();
   // hosts being picked for a new workspace; null when not picking
   const [picked, setPicked] = useState<string[] | null>(null);
-  // Cmd/Ctrl+Enter showed the quick-connect card for text that is not plainly a target
-  const [revealed, setRevealed] = useState(false);
-  const [pickerRequest, setPickerRequest] = useState(0);
-  const [identityId, setIdentityId] = useState(
-    identities.length === 1 ? identities[0].id : "",
-  );
   useEffect(() => {
     if (!armed) return;
     const timer = setTimeout(() => setArmed(undefined), 3000);
     return () => clearTimeout(timer);
   }, [armed]);
-  useEffect(() => {
-    if (pickerRequest) identitySelect.current?.focus();
-  }, [pickerRequest]);
   const { text, hasRecent, results } = launcherResults({
     query,
     vaultName,
@@ -104,12 +94,9 @@ export function ConnectionLauncher({
     tabs,
     selecting: picked !== null,
   });
-  const target = quickConnectTarget(query, hosts, revealed);
-  const isTarget = !!quickConnectTarget(query, hosts);
-  const hasIdentity = identities.some((identity) => identity.id === identityId);
-  const canQuickConnect = hasIdentity && !busy && !preview;
-  const quickConnect = () =>
-    target && onQuickConnect({ ...target, identityId });
+  const target = quickConnectTarget(query, hosts);
+  // Cmd/Ctrl+Enter takes any text that parses as an address, not only what looks like one.
+  const forcedTarget = quickConnectTarget(query, hosts, true);
   const selected = Math.min(selection, Math.max(0, results.length - 1));
   useEffect(() => {
     document
@@ -173,10 +160,10 @@ export function ConnectionLauncher({
       count: results.length,
       selected,
       busy,
-      canQuickConnect: isTarget && !busy && !preview,
+      canQuickConnect:
+        !busy &&
+        !!(event.metaKey || event.ctrlKey ? forcedTarget : target),
       modified: event.metaKey || event.ctrlKey,
-      hasText: !!text,
-      ready: hasIdentity,
     });
     if (!action) {
       if (event.key === "Enter") event.preventDefault();
@@ -184,18 +171,13 @@ export function ConnectionLauncher({
     }
     if (action.type === "clear") {
       setQuery("");
-      setRevealed(false);
       setSelection(0);
       return;
     }
     event.preventDefault();
-    if (action.type === "reveal") {
-      setRevealed(true);
-      setPickerRequest((n) => n + 1);
-    } else if (action.type === "select") setSelection(action.index);
+    if (action.type === "select") setSelection(action.index);
     else if (action.type === "activate") activate(results[selected]);
-    else if (hasIdentity) quickConnect();
-    else identitySelect.current?.focus();
+    else onQuickConnect((event.metaKey || event.ctrlKey ? forcedTarget : target)!);
   };
   const nothingSaved = !hosts.length && !tabs.length;
   const emptyMessage = nothingSaved
@@ -225,7 +207,6 @@ export function ConnectionLauncher({
           shortcut={shortcut}
           onChange={(value) => {
             setQuery(value);
-            setRevealed(false);
             setSelection(0);
           }}
           onKeyDown={onKeyDown}
@@ -286,12 +267,8 @@ export function ConnectionLauncher({
       {target && (
         <QuickConnectForm
           target={target}
-          identities={identities}
-          identityId={identityId}
-          canConnect={canQuickConnect}
-          selectRef={identitySelect}
-          onIdentityChange={setIdentityId}
-          onSubmit={quickConnect}
+          canConnect={!busy}
+          onSubmit={() => onQuickConnect(target)}
         />
       )}
       <p className="help mt-[16px]">

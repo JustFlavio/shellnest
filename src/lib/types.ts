@@ -78,11 +78,18 @@ export type View = {
 export type WorkspaceDraft = { name?: string; layout: SavedNode };
 export type Workspace = WorkspaceDraft & { id: string; name: string };
 export type VaultInfo = { id: string; name: string; exists: boolean };
+/** How a quick connection logs in: a saved identity, a key from the vault, or a password. */
+export type QuickLogin =
+  | { kind: "identity"; id: string }
+  | { kind: "key"; id: string }
+  | { kind: "password" };
 export type QuickTarget = {
   address: string;
   port: number;
-  identityId: string;
   username?: string;
+  // unset while the timeline still asks for it
+  login?: QuickLogin;
+  // empty until the host key is confirmed; quick connections never keep it
   expectedFingerprint: string;
 };
 export type TerminalTab = {
@@ -107,7 +114,9 @@ export type TerminalTab = {
 );
 export type Output =
   | { type: "data"; data: number[] }
-  | { type: "status" | "error"; data: string }
+  | { type: "status" | "error" | "log"; data: string }
+  // how a timeline step ended; warn = a partial result, such as a fallback
+  | { type: "detail"; data: { step: string; warn: boolean; text: string } }
   // authentication needs a password; data = the previous one was refused
   | { type: "password"; data: boolean }
   | { type: "metadata"; data: { os: string | null; lastConnectedAt: number } }

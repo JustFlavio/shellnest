@@ -9,6 +9,8 @@ pub(crate) struct Connection {
     pub(crate) password: String,
     pub(crate) private_key: String,
     pub(crate) passphrase: String,
+    // For the connection log and the timeline; not a secret.
+    pub(crate) key_name: String,
 }
 
 impl Data {
@@ -34,6 +36,7 @@ impl Data {
                 password,
                 private_key: String::new(),
                 passphrase: String::new(),
+                key_name: String::new(),
             });
         }
         let identity = self
@@ -58,14 +61,18 @@ impl Data {
             password: identity.password.clone(),
             private_key: key.map(|k| k.private_key.clone()).unwrap_or_default(),
             passphrase: key.map(|k| k.passphrase.clone()).unwrap_or_default(),
+            key_name: key.map(|k| k.name.clone()).unwrap_or_default(),
         })
     }
+    /// A connection to a bare address. With an `identity_id` that identity logs in; without one the
+    /// login is inline: the vault key `key_id`, or else `password` (empty: asked during the attempt).
     pub(crate) fn resolve_target(
         &self,
         address: &str,
         port: u16,
         identity_id: &str,
         username: Option<&str>,
+        (key_id, password): (&str, &str),
         expected_fingerprint: &str,
     ) -> Result<Connection, String> {
         if address.is_empty()
@@ -95,21 +102,45 @@ impl Data {
         {
             return Err("Verifica prima l’impronta del server".into());
         }
-        self.connection_for(
-            Host {
-                id: format!("quick-{}", new_id()),
-                name: address.into(),
-                address: address.into(),
-                port: Some(port),
-                group_id: String::new(),
-                identity_id: identity_id.into(),
-                credentials: None,
-                fingerprint: expected_fingerprint.into(),
-                os: None,
-                last_connected_at: None,
+        let host = Host {
+            id: format!("quick-{}", new_id()),
+            name: address.into(),
+            address: address.into(),
+            port: Some(port),
+            group_id: String::new(),
+            identity_id: identity_id.into(),
+            credentials: None,
+            fingerprint: expected_fingerprint.into(),
+            os: None,
+            last_connected_at: None,
+        };
+        if !identity_id.is_empty() {
+            return self.connection_for(host, username);
+        }
+        let username = username.ok_or("Indica l’utente SSH")?;
+        let key = if key_id.is_empty() {
+            None
+        } else {
+            Some(
+                self.keys
+                    .iter()
+                    .find(|k| k.id == key_id)
+                    .ok_or("Chiave non trovata")?,
+            )
+        };
+        Ok(Connection {
+            host,
+            username: username.into(),
+            auth: if key.is_some() { "key" } else { "password" }.into(),
+            password: if key.is_some() {
+                String::new()
+            } else {
+                password.into()
             },
-            username,
-        )
+            private_key: key.map(|k| k.private_key.clone()).unwrap_or_default(),
+            passphrase: key.map(|k| k.passphrase.clone()).unwrap_or_default(),
+            key_name: key.map(|k| k.name.clone()).unwrap_or_default(),
+        })
     }
 }
 
@@ -177,21 +208,60 @@ mod tests {
             base64::engine::general_purpose::STANDARD_NO_PAD.encode([1; 32])
         );
         let quick = data
-            .resolve_target("192.0.2.1", 2222, "admin", Some("ubuntu"), &fp)
+            .resolve_target("192.0.2.1", 2222, "admin", Some("ubuntu"), ("", ""), &fp)
             .unwrap();
         assert_eq!(quick.username, "ubuntu");
         assert_eq!(quick.password, "test-secret");
         assert!(data.hosts.is_empty());
         assert_eq!(data.identities[0].username, "root");
         assert!(data
-            .resolve_target("host; rm", 22, "admin", None, &fp)
-            .is_err());
-        assert!(data.resolve_target("host", 0, "admin", None, &fp).is_err());
-        assert!(data
-            .resolve_target("host", 22, "admin", None, "SHA256:invalid")
+            .resolve_target("host; rm", 22, "admin", None, ("", ""), &fp)
             .is_err());
         assert!(data
-            .resolve_target("host", 22, "missing", None, &fp)
+            .resolve_target("host", 0, "admin", None, ("", ""), &fp)
             .is_err());
+        assert!(data
+            .resolve_target("host", 22, "admin", None, ("", ""), "SHA256:invalid")
+            .is_err());
+        assert!(data
+            .resolve_target("host", 22, "missing", None, ("", ""), &fp)
+            .is_err());
+    }
+    #[test]
+    fn quick_targets_can_log_in_inline_with_a_password_or_a_vault_key() {
+        use base64::Engine;
+        let fp = format!(
+            "SHA256:{}",
+            base64::engine::general_purpose::STANDARD_NO_PAD.encode([1; 32])
+        );
+        let mut data = Data::default();
+        data.upsert_key(key("personal")).unwrap();
+        let by_password = data
+            .resolve_target("192.0.2.1", 22, "", Some("ubuntu"), ("", "typed"), &fp)
+            .unwrap();
+        assert_eq!(
+            (by_password.auth.as_str(), by_password.password.as_str()),
+            ("password", "typed")
+        );
+        let by_key = data
+            .resolve_target(
+                "192.0.2.1",
+                22,
+                "",
+                Some("ubuntu"),
+                ("personal", "ignored"),
+                &fp,
+            )
+            .unwrap();
+        assert_eq!(by_key.auth, "key");
+        assert!(by_key.password.is_empty() && !by_key.private_key.is_empty());
+        // The user is required without an identity, and the key must exist.
+        assert!(data
+            .resolve_target("192.0.2.1", 22, "", None, ("", ""), &fp)
+            .is_err());
+        assert!(data
+            .resolve_target("192.0.2.1", 22, "", Some("u"), ("missing", ""), &fp)
+            .is_err());
+        assert!(data.hosts.is_empty() && data.identities.is_empty());
     }
 }
