@@ -5,19 +5,33 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { once } from "node:events";
+import { fileURLToPath } from "node:url";
 
-const entry = new URL("./server.ts", import.meta.url).pathname;
+const entry = fileURLToPath(new URL("./server.ts", import.meta.url));
 const token = "process-test-token-with-at-least-32-chars";
 
 const start = (env: Record<string, string | undefined>) => {
   const child = spawn(process.execPath, [entry], {
-    env: { PATH: process.env.PATH, ...env },
+    env: { ...process.env, ...env },
     stdio: ["ignore", "pipe", "pipe"],
   });
   let output = "";
   child.stdout.on("data", (d) => (output += d));
   child.stderr.on("data", (d) => (output += d));
-  return { child, output: () => output };
+  const exited = new Promise<number | null>((resolve) =>
+    child.once("exit", resolve),
+  );
+  return { child, output: () => output, exited };
+};
+
+// A server that fails to start must fail the test, not leave it polling forever.
+const listening = async (server: ReturnType<typeof start>) => {
+  const deadline = Date.now() + 10_000;
+  while (!/listening on/.test(server.output())) {
+    if (Date.now() > deadline)
+      throw new Error(`no "listening on" line:\n${server.output()}`);
+    await new Promise((r) => setTimeout(r, 20));
+  }
 };
 
 test("refuses to start without a long enough token, and says why", async () => {
@@ -29,30 +43,35 @@ test("refuses to start without a long enough token, and says why", async () => {
   }
 });
 
-test("starts on loopback, serves /health, logs no secret, stops on SIGTERM", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "shellnest-main-"));
-  const { child, output } = start({
-    SYNC_TOKEN: token,
-    SYNC_PORT: "0",
-    SYNC_DATA_DIR: directory,
-  });
-  try {
-    while (!/listening on/.test(output()))
-      await new Promise((r) => setTimeout(r, 20));
-    const [, address, port] = /listening on (.+):(\d+),/.exec(output())!;
-    assert.equal(address, "127.0.0.1");
-    const res = await fetch(`http://${address}:${port}/health`);
-    assert.equal(res.status, 200);
-    child.kill("SIGTERM");
-    const [code] = await once(child, "exit");
-    assert.equal(code, 0);
-    assert.match(output(), /SIGTERM received/);
-    assert.equal(output().includes(token), false);
-  } finally {
-    child.kill("SIGKILL");
-    await rm(directory, { recursive: true, force: true });
-  }
-});
+// Windows has no SIGTERM: kill() ends the process at once, so the graceful path cannot be tested there.
+test(
+  "starts on loopback, serves /health, logs no secret, stops on SIGTERM",
+  { skip: process.platform === "win32" },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "shellnest-main-"));
+    const server = start({
+      SYNC_TOKEN: token,
+      SYNC_PORT: "0",
+      SYNC_DATA_DIR: directory,
+    });
+    const { child, output } = server;
+    try {
+      await listening(server);
+      const [, address, port] = /listening on (.+):(\d+),/.exec(output())!;
+      assert.equal(address, "127.0.0.1");
+      const res = await fetch(`http://${address}:${port}/health`);
+      assert.equal(res.status, 200);
+      child.kill("SIGTERM");
+      const [code] = await once(child, "exit");
+      assert.equal(code, 0);
+      assert.match(output(), /SIGTERM received/);
+      assert.equal(output().includes(token), false);
+    } finally {
+      child.kill("SIGKILL");
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
 
 test("reports a busy port instead of a stack trace", async () => {
   const directory = await mkdtemp(join(tmpdir(), "shellnest-main-"));
@@ -62,8 +81,7 @@ test("reports a busy port instead of a stack trace", async () => {
     SYNC_DATA_DIR: directory,
   });
   try {
-    while (!/listening on/.test(first.output()))
-      await new Promise((r) => setTimeout(r, 20));
+    await listening(first);
     const port = /listening on .+:(\d+),/.exec(first.output())![1];
     const second = start({
       SYNC_TOKEN: token,
