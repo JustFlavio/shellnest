@@ -1,4 +1,4 @@
-import { Panel } from "@/features/hosts/Editors";
+import { Panel } from "@/features/hosts/Panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { help } from "@/lib/editor-ui";

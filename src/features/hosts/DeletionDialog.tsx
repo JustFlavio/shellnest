@@ -1,4 +1,4 @@
-import { Panel } from "./Editors";
+import { Panel } from "./Panel";
 import { HostSummary } from "./HostSummary";
 import { AlertDialogDescription } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ export function DeletionDialog() {
     library: { deletion, closeDeletion, confirmDeletion },
   } = useApp();
   if (!deletion) return null;
+  const ids = new Set(deletion.ids ?? [deletion.id]);
   return (
     <Panel
       variant="alert"
@@ -39,9 +40,7 @@ export function DeletionDialog() {
       </p>
       {deletion.kind === "hosts" && (
         <HostSummary
-          hosts={view.hosts.filter((host) =>
-            (deletion.ids ?? [deletion.id]).includes(host.id),
-          )}
+          hosts={view.hosts.filter((host) => ids.has(host.id))}
           identities={view.identities}
         />
       )}

@@ -30,7 +30,7 @@ import {
   sanitizePaste,
   terminalKeyAction,
 } from "./terminal-input.mjs";
-import { Panel } from "@/features/hosts/Editors";
+import { Panel } from "@/features/hosts/Panel";
 import { AlertDialogDescription } from "@/components/ui/alert-dialog";
 import type { TerminalTab, Output } from "@/lib/types";
 import "@xterm/xterm/css/xterm.css";

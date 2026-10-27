@@ -49,7 +49,8 @@ const { SelectField } = await import("./components/SelectField.tsx");
 const { Button } = await import("./components/ui/button.tsx");
 const { HostsView } = await import("./features/hosts/HostsView.tsx");
 const { WindowControls } = await import("./app/WindowControls.tsx");
-const { HostEditor, IdentityEditor } = await import("./features/hosts/Editors.tsx");
+const { HostEditor } = await import("./features/hosts/HostEditor.tsx");
+const { IdentityEditor } = await import("./features/hosts/IdentityEditor.tsx");
 const { HostPasswordInput } = await import("./features/hosts/HostPasswordInput.tsx");
 
 test("saved host password stays masked without requesting the secret during render", () => {
@@ -321,6 +322,11 @@ test("folders stay separate from root hosts in both layouts and search reveals m
   }
 });
 
+// Row and card components hold no hooks, so the tree walk can render them in place.
+const rowComponents = new Set(["HostCard", "HostRow", "FolderCard"]);
+const expand = (node) =>
+  rowComponents.has(node.type?.name) ? node.type(node.props) : node;
+
 test("single click selects, Ctrl and Cmd toggle, double click and Enter connect in both layouts", () => {
   const host = {
     id: "a",
@@ -333,7 +339,7 @@ test("single click selects, Ctrl and Cmd toggle, double click and Enter connect 
   const find = (node, label) => {
     if (!node || typeof node !== "object") return;
     if (node.props?.["aria-label"] === label) return node;
-    return [node.props?.children]
+    return [expand(node).props?.children]
       .flat(Infinity)
       .map((child) => find(child, label))
       .find(Boolean);
@@ -655,7 +661,10 @@ test("folder click selects, Ctrl toggles, double click and Enter open in both la
   const find = (node) => {
     if (!node || typeof node !== "object") return;
     if (node.props?.["aria-label"] === "Seleziona cartella Work") return node;
-    return [node.props?.children].flat(Infinity).map(find).find(Boolean);
+    return [expand(node).props?.children]
+      .flat(Infinity)
+      .map(find)
+      .find(Boolean);
   };
   for (const layout of ["cards", "list"]) {
     let folders = new Set(),
