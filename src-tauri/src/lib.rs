@@ -1,3 +1,4 @@
+mod commands;
 mod local;
 mod model;
 mod sync;
@@ -872,17 +873,17 @@ pub fn run() {
             configure_sync,
             sync::sync_vault,
             sync::restore_vault,
-            terminal::probe_host,
-            terminal::probe_target,
-            terminal::trust_host,
-            terminal::connect,
-            terminal::connect_quick,
-            terminal::terminal_password,
+            commands::terminal::probe_host,
+            commands::terminal::probe_target,
+            commands::terminal::trust_host,
+            commands::terminal::connect,
+            commands::terminal::connect_quick,
+            commands::terminal::terminal_password,
             local::connect_local,
-            terminal::terminal_input,
-            terminal::terminal_resize,
+            commands::terminal::terminal_input,
+            commands::terminal::terminal_resize,
             open_url,
-            terminal::disconnect
+            commands::terminal::disconnect
         ])
         .on_window_event(|_, event| {
             if matches!(event, tauri::WindowEvent::Destroyed) {
