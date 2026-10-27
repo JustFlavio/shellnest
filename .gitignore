@@ -38,8 +38,6 @@ Desktop.ini
 test-results/
 playwright-report/
 
-# Local agent instructions and internal review notes
-CLAUDE.md
-AGENTS.md
+# Internal review notes and personal tooling instructions
 RTK.md
 UX_REVIEW.md
