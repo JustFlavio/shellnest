@@ -1,12 +1,12 @@
 use crate::{
+    state::AppState,
     vault::{self, Disk, Envelope, OpenVault},
-    view, AppState, View,
+    view::{view, View},
 };
 use reqwest::{blocking::Client, StatusCode, Url};
 use std::time::Duration;
-use tauri::Manager;
 
-pub fn endpoint(raw: &str) -> Result<Url, String> {
+pub(crate) fn endpoint(raw: &str) -> Result<Url, String> {
     let mut url = Url::parse(raw.trim_end_matches('/')).map_err(|_| "URL non valido")?;
     if url.scheme() != "https"
         && !(url.scheme() == "http"
@@ -38,7 +38,7 @@ fn client() -> Result<Client, String> {
         .build()
         .map_err(|e| e.to_string())
 }
-pub fn endpoint_for_vault(raw: &str, vault_id: &str) -> Result<Url, String> {
+pub(crate) fn endpoint_for_vault(raw: &str, vault_id: &str) -> Result<Url, String> {
     let url = endpoint(raw)?;
     if vault_id != "personal" {
         let remote_id = url.path().rsplit_once("/vaults/").map(|(_, id)| id);
@@ -62,13 +62,7 @@ fn revision(response: &reqwest::blocking::Response) -> Result<String, String> {
         .map(str::to_owned)
         .ok_or("Revisione remota assente".into())
 }
-#[tauri::command]
-pub async fn sync_vault(app: tauri::AppHandle, vault_id: String) -> Result<View, String> {
-    tauri::async_runtime::spawn_blocking(move || synchronize(&app.state::<AppState>(), &vault_id))
-        .await
-        .map_err(|e| e.to_string())?
-}
-fn synchronize(state: &AppState, vault_id: &str) -> Result<View, String> {
+pub(crate) fn synchronize(state: &AppState, vault_id: &str) -> Result<View, String> {
     let mut guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
     state.ensure_vault(vault_id)?;
     let path = state.active_path()?;
@@ -139,22 +133,7 @@ fn synchronize(state: &AppState, vault_id: &str) -> Result<View, String> {
     drop(guard);
     view(state)
 }
-#[tauri::command]
-pub async fn restore_vault(
-    app: tauri::AppHandle,
-    vault_id: String,
-    url: String,
-    token: String,
-    password: String,
-) -> Result<View, String> {
-    let password = zeroize::Zeroizing::new(password);
-    tauri::async_runtime::spawn_blocking(move || {
-        restore(&app.state::<AppState>(), &vault_id, &url, &token, &password)
-    })
-    .await
-    .map_err(|e| e.to_string())?
-}
-fn restore(
+pub(crate) fn restore(
     state: &AppState,
     vault_id: &str,
     url: &str,
@@ -168,8 +147,8 @@ fn restore(
         return Err("Il ripristino è disponibile solo su un dispositivo senza vault locale".into());
     }
     let response = client()?
-        .get(endpoint_for_vault(&url, vault_id)?)
-        .bearer_auth(&token)
+        .get(endpoint_for_vault(url, vault_id)?)
+        .bearer_auth(token)
         .send()
         .map_err(|e| e.to_string())?;
     if !response.status().is_success() {
@@ -178,7 +157,7 @@ fn restore(
     let rev = revision(&response)?;
     let env: Envelope = response.json().map_err(|_| "Vault remoto non valido")?;
     let mut v = OpenVault::unlock(
-        &password,
+        password,
         Disk {
             envelope: env,
             revision: Some(rev),
@@ -197,6 +176,7 @@ fn restore(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model;
     use std::{
         io::{BufRead, BufReader},
         path::PathBuf,
@@ -231,10 +211,8 @@ mod tests {
     }
     #[test]
     fn two_devices_upload_restore_pull_and_preserve_conflicts() {
-        let root = std::env::temp_dir().join(format!(
-            "shellnest-sync-test-{}",
-            rand::random::<u64>()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("shellnest-sync-test-{}", rand::random::<u64>()));
         std::fs::create_dir_all(&root).unwrap();
         let module = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .parent()
@@ -270,7 +248,7 @@ mod tests {
                 .unwrap();
         first
             .data
-            .upsert_key(vault::SshKey {
+            .upsert_key(model::SshKey {
                 id: "shared-key".into(),
                 name: "Personale".into(),
                 private_key: secret.to_openssh(Default::default()).unwrap().to_string(),
@@ -280,7 +258,7 @@ mod tests {
             .unwrap();
         first
             .data
-            .upsert_identity(vault::Identity {
+            .upsert_identity(model::Identity {
                 id: "shared-identity".into(),
                 name: "Deploy".into(),
                 username: "deploy".into(),
@@ -304,7 +282,7 @@ mod tests {
             let mut guard = state.vault.lock().unwrap();
             let v = guard.as_mut().unwrap();
             let mut data = v.data.clone();
-            data.hosts.push(vault::Host {
+            data.hosts.push(model::Host {
                 id: name.into(),
                 name: name.into(),
                 address: "192.0.2.1".into(),
@@ -316,7 +294,7 @@ mod tests {
                 os: None,
                 last_connected_at: None,
             });
-            crate::commit(state, v, data).unwrap();
+            crate::state::commit(state, v, data).unwrap();
         };
         edit(&a, "first-host");
         synchronize(&a, "personal").unwrap();

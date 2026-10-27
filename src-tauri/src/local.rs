@@ -1,7 +1,4 @@
-use crate::{
-    terminal::{Input, Output},
-    AppState,
-};
+use crate::terminal::{Input, Output};
 use portable_pty::{native_pty_system, ChildKiller, CommandBuilder, PtySize};
 use std::{
     collections::HashMap,
@@ -13,7 +10,6 @@ use std::{
     thread,
     time::Duration,
 };
-use tauri::{ipc::Channel, State};
 use tokio::sync::mpsc;
 
 type Killers = HashMap<String, Box<dyn ChildKiller + Send + Sync>>;
@@ -22,7 +18,7 @@ fn children() -> &'static Mutex<Killers> {
     CHILDREN.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-fn shell_command() -> CommandBuilder {
+pub(crate) fn shell_command() -> CommandBuilder {
     #[cfg(windows)]
     let mut command = {
         let root = std::env::var_os("SystemRoot").unwrap_or_else(|| "C:\\Windows".into());
@@ -59,7 +55,7 @@ fn size(cols: u32, rows: u32) -> PtySize {
 }
 
 // The controller owns the PTY and child; its channel closes when the app drops the session.
-fn start(
+pub(crate) fn start(
     id: String,
     command: CommandBuilder,
     cols: u32,
@@ -187,37 +183,7 @@ fn start(
     Ok(tx)
 }
 
-#[tauri::command]
-pub fn connect_local(
-    state: State<AppState>,
-    vault_id: String,
-    session_id: String,
-    output: Channel<Output>,
-    cols: u32,
-    rows: u32,
-) -> Result<(), String> {
-    let guard = state.vault.lock().map_err(|_| "Stato non disponibile")?;
-    state.ensure_vault(&vault_id)?;
-    guard.as_ref().ok_or("Vault bloccato")?;
-    let mut sessions = state
-        .sessions
-        .lock()
-        .map_err(|_| "Sessioni non disponibili")?;
-    if session_id.is_empty() || session_id.len() > 80 || sessions.contains_key(&session_id) {
-        return Err("Identificativo sessione non valido o già aperto".into());
-    }
-    let tx = start(
-        session_id.clone(),
-        shell_command(),
-        cols,
-        rows,
-        Arc::new(move |event| output.send(event).is_ok()),
-    )?;
-    sessions.insert(session_id, tx);
-    Ok(())
-}
-
-pub fn shutdown_all() {
+pub(crate) fn shutdown_all() {
     if let Ok(mut registry) = children().lock() {
         for (_, mut child) in registry.drain() {
             let _ = child.kill();

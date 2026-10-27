@@ -3,6 +3,10 @@ name = "shellnest"
 version = "0.3.0"
 edition = "2021"
 
+[lib]
+# Not "shellnest": a lib and a bin with one name collide on Windows.
+name = "shellnest_lib"
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 

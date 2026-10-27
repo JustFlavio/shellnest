@@ -22,13 +22,13 @@ npm run test:desktop   # WebDriver tests on the real app (e2e/)
 - `src/components/` shared widgets, `src/components/ui` shadcn/Base UI primitives, `src/lib/` helpers (types, platform, preview backend).
 - Pure logic with no React or Tauri imports (settings, shortcuts, groups, connection parsing, workbench state) lives in plain `.ts` files with a `.test.ts` beside them. Node runs the tests directly by stripping types: relative imports with the `.ts` extension (no `@/` alias), `import type` for types, no enums. Put testable logic here, next to its feature.
 - `src/lib/preview.ts`: in-memory backend used when the UI runs in a browser. It does no encryption or SSH. Keep its commands in step with the Tauri ones.
-- `src-tauri/src/`: `main.rs` (Tauri commands, app state, keychain), `vault.rs` (encryption, files), `model.rs` (data model, migrations), `terminal.rs` (SSH via russh, PTY), `local.rs` (local shell), `sync.rs` (sync client).
+- `src-tauri/src/`: `main.rs` only calls `run()` in `lib.rs` (crate `shellnest_lib`). `app.rs` (startup, data dir, instance lock), `menu.rs` (macOS menu), `state.rs` (`AppState`), `view.rs` (the secret-free snapshot sent to the UI), `keychain/`, `commands/` (the Tauri commands, one file per area: unlock, vaults, hosts, credentials, groups, workspaces, sync, terminal, system), `vault/` (encryption, files, catalog), `model/` (data model by record kind, migration, validation, connection resolving), `terminal/` (SSH via russh: host key, auth, password prompt, session loop), `local.rs` (local PTY), `sync.rs` (sync client). Tests sit in `#[cfg(test)] mod tests` next to the code.
 - `sync/`: standalone Node.js sync server, no dependencies.
 - `docs/`: `guida.it.md` is the detailed guide; `settings.md` lists the settings.
 
 ## Rules that are easy to break
 
-- Never change the `AAD` constant in `src-tauri/src/vault.rs`, or the vault file format, without a migration. Existing vaults would stop opening.
+- Never change the `AAD` constant in `src-tauri/src/vault/mod.rs`, or the vault file format, without a migration. Existing vaults would stop opening.
 - Secrets never go to `localStorage`, logs or the host list returned to the UI. `localStorage` holds display preferences only (`shellnest.*` keys).
 - Decrypted data and keys are zeroized on the Rust side. Keep it that way for new secret types.
 - Window flags live in two files: `tauri.conf.json` and `tauri.macos.conf.json`. The macOS file replaces the `windows` array, so a flag must be set in both.
