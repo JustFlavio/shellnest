@@ -26,6 +26,14 @@ cargo test --locked --manifest-path src-tauri/Cargo.toml
 - The interface is in Italian. Keep new UI strings in Italian for now; a translation layer is a welcome contribution.
 - Visual tests (`npm run test:visual`) compare screenshots made on macOS and are not run in CI. Update snapshots only if you changed the UI on purpose.
 
+## Git blame
+
+The repository was formatted in one commit. To keep `git blame` useful, run once:
+
+```sh
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
 ## Security-sensitive changes
 
 Anything touching the vault, key handling or sync needs extra care. Never change the encryption `AAD` constant in `src-tauri/src/vault/mod.rs`: existing vaults would stop opening. Report vulnerabilities privately, see [SECURITY.md](SECURITY.md).
