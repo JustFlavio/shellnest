@@ -33,7 +33,7 @@ export function useShortcuts(app: AppState) {
         settings.section ||
         library.bulkOpen ||
         library.deletion ||
-        tabs.trust ||
+        (tabs.trust && !tabs.trust.tabId) ||
         session.vaultDialog ||
         session.pendingSwitch ||
         tabs.pendingClose ||

@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import type { TerminalTab } from "@/lib/types";
 import type { AppSettings } from "@/features/settings/settings.mjs";
 import { PaneHeader } from "./PaneHeader";
-import { PaneStatus } from "./PaneStatus";
+import { ConnectionTimeline } from "./ConnectionTimeline";
 import { PasteConfirmDialog } from "./PasteConfirmDialog";
 import { TerminalSearchBar } from "./TerminalSearchBar";
 import type { SessionCallbacks } from "./terminal-session";
@@ -93,7 +93,8 @@ export function TerminalPane({
   const pendingTrust = tab.kind === "ssh" && !tab.host.fingerprint;
   const xterm = useRef<Xterm | null>(null);
   const search = useTerminalSearch(xterm);
-  const { opened, phase, logs, failure } = useTerminalSession({
+  const { opened, phase, logs, failure, password, submitPassword } =
+    useTerminalSession({
     xterm,
     tab,
     container,
@@ -147,14 +148,14 @@ export function TerminalPane({
         />
       )}
       {!opened && (
-        <PaneStatus
+        <ConnectionTimeline
           tab={tab}
-          endpoint={endpoint}
           phase={phase}
           logs={logs}
           failure={failure}
-          pendingTrust={pendingTrust}
-          onClose={onClose}
+          password={password}
+          onPassword={submitPassword}
+          onCancel={onClose}
           onRetry={onRetry}
           onEdit={onEdit}
         />

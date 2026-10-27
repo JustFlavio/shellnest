@@ -4,8 +4,10 @@ import type { View } from "./types";
 import {
   assignIdentity,
   deleteHost,
+  probeHost,
   revealHostPassword,
   saveHost,
+  trustHost,
 } from "./preview/hosts";
 import {
   deleteIdentity,
@@ -23,6 +25,7 @@ import type { Args } from "./preview/require";
 // Commands that edit the active vault in place.
 const editors: Record<string, (next: View, args: Args) => void> = {
   save_host: saveHost,
+  trust_host: trustHost,
   delete_host: deleteHost,
   assign_identity: assignIdentity,
   save_identity: saveIdentity,
@@ -123,6 +126,8 @@ export function createPreviewBackend(empty = false) {
         );
         next.vaultName = String(args.name).trim();
         break;
+      case "probe_host":
+        return probeHost(next, args) as T;
       case "reveal_host_password":
         return revealHostPassword(next, args) as T;
       default: {

@@ -8,7 +8,8 @@ export function TrustDialog() {
     vault: { busy, error, setError },
     tabs: { trust, approveTrust, rejectTrust },
   } = useApp();
-  if (!trust) return null;
+  // A trust with a tab is answered inside that pane (ConnectionTimeline).
+  if (!trust || trust.tabId) return null;
   return (
     <Panel
       variant="dialog"

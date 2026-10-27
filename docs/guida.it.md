@@ -35,7 +35,7 @@ Il menu applicazione nell’header raccoglie navigazione, nuove connessioni, vis
 - Portachiavi: importazione da file o testo, chiave privata e passphrase conservate una sola volta, riconoscimento dei duplicati per impronta pubblica.
 - Identità riutilizzabili: nome, utente SSH e riferimento a una chiave oppure password. Una chiave può essere usata da più identità; ogni identità può essere assegnata a molti host.
 - Assegnazione di un'identità a più host in una sola operazione; conteggi e filtri degli host associati; eliminazione bloccata per chiavi e identità ancora in uso.
-- Terminali interattivi in schede riordinabili, duplicazione, riconnessione e chiusura delle altre sessioni; verifica esplicita dell'impronta SHA-256 prima dell'autenticazione e blocco se cambia.
+- Terminali interattivi in schede riordinabili, duplicazione, riconnessione e chiusura delle altre sessioni; verifica esplicita dell'impronta SHA-256 prima dell'autenticazione e blocco se cambia. Durante la connessione il riquadro mostra i passaggi (connessione, impronta, autenticazione, sessione); la verifica dell’impronta e, se la chiave viene rifiutata, la richiesta della password avvengono dentro il riquadro, senza finestre.
 - Sincronizzazione del vault cifrato tramite il servizio incluso; controllo ogni 30 secondi mentre il vault è aperto e pulsante manuale.
 - Collegamento di un dispositivo nuovo scaricando il vault esistente; protezione dalle sovrascritture concorrenti tramite ETag e scritture condizionali.
 - Blocco manuale e cambio vault chiudono tutte le sessioni, comprese quelle locali, con conferma quando sono aperte.

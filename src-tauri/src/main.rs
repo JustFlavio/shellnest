@@ -882,6 +882,7 @@ fn main() {
             terminal::trust_host,
             terminal::connect,
             terminal::connect_quick,
+            terminal::terminal_password,
             local::connect_local,
             terminal::terminal_input,
             terminal::terminal_resize,

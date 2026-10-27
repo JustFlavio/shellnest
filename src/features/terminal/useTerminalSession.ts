@@ -4,10 +4,12 @@ import { useLatest } from "@/lib/useLatest";
 import type { TerminalTab } from "@/lib/types";
 import type { AppSettings } from "@/features/settings/settings.mjs";
 import { terminalHandles } from "./terminal-handles";
-import { startSession } from "./terminal-session";
+import { sendSessionPassword, startSession } from "./terminal-session";
 import type { SessionCallbacks } from "./terminal-session";
 import { applySettings, openXterm } from "./xterm";
 import type { Xterm } from "./xterm";
+
+export type PasswordAsk = { refused: boolean; waiting: boolean };
 
 /** A terminal in `container` wired to the tab's session, torn down together when the tab goes. */
 export function useTerminalSession({
@@ -39,6 +41,8 @@ export function useTerminalSession({
   const [phase, setPhase] = useState("Verifica dell’impronta del server");
   const [logs, setLogs] = useState<string[]>([]);
   const [failure, setFailure] = useState("");
+  // null until the server asks for a password; the password itself never lives here.
+  const [password, setPassword] = useState<PasswordAsk | null>(null);
   const tabRef = useLatest(tab);
   const settingsRef = useLatest(settings);
   const callbacksRef = useLatest(callbacks);
@@ -68,6 +72,7 @@ export function useTerminalSession({
           setLogs((old) => [...old, text]);
         },
         opened: () => setOpened(true),
+        password: (refused) => setPassword({ refused, waiting: true }),
         failure: (text, log = true) => {
           setFailure(text);
           if (log) setLogs((old) => [...old, text]);
@@ -91,5 +96,11 @@ export function useTerminalSession({
     });
     return () => cancelAnimationFrame(frame);
   }, [active, focused]);
-  return { opened, phase, logs, failure };
+  const submitPassword = (value: string) => {
+    setPassword((old) => old && { ...old, waiting: false });
+    sendSessionPassword(tab, value).catch((e) =>
+      callbacksRef.current.onError(String(e)),
+    );
+  };
+  return { opened, phase, logs, failure, password, submitPassword };
 }

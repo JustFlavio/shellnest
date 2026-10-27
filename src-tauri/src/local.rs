@@ -156,7 +156,8 @@ fn start(
                         .resize(size(cols, rows))
                         .map_err(|e| e.to_string())?,
                     Ok(Input::Close) | Err(mpsc::error::TryRecvError::Disconnected) => break,
-                    Err(mpsc::error::TryRecvError::Empty) => {}
+                    // Nothing here asks for a password: an answer never reaches the shell.
+                    Ok(Input::Password(_)) | Err(mpsc::error::TryRecvError::Empty) => {}
                 }
                 if child.try_wait().map_err(|e| e.to_string())?.is_some() {
                     return Ok(());
