@@ -40,6 +40,7 @@ export function useTabs(
   return {
     tabs: list.tabs,
     bar: list.bar,
+    lastActive: list.lastActive,
     active: list.active,
     setActive: list.setActive,
     focusedPane: list.focusedPane,

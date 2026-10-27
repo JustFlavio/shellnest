@@ -6,7 +6,9 @@ export function LauncherPage() {
     vault: { view, busy, preview },
     preferences: { hint },
     tabs: {
+      tabs,
       bar,
+      lastActive,
       launcherKey,
       setSavingWs,
       connect,
@@ -37,6 +39,11 @@ export function LauncherPage() {
             : t.kind === "ssh"
               ? `${t.username}@${t.host.address}`
               : `${t.username}@${t.target.address}`,
+        hostId: t.kind === "ssh" ? t.host.id : undefined,
+        paneHostIds: tabs.flatMap((pane) =>
+          pane.parent === t.id && pane.kind === "ssh" ? [pane.host.id] : [],
+        ),
+        lastActive: lastActive(t.id),
       }))}
       onConnect={connect}
       onOpenWorkspace={openWorkspace}

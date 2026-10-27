@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { TerminalTab } from "@/lib/types";
 import { setTermTitle } from "./tabs-state.mjs";
 import { leafIds, reorderTabs } from "./workbench-state.mjs";
@@ -11,6 +11,12 @@ export function useTabList() {
     [launcherOpen, setLauncherOpen] = useState(false),
     [launcherKey, setLauncherKey] = useState(0);
   const bar = tabs.filter((t) => !t.parent);
+  // when each tab was last shown, so the launcher can switch to the latest session of a host
+  const shown = useRef(new Map<string, number>());
+  useEffect(() => {
+    shown.current.set(active, performance.now());
+  }, [active]);
+  const lastActive = (id: string) => shown.current.get(id) ?? 0;
   const focusOf = (leader: TerminalTab) =>
     leader.layout && leafIds(leader.layout).includes(focusedPane)
       ? focusedPane
@@ -50,6 +56,7 @@ export function useTabList() {
     tabs,
     setTabs,
     bar,
+    lastActive,
     active,
     setActive,
     focusedPane,
