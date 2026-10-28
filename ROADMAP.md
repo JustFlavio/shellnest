@@ -1,43 +1,43 @@
-# Roadmap di prodotto
+# Product roadmap
 
-Obiettivo: un client SSH open source per utenti individuali su Windows e macOS, con credenziali riutilizzabili e sync self-hosted opzionale. Il caso d'uso iniziale è la gestione quotidiana di circa trenta server. Parità funzionale fra sistemi e uso completo da tastiera sono requisiti.
+Goal: an open source SSH client for individual users on Windows and macOS, with reusable credentials and optional self-hosted sync. The initial use case is the daily management of about thirty servers. Feature parity between the two systems and full keyboard use are requirements.
 
-## 1. Flusso quotidiano — implementato, verifica visiva da completare
+## 1. Daily flow — implemented, visual verification pending
 
-- [x] Nuova scheda `+` e `Ctrl/Cmd K`: ricerca host, schede aperte e connessioni recenti salvate.
-- [x] Connessione rapida con identità esistente, senza obbligo di salvare un host; verifica della chiave server prima di autenticarsi.
-- [x] Terminale locale interattivo con PTY nativo, input, resize e chiusura del processo.
-- [x] Lista e cards compatte, preferenza ricordata per vault; menu azioni degli host.
-- [x] OS rilevato dopo una connessione riuscita e salvato nel vault; nessuna scansione preventiva dei server.
-- [x] Più vault indipendenti, con password, dati e configurazione sync propri; conservazione del vault locale esistente.
-- [x] Schede: stato, riconnessione, duplicazione, riordino e chiusura delle altre sessioni.
-- [x] Prove automatiche di separazione dei vault, migrazione, parsing connessioni, SSH e PTY.
-- [x] Revisione UX: destinazione e identità visibili nelle schede, selezione separata dalla connessione, cartelle nella navigazione e filtro per finestre ridotte, protezione delle modifiche nei form e guida alle scorciatoie.
-- [x] Verifica dei flussi nell'anteprima browser su Windows: creazione host/identità, ritorno ai moduli, selezione multipla, filtri e ricerca. La demo usa dati sintetici, senza SSH o cifratura.
-- [ ] Verifica visiva nel WebView desktop Windows e macOS; prova con lettore di schermo e verifica completa dei flussi da tastiera sui due sistemi.
+- [x] New tab `+` and `Ctrl/Cmd K`: search hosts, open tabs and saved recent connections.
+- [x] Quick connect with an existing identity, without having to save a host; server key check before authenticating.
+- [x] Interactive local terminal with a native PTY: input, resize and process exit.
+- [x] Compact list and cards, preference remembered per vault; host action menu.
+- [x] OS detected after a successful connection and saved in the vault; no upfront scan of the servers.
+- [x] Several independent vaults, each with its own password, data and sync configuration; the existing local vault is preserved.
+- [x] Tabs: state, reconnect, duplicate, reorder and close other sessions.
+- [x] Automated tests for vault separation, migration, connection parsing, SSH and PTY.
+- [x] UX review: destination and identity visible in tabs, selection separate from connecting, folders in navigation and a filter for small windows, protection of form edits and a shortcuts guide.
+- [x] Flows checked in the browser preview on Windows: creating hosts/identities, returning to forms, multi-select, filters and search. The demo uses synthetic data, without SSH or encryption.
+- [ ] Visual check in the desktop WebView on Windows and macOS; screen reader test and a full keyboard-flow check on both systems.
 
-Confini: cambiare/bloccare vault chiude le sessioni, dopo conferma quando ce ne sono. I nomi dei vault sono metadati locali visibili prima dello sblocco; le credenziali restano cifrate. I recenti iniziali sono gli host salvati con ultimo accesso riuscito: nessuna registrazione dei comandi o dell'output del terminale. Il servizio sync è personale, senza condivisione multiutente.
+Boundaries: switching or locking a vault closes the sessions, after confirmation when there are any. Vault names are local metadata visible before unlocking; credentials stay encrypted. The initial recents are the saved hosts with a successful last access: commands and terminal output are never recorded. The sync service is personal, with no multi-user sharing.
 
-Verifica del 25 ottobre 2026 su Windows: build TypeScript/Vite riuscita, 21 test Rust e 16 test JavaScript superati; inclusi SSH su localhost, PowerShell con PTY nativo, isolamento dei vault e sync fra due dispositivi simulati. L'anteprima browser è stata verificata visivamente; la verifica nel WebView desktop e su macOS resta aperta.
+Check of 25 October 2026 on Windows: TypeScript/Vite build succeeded, 21 Rust tests and 16 JavaScript tests passed, including SSH on localhost, PowerShell with a native PTY, vault isolation and sync between two simulated devices. The browser preview was checked visually; the desktop WebView and macOS checks are still open.
 
-## 2. Importazione e protezione del lavoro
+## 2. Import and protecting your work
 
-- Importazione `~/.ssh/config` con anteprima, associazione delle identità e gestione duplicati.
-- Cartelle gerarchiche, breadcrumb e assegnazione ereditata con eccezioni esplicite.
-- Preferiti, etichette ambiente e riconoscimento chiaro di Produzione nelle sessioni.
-- Backup/esportazione e ripristino cifrati guidati.
-- Risoluzione dei conflitti sync nell'app e stato degli errori per vault.
-- Blocco automatico configurabile con comportamento delle sessioni dichiarato.
-- Verifica del sistema remoto correggibile manualmente e cronologia delle connessioni rapide, se necessaria.
+- Import of `~/.ssh/config` with a preview, identity matching and duplicate handling.
+- Hierarchical folders, breadcrumbs and inherited assignment with explicit exceptions.
+- Favorites, environment labels and a clear Production marker in sessions.
+- Guided encrypted backup/export and restore.
+- Sync conflict resolution in the app and per-vault error state.
+- Configurable auto-lock with a documented behavior for sessions.
+- Remote system detection that can be corrected by hand, and a history of quick connections, if needed.
 
-## 3. Funzioni operative successive
+## 3. Later operational features
 
-- SFTP, split terminali, port forwarding e workspace salvati.
-- Snippet; broadcast soltanto con destinatari chiaramente verificabili.
-- Firma/notarizzazione, build e test su macOS, revisione di sicurezza prima di una release stabile.
+- SFTP, split terminals, port forwarding and saved workspaces.
+- Snippets; broadcast only with clearly verifiable recipients.
+- Code signing/notarization, macOS builds and tests, a security review before a stable release.
 
-Non pianificati per la prima release: seriale, collaborazione in tempo reale, account multiutente e compatibilità con servizi cloud di terzi.
+Not planned for the first release: serial, real-time collaboration, multi-user accounts and compatibility with third-party cloud services.
 
-## Idee future
+## Future ideas
 
-- Impostazioni dell'app per scegliere il font: uno per l'interfaccia (oggi Geist) e uno per il terminale (oggi Cascadia Code in `TerminalPane.tsx`), con anteprima dal vivo.
+- App settings to choose the fonts: one for the interface (today Geist) and one for the terminal (today Cascadia Code in `TerminalPane.tsx`), with a live preview.
