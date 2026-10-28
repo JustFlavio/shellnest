@@ -16,7 +16,7 @@ export function RememberSetting({
       <h3 className={cardTitle}>Sblocco · {vaultName}</h3>
       <Row
         label="Ricorda su questo dispositivo"
-        hint="La chiave resta nel portachiavi di sistema: all’avvio il vault si apre senza password. “Blocca vault” la richiede comunque finché non riavvii l’app."
+        hint="La chiave resta nel portachiavi di sistema. “Blocca vault” chiede comunque la password."
       >
         <Switch
           label="Ricorda su questo dispositivo"

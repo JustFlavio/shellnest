@@ -33,8 +33,7 @@ export function SyncSettings({
     <section className={card}>
       <h3 className={cardTitle}>Sincronizzazione · {view.vaultName}</h3>
       <p className={muted}>
-        La sync è opzionale. Host, identità e chiavi vengono sincronizzati
-        insieme, cifrati.
+        Host, identità e chiavi, cifrati.
         {view.syncConfigured &&
           lastSync &&
           ` Ultima sincronizzazione riuscita: ${lastSync}.`}
@@ -58,8 +57,8 @@ export function SyncSettings({
         </label>
         <p className={help}>
           {view.vaultId === "personal"
-            ? "Il vault Personale conserva l’endpoint compatibile /vault."
-            : `Inserendo l’indirizzo del servizio verrà usato /vaults/${view.vaultId}. Per collegare un altro dispositivo copia l’URL completo dopo il salvataggio.`}
+            ? "Percorso: /vault"
+            : `Verrà usato /vaults/${view.vaultId}. Per un altro dispositivo copia l’URL completo dopo il salvataggio.`}
         </p>
         <label className="grid gap-[6px] text-[13px]">
           Token
@@ -77,8 +76,8 @@ export function SyncSettings({
           />
         </label>
         <p className={help}>
-          Controllo ogni 30 secondi a vault sbloccato. In caso di modifiche
-          concorrenti, la sync si ferma e conserva i dati locali.
+          Ogni 30 s a vault sbloccato. Con modifiche concorrenti la sync si
+          ferma e conserva i dati locali.
         </p>
         <div className="flex justify-end gap-[8px]">
           {view.syncConfigured && (
