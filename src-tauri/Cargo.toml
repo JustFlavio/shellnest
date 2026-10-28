@@ -39,7 +39,7 @@ tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.28", default-features = false, features = ["fs", "poll"] }
+nix = { version = "0.31", default-features = false, features = ["fs", "poll"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = { version = "3", default-features = false, features = ["apple-native"] }
