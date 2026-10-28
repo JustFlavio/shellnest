@@ -33,7 +33,7 @@ export function DeletionDialog() {
       </AlertDialogDescription>
       <p className={help}>
         {deletion.kind === "hosts"
-          ? "La chiave e l’identità associate verranno conservate. Il server remoto non viene modificato."
+          ? "Identità e chiavi collegate restano nel vault."
           : deletion.kind === "groups"
             ? "Il gruppo deve essere vuoto: gli host e i sottogruppi non vengono eliminati."
             : "L’elemento verrà rimosso dal vault e dai dispositivi sincronizzati."}

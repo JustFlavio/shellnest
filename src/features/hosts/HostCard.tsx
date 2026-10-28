@@ -61,7 +61,7 @@ export function HostCard({
           onKeyDown={(e) =>
             hostKeyDown(h, e, busy, actions.onConnect, onSelect)
           }
-          title={"Doppio clic per connettere a " + endpoint(h)}
+          title={endpoint(h)}
         >
           <OsIcon os={h.os} />
           <span className="min-w-0">

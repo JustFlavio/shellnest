@@ -162,7 +162,7 @@ export function GroupField({
             </Combobox.List>
             {!items.length && (
               <p className={suggestionEmpty}>
-                Nessuna cartella. Scrivi un nome per crearne una.
+                Nessuna cartella. Scrivi per crearne una.
               </p>
             )}
             {!text && (

@@ -5,7 +5,7 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import type { KeyForm, SshKey, View } from "@/lib/types";
-import { callout, fingerprint, help, sectionHelp } from "@/lib/editor-ui";
+import { callout, fingerprint, sectionHelp } from "@/lib/editor-ui";
 import { KeyFilePicker } from "./KeyFilePicker";
 import { EditorSection } from "./EditorSection";
 import { Panel } from "./Panel";
@@ -76,12 +76,6 @@ export function KeyEditor({
           onSubmit();
         }}
       >
-        {returnTo && (
-          <p className={help}>
-            Importa la chiave da usare per questa identità. Il modulo precedente
-            conserva i dati già inseriti.
-          </p>
-        )}
         <EditorSection title="Generale">
           <label>
             Nome
@@ -104,8 +98,7 @@ export function KeyEditor({
               </div>
               <p className={sectionHelp}>
                 Usata da {existing.identityCount} identità e{" "}
-                {existing.hostCount} host. Per rinominare la chiave, lascia
-                vuoti i campi qui sotto.
+                {existing.hostCount} host.
               </p>
             </>
           )}
@@ -151,8 +144,7 @@ export function KeyEditor({
             </div>
           )}
           <p className={sectionHelp}>
-            La chiave viene importata nel vault cifrato. Il file originale non
-            viene modificato.
+            Importata nel vault cifrato; il file originale resta intatto.
           </p>
         </EditorSection>
       </form>

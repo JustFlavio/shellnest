@@ -109,8 +109,7 @@ export function GroupEditor({
         </EditorSection>
         <EditorSection title="Predefiniti per gli host">
           <p className={sectionHelp}>
-            Gli host del gruppo, e dei suoi sottogruppi, li usano quando non
-            hanno un valore proprio.
+            Ereditati da host e sottogruppi senza valore proprio.
           </p>
           <div className={sheetField}>
             <SelectField

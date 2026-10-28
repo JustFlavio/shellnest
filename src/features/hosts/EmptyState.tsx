@@ -16,17 +16,6 @@ function emptyTitle(page: Page, group: string, filtered: boolean) {
   return page === "identities" ? "Nessuna identità" : "Nessuna chiave SSH";
 }
 
-function emptyHint(page: Page, group: string, filtered: boolean) {
-  if (filtered) return "Modifica la ricerca o rimuovi i filtri.";
-  if (page === "hosts")
-    return group
-      ? "Aggiungi un host o crea un sottogruppo."
-      : "Crea un’identità e assegnala ai tuoi server.";
-  return page === "identities"
-    ? "Crea un’identità con utente SSH e una chiave dal portachiavi, oppure una password."
-    : "Importa la chiave privata una volta, poi selezionala nelle identità.";
-}
-
 export function EmptyState() {
   const {
     vault: { view, busy },
@@ -51,9 +40,8 @@ export function EmptyState() {
   if (!empty) return null;
   const filtered = !!(query || usage);
   return (
-    <div className="empty flex flex-1 flex-col items-center justify-center px-[24px] pt-[24px] pb-[8vh] text-center text-muted-foreground [&_button]:border [&_button]:border-input [&_h2]:text-foreground [&_p]:mt-[12px] [&_p]:mb-[20px] [&_p]:max-w-[390px] [&_p]:text-[13px] [&_p]:leading-[1.7]">
+    <div className="empty flex flex-1 flex-col items-center justify-center px-[24px] pt-[24px] pb-[8vh] text-center text-muted-foreground [&_button]:border [&_button]:border-input [&_h2]:mb-[16px] [&_h2]:text-foreground">
       <h2>{emptyTitle(page, group, filtered)}</h2>
-      <p>{emptyHint(page, group, filtered)}</p>
       {filtered ? (
         <Button variant="ghost" type="button" onClick={clearFilters}>
           Rimuovi filtri

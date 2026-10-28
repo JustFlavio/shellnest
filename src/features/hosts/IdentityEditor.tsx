@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Identity, IdentityForm, View } from "@/lib/types";
 import { IdentityAccessSection } from "./IdentityAccessSection";
-import { help } from "@/lib/editor-ui";
 import { EditorSection } from "./EditorSection";
 import { Panel } from "./Panel";
 
@@ -73,12 +72,6 @@ export function IdentityEditor({
           onSubmit();
         }}
       >
-        {returnTo && (
-          <p className={help}>
-            Stai preparando l’accesso per un nuovo host. Dopo il salvataggio
-            tornerai al modulo host, con i dati già inseriti.
-          </p>
-        )}
         <EditorSection title="Generale">
           <label>
             Nome
