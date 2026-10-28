@@ -14,6 +14,7 @@ pub(crate) enum TerminalError {
     #[cfg(unix)]
     #[error("{0}")]
     Errno(#[from] nix::errno::Errno),
+    #[cfg(unix)]
     #[error("PTY locale senza descrittore nativo")]
     NoPtyDescriptor,
     #[error("Timeout durante la verifica del server")]
