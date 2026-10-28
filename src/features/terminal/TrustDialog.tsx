@@ -1,4 +1,5 @@
 import { Panel } from "@/features/hosts/Panel";
+import { compareHint } from "./FingerprintCard";
 import { Button } from "@/components/ui/button";
 import { fingerprint, help } from "@/lib/editor-ui";
 import { useApp } from "@/app/app-context";
@@ -29,10 +30,7 @@ export function TrustDialog() {
         </strong>
         .
       </p>
-      <p className={help}>
-        Confronta questa impronta con quella fornita dall’amministratore o dalla
-        console del server prima di inviare le credenziali.
-      </p>
+      <p className={help}>{compareHint}</p>
       <code className={fingerprint}>{trust.fingerprint}</code>
       <footer>
         <Button

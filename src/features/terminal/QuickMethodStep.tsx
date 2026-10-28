@@ -75,11 +75,6 @@ export function QuickMethodStep({
           />
         </label>
       )}
-      {setup.method === "password" && (
-        <p className={help + " mb-0"}>
-          Senza password la chiede il server durante l’accesso.
-        </p>
-      )}
       {!keys.length && (
         <p className={help + " mb-0"}>Nessuna chiave nel portachiavi.</p>
       )}

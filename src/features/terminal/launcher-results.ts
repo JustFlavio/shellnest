@@ -297,22 +297,18 @@ export function emptyMessage({
   text,
   hasTarget,
   nothingSaved,
-  quickKey,
 }: {
   jump: boolean;
   text: string;
   hasTarget: boolean;
   nothingSaved: boolean;
-  quickKey: string;
 }): string {
   if (jump)
     return text
       ? "Nessuna scheda corrisponde alla ricerca."
       : "Nessuna scheda aperta.";
   if (!nothingSaved) return "Nessun host o scheda corrisponde alla ricerca.";
-  if (!text)
-    return "Nessun host salvato. Aggiungine uno dal Vault o digita un indirizzo SSH.";
-  return hasTarget
+  return text && hasTarget
     ? "Nessun host o scheda corrisponde alla ricerca."
-    : `Nessun host salvato. Premi ${quickKey} per una connessione rapida o crea un host dal Vault.`;
+    : "Nessun host salvato.";
 }

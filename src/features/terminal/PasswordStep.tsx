@@ -39,8 +39,8 @@ export function PasswordStep({
     >
       <p className={help + " mt-0"}>
         {refused
-          ? "Password non accettata. Riprova."
-          : "La chiave non è stata accettata dal server. Inserisci la password dell’utente."}
+          ? "Password non accettata."
+          : "Chiave rifiutata dal server: serve la password."}
       </p>
       <label className="mt-[10px] block text-[12px]">
         Password
