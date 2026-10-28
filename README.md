@@ -4,7 +4,7 @@ A desktop SSH client for people who manage their own servers. Hosts, folders, re
 
 Built with Tauri 2, React and Rust. Windows and macOS.
 
-> **Alpha.** Shellnest is under active development and has not had a security audit. Local use is the tested path. **Sync between devices is experimental.** Back up your vault before trusting it with anything important. The interface is currently in Italian only; translations are welcome.
+> **Alpha.** Shellnest is under active development and has not had a security audit. Local use is the tested path. **Sync between devices is experimental.** Back up your vault before trusting it with anything important. The interface is available in English and Italian; more translations are welcome (see [CONTRIBUTING](CONTRIBUTING.md#translations)).
 
 ## Screenshots
 

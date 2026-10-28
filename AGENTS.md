@@ -1,6 +1,6 @@
 # Shellnest
 
-Desktop SSH client (Tauri 2, React 19, Rust). Encrypted local vaults, optional self-hosted sync. Windows and macOS. Alpha. The UI is in Italian.
+Desktop SSH client (Tauri 2, React 19, Rust). Encrypted local vaults, optional self-hosted sync. Windows and macOS. Alpha. The UI is in English and Italian (i18next).
 
 ## Commands
 
@@ -25,6 +25,7 @@ npm run test:desktop   # WebDriver tests on the real app (e2e/)
 
 - `src/main.tsx`: entry point only. `src/app/` is the shell (header, layout, `useAppState` and the `useApp()` context that components read).
 - `src/features/`: `hosts` (vault browser, editors, groups), `terminal` (tabs, panes, launcher, workbench state), `vault` (unlock, sync, vault switching), `settings` (settings dialog, shortcuts). Import across features with the `@/` alias.
+- `src/i18n/` the i18next setup (`i18n.ts`, pure and tested), `src/locales/` one JSON per language, `en.json` is the source. `t()` comes from `useTranslation()` in components and from `@/i18n/i18n` in plain `.ts` code.
 - `src/components/` shared widgets, `src/components/ui` shadcn/Base UI primitives, `src/lib/` helpers (types, platform, preview backend).
 - Pure logic with no React or Tauri imports (settings, shortcuts, groups, connection parsing, workbench state) lives in plain `.ts` files with a `.test.ts` beside them. Node runs the tests directly by stripping types: relative imports with the `.ts` extension (no `@/` alias), `import type` for types, no enums. Put testable logic here, next to its feature.
 - `src/lib/preview.ts`: in-memory backend used when the UI runs in a browser. It does no encryption or SSH. Keep its commands in step with the Tauri ones.
@@ -49,4 +50,4 @@ npm run test:desktop   # WebDriver tests on the real app (e2e/)
 - Add a test for new logic: Rust tests next to the code, JS tests beside the module (`*.test.ts`).
 - Everything is TypeScript. No `any` and no blanket `eslint-disable`; a single-line disable needs a one-line reason after `--`.
 - Run `npm run format` before committing; Prettier defaults, no options.
-- Keep UI text in Italian. Code, commits and docs outside `docs/guida.it.md` are in English.
+- UI text never lives in the code: add it to every file in `src/locales/` and call `t()`. Rust never writes UI text: it sends `{ code, params }` (see `docs/rust-architecture.md`). Code, commits and docs outside `docs/guida.it.md` are in English.
