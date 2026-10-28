@@ -13,7 +13,6 @@ export function useSettingsDialog({
   update,
   invokeScoped,
   setError,
-  setNotice,
 }: VaultApi) {
   const [section, setSection] = useState<SettingsSection | null>(null),
     [syncUrl, setSyncUrl] = useState(""),
@@ -65,7 +64,6 @@ export function useSettingsDialog({
         }),
       );
       setSyncToken("");
-      setNotice("Configurazione salvata");
     });
   const remember = (enabled: boolean) =>
     void run(async () => {

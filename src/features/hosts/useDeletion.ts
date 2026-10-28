@@ -19,7 +19,7 @@ const commands = {
 
 /** The delete confirmation for hosts, folders, identities and keys. */
 export function useDeletion(
-  { update, run, invokeScoped, setError, setNotice }: VaultApi,
+  { update, run, invokeScoped, setError }: VaultApi,
   group: string,
   clearGroup: () => void,
 ) {
@@ -40,9 +40,6 @@ export function useDeletion(
       }
       if (deletion.kind === "groups" && deletion.id === group) clearGroup();
       setDeletion(null);
-      setNotice(
-        deletion.ids ? "Host selezionati eliminati" : "Elemento eliminato",
-      );
     });
   return { deletion, askDelete, closeDeletion, confirmDeletion };
 }
