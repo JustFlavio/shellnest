@@ -17,7 +17,6 @@ import { portInline, sectionHelp, sheetField } from "@/lib/editor-ui";
 const ROOT = "__root";
 const NONE = "__none";
 
-// Create or edit a folder: its name, where it sits and the identity and port its hosts default to.
 export function GroupEditor({
   value,
   onChange,

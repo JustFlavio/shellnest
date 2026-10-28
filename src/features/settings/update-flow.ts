@@ -40,7 +40,6 @@ export const isBusy = (status: UpdateStatus): boolean =>
   status.kind === "downloading" ||
   status.kind === "installing";
 
-/** One line for the settings card. */
 export function statusLine(status: UpdateStatus): string {
   switch (status.kind) {
     case "idle":

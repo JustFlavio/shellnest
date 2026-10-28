@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { callout } from "@/lib/editor-ui";
 import { useApp } from "@/app/app-context";
 
-/** What a plain browser gets instead of the unlock form: the in-memory preview. */
 export function BrowserGate() {
   const {
     vault: { startPreview },

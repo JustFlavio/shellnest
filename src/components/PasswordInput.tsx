@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-// A password field with an eye button to show or hide what was typed.
 export function PasswordInput({
   className,
   ...props

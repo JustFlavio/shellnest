@@ -34,7 +34,6 @@ export function formatOffset(ms: number) {
   return `+${minutes} min ${String(Math.floor(seconds % 60)).padStart(2, "0")} s`;
 }
 
-/** The plain text of the log, one line per event, as it is copied. */
 export const logText = (entries: LogEntry[]) =>
   entries.map((e) => `${formatOffset(e.at)}  ${e.text}`).join("\n");
 

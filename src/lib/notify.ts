@@ -1,7 +1,6 @@
 import { toast } from "sonner";
 import { describeError, errorToastId } from "./error-message.ts";
 
-/** A transient failure: a short title, the detail below it, optionally one action to retry. */
 export function notifyError(
   title: string,
   error: unknown,

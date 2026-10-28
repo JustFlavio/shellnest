@@ -18,7 +18,6 @@ import { useHostAutosave } from "./useHostAutosave";
 import type { Page } from "./useCollectionView";
 import type { VaultApi } from "@/features/vault/useVault";
 
-/** The editors for hosts, groups, identities and keys: open, close and save each, and the nesting between them. */
 export function useEditors(
   vault: VaultApi,
   setActive: (id: string) => void,
@@ -127,7 +126,6 @@ export function useEditors(
     setKeyForm(newKey());
     setError("");
   };
-  // The primary "new" button of the current page.
   const createNew = () => {
     setError("");
     if (page === "hosts") setHostForm(draftFor(group));

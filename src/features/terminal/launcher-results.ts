@@ -18,7 +18,6 @@ export type RecentHost = Host & {
   lastConnectedAt?: number | null;
   os?: string | null;
 };
-// The titled sections of the list, in display order.
 type LauncherGroup = "workspace" | "tabs" | "hosts" | "quick";
 export type LauncherResult = {
   key: string;
@@ -62,7 +61,6 @@ const latestTab = (
       undefined,
     );
 
-// "user@host:port" as the quick-connect row shows it.
 const formatTarget = ({ username, address, port }: ConnectionTarget) =>
   `${username ? `${username}@` : ""}${address.includes(":") ? `[${address}]` : address}:${port}`;
 

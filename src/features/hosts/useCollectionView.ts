@@ -14,7 +14,6 @@ const savedLayout = (vaultId: string) => {
   }
 };
 
-/** Which page, folder, search and sort the vault browser shows, and which rows are selected. */
 export function useCollectionView(
   view: View,
   setError: (error: string) => void,

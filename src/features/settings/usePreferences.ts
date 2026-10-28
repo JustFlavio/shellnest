@@ -14,7 +14,6 @@ function save(key: string, value: unknown) {
   } catch {}
 }
 
-/** Display preferences kept in localStorage: app settings and shortcut overrides. */
 export function usePreferences() {
   const [appSettings, setAppSettings] = useState<AppSettings>(() => {
     try {

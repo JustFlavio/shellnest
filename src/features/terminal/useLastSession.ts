@@ -7,7 +7,6 @@ import type { TabList } from "./useTabList";
 
 const sessionKey = (vaultId: string) => `shellnest.session.${vaultId}`;
 
-/** Remembers the open tabs on this device; returns a reader for the stored session. */
 export function useLastSession({ view }: VaultApi, { tabs, active }: TabList) {
   useEffect(() => {
     if (!desktop || !view.unlocked || !tabs.length) return;

@@ -9,7 +9,6 @@ export function LauncherSearch({
   onKeyDown,
 }: {
   value: string;
-  // formatted binding of the quick-connect shortcut; empty when unbound
   shortcut: string;
   placeholder: string;
   onChange: (value: string) => void;

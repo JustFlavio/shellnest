@@ -12,7 +12,6 @@ type SessionDeps = {
   onReset: () => void;
 };
 
-/** Switching, creating, renaming, locking and deleting vaults; each one closes the open sessions. */
 export function useVaultSession({
   vault,
   tabs,

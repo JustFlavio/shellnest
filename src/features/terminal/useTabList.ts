@@ -3,7 +3,6 @@ import type { TerminalTab } from "@/lib/types";
 import { setTermTitle } from "./tabs-state.ts";
 import { leafIds, reorderTabs } from "./workbench-state.ts";
 
-/** The open tabs, which one is shown, the focused pane and the launcher page. */
 export function useTabList() {
   const [tabs, setTabs] = useState<TerminalTab[]>([]),
     [active, setActive] = useState("vault"),

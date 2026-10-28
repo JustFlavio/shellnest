@@ -8,7 +8,6 @@ import { useLatest } from "@/lib/useLatest";
 import { notifyError } from "@/lib/notify";
 import { useVaultStartup } from "./useVaultStartup";
 
-/** The open vault: its decrypted view, backend calls, and the busy/form-error/notice state around them. */
 export function useVault() {
   const [view, setView] = useState<View>(emptyView),
     [busy, setBusy] = useState(false),

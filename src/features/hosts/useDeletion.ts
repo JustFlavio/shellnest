@@ -17,7 +17,6 @@ const commands = {
   keys: "delete_key",
 } as const;
 
-/** The delete confirmation for hosts, folders, identities and keys. */
 export function useDeletion(
   { update, run, invokeScoped, setError }: VaultApi,
   group: string,

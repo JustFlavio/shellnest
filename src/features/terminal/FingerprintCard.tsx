@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { fingerprint, help } from "@/lib/editor-ui";
 import { useApp } from "@/app/app-context";
 
-/** The host key of a first access, inside the timeline: an explicit answer, never automatic. */
 export const compareHint =
   "Confronta l’impronta con quella dell’amministratore o della console.";
 
+/** The host key of a first access, inside the timeline: an explicit answer, never automatic. */
 export function FingerprintCard({ value }: { value: string }) {
   const {
     vault: { busy },

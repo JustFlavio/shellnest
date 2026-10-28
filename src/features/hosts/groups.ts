@@ -32,7 +32,6 @@ export function childGroups<T extends GroupRef>(
     .filter((g) => g.parentId === parentId)
     .sort((a, b) => a.name.localeCompare(b.name));
 }
-// The group and everything below it.
 export function subtreeIds(groups: GroupRef[], id: string): string[] {
   const ids = [id];
   for (const g of groups)

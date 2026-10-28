@@ -128,7 +128,6 @@ export function unlinkPane<T extends TabLike>(
   };
 }
 
-// New session `next` in the slot of `id`, in the tab bar or in a split layout.
 export function replaceTab<T extends TabLike>(
   tabs: T[],
   id: string,
@@ -163,7 +162,6 @@ export function appendWorkspaces<T extends TabLike>(
   ];
 }
 
-// Ids of every session closed together with the tab.
 export function sessionIds(tabs: TabLike[], id: string): string[] {
   const layout = tabs.find((t) => t.id === id)?.layout;
   return layout ? leafIds(layout) : [id];

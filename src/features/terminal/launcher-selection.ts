@@ -60,7 +60,6 @@ export const isSelected = (
   index: number,
 ) => (marks.length ? marks.includes(results[index].key) : cursor === index);
 
-// Host ids of the marked rows in the order they are listed.
 export const markedHostIds = (
   results: LauncherResult[],
   marks: string[],

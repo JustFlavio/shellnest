@@ -14,7 +14,6 @@ import type { SavedNode } from "./workbench-state.ts";
 import type { useLastSession } from "./useLastSession";
 import type { TabList } from "./useTabList";
 
-/** Saved workspaces and the last session: opening them, saving the current layout, deleting. */
 export function useWorkspaces(
   { view, run, update, invokeScoped, setNotice }: VaultApi,
   list: TabList,

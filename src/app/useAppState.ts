@@ -10,7 +10,6 @@ import { useVault } from "@/features/vault/useVault";
 import { useVaultSession } from "@/features/vault/useVaultSession";
 import { useVaultSync } from "@/features/vault/useVaultSync";
 
-/** Every piece of app state, wired together; components read it through useApp(). */
 export function useAppState() {
   const vault = useVault();
   const preferences = usePreferences();

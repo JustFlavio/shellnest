@@ -19,7 +19,6 @@ import {
 } from "./terminal-input.ts";
 
 export type XtermHandlers = {
-  // a paste big enough to ask first
   confirmPaste: (text: string) => void;
   search: () => void;
   title: (title?: string) => void;
@@ -64,7 +63,6 @@ export function applySettings(xterm: Xterm, settings: AppSettings) {
 const copySelection = (term: Terminal) =>
   void navigator.clipboard.writeText(term.getSelection()).catch(() => {});
 
-// A short beep.
 function beep() {
   try {
     const audio = new AudioContext();
@@ -77,7 +75,6 @@ function beep() {
   } catch {}
 }
 
-/** Opens a terminal in `container` with its addons and clipboard, bell, title and key handling. */
 export function openXterm(
   container: HTMLElement,
   settings: RefObject<AppSettings>,

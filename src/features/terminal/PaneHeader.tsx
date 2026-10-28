@@ -38,7 +38,6 @@ export function PaneHeader({
   tab: TerminalTab;
   endpoint: string;
   split: boolean;
-  // set when split: the header can be dragged to move the pane
   onDragPane?: (dragging: boolean) => void;
   onClose: () => void;
 }) {
