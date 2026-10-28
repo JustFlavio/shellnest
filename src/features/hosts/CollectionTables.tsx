@@ -56,7 +56,7 @@ function Row({
 }) {
   return (
     <tr
-      className="group animate-in cursor-pointer fade-in slide-in-from-bottom-1 duration-300 hover:bg-card"
+      className="group animate-in cursor-pointer fade-in duration-300 hover:bg-card"
       onDoubleClick={(e) => {
         if (!busy && !(e.target as HTMLElement).closest("button")) onEdit();
       }}
