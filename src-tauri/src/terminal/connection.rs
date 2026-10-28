@@ -18,7 +18,6 @@ pub(super) const MAX_PASSWORD_ATTEMPTS: usize = 3;
 
 /// What `open` tells the UI along the way.
 pub(super) enum Note {
-    /// The stage that is running, shown under the current step.
     Stage(&'static str),
     /// One line of the connection log: plain text, never a password, key or answer.
     Log(String),
@@ -510,7 +509,6 @@ mod tests {
                 notes.contains("log: Impronta del server nota e coincidente: SHA256:"),
                 "{notes}"
             );
-            // A stored password the server accepts is a plain success.
             let mut known = connection.clone();
             known.auth = "password".into();
             known.password = "test-only-password".into();

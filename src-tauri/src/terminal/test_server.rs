@@ -170,7 +170,6 @@ pub(super) async fn fixture(password_ok: bool) -> (Connection, tokio::task::Join
         username: "test".into(),
         auth: "key".into(),
         password: String::new(),
-        // A key the server does not know.
         private_key: PrivateKey::random(&mut rand10::rng(), Algorithm::Ed25519)
             .unwrap()
             .to_openssh(Default::default())
