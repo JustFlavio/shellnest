@@ -1,13 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  MAX_WORKSPACE_HOSTS,
   emptyMessage,
   groupResults,
   launcherKeyAction,
   launcherResults,
   listHeading,
-  togglePicked,
   workspaceSize,
 } from "./launcher-results.ts";
 import type { LauncherTab, RecentHost } from "./launcher-results.ts";
@@ -49,7 +47,6 @@ const base: Input = {
     host("b", "beta", { lastConnectedAt: 5 }),
     host("c", "gamma", { identityId: "i1" }),
   ],
-  selecting: false,
 };
 const keys = (input: Partial<Input>) =>
   launcherResults({ ...base, ...input }).results.map((r) => r.key);
@@ -74,21 +71,9 @@ test("a search matches the identity's user name", () => {
   assert.deepEqual(keys({ query: "DEPLOY" }), ["host-c", "local"]);
 });
 
-test("picking hosts lists hosts only", () => {
-  assert.deepEqual(keys({ selecting: true }), ["host-b", "host-a", "host-c"]);
-});
-
 test("a workspace counts its connections", () => {
   assert.equal(workspaceSize(base.workspaces[0]), 2);
   assert.equal(launcherResults(base).results[0].path, "2 connessioni");
-});
-
-test("picking stops at the limit and ignores a closed picker", () => {
-  assert.equal(togglePicked(null, "a"), null);
-  assert.deepEqual(togglePicked(["a"], "b"), ["a", "b"]);
-  assert.deepEqual(togglePicked(["a", "b"], "a"), ["b"]);
-  const full = Array.from({ length: MAX_WORKSPACE_HOSTS }, (_, i) => `h${i}`);
-  assert.equal(togglePicked(full, "x"), full);
 });
 
 test("arrow keys wrap around the results", () => {
@@ -119,15 +104,11 @@ test("Enter opens the selection, or quick-connects when nothing matches", () => 
   assert.equal(launcherKeyAction("a", state), null);
 });
 
-test("the list heading follows picking, searching and history", () => {
-  const state = { picking: false, text: "", hasRecent: true };
+test("the list heading follows searching and history", () => {
+  const state = { text: "", hasRecent: true };
   assert.equal(listHeading(state), "Connessioni recenti");
   assert.equal(listHeading({ ...state, hasRecent: false }), "Host salvati");
   assert.equal(listHeading({ ...state, text: "a" }), "Host");
-  assert.equal(
-    listHeading({ ...state, picking: true, text: "a" }),
-    "Scegli gli host",
-  );
 });
 
 const session = (
@@ -198,15 +179,10 @@ test("a tab of a deleted host keeps its own row", () => {
   );
 });
 
-test("without a search nothing is marked open, and picking lists plain hosts", () => {
+test("without a search nothing is marked open", () => {
   const tabs = [session("t1", "a", 1)];
   assert.equal(
     launcherResults({ ...base, tabs }).results[1].openTab,
-    undefined,
-  );
-  assert.equal(
-    launcherResults({ ...base, tabs, query: "alpha", selecting: true })
-      .results[0].openTab,
     undefined,
   );
 });
@@ -228,7 +204,7 @@ test("Cmd/Ctrl+Enter starts the timeline for a target, and does nothing otherwis
 
 const groupsOf = (input: Partial<Input>) => {
   const { text, hasRecent, results } = launcherResults({ ...base, ...input });
-  return groupResults(results, { picking: false, text, hasRecent }).map((g) => [
+  return groupResults(results, { text, hasRecent }).map((g) => [
     g.heading,
     g.items.map((i) => i.result.key),
   ]);
@@ -256,7 +232,6 @@ test("groups come in order, empty ones are left out, indexes are flat", () => {
     workspaces: [],
   });
   const groups = groupResults(results, {
-    picking: false,
     text: "e",
     hasRecent: true,
   });
@@ -283,13 +258,6 @@ test("without a search the history and the local terminal are listed", () => {
   assert.deepEqual(groupsOf({ workspaces: [], hosts: [] }), [
     ["Connessione rapida", ["local"]],
   ]);
-});
-
-test("picking hosts lists no quick connect group", () => {
-  assert.deepEqual(
-    keys({ selecting: true, target: { address: "a", port: 22 } }),
-    ["host-b", "host-a", "host-c"],
-  );
 });
 
 test("the jump mode lists open tabs only, newest first", () => {

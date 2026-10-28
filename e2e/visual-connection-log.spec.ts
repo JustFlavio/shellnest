@@ -32,7 +32,7 @@ const addHost = async (page: Page, name: string, address: string) => {
 };
 const open = async (page: Page, name: string) => {
   await page.getByRole("button", { name: "Connessione rapida" }).click();
-  await page.getByRole("option", { name: new RegExp(name) }).click();
+  await page.getByRole("option", { name: new RegExp(name) }).dblclick();
   await page
     .getByRole("button", { name: "Impronta verificata, connetti" })
     .click();
@@ -67,7 +67,7 @@ test("saved host with a key: only the usual steps, with their outcome", async ({
       characterData: true,
     });
   });
-  await page.getByRole("option", { name: /api-01/ }).click();
+  await page.getByRole("option", { name: /api-01/ }).dblclick();
   await expect(page.getByText("Sessione dimostrativa")).toBeVisible();
   const seen = await page.evaluate(() => window.__seen);
   expect(seen.length).toBeGreaterThan(0);

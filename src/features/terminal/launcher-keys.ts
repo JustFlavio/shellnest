@@ -8,23 +8,28 @@ type KeyEvent = Pick<
 >;
 
 // Key handler of the search box: moves the selection across the groups, opens a result,
-// Shift+Enter starts a new session of an open host, Cmd/Ctrl+Enter quick-connects.
+// Shift+Enter starts a new session of an open host, Cmd/Ctrl+Enter quick-connects, Escape
+// drops a multi-selection before it clears the search.
 export function launcherKeyHandler({
   results,
   selected,
-  picked,
+  marked,
   busy,
+
   target,
   forcedTarget,
   activate,
   select,
   clear,
+  unmark,
   onConnect,
   onQuickConnect,
 }: {
   results: LauncherResult[];
   selected: number;
-  picked: boolean;
+  marked: boolean;
+  // drops the multi-selection, keeping the cursor row
+  unmark: () => void;
   busy: boolean;
   target: ConnectionTarget | null;
   // any text that parses as an address, for Cmd/Ctrl+Enter
@@ -38,16 +43,14 @@ export function launcherKeyHandler({
   return (event: KeyEvent) => {
     const current = results[selected];
     const modified = event.metaKey || event.ctrlKey;
-    if (
-      event.key === "Enter" &&
-      event.shiftKey &&
-      current?.openTab &&
-      !picked &&
-      !busy
-    ) {
+    if (event.key === "Enter" && event.shiftKey && current?.openTab && !busy) {
       event.preventDefault();
       onConnect(current.host!);
       return;
+    }
+    if (event.key === "Escape" && marked) {
+      event.preventDefault();
+      return unmark();
     }
     const quick = modified ? forcedTarget : target;
     const action = launcherKeyAction(event.key, {

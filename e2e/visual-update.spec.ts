@@ -122,7 +122,7 @@ test("restarting with a connected session asks first and says it will be closed"
 }) => {
   await explore(page, "available");
   await page.getByRole("button", { name: "Connessione rapida" }).click();
-  await page.getByRole("option", { name: /api-01/ }).click();
+  await page.getByRole("option", { name: /api-01/ }).dblclick();
   await checkFromMenu(page);
   await toasts(page).getByRole("button", { name: "Scarica" }).click();
   await toasts(page).getByRole("button", { name: "Riavvia ora" }).click();

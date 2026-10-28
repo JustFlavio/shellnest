@@ -84,7 +84,7 @@ test("a failure inside an editor stays inline, not a toast", async ({
 test("a toast does not take focus from the terminal", async ({ page }) => {
   await explore(page);
   await page.keyboard.press("Meta+t");
-  await page.getByRole("option", { name: /api-01/ }).click();
+  await page.getByRole("option", { name: /api-01/ }).dblclick();
   await page.locator(".xterm").first().click();
   const input = page.locator(".xterm-helper-textarea").first();
   await expect(input).toBeFocused();

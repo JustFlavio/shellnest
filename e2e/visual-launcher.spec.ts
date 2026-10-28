@@ -22,7 +22,7 @@ test("a host with an open tab is one row that switches to it", async ({
   page,
 }) => {
   await openLauncher(page);
-  await page.getByRole("option", { name: /api-01/ }).click();
+  await page.getByRole("option", { name: /api-01/ }).dblclick();
   await page.locator(".xterm").first().waitFor();
   await openLauncher(page);
   await search(page).fill("api-01");
@@ -33,14 +33,14 @@ test("a host with an open tab is one row that switches to it", async ({
   await expect(
     page.getByRole("button", { name: "Nuova sessione api-01" }),
   ).toBeAttached();
-  await rows.click();
+  await rows.dblclick();
   await expect(search(page)).toHaveCount(0);
   await expect(page.locator(".xterm")).toHaveCount(1);
 });
 
 test("a new session of an open host opens a second tab", async ({ page }) => {
   await openLauncher(page);
-  await page.getByRole("option", { name: /api-01/ }).click();
+  await page.getByRole("option", { name: /api-01/ }).dblclick();
   await page.locator(".xterm").first().waitFor();
   await openLauncher(page);
   await search(page).fill("api-01");
@@ -128,7 +128,7 @@ test("the local terminal is always listed under Connessione rapida", async ({
 
 test("groups come in order and arrow keys cross them", async ({ page }) => {
   await openLauncher(page);
-  await page.getByRole("option", { name: /api-01/ }).click();
+  await page.getByRole("option", { name: /api-01/ }).dblclick();
   await page.locator(".xterm").first().waitFor();
   await openLauncher(page);
   await search(page).fill("api");
@@ -154,10 +154,10 @@ test("groups come in order and arrow keys cross them", async ({ page }) => {
 
 test("Cmd+J lists only the open tabs, newest first", async ({ page }) => {
   await openLauncher(page);
-  await page.getByRole("option", { name: /api-01/ }).click();
+  await page.getByRole("option", { name: /api-01/ }).dblclick();
   await page.locator(".xterm").first().waitFor();
   await openLauncher(page);
-  await page.getByRole("option", { name: /database-01/ }).click();
+  await page.getByRole("option", { name: /database-01/ }).dblclick();
   await page.waitForTimeout(700);
   await page.keyboard.press("Meta+j");
   const jump = page.getByRole("combobox", { name: "Cerca host o schede" });
@@ -172,4 +172,144 @@ test("Cmd+J lists only the open tabs, newest first", async ({ page }) => {
   await jump.press("Enter");
   await expect(jump).toHaveCount(0);
   await expect(page.locator(".xterm")).toHaveCount(2);
+});
+
+test("the launcher explains no keyboard commands", async ({ page }) => {
+  await openLauncher(page);
+  await expect(page.getByText(/Maiusc\+Invio|Invio apre/)).toHaveCount(0);
+  await page.keyboard.press("Meta+j");
+  await expect(page.getByText("Invio passa alla scheda")).toHaveCount(0);
+});
+
+const selectedRows = (page: Page) =>
+  page.locator("[cmdk-item][aria-selected=true]");
+const row = (page: Page, name: RegExp) => page.getByRole("option", { name });
+const createButton = (page: Page) =>
+  page.getByRole("button", { name: "Crea workspace" });
+
+test("a single click selects a row without opening it", async ({ page }) => {
+  await openLauncher(page);
+  await row(page, /api-02/).click();
+  await expect(selectedRows(page)).toHaveCount(1);
+  await expect(selectedRows(page)).toContainText("api-02");
+  await expect(search(page)).toBeFocused();
+  await expect(page.locator(".xterm")).toHaveCount(0);
+  await row(page, /api-01/).click();
+  await expect(selectedRows(page)).toContainText("api-01");
+  await expect(search(page)).toBeVisible();
+  await search(page).press("Enter");
+  await page.locator(".xterm").first().waitFor();
+});
+
+test("a single click on an open host row does not switch to its tab", async ({
+  page,
+}) => {
+  await openLauncher(page);
+  await row(page, /api-01/).dblclick();
+  await page.locator(".xterm").first().waitFor();
+  await openLauncher(page);
+  await search(page).fill("api-01");
+  await group(page, "Schede").getByRole("option").click();
+  await expect(search(page)).toBeVisible();
+  await expect(page.locator(".xterm")).toHaveCount(1);
+});
+
+test("a double click opens the row, like Enter", async ({ page }) => {
+  await openLauncher(page);
+  await row(page, /database-01/).dblclick();
+  await expect(search(page)).toHaveCount(0);
+  await expect(page.locator(".xterm")).toHaveCount(1);
+});
+
+test("Cmd+click multi-selects hosts and unlocks Crea workspace", async ({
+  page,
+}) => {
+  await openLauncher(page);
+  const listbox = page.getByRole("listbox");
+  await expect(listbox).toHaveAttribute("aria-multiselectable", "true");
+  await expect(createButton(page)).toBeDisabled();
+  await row(page, /api-01/).click();
+  await expect(createButton(page)).toBeDisabled();
+  await row(page, /api-02/).click({ modifiers: ["Meta"] });
+  await expect(selectedRows(page)).toHaveCount(2);
+  await expect(createButton(page)).toBeEnabled();
+  await row(page, /api-02/).click({ modifiers: ["Meta"] });
+  await expect(selectedRows(page)).toHaveCount(1);
+  await expect(createButton(page)).toBeDisabled();
+  await row(page, /api-02/).click({ modifiers: ["Meta"] });
+  await row(page, /database-01/).click({ modifiers: ["Meta"] });
+  await createButton(page).click();
+  const dialog = page.getByRole("dialog", { name: "Crea workspace" });
+  await expect(dialog).toContainText("3 host in griglia");
+  await dialog.getByRole("textbox").fill("Selezione");
+  await dialog.getByRole("button", { name: /^(Crea|Salva)/ }).click();
+  await page.locator(".xterm").first().waitFor();
+  await expect(page.locator(".xterm")).toHaveCount(3);
+});
+
+test("Shift+click selects the range between two hosts", async ({ page }) => {
+  await openLauncher(page);
+  const hosts = group(page, "Connessioni recenti").getByRole("option");
+  const count = await hosts.count();
+  expect(count).toBeGreaterThan(3);
+  await hosts.nth(1).click();
+  await hosts.nth(3).click({ modifiers: ["Shift"] });
+  await expect(selectedRows(page)).toHaveCount(3);
+  await expect(hosts.nth(0)).toHaveAttribute("aria-selected", "false");
+  await expect(hosts.nth(2)).toHaveAttribute("aria-selected", "true");
+  await hosts.nth(0).click({ modifiers: ["Shift"] });
+  await expect(selectedRows(page)).toHaveCount(2);
+  await expect(createButton(page)).toBeEnabled();
+});
+
+test("Esc clears a multi-selection first, then the search", async ({
+  page,
+}) => {
+  await openLauncher(page);
+  await search(page).fill("api");
+  await row(page, /api-01/).click();
+  await row(page, /api-02/).click({ modifiers: ["Meta"] });
+  await expect(selectedRows(page)).toHaveCount(2);
+  await search(page).press("Escape");
+  await expect(selectedRows(page)).toHaveCount(1);
+  await expect(search(page)).toHaveValue("api");
+  await search(page).press("Escape");
+  await expect(search(page)).toHaveValue("");
+});
+
+test("only host rows join a multi-selection", async ({ page }) => {
+  await openLauncher(page);
+  await row(page, /api-01/).click();
+  await row(page, /Produzione.*connessioni/).click({ modifiers: ["Meta"] });
+  await expect(selectedRows(page)).toHaveCount(1);
+  await expect(selectedRows(page)).toContainText("connessioni");
+  await expect(createButton(page)).toBeDisabled();
+});
+
+test("arrow keys and clicks share one selection", async ({ page }) => {
+  await openLauncher(page);
+  await row(page, /api-02/).click();
+  await search(page).press("ArrowDown");
+  await expect(selectedRows(page)).toHaveCount(1);
+  await expect(selectedRows(page)).not.toContainText("api-02");
+  await row(page, /api-01/).click();
+  await row(page, /api-02/).click({ modifiers: ["Meta"] });
+  await search(page).press("ArrowDown");
+  await expect(selectedRows(page)).toHaveCount(1);
+});
+
+test("Ripristina does not depend on the selection", async ({ page }) => {
+  await openLauncher(page);
+  await row(page, /api-01/).dblclick();
+  await page.locator(".xterm").first().waitFor();
+  await page.reload();
+  await page.getByRole("button", { name: "Esplora interfaccia" }).click();
+  await page.getByRole("heading", { name: "Host", level: 1 }).waitFor();
+  await openLauncher(page);
+  const restore = page.getByRole("button", { name: /Ripristina/ });
+  if (await restore.count()) {
+    await expect(restore).toBeEnabled();
+    await row(page, /api-01/).click();
+    await expect(restore).toBeEnabled();
+  }
 });

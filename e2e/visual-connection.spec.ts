@@ -24,7 +24,7 @@ const addHost = async (page: Page, name: string, address: string) => {
 
 const open = async (page: Page, name: string) => {
   await page.getByRole("button", { name: "Connessione rapida" }).click();
-  await page.getByRole("option", { name: new RegExp(name) }).click();
+  await page.getByRole("option", { name: new RegExp(name) }).dblclick();
 };
 
 const steps = (page: Page) =>

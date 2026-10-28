@@ -19,7 +19,7 @@ test("long tab titles truncate and actions remain available at narrow widths", a
   await page.goto("/");
   await page.getByRole("button", { name: "Esplora interfaccia" }).click();
   await page.getByRole("button", { name: "Connessione rapida" }).click();
-  await page.getByRole("option", { name: /api-01/ }).click();
+  await page.getByRole("option", { name: /api-01/ }).dblclick();
   const nav = page.getByRole("navigation", { name: "Sessioni e connessioni" });
   const session = nav.locator("[draggable=true]").first();
   await session.getByRole("button", { name: "api-01", exact: true }).dblclick();
