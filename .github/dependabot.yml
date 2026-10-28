@@ -7,6 +7,8 @@ updates:
     groups:
       npm-minor-patch:
         update-types: [minor, patch]
+      npm-major:
+        update-types: [major]
   - package-ecosystem: cargo
     directory: /src-tauri
     schedule:
@@ -14,6 +16,14 @@ updates:
     groups:
       cargo-minor-patch:
         update-types: [minor, patch]
+    ignore:
+      # The vault format depends on these: upgrade by hand with a vault created by the current version.
+      - dependency-name: chacha20poly1305
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: argon2
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: rand
+        update-types: [version-update:semver-major, version-update:semver-minor]
   - package-ecosystem: github-actions
     directory: /
     schedule:

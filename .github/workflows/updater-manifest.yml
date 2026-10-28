@@ -11,6 +11,7 @@ jobs:
   publish-manifest:
     if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     env:
