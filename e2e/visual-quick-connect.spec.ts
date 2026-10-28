@@ -36,7 +36,7 @@ test("the target row and Cmd+Enter only start the timeline; the user comes from 
   page,
 }) => {
   await search(page).fill("root@192.0.2.50");
-  await page.getByRole("option", { name: /root@192\.0\.2\.50:22/ }).click();
+  await page.getByRole("option", { name: /root@192\.0\.2\.50:22/ }).dblclick();
   await expect(page.getByLabel("Utente", { exact: true })).toHaveValue("root");
   await expect(steps(page)).toHaveText([
     /Utente/,

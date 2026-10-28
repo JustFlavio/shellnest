@@ -1,47 +1,67 @@
-import {
-  Check,
-  LayoutGrid,
-  Plus,
-  TerminalSquare,
-  Trash2,
-  Zap,
-} from "lucide-react";
+import { LayoutGrid, Plus, TerminalSquare, Trash2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommandItem } from "@/components/ui/command";
 import { OsIcon } from "@/components/OsIcon";
 import { cn } from "@/lib/utils";
 import type { LauncherResult } from "./launcher-results.ts";
+import type { ClickMode } from "./launcher-selection.ts";
 
 // keeps Enter on a row button from reaching the list, which would also run the highlighted result
 const stopKey = (event: React.KeyboardEvent) => event.stopPropagation();
 
 export function LauncherRow({
   result,
+  cursor,
   selected,
-  checked,
   armed,
   busy,
+  onClick,
   onActivate,
   onArmDelete,
   onDelete,
   onNewSession,
 }: {
   result: LauncherResult;
+  // the row Enter opens
+  cursor: boolean;
+  // part of the selection: the cursor row, or every marked host
   selected: boolean;
-  // undefined unless hosts are being picked for a workspace
-  checked?: boolean;
   // a second click on the delete button confirms
   armed: boolean;
   busy: boolean;
+  // a single click selects; Cmd/Ctrl toggles, Shift extends a range
+  onClick: (mode: ClickMode) => void;
+  // double click: same as Enter on the row
   onActivate: () => void;
   onArmDelete: () => void;
   onDelete: () => void;
   onNewSession: () => void;
 }) {
-  const open = !!result.openTab && checked === undefined;
+  const open = !!result.openTab;
   return (
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- cmdk owns the row's own element and keyboard use goes through the search box; this only adds pointer selection
     <div
-      data-launch-selected={selected ? "" : undefined}
+      data-launch-selected={cursor ? "" : undefined}
+      // keeps focus in the search box so the keys keep working after a click
+      onMouseDown={(event) => event.preventDefault()}
+      // capture: runs before cmdk's own click handling of the row
+      onClickCapture={(event) => {
+        if ((event.target as Element).closest("button")) return;
+        onClick(
+          event.shiftKey
+            ? "range"
+            : event.metaKey || event.ctrlKey
+              ? "toggle"
+              : "single",
+        );
+      }}
+      onDoubleClick={(event) => {
+        if (
+          !(event.target as Element).closest("button") &&
+          !(event.shiftKey || event.metaKey || event.ctrlKey)
+        )
+          onActivate();
+      }}
       className={cn(
         "group relative flex items-center rounded-[8px]",
         selected
@@ -52,21 +72,8 @@ export function LauncherRow({
       <CommandItem
         value={result.key}
         className="h-[42px] min-w-0 flex-1 gap-[11px] rounded-[8px] px-[11px] py-0 text-[13px] data-selected:bg-transparent"
-        aria-checked={checked}
         disabled={busy}
-        onSelect={onActivate}
       >
-        {checked !== undefined && (
-          <span
-            className={cn(
-              "grid size-[16px] shrink-0 place-items-center rounded-[4px] border border-input text-primary-foreground",
-              checked && "border-primary bg-primary",
-            )}
-            aria-hidden
-          >
-            {checked && <Check size={11} />}
-          </span>
-        )}
         {result.kind === "workspace" ? (
           <span className="grid size-[24px] shrink-0 place-items-center rounded-[6px] bg-[color-mix(in_oklab,#76c5a0_16%,transparent)] text-[#76c5a0]">
             <LayoutGrid size={14} />

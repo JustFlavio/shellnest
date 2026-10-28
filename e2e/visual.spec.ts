@@ -104,7 +104,7 @@ test("delete host confirmation", async ({ page }) => {
 
 async function openFromLauncher(page: Page, name: string | RegExp) {
   await page.getByRole("button", { name: "Connessione rapida" }).click();
-  await page.getByRole("option", { name }).click();
+  await page.getByRole("option", { name }).dblclick();
   await page.locator(".xterm").first().waitFor();
   // Let the scripted session reach its prompt.
   await page.waitForTimeout(700);
@@ -125,7 +125,7 @@ test("split workspace", async ({ page }) => {
 test("several tabs and the new-tab launcher", async ({ page }) => {
   await openFromLauncher(page, /api-01/);
   await page.getByRole("button", { name: "Nuova connessione" }).click();
-  await page.getByRole("option", { name: /database-01/ }).click();
+  await page.getByRole("option", { name: /database-01/ }).dblclick();
   await page.waitForTimeout(700);
   await page.getByRole("button", { name: "Nuova connessione" }).click();
   await page.getByRole("combobox", { name: "Cerca host o schede" }).waitFor();
@@ -153,7 +153,7 @@ test("dragging the divider resizes split panes", async ({ page }) => {
 test("dragging a tab reorders the bar", async ({ page }) => {
   await openFromLauncher(page, /api-01/);
   await page.getByRole("button", { name: "Nuova connessione" }).click();
-  await page.getByRole("option", { name: /database-01/ }).click();
+  await page.getByRole("option", { name: /database-01/ }).dblclick();
   await page.locator(".xterm").nth(1).waitFor();
   const nav = page.getByRole("navigation", { name: "Sessioni e connessioni" });
   const labels = () =>

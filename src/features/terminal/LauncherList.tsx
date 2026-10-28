@@ -8,11 +8,14 @@ const groupClass =
 // why no tab or host is listed; it sits where those groups would be, before quick connect.
 export function LauncherList({
   label,
+  multiselectable,
   groups,
   empty,
   renderRow,
 }: {
   label: string;
+  // rows can be selected together (Cmd/Ctrl+click, Shift+click)
+  multiselectable: boolean;
   groups: ResultGroup[];
   empty: string | null;
   renderRow: (result: LauncherResult, index: number) => React.ReactNode;
@@ -23,7 +26,11 @@ export function LauncherList({
     </CommandGroup>
   );
   return (
-    <CommandList label={label} className="max-h-none overflow-visible">
+    <CommandList
+      label={label}
+      aria-multiselectable={multiselectable}
+      className="max-h-none overflow-visible"
+    >
       {groups.filter((g) => g.id !== "quick").map(group)}
       {empty && (
         <p className="mb-[18px] rounded-[12px] border border-border bg-card px-[16px] py-[18px] text-[13px] text-muted-foreground">

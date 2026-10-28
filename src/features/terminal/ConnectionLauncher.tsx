@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { quickConnectTarget } from "./connection-target.ts";
 import { Command } from "@/components/ui/command";
 import { mac } from "@/lib/platform";
@@ -6,8 +6,14 @@ import {
   emptyMessage,
   groupResults,
   launcherResults,
-  togglePicked,
 } from "./launcher-results.ts";
+import {
+  clickRow,
+  collapsed,
+  isSelected,
+  markedHostIds,
+} from "./launcher-selection.ts";
+import type { ClickMode } from "./launcher-selection.ts";
 import type { LauncherResult } from "./launcher-results.ts";
 import type { ConnectionLauncherProps } from "./launcher-props.ts";
 import { launcherKeyHandler } from "./launcher-keys";
@@ -41,10 +47,9 @@ export function ConnectionLauncher({
 }: ConnectionLauncherProps) {
   const jump = mode === "jump";
   const [query, setQuery] = useState("");
-  const [selection, setSelection] = useState(0);
+  const [selection, setSelection] = useState(collapsed);
   const [armed, setArmed] = useState<string>();
-  // hosts being picked for a new workspace; null when not picking
-  const [picked, setPicked] = useState<string[] | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!armed) return;
     const timer = setTimeout(() => setArmed(undefined), 3000);
@@ -52,7 +57,7 @@ export function ConnectionLauncher({
   }, [armed]);
   // Cmd/Ctrl+Enter takes any text that parses as an address, not only what looks like one.
   const forcedTarget = jump ? null : quickConnectTarget(query, hosts, true);
-  const target = jump || picked ? null : quickConnectTarget(query, hosts);
+  const target = jump ? null : quickConnectTarget(query, hosts);
   const { text, hasRecent, results } = launcherResults({
     query,
     vaultName,
@@ -61,16 +66,33 @@ export function ConnectionLauncher({
     identities,
     workspaces,
     tabs,
-    selecting: picked !== null,
     target,
     jump,
   });
-  const selected = Math.min(selection, Math.max(0, results.length - 1));
+  const selected = Math.min(selection.cursor, Math.max(0, results.length - 1));
+  const hostIds = markedHostIds(results, selection.marks);
   useEffect(() => {
     document
       .querySelector("[data-launch-selected]")
       ?.scrollIntoView({ block: "nearest" });
   }, [selected]);
+  // cmdk marks only its one highlighted item as aria-selected, and rewrites it after our
+  // effect when the cursor moves; mirror the multi-selection once that render is done.
+  useEffect(() => {
+    queueMicrotask(() =>
+      listRef.current
+        ?.querySelectorAll("[cmdk-item]")
+        .forEach((item, index) =>
+          item.setAttribute(
+            "aria-selected",
+            String(
+              !!results[index] &&
+                isSelected({ ...selection, cursor: selected }, results, index),
+            ),
+          ),
+        ),
+    );
+  });
   const activate = ({
     kind,
     workspace,
@@ -84,21 +106,25 @@ export function ConnectionLauncher({
     else if (kind === "target") onQuickConnect(target!);
     else if (kind === "workspace") onOpenWorkspace(workspace!);
     else if (kind === "tab") onActivateTab(tab!.id);
-    else if (picked) setPicked(togglePicked(picked, host!.id));
     else if (openTab) onActivateTab(openTab.id);
     else onConnect(host!);
   };
-  const pickedSet = new Set(picked);
+  // cmdk reports a clicked row as its new value right after; the click already set the cursor
+  const clicking = useRef(false);
+  const click = (index: number, mode: ClickMode) => {
+    clicking.current = true;
+    queueMicrotask(() => (clicking.current = false));
+    setSelection((current) => clickRow(current, results, index, mode));
+  };
   const row = (result: LauncherResult, index: number) => (
     <LauncherRow
       key={result.key}
       result={result}
-      selected={selected === index}
-      checked={
-        picked && result.host ? pickedSet.has(result.host.id) : undefined
-      }
+      cursor={selected === index}
+      selected={isSelected({ ...selection, cursor: selected }, results, index)}
       armed={!!result.workspace && armed === result.workspace.id}
       busy={busy || (result.kind === "local" && preview)}
+      onClick={(mode) => click(index, mode)}
       onActivate={() => activate(result)}
       onNewSession={() => onConnect(result.host!)}
       onArmDelete={() => setArmed(result.workspace!.id)}
@@ -111,15 +137,16 @@ export function ConnectionLauncher({
   const onKeyDown = launcherKeyHandler({
     results,
     selected,
-    picked: !!picked,
+    marked: selection.marks.length > 0,
+    unmark: () => setSelection((current) => ({ ...current, marks: [] })),
     busy,
     target,
     forcedTarget,
     activate,
-    select: setSelection,
+    select: (index) => setSelection(collapsed(index)),
     clear: () => {
       setQuery("");
-      setSelection(0);
+      setSelection(collapsed());
     },
     onConnect,
     onQuickConnect,
@@ -136,6 +163,7 @@ export function ConnectionLauncher({
       });
   return (
     <section
+      ref={listRef}
       className="mx-auto min-h-0 w-full max-w-[760px] flex-1 overflow-auto px-[24px] pt-[40px] pb-[56px]"
       aria-label={jump ? "Vai alla scheda" : "Nuova scheda"}
     >
@@ -143,9 +171,11 @@ export function ConnectionLauncher({
         shouldFilter={false}
         label="Cerca host o schede"
         value={results[selected]?.key ?? ""}
+        disablePointerSelection
         onValueChange={(key) => {
           const index = results.findIndex((result) => result.key === key);
-          if (index >= 0) setSelection(index);
+          if (index >= 0 && !clicking.current)
+            setSelection((current) => ({ ...current, cursor: index }));
         }}
         className="h-auto overflow-visible rounded-none! bg-transparent p-0 text-inherit"
       >
@@ -159,32 +189,26 @@ export function ConnectionLauncher({
           }
           onChange={(value) => {
             setQuery(value);
-            setSelection(0);
+            setSelection(collapsed());
           }}
           onKeyDown={onKeyDown}
         />
         {!jump && (
           <LauncherToolbar
-            picked={picked}
             busy={busy}
-            canPickHosts={hosts.length >= 2}
+            canCreate={hostIds.length >= 2}
             session={session}
-            onCancel={() => setPicked(null)}
             onCreate={() => {
-              onCreateWorkspace(picked!);
-              setPicked(null);
+              onCreateWorkspace(hostIds);
+              setSelection(collapsed(selected));
             }}
-            onPickHosts={() => setPicked([])}
             onRestore={onRestore}
           />
         )}
         <LauncherList
           label={text ? "Risultati ricerca" : "Connessioni disponibili"}
-          groups={groupResults(results, {
-            picking: !!picked,
-            text,
-            hasRecent,
-          })}
+          multiselectable={!jump}
+          groups={groupResults(results, { text, hasRecent })}
           empty={empty}
           renderRow={row}
         />

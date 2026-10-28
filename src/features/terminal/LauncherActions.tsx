@@ -5,15 +5,15 @@ const ghostButton = "h-[28px] text-[12px] text-muted-foreground";
 
 export function LauncherActions({
   busy,
-  canPickHosts,
+  canCreate,
   session,
-  onPickHosts,
+  onCreate,
   onRestore,
 }: {
   busy: boolean;
-  canPickHosts: boolean;
+  canCreate: boolean;
   session: { count: number } | null;
-  onPickHosts: () => void;
+  onCreate: () => void;
   onRestore: () => void;
 }) {
   return (
@@ -22,8 +22,8 @@ export function LauncherActions({
         variant="ghost"
         type="button"
         className={ghostButton}
-        disabled={busy || !canPickHosts}
-        onClick={onPickHosts}
+        disabled={busy || !canCreate}
+        onClick={onCreate}
       >
         <LayoutGrid size={14} />
         Crea workspace

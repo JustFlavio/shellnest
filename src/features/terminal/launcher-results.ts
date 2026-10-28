@@ -45,16 +45,6 @@ export function workspaceSize(workspace: Workspace): number {
   return count(workspace.layout);
 }
 
-// Adds or removes a host in the picked list (null: not picking), up to the workspace limit.
-export function togglePicked(
-  picked: string[] | null,
-  id: string,
-): string[] | null {
-  if (!picked) return picked;
-  if (picked.includes(id)) return picked.filter((x) => x !== id);
-  return picked.length < MAX_WORKSPACE_HOSTS ? [...picked, id] : picked;
-}
-
 const recentFirst = (a: RecentHost, b: RecentHost): number =>
   (b.lastConnectedAt ?? 0) - (a.lastConnectedAt ?? 0) ||
   a.name.localeCompare(b.name);
@@ -80,7 +70,7 @@ const formatTarget = ({ username, address, port }: ConnectionTarget) =>
 // then (only when searching) what is open, then the other saved hosts, most recently used
 // first, then quick connect: the typed target and the local terminal. A host with an open
 // session is one row that switches to it, never listed again with the hosts; tabs that are not
-// saved hosts keep their own row. Picking hosts for a new workspace shows plain host rows only.
+// saved hosts keep their own row.
 // The jump mode lists the open tabs only, newest first.
 export function launcherResults({
   query,
@@ -90,7 +80,6 @@ export function launcherResults({
   identities,
   workspaces,
   tabs,
-  selecting,
   target = null,
   jump = false,
 }: {
@@ -101,7 +90,6 @@ export function launcherResults({
   identities: Identity[];
   workspaces: Workspace[];
   tabs: LauncherTab[];
-  selecting: boolean;
   // the typed text as a quick-connect target, when it looks like one
   target?: ConnectionTarget | null;
   jump?: boolean;
@@ -114,7 +102,7 @@ export function launcherResults({
     return { text, hasRecent: false, results: jumpRows(tabs, hosts, matches) };
   const sorted = [...hosts].sort(recentFirst);
   const savedIds = new Set(hosts.map((h) => h.id));
-  const searching = !!text && !selecting;
+  const searching = !!text;
   const openTab = (host: RecentHost) =>
     searching ? latestTab(tabs, host.id) : undefined;
   const hostMatches = (host: RecentHost) =>
@@ -201,9 +189,7 @@ export function launcherResults({
   return {
     text,
     hasRecent: sorted.some((h) => (h.lastConnectedAt ?? 0) > 0),
-    results: selecting
-      ? all.filter((r) => r.kind === "host")
-      : [...all, ...quick],
+    results: [...all, ...quick],
   };
 }
 
@@ -237,7 +223,7 @@ export type ResultGroup = {
 // list, which the arrow keys walk across groups.
 export function groupResults(
   results: LauncherResult[],
-  heading: { picking: boolean; text: string; hasRecent: boolean },
+  heading: { text: string; hasRecent: boolean },
 ): ResultGroup[] {
   const titles: Record<LauncherGroup, string> = {
     workspace: "Workspace",
@@ -295,15 +281,12 @@ export function launcherKeyAction(
 }
 
 export function listHeading({
-  picking,
   text,
   hasRecent,
 }: {
-  picking: boolean;
   text: string;
   hasRecent: boolean;
 }): string {
-  if (picking) return "Scegli gli host";
   if (text) return "Host";
   return hasRecent ? "Connessioni recenti" : "Host salvati";
 }
