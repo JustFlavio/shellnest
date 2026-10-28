@@ -22,8 +22,8 @@ export function AppHeader() {
           Shellnest
         </span>
       </div>
-      <AppMenu />
       <TabBar />
+      <AppMenu />
       <WindowControls />
     </header>
   );

@@ -5,35 +5,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { desktop } from "@/lib/platform";
-import { notifyError } from "@/lib/notify";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import {
-  KeyRound,
-  LockKeyhole,
-  Menu,
-  Plus,
-  RefreshCw,
-  Server,
-  Settings2,
-  TerminalSquare,
-  UserRound,
-} from "lucide-react";
+import { desktop, mac } from "@/lib/platform";
+import { LockKeyhole, Menu, RefreshCw, Settings2 } from "lucide-react";
 import { useApp } from "./app-context";
-
-const onWindowError = (e: unknown) =>
-  notifyError("Operazione sulla finestra non riuscita", e);
 
 export function AppMenu() {
   const {
     vault: { busy },
     preferences: { hint },
-    tabs: { tabs, setPendingClose, openLauncher, openLocal },
-    library: { group, navigate, newHostIn },
+    tabs: { tabs, setPendingClose },
     session: { requestLock },
     settings,
     update,
   } = useApp();
+  // On macOS the same actions live in the native menu bar.
+  if (mac && desktop) return null;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -44,32 +30,6 @@ export function AppMenu() {
         <Menu size={18} />
       </DropdownMenuTrigger>
       <DropdownMenuContent className="min-w-60" aria-label="Menu applicazione">
-        <DropdownMenuItem onClick={() => navigate("hosts")}>
-          <Server size={15} />
-          Host e cartelle
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate("identities")}>
-          <UserRound size={15} />
-          Identità
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate("keys")}>
-          <KeyRound size={15} />
-          Chiavi SSH
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem disabled={busy} onClick={() => newHostIn(group)}>
-          <Plus size={15} />
-          Nuovo host
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled={busy} onClick={openLauncher}>
-          <Plus size={15} />
-          Nuova tab {hint("quickConnect") && <kbd>{hint("quickConnect")}</kbd>}
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled={busy} onClick={openLocal}>
-          <TerminalSquare size={15} />
-          Terminale locale
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
         <DropdownMenuItem disabled={busy} onClick={() => settings.open()}>
           <Settings2 size={15} />
           Impostazioni
@@ -91,29 +51,9 @@ export function AppMenu() {
         <DropdownMenuItem disabled={busy} onClick={requestLock}>
           <LockKeyhole size={15} />
           Blocca vault
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          disabled={!desktop}
-          onClick={() =>
-            void getCurrentWindow().minimize().catch(onWindowError)
-          }
-        >
-          Riduci a icona
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          disabled={!desktop}
-          onClick={() =>
-            void getCurrentWindow().toggleMaximize().catch(onWindowError)
-          }
-        >
-          Massimizza / ripristina finestra
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          disabled={!desktop || busy}
-          onClick={() => void getCurrentWindow().close().catch(onWindowError)}
-        >
-          Esci
+          {hint("lockVault") && (
+            <kbd className="ml-auto">{hint("lockVault")}</kbd>
+          )}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
