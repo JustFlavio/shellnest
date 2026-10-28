@@ -16,16 +16,16 @@ export function LauncherPage() {
       activateTab,
       openLocal,
       startQuick,
-      lastSession,
+      connectHosts,
       openWorkspace,
-      restoreSession,
       deleteWorkspace,
     },
   } = useApp();
   return (
     <ConnectionLauncher
       mode={launcherMode}
-      shortcut={hint(launcherMode === "jump" ? "jumpTab" : "quickConnect")}
+      shortcut={hint("quickConnect")}
+      jumpShortcut={hint("jumpTab")}
       key={`${view.vaultId}-${launcherKey}`}
       vaultName={view.vaultName}
       groups={view.groups}
@@ -49,8 +49,7 @@ export function LauncherPage() {
       }))}
       onConnect={connect}
       onOpenWorkspace={openWorkspace}
-      session={lastSession()}
-      onRestore={restoreSession}
+      onRestore={connectHosts}
       onCreateWorkspace={(hostIds) => setSavingWs({ hostIds, name: "" })}
       onDeleteWorkspace={deleteWorkspace}
       onActivateTab={activateTab}

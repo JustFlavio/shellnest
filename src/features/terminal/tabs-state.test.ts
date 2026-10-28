@@ -5,7 +5,6 @@ import {
   closedRecords,
   joinWorkspace,
   neighbourInBar,
-  parseSession,
   planWorkspaces,
   rearrangePane,
   replaceTab,
@@ -119,31 +118,6 @@ test("closing resolves workspace sessions and the next tab", () => {
   assert.equal(neighbourInBar(tabs, "a"), "c");
   assert.equal(neighbourInBar(tabs, "c"), "a");
   assert.equal(neighbourInBar([{ id: "a" }], "a"), undefined);
-});
-
-test("a stored session drops hosts that no longer exist", () => {
-  const raw = JSON.stringify({
-    active: 1,
-    items: [
-      { name: "One", layout: { hostId: "h1" } },
-      { layout: { hostId: "gone" } },
-      {
-        layout: {
-          dir: "row",
-          ratio: 0.5,
-          a: { hostId: "h1" },
-          b: { local: true },
-        },
-      },
-    ],
-  });
-  const session = defined(parseSession(raw, new Set(["h1"])));
-  assert.equal(session.items.length, 2);
-  assert.equal(session.active, 1);
-  assert.equal(session.count, 3);
-  assert.equal(parseSession("{", new Set()), null);
-  assert.equal(parseSession(null, new Set()), null);
-  assert.equal(defined(parseSession(raw, new Set())).items.length, 1);
 });
 
 test("closed sessions lose their place in a workspace", () => {

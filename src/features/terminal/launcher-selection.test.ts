@@ -7,6 +7,7 @@ import {
   collapsed,
   isSelected,
   markedHostIds,
+  pickedHosts,
 } from "./launcher-selection.ts";
 
 const hostRow = (id: string): LauncherResult =>
@@ -33,21 +34,41 @@ const rows = [
 ];
 
 test("a plain click selects one row and drops the marks", () => {
-  const marked = { cursor: 2, anchor: 1, marks: ["host-a", "host-b"] };
-  assert.deepEqual(clickRow(marked, rows, 4, "single"), collapsed(4));
+  const marked = {
+    cursor: 2,
+    anchor: 1,
+    marks: ["host-a", "host-b"],
+    chosen: true,
+  };
+  assert.deepEqual(clickRow(marked, rows, 4, "single"), collapsed(4, true));
 });
 
 test("Cmd+click starts from the cursor host and toggles rows", () => {
   const one = clickRow(collapsed(1), rows, 3, "toggle");
-  assert.deepEqual(one, { cursor: 3, anchor: 3, marks: ["host-a", "host-c"] });
+  assert.deepEqual(one, {
+    cursor: 3,
+    anchor: 3,
+    marks: ["host-a", "host-c"],
+    chosen: true,
+  });
   const off = clickRow(one, rows, 1, "toggle");
-  assert.deepEqual(off, { cursor: 3, anchor: 3, marks: ["host-c"] });
+  assert.deepEqual(off, {
+    cursor: 3,
+    anchor: 3,
+    marks: ["host-c"],
+    chosen: true,
+  });
   const last = clickRow(off, rows, 3, "toggle");
-  assert.deepEqual(last, collapsed(3));
+  assert.deepEqual(last, collapsed(3, true));
 });
 
 test("toggling off the cursor row moves the cursor to a marked row", () => {
-  const sel = { cursor: 3, anchor: 3, marks: ["host-a", "host-c"] };
+  const sel = {
+    cursor: 3,
+    anchor: 3,
+    marks: ["host-a", "host-c"],
+    chosen: true,
+  };
   assert.equal(clickRow(sel, rows, 3, "toggle").cursor, 1);
 });
 
@@ -57,8 +78,14 @@ test("a cursor on a tab does not join the marks", () => {
 });
 
 test("only host rows join a multi-selection", () => {
-  assert.deepEqual(clickRow(collapsed(1), rows, 5, "toggle"), collapsed(5));
-  assert.deepEqual(clickRow(collapsed(1), rows, 0, "range"), collapsed(0));
+  assert.deepEqual(
+    clickRow(collapsed(1), rows, 5, "toggle"),
+    collapsed(5, true),
+  );
+  assert.deepEqual(
+    clickRow(collapsed(1), rows, 0, "range"),
+    collapsed(0, true),
+  );
 });
 
 test("Shift+click marks the hosts between the anchor and the row", () => {
@@ -83,13 +110,28 @@ test("selections stop at the workspace limit", () => {
 });
 
 test("the marked rows, or the cursor row, show as selected", () => {
-  const sel = { cursor: 2, anchor: 1, marks: ["host-a", "host-b"] };
+  const sel = {
+    cursor: 2,
+    anchor: 1,
+    marks: ["host-a", "host-b"],
+    chosen: true,
+  };
   assert.deepEqual(
     rows.map((_, i) => isSelected(sel, rows, i)),
     [false, true, true, false, false, false],
   );
-  assert.equal(isSelected(collapsed(4), rows, 4), true);
-  assert.equal(isSelected(collapsed(4), rows, 3), false);
+  assert.equal(isSelected(collapsed(4, true), rows, 4), true);
+  assert.equal(isSelected(collapsed(4, true), rows, 3), false);
+});
+
+test("the row highlighted on its own is not selected until chosen", () => {
+  assert.equal(isSelected(collapsed(1), rows, 1), false);
+  assert.deepEqual(pickedHosts(collapsed(1), rows), []);
+  assert.deepEqual(
+    pickedHosts(collapsed(2, true), rows).map((h) => h.id),
+    ["b"],
+  );
+  assert.deepEqual(pickedHosts(collapsed(0, true), rows), []);
 });
 
 test("marked hosts come in the order they are listed", () => {

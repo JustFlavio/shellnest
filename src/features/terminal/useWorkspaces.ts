@@ -11,14 +11,12 @@ import type { Trust, WorkspaceSave } from "./tabs-types";
 import { hostIdentity } from "@/features/hosts/host-draft";
 import { gridLayout } from "./workbench-state.ts";
 import type { SavedNode } from "./workbench-state.ts";
-import type { useLastSession } from "./useLastSession";
 import type { TabList } from "./useTabList";
 
 export function useWorkspaces(
   { view, run, update, invokeScoped, setNotice }: VaultApi,
   list: TabList,
   setTrust: (trust: Trust) => void,
-  lastSession: ReturnType<typeof useLastSession>,
 ) {
   const { tabs, active } = list;
   const [savingWs, setSavingWs] = useState<WorkspaceSave | null>(null);
@@ -101,11 +99,6 @@ export function useWorkspaces(
     });
   const openWorkspace = (ws: WorkspaceDraft) =>
     void run(() => openWorkspaces([ws]));
-  const restoreSession = () => {
-    const saved = lastSession();
-    if (saved)
-      void run(() => openWorkspaces(saved.items, view.hosts, saved.active));
-  };
   const deleteWorkspace = (ws: Workspace) =>
     void run(async () => {
       update(await invokeScoped<View>("delete_workspace", { id: ws.id }));
@@ -116,7 +109,6 @@ export function useWorkspaces(
     openWorkspaces,
     saveWorkspace,
     openWorkspace,
-    restoreSession,
     deleteWorkspace,
   };
 }

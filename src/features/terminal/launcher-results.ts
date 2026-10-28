@@ -61,15 +61,27 @@ const latestTab = (
       undefined,
     );
 
+// The port shows only when it is not the default one.
 const formatTarget = ({ username, address, port }: ConnectionTarget) =>
-  `${username ? `${username}@` : ""}${address.includes(":") ? `[${address}]` : address}:${port}`;
+  `${username ? `${username}@` : ""}${address.includes(":") ? `[${address}]` : address}${port === 22 ? "" : `:${port}`}`;
+
+const hostText = (
+  host: RecentHost,
+  groups: Group[],
+  identityById: Map<string, Identity>,
+) =>
+  `${host.name} ${host.address} ${groupPath(groups, host.groupId)} ${identityById.get(host.effectiveIdentityId || host.identityId)?.username ?? host.username ?? ""}`;
+
+const hostPath = (host: RecentHost, vaultName: string, groups: Group[]) =>
+  host.groupId
+    ? `${vaultName} / ${groupPath(groups, host.groupId)}`
+    : vaultName;
 
 // What the launcher lists for a query, in the order of its titled groups: saved workspaces,
 // then (only when searching) what is open, then the other saved hosts, most recently used
 // first, then quick connect: the typed target and the local terminal. A host with an open
 // session is one row that switches to it, never listed again with the hosts; tabs that are not
 // saved hosts keep their own row.
-// The jump mode lists the open tabs only, newest first.
 export function launcherResults({
   query,
   vaultName,
@@ -79,7 +91,6 @@ export function launcherResults({
   workspaces,
   tabs,
   target = null,
-  jump = false,
 }: {
   query: string;
   vaultName: string;
@@ -90,23 +101,18 @@ export function launcherResults({
   tabs: LauncherTab[];
   // the typed text as a quick-connect target, when it looks like one
   target?: ConnectionTarget | null;
-  jump?: boolean;
 }): { text: string; hasRecent: boolean; results: LauncherResult[] } {
   const text = query.trim().toLocaleLowerCase();
   const matches = (value: string) =>
     !text || value.toLocaleLowerCase().includes(text);
   const identityById = new Map(identities.map((i) => [i.id, i]));
-  if (jump)
-    return { text, hasRecent: false, results: jumpRows(tabs, hosts, matches) };
   const sorted = [...hosts].sort(recentFirst);
   const savedIds = new Set(hosts.map((h) => h.id));
   const searching = !!text;
   const openTab = (host: RecentHost) =>
     searching ? latestTab(tabs, host.id) : undefined;
   const hostMatches = (host: RecentHost) =>
-    matches(
-      `${host.name} ${host.address} ${groupPath(groups, host.groupId)} ${identityById.get(host.effectiveIdentityId || host.identityId)?.username ?? host.username ?? ""}`,
-    ) ||
+    matches(hostText(host, groups, identityById)) ||
     (searching &&
       tabs.some(
         (t) =>
@@ -117,9 +123,7 @@ export function launcherResults({
     group: tab ? "tabs" : "hosts",
     kind: "host",
     title: host.name,
-    path: host.groupId
-      ? `${vaultName} / ${groupPath(groups, host.groupId)}`
-      : vaultName,
+    path: hostPath(host, vaultName, groups),
     os: host.os,
     host,
     ...(tab ? { openTab: tab } : {}),
@@ -163,44 +167,80 @@ export function launcherResults({
     ...open,
     ...restRows,
   ];
-  const quick: LauncherResult[] = [
-    ...(target
-      ? [
-          {
-            key: "target",
-            group: "quick",
-            kind: "target",
-            title: formatTarget(target),
-            path: "SSH",
-            target,
-          } as const,
-        ]
-      : []),
-    {
-      key: "local",
-      group: "quick",
-      kind: "local",
-      title: "Terminale locale",
-      path: "Questo computer",
-    },
-  ];
   return {
     text,
     hasRecent: sorted.some((h) => (h.lastConnectedAt ?? 0) > 0),
-    results: [...all, ...quick],
+    results: [...all, ...quickRows(target)],
   };
 }
 
-function jumpRows(
-  tabs: LauncherTab[],
-  hosts: RecentHost[],
-  matches: (value: string) => boolean,
-): LauncherResult[] {
+const quickRows = (target: ConnectionTarget | null): LauncherResult[] => [
+  ...(target
+    ? [
+        {
+          key: "target",
+          group: "quick",
+          kind: "target",
+          title: formatTarget(target),
+          path: "SSH",
+          target,
+        } as const,
+      ]
+    : []),
+  {
+    key: "local",
+    group: "quick",
+    kind: "local",
+    title: "Terminale locale",
+    path: "Questo computer",
+  },
+];
+
+// What the search menu under the input lists: the saved hosts that match, most recently used
+// first, the open tabs, newest first, then quick connect: the typed target and the local
+// terminal. The jump scope leaves the hosts out.
+export function menuResults({
+  query,
+  vaultName,
+  groups,
+  hosts,
+  identities,
+  tabs,
+  target = null,
+  jump = false,
+}: {
+  query: string;
+  vaultName: string;
+  groups: Group[];
+  hosts: RecentHost[];
+  identities: Identity[];
+  tabs: LauncherTab[];
+  target?: ConnectionTarget | null;
+  jump?: boolean;
+}): { text: string; results: LauncherResult[] } {
+  const text = query.trim().toLocaleLowerCase();
+  const matches = (value: string) =>
+    !text || value.toLocaleLowerCase().includes(text);
+  const identityById = new Map(identities.map((i) => [i.id, i]));
   const hostById = new Map(hosts.map((h) => [h.id, h]));
-  return tabs
+  const hostRows = jump
+    ? []
+    : [...hosts]
+        .sort(recentFirst)
+        .filter((host) => matches(hostText(host, groups, identityById)))
+        .map((host): LauncherResult => ({
+          key: `host-${host.id}`,
+          group: "hosts",
+          kind: "host",
+          title: host.name,
+          path: hostPath(host, vaultName, groups),
+          os: host.os,
+          host,
+        }));
+  const tabRows = tabs
     .filter((t) => matches(`${t.title} ${t.subtitle ?? ""}`))
     .sort((a, b) => b.lastActive - a.lastActive)
-    .map((tab) => ({
+    .map((tab): LauncherResult => ({
       key: `tab-${tab.id}`,
       group: "tabs",
       kind: "tab",
@@ -209,6 +249,7 @@ function jumpRows(
       os: tab.hostId ? hostById.get(tab.hostId)?.os : undefined,
       tab,
     }));
+  return { text, results: [...hostRows, ...tabRows, ...quickRows(target)] };
 }
 
 export type ResultGroup = {
@@ -295,12 +336,16 @@ export function emptyMessage({
   text,
   hasTarget,
   nothingSaved,
+  invalid = false,
 }: {
   jump: boolean;
   text: string;
   hasTarget: boolean;
   nothingSaved: boolean;
+  // the typed text matches nothing and is not an address either
+  invalid?: boolean;
 }): string {
+  if (invalid && !jump) return "Non è un nome host o un indirizzo IP valido.";
   if (jump)
     return text
       ? "Nessuna scheda corrisponde alla ricerca."

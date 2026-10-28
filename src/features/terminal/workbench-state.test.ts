@@ -8,9 +8,7 @@ import {
   replaceLeaf,
   toTemplate,
   fromTemplate,
-  pruneTemplate,
   gridLayout,
-  snapshotSession,
   removeLeaf,
   layoutRects,
   setRatio,
@@ -169,37 +167,4 @@ test("grid layouts are near-square and stay within the saved ratio range", () =>
   assert.ok(
     ratios(gridLayout(leaves(16))).every((r) => r >= 0.05 && r <= 0.95),
   );
-});
-test("pruning a saved layout collapses splits; sessions snapshot per tab", () => {
-  const l: SavedNode = {
-    dir: "row",
-    ratio: 0.5,
-    a: { hostId: "gone" },
-    b: { local: true },
-  };
-  assert.deepEqual(
-    pruneTemplate(l, (x) => !("hostId" in x) || x.hostId !== "gone"),
-    { local: true },
-  );
-  assert.equal(
-    pruneTemplate({ hostId: "gone" }, () => false),
-    null,
-  );
-  const tabs: Parameters<typeof snapshotSession>[0] = [
-    {
-      id: "a",
-      kind: "ssh",
-      host: { id: "h1" },
-      layout: { dir: "row", ratio: 0.5, a: { id: "a" }, b: { id: "b" } },
-      name: "Db",
-    },
-    { id: "b", kind: "local", parent: "a" },
-    { id: "c", kind: "quick" },
-    { id: "d", kind: "ssh", host: { id: "h2" } },
-  ];
-  const snap = snapshotSession(tabs, "d");
-  assert.equal(snap.items.length, 2);
-  assert.equal(snap.active, 1);
-  assert.equal(snap.items[0].name, "Db");
-  assert.deepEqual(snap.items[1].layout, { hostId: "h2" });
 });

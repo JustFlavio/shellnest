@@ -7,12 +7,14 @@ export function LauncherSearch({
   placeholder,
   onChange,
   onKeyDown,
+  onClick,
 }: {
   value: string;
   shortcut: string;
   placeholder: string;
   onChange: (value: string) => void;
   onKeyDown: (event: React.KeyboardEvent) => void;
+  onClick: () => void;
 }) {
   return (
     <CommandInput
@@ -25,6 +27,7 @@ export function LauncherSearch({
       value={value}
       onValueChange={onChange}
       onKeyDown={onKeyDown}
+      onClick={onClick}
     >
       {shortcut && (
         <InputGroupAddon align="inline-end">

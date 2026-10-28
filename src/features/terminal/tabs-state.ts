@@ -3,14 +3,12 @@ import {
   fromTemplate,
   insertLeaf,
   leafIds,
-  pruneTemplate,
   removeLeaf,
   replaceLeaf,
   toTemplate,
 } from "./workbench-state.ts";
 import type { Edge, LayoutNode, SavedNode } from "./workbench-state.ts";
 
-type StoredItem = { name?: string; layout: SavedNode };
 export type TabLike = {
   id: string;
   name?: string;
@@ -175,43 +173,6 @@ export function neighbourInBar(
   const bar = tabs.filter((t) => !t.parent),
     index = bar.findIndex((t) => t.id === id);
   return bar[index + 1]?.id ?? bar[index - 1]?.id;
-}
-
-const leafCount = (node: SavedNode): number =>
-  "dir" in node ? leafCount(node.a) + leafCount(node.b) : 1;
-
-// Reads the stored session of a vault, keeping only the hosts that still exist.
-export function parseSession(
-  raw: string | null,
-  knownHostIds: Set<string>,
-): {
-  items: { name?: string; layout: SavedNode }[];
-  active: number;
-  count: number;
-} | null {
-  try {
-    // stored text, validated field by field below
-    const saved = raw && JSON.parse(raw);
-    if (!saved || !Array.isArray(saved.items)) return null;
-    const items: StoredItem[] = saved.items.flatMap(
-      (item: { name?: string; layout: SavedNode }): StoredItem[] => {
-        const layout = pruneTemplate(
-          item.layout,
-          (leaf) => !("hostId" in leaf) || knownHostIds.has(leaf.hostId),
-        );
-        return layout ? [{ name: item.name, layout }] : [];
-      },
-    );
-    return items.length
-      ? {
-          items,
-          active: Number(saved.active) || 0,
-          count: items.reduce((sum: number, i) => sum + leafCount(i.layout), 0),
-        }
-      : null;
-  } catch {
-    return null;
-  }
 }
 
 // Distributes over a union of tab kinds so each kind keeps its own fields.

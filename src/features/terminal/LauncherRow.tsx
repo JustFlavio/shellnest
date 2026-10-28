@@ -1,8 +1,8 @@
-import { LayoutGrid, Plus, TerminalSquare, Trash2, Zap } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommandItem } from "@/components/ui/command";
-import { OsIcon } from "@/components/OsIcon";
 import { cn } from "@/lib/utils";
+import { LauncherIcon } from "./LauncherIcon";
 import type { LauncherResult } from "./launcher-results.ts";
 import type { ClickMode } from "./launcher-selection.ts";
 
@@ -65,8 +65,9 @@ export function LauncherRow({
       className={cn(
         "group relative flex items-center rounded-[8px]",
         selected
-          ? "bg-accent"
+          ? "bg-[color-mix(in_oklab,var(--primary)_20%,var(--accent))] ring-1 ring-primary/60 ring-inset"
           : "odd:bg-[color-mix(in_oklab,var(--accent)_38%,transparent)]",
+        cursor && !selected && "ring-1 ring-border ring-inset",
       )}
     >
       <CommandItem
@@ -74,21 +75,7 @@ export function LauncherRow({
         className="h-[42px] min-w-0 flex-1 gap-[11px] rounded-[8px] px-[11px] py-0 text-[13px] data-selected:bg-transparent"
         disabled={busy}
       >
-        {result.kind === "workspace" ? (
-          <span className="grid size-[24px] shrink-0 place-items-center rounded-[6px] bg-[color-mix(in_oklab,#76c5a0_16%,transparent)] text-[#76c5a0]">
-            <LayoutGrid size={14} />
-          </span>
-        ) : result.kind === "target" || result.kind === "local" ? (
-          <span className="grid size-[24px] shrink-0 place-items-center rounded-[6px] bg-accent text-muted-foreground">
-            {result.kind === "target" ? (
-              <Zap size={14} />
-            ) : (
-              <TerminalSquare size={14} />
-            )}
-          </span>
-        ) : (
-          <OsIcon os={result.os} size="launch" />
-        )}
+        <LauncherIcon result={result} />
         <span className="min-w-0 flex-1 truncate text-[13px]">
           {result.title}
         </span>

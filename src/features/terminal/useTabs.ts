@@ -4,7 +4,6 @@ import type { useCloseGuard } from "./CloseGuard";
 import type { Trust } from "./tabs-types";
 import { useCloseTabs } from "./useCloseTabs";
 import { useHostConnections } from "./useHostConnections";
-import { useLastSession } from "./useLastSession";
 import { usePanes } from "./usePanes";
 import { useTabList } from "./useTabList";
 import { useTrust } from "./useTrust";
@@ -19,8 +18,7 @@ export function useTabs(
   const connections = useHostConnections(vault, list, setTrust);
   const closing = useCloseTabs(list, connections, closeGuard);
   const panes = usePanes(vault, list, connections, closing);
-  const lastSession = useLastSession(vault, list);
-  const workspaces = useWorkspaces(vault, list, setTrust, lastSession);
+  const workspaces = useWorkspaces(vault, list, setTrust);
   const trustActions = useTrust(
     vault,
     list,
@@ -60,10 +58,8 @@ export function useTabs(
     setSavingWs: workspaces.setSavingWs,
     openWorkspaces: workspaces.openWorkspaces,
     openWorkspace: workspaces.openWorkspace,
-    restoreSession: workspaces.restoreSession,
     deleteWorkspace: workspaces.deleteWorkspace,
     saveWorkspace: workspaces.saveWorkspace,
-    lastSession,
     connect: connections.connect,
     connectHosts: connections.connectHosts,
     openLocal: connections.openLocal,

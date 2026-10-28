@@ -6,6 +6,7 @@ import {
   launcherKeyAction,
   launcherResults,
   listHeading,
+  menuResults,
   workspaceSize,
 } from "./launcher-results.ts";
 import type { LauncherTab, RecentHost } from "./launcher-results.ts";
@@ -247,7 +248,7 @@ test("groups come in order, empty ones are left out, indexes are flat", () => {
     groups[2].items.map((i) => i.result.key),
     ["target", "local"],
   );
-  assert.equal(groups[2].items[0].result.title, "root@web.example:22");
+  assert.equal(groups[2].items[0].result.title, "root@web.example");
 });
 
 test("without a search the history and the local terminal are listed", () => {
@@ -260,20 +261,50 @@ test("without a search the history and the local terminal are listed", () => {
   ]);
 });
 
-test("the jump mode lists open tabs only, newest first", () => {
+test("the search menu lists hosts, open tabs and quick connect", () => {
   const tabs = [
     session("t1", "a", 2),
     { id: "t2", title: "quick", subtitle: "root@x.example", lastActive: 9 },
     session("t3", "b", 5),
   ];
   const target = { address: "a", port: 22 };
-  assert.deepEqual(keys({ jump: true, tabs, target }), [
+  const menu = (input: Partial<Parameters<typeof menuResults>[0]>) =>
+    menuResults({ ...base, tabs, ...input }).results.map((r) => r.key);
+  assert.deepEqual(menu({}), [
+    "host-b",
+    "host-a",
+    "host-c",
     "tab-t2",
     "tab-t3",
     "tab-t1",
+    "local",
   ]);
-  assert.deepEqual(keys({ jump: true, tabs, query: "root@x" }), ["tab-t2"]);
-  assert.deepEqual(keys({ jump: true, tabs: [] }), []);
+  assert.deepEqual(menu({ target }).slice(-2), ["target", "local"]);
+  assert.deepEqual(menu({ query: "root@x" }), ["tab-t2", "local"]);
+  assert.deepEqual(menu({ jump: true, target }), [
+    "tab-t2",
+    "tab-t3",
+    "tab-t1",
+    "target",
+    "local",
+  ]);
+  assert.deepEqual(menu({ jump: true, tabs: [] }), ["local"]);
+});
+
+test("the target row shows the port only when it is not 22", () => {
+  const title = (target: {
+    address: string;
+    port: number;
+    username?: string;
+  }) =>
+    menuResults({ ...base, target }).results.find((r) => r.key === "target")
+      ?.title;
+  assert.equal(title({ address: "10.0.0.1", port: 22 }), "10.0.0.1");
+  assert.equal(title({ address: "10.0.0.1", port: 56 }), "10.0.0.1:56");
+  assert.equal(
+    title({ address: "::1", port: 22, username: "root" }),
+    "root@[::1]",
+  );
 });
 
 test("the empty message tells why nothing is listed", () => {
@@ -284,6 +315,10 @@ test("the empty message tells why nothing is listed", () => {
     nothingSaved: false,
   };
   assert.match(emptyMessage(state), /corrisponde/);
+  assert.match(
+    emptyMessage({ ...state, invalid: true }),
+    /non è un nome host/i,
+  );
   assert.match(
     emptyMessage({ ...state, nothingSaved: true }),
     /Nessun host salvato/,

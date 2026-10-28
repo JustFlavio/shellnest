@@ -44,6 +44,7 @@ function openLink(event: MouseEvent, uri: string) {
 const terminalOptions = (settings: AppSettings) => ({
   fontFamily: fontStack(settings.fontFamily),
   fontSize: settings.fontSize,
+  lineHeight: settings.lineHeight,
   scrollback: settings.scrollback,
   macOptionIsMeta: settings.optionAsMeta,
   drawBoldTextInBrightColors: settings.brightBold,
@@ -55,6 +56,7 @@ export function applySettings(xterm: Xterm, settings: AppSettings) {
   const options = xterm.term.options;
   const resized =
     options.fontSize !== next.fontSize ||
+    options.lineHeight !== next.lineHeight ||
     options.fontFamily !== next.fontFamily;
   Object.assign(options, next);
   if (resized) xterm.refit();

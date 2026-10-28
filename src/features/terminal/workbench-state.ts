@@ -126,16 +126,6 @@ export function fromTemplate(
     leaves: [...a.leaves, ...b.leaves],
   };
 }
-// Saved-layout leaves that fail `keep` are dropped; a split left with one child collapses into it.
-export function pruneTemplate(
-  node: SavedNode,
-  keep: (leaf: SavedLeaf) => boolean,
-): SavedNode | null {
-  if (!("dir" in node)) return keep(node) ? node : null;
-  const a = pruneTemplate(node.a, keep),
-    b = pruneTemplate(node.b, keep);
-  return a && b ? { ...node, a, b } : (a ?? b);
-}
 // Rows of a near-square grid, equal shares: 2 and 3 -> side by side, 4 -> 2x2, 5 -> 3 over 2.
 export function gridLayout<T extends SavedNode>(leaves: T[]): SavedNode {
   const chain = (nodes: SavedNode[], dir: "row" | "col"): SavedNode =>
@@ -153,38 +143,6 @@ export function gridLayout<T extends SavedNode>(leaves: T[]): SavedNode {
   for (let i = 0; i < leaves.length; i += cols)
     lines.push(chain(leaves.slice(i, i + cols), "row"));
   return chain(lines, "col");
-}
-// Open tabs as saved layouts (one item per tab bar entry); quick connections are skipped.
-export function snapshotSession(
-  tabs: {
-    id: string;
-    parent?: string;
-    name?: string;
-    layout?: LayoutNode;
-    kind: string;
-    host?: { id: string };
-  }[],
-  activeId: string,
-): { items: { name?: string; layout: SavedNode }[]; active: number } {
-  const byId = new Map(tabs.map((t) => [t.id, t]));
-  const describe = (id: string): SavedLeaf | null => {
-    const t = byId.get(id);
-    return t?.kind === "ssh"
-      ? { hostId: t.host!.id } // an ssh tab always has its host
-      : t?.kind === "local"
-        ? { local: true }
-        : null;
-  };
-  const items: { name?: string; layout: SavedNode }[] = [];
-  let active = 0;
-  for (const t of tabs) {
-    if (t.parent) continue;
-    const layout = t.layout ? toTemplate(t.layout, describe) : describe(t.id);
-    if (!layout) continue;
-    if (t.id === activeId) active = items.length;
-    items.push({ name: t.name, layout });
-  }
-  return { items, active };
 }
 // Returns the tree without the leaf, or null when it was the only one.
 export function removeLeaf(node: LayoutNode, id: string): LayoutNode | null {
