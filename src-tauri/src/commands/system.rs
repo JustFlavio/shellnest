@@ -24,6 +24,8 @@ pub(crate) fn open_url(url: String) -> Result<(), Error> {
 }
 
 /// The texts of the macOS menu, in the language the UI shows; it sends them again when the language changes.
+// Only the macOS menu reads the fields; other platforms accept the command and drop them.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct MenuLabels {
