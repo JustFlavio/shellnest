@@ -100,8 +100,7 @@ export function ShortcutsEditor({
   return (
     <>
       <p className={muted}>
-        Clicca la matita e premi la nuova combinazione. Esc annulla, Backspace
-        disattiva la scorciatoia.
+        Esc annulla, Backspace disattiva.
         {!mac &&
           " Le combinazioni con una lettera usano Ctrl+Maiusc per lasciare liberi i comandi del terminale."}
       </p>
@@ -178,24 +177,6 @@ export function ShortcutsEditor({
             </div>
           );
         })}
-        <div>
-          <dt>Connetti dalla scheda host</dt>
-          <dd>
-            <kbd>Invio</kbd>
-          </dd>
-        </div>
-        <div>
-          <dt>Seleziona host</dt>
-          <dd>
-            <kbd>Spazio / Ctrl/Cmd clic</kbd>
-          </dd>
-        </div>
-        <div>
-          <dt>Annulla selezione o chiudi pannello</dt>
-          <dd>
-            <kbd>Esc</kbd>
-          </dd>
-        </div>
       </dl>
       <div className="flex justify-end">
         <Button

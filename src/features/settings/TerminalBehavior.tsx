@@ -56,10 +56,7 @@ export function TerminalBehavior({
           onChange={(v) => set("brightBold", v)}
         />
       </Row>
-      <Row
-        label="Righe di scrollback"
-        hint="Da 500 a 100000. Vale anche per i terminali già aperti."
-      >
+      <Row label="Righe di scrollback" hint="Da 500 a 100000.">
         <Input
           className="w-[110px]"
           type="number"

@@ -1,6 +1,6 @@
 # Impostazioni
 
-Dialog unico (menu ☰ → Impostazioni, `⌘,`) con sezioni: **Vault**, **Terminale**, **Scorciatoie**, **Aggiornamenti**. In fondo: Documentazione e Changelog ("Presto") e la versione.
+Dialog unico (menu ☰ → Impostazioni, `⌘,`) con sezioni: **Vault**, **Terminale**, **Scorciatoie**, **Aggiornamenti**.
 
 Le impostazioni dell'app stanno in `localStorage` (`shellnest.settings`, `shellnest.shortcuts`): valgono per questo dispositivo, non si sincronizzano con il vault. Il parsing (`src/features/settings/settings.ts`, `src/features/settings/shortcuts.ts`) non lancia mai errori: ogni campo non valido torna al default.
 
@@ -11,13 +11,6 @@ Le impostazioni dell'app stanno in `localStorage` (`shellnest.settings`, `shelln
 - Scorciatoie: rimappatura con reset e controllo dei conflitti.
 - Aggiornamenti: versione installata, "Controlla ora", interruttore "Controlla all'avvio" (`checkUpdates`, acceso di default). Il controllo contatta GitHub; scarica e riavvia solo su clic (vedi `docs/releases.md`).
 
-## In arrivo (mostrato nella UI come "Presto")
-
-- **Evidenziazione parole chiave** nell'output (errori, avvisi, OK, info, debug, IP e MAC) con colori a scelta. Lavoro a sé: serve colorare l'output di xterm senza toccare i dati inviati alla shell.
-- **Connessione**: keepalive configurabile (oggi fisso a 30 s con 3 tentativi in `src-tauri/src/terminal/host_key.rs`), riconnessione automatica, shell del terminale locale, rilevamento OS dell'host come interruttore.
-- Documentazione e Changelog.
-- Tema chiaro dell'app (oggi esiste una sola paletta): solo allora ha senso il selettore "Tema".
-
 ## Scelte di prodotto: cosa non è previsto
 
 - **Autocomplete** del terminale: non previsto.
@@ -27,4 +20,4 @@ Le impostazioni dell'app stanno in `localStorage` (`shellnest.settings`, `shelln
 
 ## Idee future
 
-Vault selezionabile dalla barra in alto, con "Sync now" accanto a ogni vault collegato a un server; blocco automatico del vault per inattività; ripristino delle schede all'avvio; esporta/importa vault.
+Evidenziazione di parole chiave nell'output del terminale (errori, avvisi, IP e MAC); keepalive configurabile (oggi fisso a 30 s con 3 tentativi in `src-tauri/src/terminal/host_key.rs`) e riconnessione automatica; tema chiaro dell'app; documentazione e changelog nell'app. Vault selezionabile dalla barra in alto, con "Sync now" accanto a ogni vault collegato a un server; blocco automatico del vault per inattività; ripristino delle schede all'avvio; esporta/importa vault.

@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { muted } from "@/lib/editor-ui";
 import { Row } from "./Row";
 import { card, cardTitle } from "./settings-ui";
 import { statusLine } from "./update-flow.ts";
@@ -30,10 +29,7 @@ export function UpdateSettings({
       <Row label="Versione installata">
         <span className="text-muted-foreground">Shellnest {pkg.version}</span>
       </Row>
-      <Row
-        label="Controlla all’avvio"
-        hint="Pochi secondi dopo l’avvio, in silenzio: nessun avviso se non c’è rete."
-      >
+      <Row label="Controlla all’avvio">
         <Switch
           label="Controlla all’avvio"
           checked={settings.checkUpdates}
@@ -55,11 +51,6 @@ export function UpdateSettings({
           </Button>
         </div>
       </Row>
-      <p className={muted}>
-        Il controllo contatta GitHub e non invia nulla del tuo vault. Gli
-        aggiornamenti sono firmati: l’app installa solo pacchetti verificati.
-        L’installazione parte solo quando lo scegli tu.
-      </p>
     </section>
   );
 }

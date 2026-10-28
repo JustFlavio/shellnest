@@ -113,7 +113,7 @@ test("the settings card shows the version and checks on demand", async ({
     "Disponibile la versione 9.9.9",
   );
   await card.getByRole("button", { name: "Scarica" }).click();
-  await expect(card.getByRole("status")).toContainText("è pronta");
+  await expect(card.getByRole("status")).toContainText("pronta");
   await expect(card).toHaveScreenshot("settings-updates.png");
 });
 

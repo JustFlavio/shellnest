@@ -44,11 +44,11 @@ export const isBusy = (status: UpdateStatus): boolean =>
 export function statusLine(status: UpdateStatus): string {
   switch (status.kind) {
     case "idle":
-      return "Nessun controllo eseguito in questa sessione.";
+      return "";
     case "checking":
       return "Controllo in corso…";
     case "uptodate":
-      return "Stai usando l’ultima versione.";
+      return "Aggiornato.";
     case "available":
       return `Disponibile la versione ${status.version}.`;
     case "downloading":
@@ -56,7 +56,7 @@ export function statusLine(status: UpdateStatus): string {
         ? `Download della versione ${status.version}…`
         : `Download della versione ${status.version}: ${status.percent}%`;
     case "ready":
-      return `La versione ${status.version} è pronta: riavvia per installarla.`;
+      return `Versione ${status.version} pronta.`;
     case "installing":
       return `Installazione della versione ${status.version}…`;
     case "error":
