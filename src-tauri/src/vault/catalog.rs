@@ -1,4 +1,4 @@
-use super::{save, VaultError};
+use super::{VaultError, save};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};
 

@@ -1,7 +1,8 @@
 [package]
 name = "shellnest"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
+rust-version = "1.90"
 license = "MIT"
 publish = false
 
@@ -53,7 +54,11 @@ lto = true
 [dev-dependencies]
 rand10 = { package = "rand", version = "0.10" }
 
+[lints.rust]
+unsafe_code = "deny"
+
 [lints.clippy]
+undocumented_unsafe_blocks = "warn"
 dbg_macro = "warn"
 todo = "warn"
 unimplemented = "warn"

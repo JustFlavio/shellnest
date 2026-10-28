@@ -1,6 +1,6 @@
 use super::{
-    workspaces::{check_layout, MAX_LAYOUT_LEAVES},
-    Data, ModelError, MAX_GROUP_DEPTH,
+    Data, MAX_GROUP_DEPTH, ModelError,
+    workspaces::{MAX_LAYOUT_LEAVES, check_layout},
 };
 use std::collections::HashSet;
 
@@ -119,13 +119,15 @@ mod tests {
         data.upsert_key(key).unwrap();
         assert!(data.upsert_key(duplicate).is_err());
         assert_eq!(data.keys.len(), 1);
-        assert!(data
-            .upsert_identity(identity("invalid", "missing", "root"))
-            .is_err());
+        assert!(
+            data.upsert_identity(identity("invalid", "missing", "root"))
+                .is_err()
+        );
         let mut data = Data::default();
-        assert!(data
-            .assign_identity(&["missing".into()], "missing")
-            .is_err());
+        assert!(
+            data.assign_identity(&["missing".into()], "missing")
+                .is_err()
+        );
         let future = serde_json::json!({"schema_version":6,"hosts":[],"keys":[],"identities":[],"sync_url":"","sync_token":""});
         assert!(serde_json::from_value::<Data>(future).is_err());
     }

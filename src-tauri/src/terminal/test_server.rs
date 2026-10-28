@@ -3,13 +3,14 @@
 use super::os_probe::OS_PROBE;
 use crate::model::{Connection, Host};
 use russh::{
+    ChannelId, MethodKind, MethodSet,
     keys::{Algorithm, HashAlg, PrivateKey, PublicKey},
-    server, ChannelId, MethodKind, MethodSet,
+    server,
 };
 use std::{
     sync::{
-        atomic::{AtomicBool, AtomicUsize, Ordering},
         Arc,
+        atomic::{AtomicBool, AtomicUsize, Ordering},
     },
     time::Duration,
 };

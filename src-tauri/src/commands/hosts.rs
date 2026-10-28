@@ -54,7 +54,7 @@ pub(crate) fn delete_host(
 mod tests {
     use super::*;
     use crate::{
-        commands::unlock::{open_selected, Secret},
+        commands::unlock::{Secret, open_selected},
         model::Identity,
         test_support::VaultFixture,
         view::view,
@@ -95,9 +95,11 @@ mod tests {
         assert!(snapshot.hosts[0].identity_id.is_empty());
         assert_eq!(snapshot.hosts[0].username.as_deref(), Some("deploy"));
         assert!(snapshot.hosts[0].has_password);
-        assert!(!serde_json::to_string(&snapshot)
-            .unwrap()
-            .contains("synthetic-inline-secret"));
+        assert!(
+            !serde_json::to_string(&snapshot)
+                .unwrap()
+                .contains("synthetic-inline-secret")
+        );
         let before = std::fs::read(&state.path).unwrap();
         assert_eq!(
             state.host_password("personal", "inline-host").unwrap(),
@@ -108,30 +110,36 @@ mod tests {
         assert_eq!(std::fs::read(&state.path).unwrap(), before);
         let mut invalid = host.clone();
         invalid.name.clear();
-        assert!(mutate(&state, "personal", |data| {
-            data.upsert_host_inheriting(invalid, Some(credentials.clone()), false)
-        })
-        .is_err());
+        assert!(
+            mutate(&state, "personal", |data| {
+                data.upsert_host_inheriting(invalid, Some(credentials.clone()), false)
+            })
+            .is_err()
+        );
         assert_eq!(std::fs::read(&state.path).unwrap(), before);
         assert!(view(&state).unwrap().identities.is_empty());
         let mut new_host = host.clone();
         new_host.id = "another-host".into();
-        assert!(mutate(&state, "personal", |data| {
-            data.upsert_host_inheriting(
-                new_host,
-                Some(HostCredentials {
-                    username: "root".into(),
-                    password: String::new(),
-                }),
-                false,
-            )
-        })
-        .is_err());
+        assert!(
+            mutate(&state, "personal", |data| {
+                data.upsert_host_inheriting(
+                    new_host,
+                    Some(HostCredentials {
+                        username: "root".into(),
+                        password: String::new(),
+                    }),
+                    false,
+                )
+            })
+            .is_err()
+        );
         assert_eq!(std::fs::read(&state.path).unwrap(), before);
-        assert!(mutate(&state, "other-vault", |data| {
-            data.upsert_host_inheriting(host.clone(), Some(credentials.clone()), false)
-        })
-        .is_err());
+        assert!(
+            mutate(&state, "other-vault", |data| {
+                data.upsert_host_inheriting(host.clone(), Some(credentials.clone()), false)
+            })
+            .is_err()
+        );
         let second = mutate(&state, "personal", |data| {
             data.upsert_host_inheriting(
                 host,

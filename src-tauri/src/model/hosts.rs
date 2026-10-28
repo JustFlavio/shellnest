@@ -1,4 +1,4 @@
-use super::{validate_endpoint, workspaces::prune_layout, Data, ModelError, Redacted};
+use super::{Data, ModelError, Redacted, validate_endpoint, workspaces::prune_layout};
 use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 

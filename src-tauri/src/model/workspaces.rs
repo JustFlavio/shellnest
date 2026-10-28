@@ -1,4 +1,4 @@
-use super::{new_id, Data, ModelError};
+use super::{Data, ModelError, new_id};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 

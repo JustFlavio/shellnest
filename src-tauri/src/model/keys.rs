@@ -1,5 +1,5 @@
 use super::{Data, ModelError, Redacted};
-use russh::keys::{decode_secret_key, HashAlg};
+use russh::keys::{HashAlg, decode_secret_key};
 use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 

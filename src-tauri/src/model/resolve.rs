@@ -1,4 +1,4 @@
-use super::{new_id, Data, Host, ModelError, Redacted};
+use super::{Data, Host, ModelError, Redacted, new_id};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
@@ -231,18 +231,22 @@ mod tests {
         assert_eq!(quick.password, "test-secret");
         assert!(data.hosts.is_empty());
         assert_eq!(data.identities[0].username, "root");
-        assert!(data
-            .resolve_target("host; rm", 22, "admin", None, ("", ""), &fp)
-            .is_err());
-        assert!(data
-            .resolve_target("host", 0, "admin", None, ("", ""), &fp)
-            .is_err());
-        assert!(data
-            .resolve_target("host", 22, "admin", None, ("", ""), "SHA256:invalid")
-            .is_err());
-        assert!(data
-            .resolve_target("host", 22, "missing", None, ("", ""), &fp)
-            .is_err());
+        assert!(
+            data.resolve_target("host; rm", 22, "admin", None, ("", ""), &fp)
+                .is_err()
+        );
+        assert!(
+            data.resolve_target("host", 0, "admin", None, ("", ""), &fp)
+                .is_err()
+        );
+        assert!(
+            data.resolve_target("host", 22, "admin", None, ("", ""), "SHA256:invalid")
+                .is_err()
+        );
+        assert!(
+            data.resolve_target("host", 22, "missing", None, ("", ""), &fp)
+                .is_err()
+        );
     }
     #[test]
     fn quick_targets_can_log_in_inline_with_a_password_or_a_vault_key() {
@@ -273,12 +277,14 @@ mod tests {
         assert_eq!(by_key.auth, "key");
         assert!(by_key.password.is_empty() && !by_key.private_key.is_empty());
         // The user is required without an identity, and the key must exist.
-        assert!(data
-            .resolve_target("192.0.2.1", 22, "", None, ("", ""), &fp)
-            .is_err());
-        assert!(data
-            .resolve_target("192.0.2.1", 22, "", Some("u"), ("missing", ""), &fp)
-            .is_err());
+        assert!(
+            data.resolve_target("192.0.2.1", 22, "", None, ("", ""), &fp)
+                .is_err()
+        );
+        assert!(
+            data.resolve_target("192.0.2.1", 22, "", Some("u"), ("missing", ""), &fp)
+                .is_err()
+        );
         assert!(data.hosts.is_empty() && data.identities.is_empty());
     }
 }

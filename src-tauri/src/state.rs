@@ -118,7 +118,7 @@ mod tests {
     use crate::{
         commands::{
             mutate,
-            unlock::{open_selected, Secret},
+            unlock::{Secret, open_selected},
         },
         model::{Host, Identity},
         test_support::VaultFixture,

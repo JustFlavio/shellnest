@@ -3,7 +3,7 @@ use crate::{
     keychain,
     state::AppState,
     vault::{self, Disk, OpenVault, VaultError},
-    view::{view, View},
+    view::{View, view},
 };
 use tauri::{Manager, State};
 

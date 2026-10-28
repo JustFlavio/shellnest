@@ -1,7 +1,7 @@
 //! The single open question to the user while authenticating: the password prompt.
 use crate::locks::MutexExt;
 use std::sync::{Arc, Mutex};
-use tokio::sync::{oneshot, Notify};
+use tokio::sync::{Notify, oneshot};
 use zeroize::Zeroizing;
 
 /// The one question to the user that may be open: the password for the session being authenticated.

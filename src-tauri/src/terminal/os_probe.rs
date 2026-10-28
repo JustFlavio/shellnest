@@ -1,5 +1,5 @@
 //! Best-effort detection of the remote OS over a second channel, bounded in time and size.
-use russh::{client, ChannelMsg};
+use russh::{ChannelMsg, client};
 use std::time::Duration;
 
 use super::host_key::Handler;

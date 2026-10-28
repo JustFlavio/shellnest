@@ -1,5 +1,5 @@
 use super::KeychainError;
-use base64::{engine::general_purpose::STANDARD as B64, Engine};
+use base64::{Engine, engine::general_purpose::STANDARD as B64};
 use zeroize::Zeroizing;
 fn entry(id: &str) -> Result<keyring::Entry, KeychainError> {
     Ok(keyring::Entry::new("Shellnest", id)?)

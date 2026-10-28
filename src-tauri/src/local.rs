@@ -3,13 +3,13 @@ use crate::{
     locks::MutexExt,
     terminal::{Input, Output, TerminalError},
 };
-use portable_pty::{native_pty_system, ChildKiller, CommandBuilder, PtySize};
+use portable_pty::{ChildKiller, CommandBuilder, PtySize, native_pty_system};
 use std::{
     collections::HashMap,
     io::{Read, Write},
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, Mutex, OnceLock,
+        atomic::{AtomicBool, Ordering},
     },
     thread,
     time::Duration,
@@ -41,10 +41,10 @@ pub(crate) fn shell_command() -> CommandBuilder {
         command.arg("-l");
         command
     };
-    if let Some(home) = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" }) {
-        if std::path::Path::new(&home).is_dir() {
-            command.cwd(home);
-        }
+    if let Some(home) = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
+        && std::path::Path::new(&home).is_dir()
+    {
+        command.cwd(home);
     }
     command.env("TERM", "xterm-256color");
     command
@@ -72,6 +72,7 @@ pub(crate) fn start(
     let mut reader = pair.master.try_clone_reader().map_err(TerminalError::pty)?;
     let mut writer = pair.master.take_writer().map_err(TerminalError::pty)?;
     #[cfg(unix)]
+    #[allow(unsafe_code)] // the crate's only unsafe block, justified below
     let poll_fd = {
         use std::os::fd::{FromRawFd, OwnedFd};
         let fd = pair

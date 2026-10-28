@@ -13,8 +13,8 @@ pub(crate) mod workspaces;
 use crate::{
     error::Error,
     model::{Data, ModelError},
-    state::{commit, AppState},
-    view::{view, View},
+    state::{AppState, commit},
+    view::{View, view},
 };
 
 /// Applies `operation` to a copy of the open vault and persists it before swapping it in, so a

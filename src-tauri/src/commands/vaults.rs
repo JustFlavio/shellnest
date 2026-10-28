@@ -4,7 +4,7 @@ use crate::{
     state::AppState,
     terminal,
     vault::{self, VaultError},
-    view::{view, View},
+    view::{View, view},
 };
 use tauri::State;
 
@@ -140,7 +140,7 @@ mod tests {
     use crate::{
         commands::{
             mutate,
-            unlock::{open_selected, Secret},
+            unlock::{Secret, open_selected},
         },
         model::Identity,
         test_support::VaultFixture,
@@ -176,13 +176,15 @@ mod tests {
         assert_eq!(work.vaults.len(), 2);
         assert_eq!(std::fs::read(&state.path).unwrap(), personal_bytes);
         assert!(mutate(&state, "personal", |_| Ok(())).is_err());
-        assert!(open_selected(
-            &state,
-            "personal",
-            Secret::Password("personal test password"),
-            false
-        )
-        .is_err());
+        assert!(
+            open_selected(
+                &state,
+                "personal",
+                Secret::Password("personal test password"),
+                false
+            )
+            .is_err()
+        );
         assert!(open_selected(&state, &work.vault_id, Secret::Password("short"), true).is_err());
         assert!(!state.active_path().unwrap().exists());
         open_selected(
@@ -197,13 +199,15 @@ mod tests {
         assert_ne!(work_path, state.path);
         select(&state, "personal").unwrap();
         assert!(state.vault.lock().unwrap().is_none());
-        assert!(open_selected(
-            &state,
-            "personal",
-            Secret::Password("work test password"),
-            false
-        )
-        .is_err());
+        assert!(
+            open_selected(
+                &state,
+                "personal",
+                Secret::Password("work test password"),
+                false
+            )
+            .is_err()
+        );
         assert_eq!(std::fs::read(&state.path).unwrap(), personal_bytes);
         let personal = open_selected(
             &state,

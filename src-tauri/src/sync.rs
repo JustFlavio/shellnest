@@ -3,9 +3,9 @@ use crate::{
     error::Error,
     state::AppState,
     vault::{self, Disk, Envelope, OpenVault},
-    view::{view, View},
+    view::{View, view},
 };
-use reqwest::{blocking::Client, StatusCode, Url};
+use reqwest::{StatusCode, Url, blocking::Client};
 use std::time::Duration;
 
 /// Why the sync client refused a URL or the server refused the sync. The messages are shown to the user.
@@ -25,7 +25,9 @@ pub(crate) enum SyncError {
     Http(#[from] reqwest::Error),
     #[error("Token di sincronizzazione non valido")]
     Unauthorized,
-    #[error("Conflitto: il vault remoto è cambiato. I dati locali sono conservati; risolvi il conflitto prima di sincronizzare.")]
+    #[error(
+        "Conflitto: il vault remoto è cambiato. I dati locali sono conservati; risolvi il conflitto prima di sincronizzare."
+    )]
     RemoteChanged,
     #[error("Sync non riuscita (HTTP {0})")]
     Status(StatusCode),
@@ -33,7 +35,9 @@ pub(crate) enum SyncError {
     RevisionMissing,
     #[error("Vault remoto non valido")]
     RemoteInvalid,
-    #[error("Conflitto: esistono modifiche locali e una revisione remota diversa. Nessun dato è stato sovrascritto.")]
+    #[error(
+        "Conflitto: esistono modifiche locali e una revisione remota diversa. Nessun dato è stato sovrascritto."
+    )]
     LocalChanges,
     #[error("Vault remoto rimosso: dati locali conservati")]
     RemoteRemoved,
@@ -259,7 +263,10 @@ mod tests {
             .unwrap()
             .join("sync/server.ts");
         let module_url = Url::from_file_path(module).unwrap().to_string();
-        let script=format!("import {{createSyncServer}} from {}; const s=await createSyncServer({{token:process.env.SYNC_TOKEN,directory:process.env.SYNC_DATA_DIR}});s.listen(0,'127.0.0.1',()=>console.log(s.address().port));",serde_json::to_string(&module_url).unwrap());
+        let script = format!(
+            "import {{createSyncServer}} from {}; const s=await createSyncServer({{token:process.env.SYNC_TOKEN,directory:process.env.SYNC_DATA_DIR}});s.listen(0,'127.0.0.1',()=>console.log(s.address().port));",
+            serde_json::to_string(&module_url).unwrap()
+        );
         let child = Command::new("node")
             .args(["--input-type=module", "-e", &script])
             .env("SYNC_TOKEN", TOKEN)
@@ -347,31 +354,35 @@ mod tests {
             let data = &guard.as_ref().unwrap().data;
             assert_eq!(data.keys.len(), 1);
             assert_eq!(data.identities.len(), 1);
-            assert!(data
-                .hosts
-                .iter()
-                .all(|h| h.identity_id == "shared-identity"));
+            assert!(
+                data.hosts
+                    .iter()
+                    .all(|h| h.identity_id == "shared-identity")
+            );
         }
         edit(&a, "offline-a");
         edit(&b, "offline-b");
         synchronize(&a, "personal").unwrap();
         let before = std::fs::read(&b.path).unwrap();
-        assert!(synchronize(&b, "personal")
-            .err()
-            .unwrap()
-            .to_string()
-            .contains("Conflitto"));
+        assert!(
+            synchronize(&b, "personal")
+                .err()
+                .unwrap()
+                .to_string()
+                .contains("Conflitto")
+        );
         assert_eq!(before, std::fs::read(&b.path).unwrap());
-        assert!(b
-            .vault
-            .lock()
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .data
-            .hosts
-            .iter()
-            .any(|h| h.id == "offline-b"));
+        assert!(
+            b.vault
+                .lock()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .data
+                .hosts
+                .iter()
+                .any(|h| h.id == "offline-b")
+        );
         let remote = std::fs::read_to_string(root.join("remote/vault.json")).unwrap();
         assert!(!remote.contains("synthetic-password-only"));
         assert!(!remote.contains("first-host"));

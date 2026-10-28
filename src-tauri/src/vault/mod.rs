@@ -3,17 +3,17 @@
 mod catalog;
 mod error;
 
-pub(crate) use catalog::{valid_vault_id, VaultCatalog, VaultEntry};
+pub(crate) use catalog::{VaultCatalog, VaultEntry, valid_vault_id};
 pub(crate) use error::VaultError;
 
 use crate::model::{Data, Redacted};
 use argon2::Argon2;
-use base64::{engine::general_purpose::STANDARD as B64, Engine};
+use base64::{Engine, engine::general_purpose::STANDARD as B64};
 use chacha20poly1305::{
-    aead::{Aead, Payload},
     KeyInit, XChaCha20Poly1305, XNonce,
+    aead::{Aead, Payload},
 };
-use rand::{rngs::OsRng, RngCore};
+use rand::{RngCore, rngs::OsRng};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};
 use zeroize::Zeroizing;
@@ -144,10 +144,10 @@ impl OpenVault {
     }
 }
 pub(crate) fn save<T: Serialize>(path: &Path, disk: &T) -> Result<(), VaultError> {
-    if let Some(parent) = path.parent() {
-        if !parent.as_os_str().is_empty() {
-            fs::create_dir_all(parent)?;
-        }
+    if let Some(parent) = path.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        fs::create_dir_all(parent)?;
     }
     let temp = path.with_extension("tmp");
     fs::write(&temp, serde_json::to_vec(disk)?)?;

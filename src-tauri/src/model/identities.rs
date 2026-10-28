@@ -29,14 +29,13 @@ impl Data {
     pub(crate) fn upsert_identity(&mut self, mut identity: Identity) -> Result<(), ModelError> {
         if identity.auth == "password" {
             identity.key_id.clear();
-            if identity.password.is_empty() {
-                if let Some(old) = self
+            if identity.password.is_empty()
+                && let Some(old) = self
                     .identities
                     .iter()
                     .find(|i| i.id == identity.id && i.auth == "password")
-                {
-                    identity.password = old.password.clone();
-                }
+            {
+                identity.password = old.password.clone();
             }
         } else {
             identity.password.clear();

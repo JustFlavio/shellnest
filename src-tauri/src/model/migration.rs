@@ -1,5 +1,5 @@
 use super::{
-    keys::key_fingerprint, new_id, Data, Group, Host, HostCredentials, Identity, SshKey, Workspace,
+    Data, Group, Host, HostCredentials, Identity, SshKey, Workspace, keys::key_fingerprint, new_id,
 };
 use serde::{Deserialize, Deserializer};
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};

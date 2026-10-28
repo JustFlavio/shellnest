@@ -2,9 +2,8 @@
 use super::TerminalError;
 use crate::locks::MutexExt;
 use russh::{
-    client,
+    Disconnect, Names, client,
     keys::{HashAlg, PublicKeyOrCertificate},
-    Disconnect, Names,
 };
 use std::{
     sync::{Arc, Mutex},

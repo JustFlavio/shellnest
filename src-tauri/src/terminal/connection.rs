@@ -1,14 +1,14 @@
 //! Opens one SSH connection: host key check, authentication (key, saved password, asked password), shell.
 use super::{
-    host_key::{config, handler, Handler},
     TerminalError,
+    host_key::{Handler, config, handler},
 };
 use crate::locks::MutexExt;
 use crate::model::Connection;
 use russh::{
-    client::{self, AuthResult},
-    keys::{decode_secret_key, PrivateKeyWithHashAlg},
     ChannelMsg, MethodKind, MethodSet,
+    client::{self, AuthResult},
+    keys::{PrivateKeyWithHashAlg, decode_secret_key},
 };
 use std::sync::Arc;
 use zeroize::Zeroizing;
@@ -248,7 +248,7 @@ where
             }
             Some(ChannelMsg::Failure) => return Err(TerminalError::ShellRefused),
             Some(ChannelMsg::Close) | Some(ChannelMsg::Eof) | None => {
-                return Err(TerminalError::ClosedBeforeShell)
+                return Err(TerminalError::ClosedBeforeShell);
             }
             _ => {}
         }
@@ -268,8 +268,8 @@ mod tests {
     };
     use std::{
         sync::{
-            atomic::{AtomicBool, AtomicUsize, Ordering},
             Mutex,
+            atomic::{AtomicBool, AtomicUsize, Ordering},
         },
         time::Duration,
     };
@@ -519,10 +519,12 @@ mod tests {
             let _ = session
                 .disconnect(Disconnect::ByApplication, "", "en")
                 .await;
-            assert!(plain
-                .lock()
-                .unwrap()
-                .contains(&"step auth ok: Autenticato con la password".to_string()));
+            assert!(
+                plain
+                    .lock()
+                    .unwrap()
+                    .contains(&"step auth ok: Autenticato con la password".to_string())
+            );
             task.abort();
         })
         .await

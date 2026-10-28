@@ -1,19 +1,19 @@
 //! The session task: connect under a timeout that pauses while the user types, then pump the channel.
 use super::{
-    connection::{open, Note},
+    TerminalError,
+    connection::{Note, open},
     messages::{ConnectionMetadata, Input, Output, StepDetail},
     os_probe::detect_os,
     password::PasswordPrompt,
-    TerminalError,
 };
 use crate::{
     error::Error,
     model::Connection,
-    state::{record_connection, AppState},
+    state::{AppState, record_connection},
 };
 use russh::{ChannelMsg, Disconnect};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tauri::{ipc::Channel, Manager};
+use tauri::{Manager, ipc::Channel};
 use tokio::sync::mpsc;
 
 /// Time allowed to connect and authenticate, not counting the time spent on a password question.
@@ -240,7 +240,7 @@ pub(crate) fn session_scope<'a>(
 mod tests {
     use super::*;
     use std::sync::Arc;
-    use tokio::time::{sleep, Instant};
+    use tokio::time::{Instant, sleep};
     use zeroize::Zeroizing;
     const LIMIT: Duration = Duration::from_millis(300);
     // What `open` does at a password step: open the question, wait for the answer, then finish.
@@ -349,13 +349,15 @@ mod tests {
         assert!(result.expect("Terminal IO waited for a slow sync").is_ok());
         assert!(matches!(input.try_recv(), Ok(Input::Resize(90, 30))));
         state.catalog.lock().unwrap().selected = "other".into();
-        assert!(send(
-            &state,
-            "personal",
-            "test",
-            Input::Data(b"must not arrive".to_vec())
-        )
-        .is_err());
+        assert!(
+            send(
+                &state,
+                "personal",
+                "test",
+                Input::Data(b"must not arrive".to_vec())
+            )
+            .is_err()
+        );
         assert!(matches!(
             input.try_recv(),
             Err(mpsc::error::TryRecvError::Empty)

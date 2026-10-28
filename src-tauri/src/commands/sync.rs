@@ -1,9 +1,9 @@
 use crate::{
     error::Error,
     state::AppState,
-    sync::{restore, synchronize, SyncError},
+    sync::{SyncError, restore, synchronize},
     vault::{self, OpenVault},
-    view::{view, View},
+    view::{View, view},
 };
 use tauri::{Manager, State};
 

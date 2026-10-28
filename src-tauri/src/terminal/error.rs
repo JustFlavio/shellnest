@@ -22,7 +22,9 @@ pub(crate) enum TerminalError {
     FingerprintUnavailable,
     #[error("Timeout connessione SSH")]
     ConnectTimeout,
-    #[error("Identità del server cambiata. Connessione bloccata: verifica la nuova impronta fuori dall’app.")]
+    #[error(
+        "Identità del server cambiata. Connessione bloccata: verifica la nuova impronta fuori dall’app."
+    )]
     ServerKeyChanged,
     #[error("{}", refusal_text(.0))]
     AuthRefused(Vec<&'static str>),

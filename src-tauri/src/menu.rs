@@ -1,5 +1,5 @@
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem as P, Submenu};
 use tauri::Emitter;
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem as P, Submenu};
 
 /// The frontend listens for this event and runs the same check as its own "Controlla aggiornamenti".
 const CHECK_UPDATES_EVENT: &str = "check-for-updates";

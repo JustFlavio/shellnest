@@ -233,9 +233,11 @@ mod tests {
         let state = AppState::new(PathBuf::from("unused-test-path")).unwrap();
         *state.vault.lock().unwrap() = Some(v);
         let snapshot = serde_json::to_value(view(&state).unwrap()).unwrap();
-        assert!(!snapshot
-            .to_string()
-            .contains("synthetic-secret-do-not-expose"));
+        assert!(
+            !snapshot
+                .to_string()
+                .contains("synthetic-secret-do-not-expose")
+        );
         assert!(snapshot["hosts"][0].get("password").is_none());
         assert!(snapshot["identities"][0].get("password").is_none());
         assert_eq!(snapshot["identities"][0]["hostCount"], 1);

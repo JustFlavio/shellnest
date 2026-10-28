@@ -1,4 +1,4 @@
-use super::{new_id, Data, Host, ModelError};
+use super::{Data, Host, ModelError, new_id};
 use serde::{Deserialize, Serialize};
 
 pub(crate) const MAX_GROUP_DEPTH: usize = 5;
@@ -114,14 +114,16 @@ mod tests {
             parent = level.to_string();
         }
         assert!(data.clone().upsert_group(group("f", "Sesto", "e")).is_err());
-        assert!(data
-            .clone()
-            .upsert_group(group("a", "Produzione", "e"))
-            .is_err());
-        assert!(data
-            .clone()
-            .upsert_group(group("a", "Produzione", "a"))
-            .is_err());
+        assert!(
+            data.clone()
+                .upsert_group(group("a", "Produzione", "e"))
+                .is_err()
+        );
+        assert!(
+            data.clone()
+                .upsert_group(group("a", "Produzione", "a"))
+                .is_err()
+        );
     }
     #[test]
     fn hosts_inherit_identity_and_port_from_the_nearest_group() {

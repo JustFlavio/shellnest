@@ -2,11 +2,11 @@ use crate::{
     error::Error,
     local,
     model::ModelError,
-    state::{commit, AppState},
-    terminal::{probe, register, send, session_scope, Input, Output, TerminalError},
+    state::{AppState, commit},
+    terminal::{Input, Output, TerminalError, probe, register, send, session_scope},
 };
 use std::sync::Arc;
-use tauri::{ipc::Channel, Manager, State};
+use tauri::{Manager, State, ipc::Channel};
 use zeroize::Zeroizing;
 
 #[tauri::command]
