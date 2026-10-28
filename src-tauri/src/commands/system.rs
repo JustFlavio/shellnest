@@ -22,3 +22,47 @@ pub(crate) fn open_url(url: String) -> Result<(), Error> {
     cmd.arg(&url).spawn().map_err(TerminalError::from)?;
     Ok(())
 }
+
+/// The texts of the macOS menu, in the language the UI shows; it sends them again when the language changes.
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct MenuLabels {
+    pub(crate) check_updates: String,
+    pub(crate) settings: String,
+    pub(crate) vault: String,
+    pub(crate) lock_vault: String,
+    pub(crate) close_all_sessions: String,
+    pub(crate) edit: String,
+    pub(crate) window: String,
+}
+impl Default for MenuLabels {
+    fn default() -> Self {
+        Self {
+            check_updates: "Check for updates…".into(),
+            settings: "Settings…".into(),
+            vault: "Vault".into(),
+            lock_vault: "Lock vault".into(),
+            close_all_sessions: "Close all sessions".into(),
+            edit: "Edit".into(),
+            window: "Window".into(),
+        }
+    }
+}
+#[tauri::command]
+#[cfg_attr(not(target_os = "macos"), allow(unused_variables))]
+pub(crate) fn set_menu_labels(app: tauri::AppHandle, labels: MenuLabels) -> Result<(), Error> {
+    #[cfg(target_os = "macos")]
+    crate::menu::relabel(&app, &labels)?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn the_frontend_sends_its_labels_in_camel_case() {
+        let json = r#"{"checkUpdates":"a","settings":"b","vault":"c","lockVault":"d","closeAllSessions":"e","edit":"f","window":"g"}"#;
+        let labels: MenuLabels = serde_json::from_str(json).unwrap();
+        assert_eq!(labels.close_all_sessions, "e");
+    }
+}

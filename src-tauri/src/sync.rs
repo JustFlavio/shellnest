@@ -300,7 +300,7 @@ mod tests {
             .data
             .upsert_key(model::SshKey {
                 id: "shared-key".into(),
-                name: "Personale".into(),
+                name: "Personal".into(),
                 private_key: secret.to_openssh(Default::default()).unwrap().to_string(),
                 passphrase: String::new(),
                 fingerprint: String::new(),
