@@ -33,10 +33,7 @@ export function BulkAssignDialog() {
           assignIdentity();
         }}
       >
-        <p className={muted}>
-          Modifica l’identità di {selected.size} host selezionati. Le sessioni
-          già aperte restano attive.
-        </p>
+        <p className={muted}>Le sessioni già aperte restano attive.</p>
         <HostSummary
           hosts={view.hosts.filter((host) => selected.has(host.id))}
           identities={view.identities}

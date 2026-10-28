@@ -14,7 +14,6 @@ import { VaultPage } from "@/features/hosts/VaultPage";
 import { VaultPanels } from "@/features/vault/VaultPanels";
 import { WorkspaceDialog } from "@/features/terminal/WorkspaceDialog";
 
-/** The unlocked app: tab bar, sidebar, the active page and every dialog. */
 export function Workbench() {
   const {
     vault: { preview },

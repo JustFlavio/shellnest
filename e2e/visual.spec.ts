@@ -234,7 +234,7 @@ test("a dragged pane makes room: the others close ranks, then return", async ({
   page,
 }) => {
   await openFromLauncher(page, /Produzione.*connessioni/);
-  const handles = page.locator('[title="Trascina per spostare il pannello"]');
+  const handles = page.locator(".cursor-grab");
   const second = page.locator(".xterm").nth(1);
   const before = (await boxOf(second)).width;
   const dt = await page.evaluateHandle(() => new DataTransfer());

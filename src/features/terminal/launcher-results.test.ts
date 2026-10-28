@@ -282,10 +282,12 @@ test("the empty message tells why nothing is listed", () => {
     text: "x",
     hasTarget: false,
     nothingSaved: false,
-    quickKey: "⌘Invio",
   };
   assert.match(emptyMessage(state), /corrisponde/);
-  assert.match(emptyMessage({ ...state, nothingSaved: true }), /⌘Invio/);
+  assert.match(
+    emptyMessage({ ...state, nothingSaved: true }),
+    /Nessun host salvato/,
+  );
   assert.match(
     emptyMessage({ ...state, jump: true }),
     /Nessuna scheda corrisponde/,

@@ -4,7 +4,6 @@ import { ShortcutsEditor } from "./ShortcutsEditor";
 import { SettingsNav } from "./SettingsNav";
 import type { SettingsSection } from "./SettingsNav";
 import { TerminalSettings } from "./TerminalSettings";
-import { help } from "@/lib/editor-ui";
 import type { AppSettings } from "./settings.ts";
 import type { Binding, Combo } from "./shortcuts.ts";
 
@@ -74,12 +73,6 @@ export function SettingsDialog({
               onChange={onOverrides}
               onResetAll={() => onOverrides({})}
             />
-          )}
-          {section === "terminal" && (
-            <p className={help}>
-              Le modifiche si applicano subito e restano salvate su questo
-              dispositivo.
-            </p>
           )}
         </div>
       </div>

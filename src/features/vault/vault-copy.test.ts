@@ -54,10 +54,7 @@ test("the lock screen copy depends on the vault and the platform", () => {
     "Esplora Shellnest",
   );
   assert.match(lockLead({ ...state, interactive: false }), /open source/);
-  assert.equal(
-    lockLead({ ...state, exists: true }),
-    "Inserisci la password principale.",
-  );
+  assert.equal(lockLead({ ...state, exists: true }), "");
 });
 
 test("the unlock button reflects busy, existing and linking", () => {

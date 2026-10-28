@@ -2,9 +2,8 @@ import { useState } from "react";
 import type { VaultApi } from "@/features/vault/useVault";
 import type { View } from "@/lib/types";
 
-/** Assigning one identity to many selected hosts. */
 export function useBulkAssign(
-  { update, run, invokeScoped, setError, setNotice }: VaultApi,
+  { update, run, invokeScoped, setError }: VaultApi,
   selected: Set<string>,
   setSelected: (ids: Set<string>) => void,
   clearSelection: () => void,
@@ -31,7 +30,6 @@ export function useBulkAssign(
       );
       setBulkOpen(false);
       clearSelection();
-      setNotice("Identità assegnata agli host selezionati");
     });
   return {
     bulkIdentity,

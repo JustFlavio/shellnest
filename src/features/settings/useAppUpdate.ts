@@ -14,7 +14,6 @@ import {
   updateFailure,
 } from "./update-flow.ts";
 import type { UpdateStatus } from "./update-flow.ts";
-import pkg from "../../../package.json";
 
 // One toast carries the whole flow, so each step replaces the previous one instead of stacking.
 const TOAST = "app-update";
@@ -60,7 +59,8 @@ export function useAppUpdate(
     toast.success("Aggiornamento pronto", {
       id: TOAST,
       duration: Infinity,
-      description: `Riavvia per passare a Shellnest ${version}.`,
+      // Replaces the download progress; omitting it would keep the old one.
+      description: null,
       action: action("Riavvia ora", restart),
     });
   };
@@ -126,7 +126,7 @@ export function useAppUpdate(
     toast("Aggiornamento disponibile", {
       id: TOAST,
       duration: Infinity,
-      description: `Shellnest ${update.version} è pronto da scaricare.`,
+      description: `Shellnest ${update.version}`,
       action: action("Scarica", () => void download()),
     });
   };
@@ -155,7 +155,6 @@ export function useAppUpdate(
           toast.success("Nessun aggiornamento", {
             id: TOAST,
             duration: 4000,
-            description: `Shellnest ${pkg.version} è l’ultima versione.`,
           });
       }
     } catch (error) {

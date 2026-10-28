@@ -27,11 +27,9 @@ export function WorkspaceDialog() {
       error={error}
       onClose={() => setSavingWs(null)}
     >
-      <p className={help}>
-        {savingWs.hostIds
-          ? `${savingWs.hostIds.length} host in griglia: lo salvo e lo apro, poi puoi sistemare i pannelli trascinandoli.`
-          : "Salva gli host e la disposizione dei pannelli: potrai riaprirli insieme da una nuova scheda."}
-      </p>
+      {!savingWs.hostIds && (
+        <p className={help}>Salva host e disposizione dei pannelli.</p>
+      )}
       {skippedQuick > 0 && (
         <p className={help}>
           {skippedQuick === 1

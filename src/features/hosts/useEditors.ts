@@ -18,7 +18,6 @@ import { useHostAutosave } from "./useHostAutosave";
 import type { Page } from "./useCollectionView";
 import type { VaultApi } from "@/features/vault/useVault";
 
-/** The editors for hosts, groups, identities and keys: open, close and save each, and the nesting between them. */
 export function useEditors(
   vault: VaultApi,
   setActive: (id: string) => void,
@@ -26,8 +25,7 @@ export function useEditors(
   page: Page,
   group: string,
 ) {
-  const { view, busy, epoch, update, run, invokeScoped, setError, setNotice } =
-    vault;
+  const { view, busy, epoch, update, run, invokeScoped, setError } = vault;
   const [hostForm, setHostForm] = useState<HostDraft | null>(null),
     [groupForm, setGroupForm] = useState<GroupForm | null>(null),
     [identityForm, setIdentityForm] = useState<IdentityForm | null>(null),
@@ -128,7 +126,6 @@ export function useEditors(
     setKeyForm(newKey());
     setError("");
   };
-  // The primary "new" button of the current page.
   const createNew = () => {
     setError("");
     if (page === "hosts") setHostForm(draftFor(group));
@@ -177,7 +174,6 @@ export function useEditors(
               : !!saved.identityId,
         });
       closeGroupEditor();
-      setNotice("Gruppo salvato");
     });
   const closeIdentityEditor = () => {
     setIdentityForm(null);
@@ -199,7 +195,6 @@ export function useEditors(
       );
       if (hostForm) setHostForm({ ...hostForm, identityId: identityForm.id });
       closeIdentityEditor();
-      setNotice("Identità salvata");
     });
   const closeKeyEditor = () => {
     setKeyForm(null);
@@ -219,7 +214,6 @@ export function useEditors(
       update(await invokeScoped<View>("save_key", { key: keyForm }));
       if (identityForm) setIdentityForm({ ...identityForm, keyId: keyForm.id });
       closeKeyEditor();
-      setNotice("Chiave salvata nel portachiavi");
     });
   // Everything tied to the vault being left.
   const reset = () => {

@@ -34,7 +34,7 @@ export function LauncherActions({
           type="button"
           className={ghostButton}
           disabled={busy}
-          title="Riapre le schede dell’ultima sessione su questo dispositivo"
+          title="Riapre le schede dell’ultima sessione"
           onClick={onRestore}
         >
           <History size={14} />

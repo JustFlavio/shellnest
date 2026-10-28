@@ -46,7 +46,6 @@ export function FolderCard({
         data-selection-kind="folder"
         aria-label={`Seleziona cartella ${g.name}`}
         aria-pressed={selected}
-        title={`Doppio clic per aprire ${g.name}`}
         disabled={busy}
         onClick={(e) => onSelect(g.id, e)}
         onDoubleClick={() => {

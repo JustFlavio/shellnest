@@ -6,7 +6,6 @@ import { FolderCard } from "./FolderCard";
 import { HostCard } from "./HostCard";
 import { HostRow } from "./HostRow";
 import { HostTable } from "./HostTable";
-import { muted } from "@/lib/editor-ui";
 
 type Props = {
   hosts: Host[];
@@ -105,14 +104,12 @@ export function HostsView(p: Props) {
           </div>
         </section>
       )}
-      {(hosts.length > 0 || (p.group && folders.length > 0)) && (
+      {hosts.length > 0 && (
         <section aria-label="Host">
           {p.layout === "cards" && (
             <h2>{p.groups.find((g) => g.id === p.group)?.name ?? "Host"}</h2>
           )}
-          {hosts.length === 0 ? (
-            <p className={muted}>Nessun host in questa cartella.</p>
-          ) : p.layout === "cards" ? (
+          {p.layout === "cards" ? (
             <div className={cardsGrid}>
               {hosts.map((h, index) => (
                 <HostCard

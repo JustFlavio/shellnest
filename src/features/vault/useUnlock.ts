@@ -5,7 +5,6 @@ import { notifyError } from "@/lib/notify";
 import type { View } from "@/lib/types";
 import type { VaultApi } from "./useVault";
 
-/** The unlock screen: master password, creating a vault, or linking an existing remote one. */
 export function useUnlock({
   view,
   run,

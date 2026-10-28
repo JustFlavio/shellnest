@@ -1,6 +1,6 @@
 import { BrandIcon } from "@/app/BrandIcon";
 import { Button } from "@/components/ui/button";
-import { callout, errorBox, help, muted } from "@/lib/editor-ui";
+import { errorBox, help, muted } from "@/lib/editor-ui";
 import { desktop } from "@/lib/platform";
 import { useApp } from "@/app/app-context";
 import { TitleBar } from "@/app/TitleBar";
@@ -17,6 +17,7 @@ export function LockScreen() {
   } = useApp();
   const interactive = desktop || preview;
   const state = { exists: view.exists, restore: unlock.restore, interactive };
+  const lead = lockLead(state);
   return (
     <main className="relative grid h-dvh place-items-center overflow-auto px-[20px] pt-[64px] pb-[24px]">
       <TitleBar />
@@ -24,9 +25,6 @@ export function LockScreen() {
         <div className="mb-[32px] flex items-center gap-[9px] text-[13px] font-semibold whitespace-nowrap">
           <BrandIcon />
           Shellnest
-          <span className="ml-auto text-[12px] font-normal text-muted-foreground">
-            {desktop ? "0.3 · In sviluppo" : "Anteprima browser"}
-          </span>
         </div>
         {interactive && (
           <div className="[&>button]:mb-[24px]">
@@ -34,13 +32,7 @@ export function LockScreen() {
           </div>
         )}
         <h1 className="mb-[12px] text-[22px]">{lockTitle(state)}</h1>
-        <p className={muted}>{lockLead(state)}</p>
-        {preview && (
-          <p className={callout}>
-            Anteprima in memoria: usa una password fittizia. Nessun dato viene
-            cifrato o conservato dopo il ricaricamento.
-          </p>
-        )}
+        {lead && <p className={muted}>{lead}</p>}
         {error && (
           <p className={errorBox} role="alert">
             {error}
@@ -60,14 +52,9 @@ export function LockScreen() {
               : "Collega un vault esistente"}
           </Button>
         )}
-        <p className="mt-[28px] text-[12px] leading-[1.7] text-muted-foreground">
-          La sincronizzazione è opzionale. Nessun account necessario per l’uso
-          locale.
-        </p>
         {interactive && !view.exists && !unlock.restore && (
           <p className={help}>
-            Usa almeno 12 caratteri. La password principale non è recuperabile:
-            conservala in un gestore di password.
+            Minimo 12 caratteri. La password principale non è recuperabile.
           </p>
         )}
       </section>

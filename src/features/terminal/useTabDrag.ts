@@ -3,7 +3,6 @@ import type { Edge } from "./workbench-state.ts";
 import type { TabsApi } from "./useTabs";
 import { layoutRects, removeLeaf } from "./workbench-state.ts";
 
-/** Dragging a tab over the bar or a pane over its workspace, and the geometry shown meanwhile. */
 export function useTabDrag({ tabs, active, setActive, dropOnPane }: TabsApi) {
   const [drag, setDrag] = useState<{
       id: string;

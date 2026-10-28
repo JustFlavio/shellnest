@@ -27,10 +27,7 @@ export function TerminalAppearance({
   return (
     <section className={card}>
       <h3 className={cardTitle}>Aspetto</h3>
-      <Row
-        label="Font"
-        hint="Vuoto per il font predefinito. Usa un font installato."
-      >
+      <Row label="Font">
         <>
           <Input
             className="w-[200px]"

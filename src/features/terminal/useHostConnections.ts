@@ -14,7 +14,6 @@ import { localTab, quickTab, sshTab } from "./tab-factory";
 import type { Trust } from "./tabs-types";
 import type { TabList } from "./useTabList";
 
-/** Opening sessions: hosts one after the other (verifying unknown host keys), local shell, quick connections. */
 export function useHostConnections(
   { view, preview, run, invokeScoped, update }: VaultApi,
   list: TabList,

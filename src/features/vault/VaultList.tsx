@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { card, cardTitle } from "@/features/settings/settings-ui";
-import { help } from "@/lib/editor-ui";
 import type { View } from "@/lib/types";
 import { DeleteVaultDialog } from "./DeleteVaultDialog";
 import { deleteBlock } from "./vault-copy.ts";
@@ -116,10 +115,6 @@ export function VaultList({
           Nuovo vault
         </Button>
       </div>
-      <p className={help}>
-        Rinomina ed elimina agiscono sul vault attivo. Si elimina solo un vault
-        vuoto e mai il Personale.
-      </p>
       {confirming && (
         <DeleteVaultDialog
           vaultName={view.vaultName}

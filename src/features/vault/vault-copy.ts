@@ -12,7 +12,7 @@ export function syncTitle({
   syncConfigured: boolean;
   lastSync: string;
 }): string {
-  if (!syncConfigured) return "Configura il tuo servizio di sincronizzazione";
+  if (!syncConfigured) return "Configura sync";
   return lastSync
     ? `Ultima sincronizzazione riuscita: ${lastSync}`
     : "Sincronizza ora";
@@ -47,10 +47,8 @@ export function lockTitle({ exists, restore, interactive }: LockState): string {
 export function lockLead({ exists, restore, interactive }: LockState): string {
   if (!interactive)
     return "Client SSH open source per Windows e macOS, con sincronizzazione self-hosted opzionale.";
-  if (exists) return "Inserisci la password principale.";
-  if (restore)
-    return "Apri il vault già presente nel tuo servizio di sincronizzazione.";
-  return "Host, identità e chiavi SSH vengono salvati sul dispositivo, cifrati.";
+  if (exists || restore) return "";
+  return "Salvato sul dispositivo, cifrato.";
 }
 
 export function unlockLabel({

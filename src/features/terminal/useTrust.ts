@@ -7,7 +7,6 @@ import type { HostConnections } from "./useHostConnections";
 import type { TabList } from "./useTabList";
 import type { Workspaces } from "./useWorkspaces";
 
-/** The user's answer on an unknown host key: resume what was waiting once it is trusted. */
 export function useTrust(
   { run, update, invokeScoped }: VaultApi,
   list: TabList,

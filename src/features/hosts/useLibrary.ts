@@ -18,7 +18,6 @@ export const pageLabels: Record<Page, string> = {
   keys: "Chiavi SSH",
 };
 
-/** The vault contents on screen: pages, search, selection, and the editors for hosts, groups, identities and keys. */
 export function useLibrary(
   vault: VaultApi,
   tabs: { setActive: (id: string) => void; connect: (host: Host) => void },

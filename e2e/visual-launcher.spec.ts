@@ -83,7 +83,7 @@ test("Cmd+Enter starts the connection timeline with the target", async ({
   ).toContainText(/Connessione a rc(?!:)/);
 });
 
-test("an empty vault explains how to connect", async ({ page }) => {
+test("an empty vault says nothing is saved", async ({ page }) => {
   await page.getByRole("button", { name: "Menu applicazione" }).click();
   await page.getByRole("menuitem", { name: /Impostazioni/ }).click();
   await page.getByRole("button", { name: "Nuovo vault" }).click();
@@ -95,9 +95,7 @@ test("an empty vault explains how to connect", async ({ page }) => {
   await page.getByRole("heading", { name: "Host", level: 1 }).waitFor();
   await openLauncher(page);
   await search(page).fill("rc");
-  await expect(
-    page.getByText(/Invio per una connessione rapida/),
-  ).toBeVisible();
+  await expect(page.getByText("Nessun host salvato.")).toBeVisible();
   await expect(targetRow(page)).toHaveCount(0);
 });
 
@@ -240,7 +238,6 @@ test("Cmd+click multi-selects hosts and unlocks Crea workspace", async ({
   await row(page, /database-01/).click({ modifiers: ["Meta"] });
   await createButton(page).click();
   const dialog = page.getByRole("dialog", { name: "Crea workspace" });
-  await expect(dialog).toContainText("3 host in griglia");
   await dialog.getByRole("textbox").fill("Selezione");
   await dialog.getByRole("button", { name: /^(Crea|Salva)/ }).click();
   await page.locator(".xterm").first().waitFor();

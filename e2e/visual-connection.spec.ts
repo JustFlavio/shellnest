@@ -168,9 +168,7 @@ test("inline password: refused once, accepted on retry, secret not kept", async 
 
   await field.fill("sbagliata");
   await page.keyboard.press("Enter");
-  await expect(
-    page.getByText("Password non accettata. Riprova."),
-  ).toBeVisible();
+  await expect(page.getByText("Password non accettata.")).toBeVisible();
   const retry = page.getByLabel("Password", { exact: true });
   await expect(retry).toHaveValue("");
   await expect(page.getByRole("button", { name: "Riprova" })).toBeDisabled();

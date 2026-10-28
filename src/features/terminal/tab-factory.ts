@@ -58,7 +58,6 @@ export function quickTab(
   };
 }
 
-/** The same session started over, under a new id. */
 export function restarted(tab: TerminalTab, id: string): TerminalTab {
   return { ...tab, id, error: undefined, status: "connecting" };
 }

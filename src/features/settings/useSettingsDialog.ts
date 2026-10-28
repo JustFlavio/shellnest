@@ -6,14 +6,12 @@ import type { View } from "@/lib/types";
 import type { VaultApi } from "@/features/vault/useVault";
 import { syncUrlForVault } from "@/features/terminal/workbench-state.ts";
 
-/** The settings dialog and the vault options in it: sync service and remembered password. */
 export function useSettingsDialog({
   view,
   run,
   update,
   invokeScoped,
   setError,
-  setNotice,
 }: VaultApi) {
   const [section, setSection] = useState<SettingsSection | null>(null),
     [syncUrl, setSyncUrl] = useState(""),
@@ -65,7 +63,6 @@ export function useSettingsDialog({
         }),
       );
       setSyncToken("");
-      setNotice("Configurazione salvata");
     });
   const remember = (enabled: boolean) =>
     void run(async () => {

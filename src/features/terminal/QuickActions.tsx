@@ -4,7 +4,6 @@ import { canSave, quickLogin } from "./quick-setup.ts";
 import type { QuickSetup } from "./quick-setup.ts";
 import { help } from "@/lib/editor-ui";
 
-/** Where a quick connection's questions end: connect once, or save the host and connect. */
 export function QuickActions({
   setup,
   busy,

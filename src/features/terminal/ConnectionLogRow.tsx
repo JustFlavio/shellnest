@@ -25,7 +25,6 @@ const icons: Record<LogKind, ComponentType<{ className?: string }>> = {
   success: CircleCheck,
 };
 
-/** One event of the connection log: when, what kind (icon and hidden label), and the line itself. */
 export function ConnectionLogRow({ entry }: { entry: LogEntry }) {
   const kind = logKind(entry.text);
   const Icon = icons[kind];

@@ -59,9 +59,8 @@ export function VaultPanels() {
             {vaultDialog.mode === "create" && (
               <>
                 <p className={help}>
-                  Il nuovo vault avrà host, identità, chiavi e password
-                  principale propri. Dopo la creazione scegli la sua password
-                  oppure collega un vault remoto esistente.
+                  Dopo la creazione scegli la password o collega un vault
+                  remoto.
                 </p>
                 {tabs.length > 0 && (
                   <div className={callout}>

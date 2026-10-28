@@ -16,7 +16,6 @@ export type SessionCallbacks = {
   onMetadata: (vaultId: string) => void;
 };
 
-/** What the connection overlay shows. */
 export type SessionUi = {
   status: (text: string) => void;
   log: (text: string) => void;

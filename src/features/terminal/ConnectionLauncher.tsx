@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { quickConnectTarget } from "./connection-target.ts";
 import { Command } from "@/components/ui/command";
-import { mac } from "@/lib/platform";
 import {
   emptyMessage,
   groupResults,
@@ -21,8 +20,6 @@ import { LauncherList } from "./LauncherList";
 import { LauncherRow } from "./LauncherRow";
 import { LauncherSearch } from "./LauncherSearch";
 import { LauncherToolbar } from "./LauncherToolbar";
-
-const quickKey = mac ? "⌘Invio" : "Ctrl+Invio";
 
 export function ConnectionLauncher({
   vaultName,
@@ -159,7 +156,6 @@ export function ConnectionLauncher({
         text,
         hasTarget: !!target,
         nothingSaved: !hosts.length && !tabs.length,
-        quickKey,
       });
   return (
     <section
@@ -213,12 +209,6 @@ export function ConnectionLauncher({
           renderRow={row}
         />
       </Command>
-      {preview && (
-        <p className="help mt-[16px]">
-          Anteprima: connessioni SSH e terminale locale sono disponibili
-          nell’app desktop.
-        </p>
-      )}
     </section>
   );
 }

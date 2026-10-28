@@ -25,7 +25,6 @@ export const emptySetup = (address: string, username = ""): QuickSetup => ({
 const validUser = (user: string) =>
   /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,254}$/.test(user);
 
-/** Identities that can log in on their own, matching the search text. */
 export function pickableIdentities(identities: Identity[], query: string) {
   const text = query.trim().toLocaleLowerCase();
   return identities.filter(
@@ -37,7 +36,6 @@ export function pickableIdentities(identities: Identity[], query: string) {
   );
 }
 
-/** Whether the second question (password or key) is still needed. */
 export const needsMethod = (setup: QuickSetup) => !setup.identityId;
 
 export function quickLogin(setup: QuickSetup): QuickLogin | null {

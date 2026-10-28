@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Plus } from "lucide-react";
 import type { Identity, IdentityForm, SshKey } from "@/lib/types";
-import { callout, sectionHelp } from "@/lib/editor-ui";
+import { callout } from "@/lib/editor-ui";
 import { EditorSection } from "./EditorSection";
 
 export function IdentityAccessSection({
@@ -88,10 +88,6 @@ export function IdentityAccessSection({
           {existing.hostCount} host. Le sessioni già aperte restano attive.
         </div>
       )}
-      <p className={sectionHelp}>
-        Puoi assegnare questa identità a uno o più host. Identità con utenti
-        diversi possono usare la stessa chiave.
-      </p>
     </EditorSection>
   );
 }

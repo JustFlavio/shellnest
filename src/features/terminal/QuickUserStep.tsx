@@ -61,9 +61,7 @@ export function QuickUserStep({
       </label>
       {anyIdentity && (
         <div className="mt-[12px]">
-          <p className={help + " mt-0 mb-[6px]"}>
-            Oppure scegli un’identità salvata, con le sue credenziali.
-          </p>
+          <p className={help + " mt-0 mb-[6px]"}>Oppure un’identità salvata.</p>
           <Input
             type="search"
             aria-label="Cerca identità"

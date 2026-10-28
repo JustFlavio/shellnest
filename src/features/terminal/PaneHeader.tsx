@@ -38,7 +38,6 @@ export function PaneHeader({
   tab: TerminalTab;
   endpoint: string;
   split: boolean;
-  // set when split: the header can be dragged to move the pane
   onDragPane?: (dragging: boolean) => void;
   onClose: () => void;
 }) {
@@ -50,7 +49,6 @@ export function PaneHeader({
           "flex min-w-0 flex-1 items-center gap-[8px]",
           onDragPane && "cursor-grab active:cursor-grabbing",
         )}
-        title={onDragPane ? "Trascina per spostare il pannello" : undefined}
         draggable={!!onDragPane}
         onDragStart={(e) => {
           startPaneDrag(e, tab);

@@ -14,7 +14,6 @@ import type { CloseTabs } from "./useCloseTabs";
 import type { HostConnections } from "./useHostConnections";
 import type { TabList } from "./useTabList";
 
-/** Split workspaces: adding, moving, detaching and restarting panes, and duplicating a tab. */
 export function usePanes(
   { view }: VaultApi,
   list: TabList,

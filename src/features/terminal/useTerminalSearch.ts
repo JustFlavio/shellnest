@@ -10,7 +10,6 @@ const searchDecorations = {
   activeMatchColorOverviewRuler: "#f5a524",
 };
 
-/** In-terminal search state; the bar itself is TerminalSearchBar. */
 export function useTerminalSearch(xterm: RefObject<Xterm | null>) {
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState("");
@@ -30,7 +29,6 @@ export function useTerminalSearch(xterm: RefObject<Xterm | null>) {
         : addon?.findPrevious(text, options)),
     );
   };
-  // The match follows the typing.
   const change = (text: string) => {
     setQuery(text);
     find(true, true, text);

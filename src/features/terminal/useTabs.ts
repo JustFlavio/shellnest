@@ -10,7 +10,6 @@ import { useTabList } from "./useTabList";
 import { useTrust } from "./useTrust";
 import { useWorkspaces } from "./useWorkspaces";
 
-/** Open sessions: the tab bar, split workspaces and the connection flow (host key trust included). */
 export function useTabs(
   vault: VaultApi,
   closeGuard: ReturnType<typeof useCloseGuard>,
