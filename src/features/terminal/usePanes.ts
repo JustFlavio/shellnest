@@ -84,7 +84,6 @@ export function usePanes(
   };
   // On a split tab both actions apply to its focused pane.
   const duplicateTab = (tab: TerminalTab, reconnect = false) => {
-    if (!reconnect && tab.layout) return splitTab(tab.id, "row");
     const target = tabs.find((t) => t.id === focusOf(tab)) ?? tab;
     if (target.kind === "ssh") {
       const host = savedHost(target.host.id);
