@@ -27,9 +27,6 @@ export function WorkspaceDialog() {
       error={error}
       onClose={() => setSavingWs(null)}
     >
-      {!savingWs.hostIds && (
-        <p className={help}>Salva host e disposizione dei pannelli.</p>
-      )}
       {skippedQuick > 0 && (
         <p className={help}>
           {skippedQuick === 1
@@ -52,6 +49,11 @@ export function WorkspaceDialog() {
             onChange={(e) => setSavingWs({ ...savingWs, name: e.target.value })}
           />
         </label>
+        {!savingWs.hostIds && (
+          <p className={help}>
+            Include gli host e la disposizione dei pannelli.
+          </p>
+        )}
         <footer>
           <Button
             variant="ghost"

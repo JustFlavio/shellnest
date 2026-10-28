@@ -31,7 +31,7 @@ export const panelStyles = {
     title: "text-[13px]",
     body:
       panelBodyBase +
-      " flex-[0_1_auto] [&>form]:min-h-0 [&>footer]:static [&>footer]:mt-[20px] [&>footer]:flex-wrap [&>form>footer]:static [&>form>footer]:mt-[20px] [&>form>footer]:flex-wrap",
+      " flex-[0_1_auto] [&>form]:min-h-0 [&_footer_.primary]:flex-none [&>footer]:static [&>footer]:mt-[20px] [&>footer]:flex-wrap [&>form>footer]:static [&>form>footer]:mt-[20px] [&>form>footer]:flex-wrap",
   },
   alert: {
     overlay: "bg-[#04060c99] supports-backdrop-filter:backdrop-blur-none",
