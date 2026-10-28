@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { TerminalPane } from "./TerminalPane";
 import { cn } from "@/lib/utils";
 import { notifyError } from "@/lib/notify";
@@ -13,6 +14,7 @@ const dropPreviewEdge = {
 } as const;
 
 export function TerminalStage() {
+  const { t } = useTranslation();
   const {
     vault: { view },
     preferences: { appSettings },
@@ -84,7 +86,7 @@ export function TerminalStage() {
               geo ? (on) => setDragPane(on ? tab.id : undefined) : undefined
             }
             onError={(message) =>
-              notifyError("Problema nel terminale", message)
+              notifyError(t("terminal.terminalStage.terminalProblem"), message)
             }
             onStatus={tabStatus}
             onTitle={tabTitle}

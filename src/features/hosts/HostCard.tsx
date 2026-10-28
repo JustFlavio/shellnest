@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { MouseEvent } from "react";
 import { Card } from "@/components/ui/card";
 import {
@@ -33,6 +34,7 @@ export function HostCard({
   actions: HostActions;
   onSelect: (host: Host, e: Pick<MouseEvent, "ctrlKey" | "metaKey">) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <ContextMenu>
       <ContextMenuTrigger
@@ -52,7 +54,7 @@ export function HostCard({
           variant="ghost"
           className="h-full w-full min-w-0 justify-start gap-[10px] rounded-[11px] py-[9px] pr-[46px] pl-[10px] text-left hover:bg-transparent"
           disabled={busy}
-          aria-label={"Seleziona " + h.name}
+          aria-label={t("hosts.hostCard.selectName", { name: h.name })}
           aria-pressed={selected}
           onClick={(e) => onSelect(h, e)}
           onDoubleClick={() => {
@@ -76,7 +78,7 @@ export function HostCard({
             </small>
             {!i && !h.username && (
               <small className="mt-[3px] text-destructive block truncate text-[12px]">
-                Credenziali mancanti
+                {t("hosts.hostCard.credentialsMissing")}
               </small>
             )}
           </span>
@@ -85,7 +87,7 @@ export function HostCard({
       </ContextMenuTrigger>
       <ContextMenuContent
         className="min-w-[230px]"
-        aria-label={"Azioni " + h.name}
+        aria-label={t("hosts.collectionTables.actionsName", { name: h.name })}
       >
         <HostMenuItems host={h} busy={busy} actions={actions} />
       </ContextMenuContent>

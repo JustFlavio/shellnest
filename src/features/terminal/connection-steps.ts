@@ -1,5 +1,8 @@
 // The steps of the connection timeline, derived from what the session reports.
-// Statuses come from the Rust side (terminal.rs `open`); the UI text is Italian.
+// Statuses are stage ids sent by the Rust side (terminal/connection.rs `open`).
+import { i18n, t } from "../../i18n/i18n.ts";
+import type { Message } from "../../i18n/message.ts";
+import { connectionText } from "./connection-log.ts";
 export type StepState = "done" | "warning" | "current" | "failed" | "pending";
 export type TimelineStep = {
   // "password" for the first question, "password-2"… for each one after a refusal
@@ -9,23 +12,23 @@ export type TimelineStep = {
   detail?: string;
 };
 /** How a step ended, as reported by the Rust side. `warn` is a partial result, e.g. a fallback. */
-export type StepNote = { text: string; warn: boolean };
+export type StepNote = { message?: Message; text?: string; warn: boolean };
+
+/** The label of a stage id sent by the Rust side, in the active language. */
+export function phaseText(phase: string): string {
+  const key = `connection.phase.${phase}`;
+  return i18n.exists(key) ? i18n.t(key as never) : phase;
+}
 // Passwords the user may type per connection; the same limit as MAX_PASSWORD_ATTEMPTS in terminal/connection.rs.
 export const MAX_PASSWORD_ATTEMPTS = 3;
-
-const CHANGED = "Identità del server cambiata";
 
 /** "indirizzo", or "indirizzo:porta" when the port is not the default 22. */
 export const targetLabel = (address: string, port: number) =>
   port === 22 ? address : `${address}:${port}`;
 
 function stageOf(phase: string): "connect" | "auth" | "session" {
-  if (/^(Apertura del terminale|Connesso)/.test(phase)) return "session";
-  if (
-    phase === "Autenticazione SSH" ||
-    phase === "Impronta del server verificata"
-  )
-    return "auth";
+  if (phase === "session" || phase === "connected") return "session";
+  if (phase === "auth" || phase === "verified") return "auth";
   return "connect";
 }
 
@@ -52,7 +55,7 @@ export function timelineSteps({
   askedTrust: boolean;
   awaitingTrust: boolean;
   phase: string;
-  failure: string;
+  failure: Message | null;
   opened: boolean;
   passwords?: number;
   details?: Record<string, StepNote>;
@@ -60,31 +63,36 @@ export function timelineSteps({
   // (password or key) follows. Undefined once everything is known.
   setup?: { stage: "user" | "method" | null; method: boolean };
 }): TimelineStep[] {
-  const changed = !!failure && failure.includes(CHANGED);
+  const changed = failure?.code === "terminal.ServerKeyChanged";
   const remote = kind !== "local";
   const passwordSteps = Array.from({ length: passwords }, (_, i) => ({
     id: i === 0 ? "password" : `password-${i + 1}`,
-    label: i === 0 ? "Password" : `Password (tentativo ${i + 1})`,
+    label:
+      i === 0
+        ? t("connection.timeline.password")
+        : t("connection.timeline.passwordAttempt", { n: i + 1 }),
   }));
   const steps: Omit<TimelineStep, "state">[] = [
     ...(setup
       ? [
-          { id: "user", label: "Utente" },
+          { id: "user", label: t("connection.timeline.user") },
           ...(setup.method
-            ? [{ id: "method", label: "Metodo di accesso" }]
+            ? [{ id: "method", label: t("connection.timeline.method") }]
             : []),
         ]
       : []),
     {
       id: "connect",
-      label: remote ? `Connessione a ${target}` : "Avvio del terminale locale",
+      label: remote
+        ? t("connection.timeline.connectRemote", { target })
+        : t("connection.timeline.connectLocal"),
     },
     ...(remote && (askedTrust || changed)
-      ? [{ id: "trust", label: "Verifica impronta" }]
+      ? [{ id: "trust", label: t("connection.timeline.trust") }]
       : []),
-    ...(remote ? [{ id: "auth", label: "Autenticazione" }] : []),
+    ...(remote ? [{ id: "auth", label: t("connection.timeline.auth") }] : []),
     ...passwordSteps,
-    { id: "session", label: "Sessione aperta" },
+    { id: "session", label: t("connection.timeline.session") },
   ];
   const stage = stageOf(phase);
   const current = opened
@@ -111,11 +119,12 @@ export function timelineSteps({
             ? "failed"
             : "current";
     const done = state === "done" || state === "warning";
-    let detail = note?.text;
+    let detail =
+      note && (note.text ?? (note.message && connectionText(note.message)));
     if (done && step.id === "trust" && askedTrust)
-      detail = "Nuova impronta confermata";
+      detail = t("connection.timeline.trustConfirmed");
     if (done && step.id === "connect" && remote && !askedTrust && !changed)
-      detail = "Host già noto, impronta coincide";
+      detail = t("connection.timeline.hostKnown");
     return { ...step, state, detail: done ? detail : undefined };
   });
 }

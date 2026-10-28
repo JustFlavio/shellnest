@@ -1,3 +1,4 @@
+import { t } from "@/i18n/i18n";
 import type { Host, Identity, TerminalTab } from "@/lib/types";
 
 export function sshTab(
@@ -7,7 +8,7 @@ export function sshTab(
   id: string = crypto.randomUUID(),
 ): TerminalTab {
   if (!identity && !(host.username && host.hasPassword))
-    throw new Error("Inserisci le credenziali dell’host o scegli un’identità.");
+    throw { code: "model.CredentialsRequired" };
   return {
     id,
     kind: "ssh",
@@ -16,7 +17,7 @@ export function sshTab(
     title: host.name,
     status: "connecting",
     username: identity?.username ?? host.username!,
-    identityName: identity?.name ?? "Credenziali dell’host",
+    identityName: identity?.name ?? "",
   };
 }
 
@@ -28,7 +29,7 @@ export function localTab(
     id,
     kind: "local",
     vaultId,
-    title: "Terminale locale",
+    title: t("hosts.vaultToolbar.localTerminal"),
     username: "",
     identityName: "",
     status: "connecting",

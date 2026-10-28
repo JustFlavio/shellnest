@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { MouseEvent } from "react";
 import {
   ContextMenu,
@@ -32,6 +33,7 @@ export function HostRow({
   onSelect: (host: Host, e: Pick<MouseEvent, "ctrlKey" | "metaKey">) => void;
   onEditIdentity: (identity: Identity) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <ContextMenu>
       <ContextMenuTrigger
@@ -51,7 +53,7 @@ export function HostRow({
             variant="ghost"
             className="h-auto justify-start gap-[10px] p-0 text-[13px] text-foreground"
             disabled={busy}
-            aria-label={"Seleziona " + h.name}
+            aria-label={t("hosts.hostCard.selectName", { name: h.name })}
             aria-pressed={selected}
             onClick={(e) => onSelect(h, e)}
             onDoubleClick={() => {
@@ -88,16 +90,22 @@ export function HostRow({
             <span className="inline-flex items-center gap-[6px]">
               <UserRound size={14} />
               {h.username}
-              <span className="text-muted-foreground">· host</span>
+              <span className="text-muted-foreground">
+                · {t("hosts.hostRow.hostSuffix")}
+              </span>
             </span>
           ) : (
-            <span className="text-destructive">Identità mancante</span>
+            <span className="text-destructive">
+              {t("hosts.hostRow.identityMissing")}
+            </span>
           )}
         </td>
         <td>
           <div className="flex items-center justify-end gap-[3px] [&_button]:size-[28px] [&_button]:p-0 [&_button]:text-muted-foreground">
             <HostEditButton host={h} busy={busy} onEdit={actions.onEdit} />
-            <ActionMenu label={"Azioni " + h.name}>
+            <ActionMenu
+              label={t("hosts.collectionTables.actionsName", { name: h.name })}
+            >
               <HostMenuItems host={h} busy={busy} actions={actions} />
             </ActionMenu>
           </div>
@@ -105,7 +113,7 @@ export function HostRow({
       </ContextMenuTrigger>
       <ContextMenuContent
         className="min-w-[230px]"
-        aria-label={"Azioni " + h.name}
+        aria-label={t("hosts.collectionTables.actionsName", { name: h.name })}
       >
         <HostMenuItems host={h} busy={busy} actions={actions} />
       </ContextMenuContent>

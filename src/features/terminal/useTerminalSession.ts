@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { describeError } from "@/lib/error-message";
+import type { Message } from "@/i18n/message";
 import type { RefObject } from "react";
 import { useLatest } from "@/lib/useLatest";
 import type { TerminalTab } from "@/lib/types";
@@ -43,17 +45,15 @@ export function useTerminalSession({
   onConfirmPaste: (text: string) => void;
 }) {
   const [opened, setOpened] = useState(false);
-  const [phase, setPhase] = useState(
-    enabled ? "Avvio della connessione" : "Verifica dell’impronta del server",
-  );
+  const [phase, setPhase] = useState(enabled ? "starting" : "trust");
   const [enabledFor, setEnabledFor] = useState(enabled ? tab.id : null);
   if ((enabled ? tab.id : null) !== enabledFor) {
     setEnabledFor(enabled ? tab.id : null);
-    if (enabled) setPhase("Avvio della connessione");
+    if (enabled) setPhase("starting");
   }
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [details, setDetails] = useState<Record<string, StepNote>>({});
-  const [failure, setFailure] = useState("");
+  const [failure, setFailure] = useState<Message | null>(null);
   // null until the server asks for a password; the password itself never lives here.
   const [password, setPassword] = useState<PasswordAsk | null>(null);
   const openRef = useLatest(onOpen);
@@ -78,8 +78,8 @@ export function useTerminalSession({
     const observer = new ResizeObserver(instance.refit);
     observer.observe(element);
     const started = performance.now();
-    const entry = (text: string) => ({
-      text,
+    const entry = (message: Message) => ({
+      message,
       at: Math.round(performance.now() - started),
     });
     const stop = startSession(
@@ -87,9 +87,9 @@ export function useTerminalSession({
       instance,
       {
         status: setPhase,
-        log: (text) => setLogs((old) => [...old, entry(text)]),
-        detail: (step, text, warn) =>
-          setDetails((old) => ({ ...old, [step]: { text, warn } })),
+        log: (message) => setLogs((old) => [...old, entry(message)]),
+        detail: (step, message, warn) =>
+          setDetails((old) => ({ ...old, [step]: { message, warn } })),
         opened: () => setOpened(true),
         password: (refused) =>
           setPassword((old) => ({
@@ -97,9 +97,9 @@ export function useTerminalSession({
             waiting: true,
             asks: (old?.asks ?? 0) + 1,
           })),
-        failure: (text, log = true) => {
-          setFailure(text);
-          if (log) setLogs((old) => [...old, entry(`Errore: ${text}`)]);
+        failure: (message, log = true) => {
+          setFailure(message);
+          if (log) setLogs((old) => [...old, entry(message)]);
         },
       },
       callbacksRef,
@@ -132,7 +132,7 @@ export function useTerminalSession({
   const submitPassword = (value: string) => {
     setPassword((old) => old && { ...old, waiting: false });
     sendSessionPassword(tab, value).catch((e) =>
-      callbacksRef.current.onError(String(e)),
+      callbacksRef.current.onError(describeError(e)),
     );
   };
   return { opened, phase, logs, details, failure, password, submitPassword };

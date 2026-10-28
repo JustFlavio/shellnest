@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Apple, Monitor, TerminalSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +20,7 @@ export function OsIcon({
   os?: string | null;
   size?: keyof typeof sizes;
 }) {
+  const { t } = useTranslation();
   const name = (os ?? "").toLowerCase();
   const box = cn(base, sizes[size].box);
   const glyph = sizes[size].glyph;
@@ -67,7 +69,7 @@ export function OsIcon({
   return (
     <span
       className={cn(box, name && "text-foreground")}
-      title={os || "Sistema non ancora rilevato"}
+      title={os || t("components.osIcon.systemNotDetectedYet")}
     >
       <Icon className={glyph} />
     </span>

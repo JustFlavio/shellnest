@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +11,7 @@ import { LockKeyhole, Menu, RefreshCw, Settings2 } from "lucide-react";
 import { useApp } from "./app-context";
 
 export function AppMenu() {
+  const { t } = useTranslation();
   const {
     vault: { busy },
     preferences: { hint },
@@ -24,33 +26,36 @@ export function AppMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger
         className="mx-[6px] inline-flex size-[30px] shrink-0 items-center justify-center self-center rounded-[9px] border-0 bg-transparent p-0 text-muted-foreground hover:bg-accent hover:text-foreground"
-        aria-label="Menu applicazione"
-        title="Menu applicazione"
+        aria-label={t("app.appMenu.applicationMenu")}
+        title={t("app.appMenu.applicationMenu")}
       >
         <Menu size={18} />
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="min-w-60" aria-label="Menu applicazione">
+      <DropdownMenuContent
+        className="min-w-60"
+        aria-label={t("app.appMenu.applicationMenu")}
+      >
         <DropdownMenuItem disabled={busy} onClick={() => settings.open()}>
           <Settings2 size={15} />
-          Impostazioni
+          {t("app.appMenu.settings")}
           {hint("openSettings") && (
             <kbd className="ml-auto">{hint("openSettings")}</kbd>
           )}
         </DropdownMenuItem>
         <DropdownMenuItem disabled={update.busy} onClick={update.check}>
           <RefreshCw size={15} />
-          Controlla aggiornamenti
+          {t("app.appMenu.checkForUpdates")}
         </DropdownMenuItem>
         <DropdownMenuItem
           disabled={busy || !tabs.length}
           onClick={() => setPendingClose(tabs.map((t) => t.id))}
         >
-          Chiudi tutte le sessioni
+          {t("app.appMenu.closeAllSessions")}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem disabled={busy} onClick={requestLock}>
           <LockKeyhole size={15} />
-          Blocca vault
+          {t("vault.vaultPanels.lockVault")}
           {hint("lockVault") && (
             <kbd className="ml-auto">{hint("lockVault")}</kbd>
           )}

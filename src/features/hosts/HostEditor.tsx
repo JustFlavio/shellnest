@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Server, LockKeyhole } from "lucide-react";
@@ -41,6 +42,7 @@ export function HostEditor({
   onRetrySave?: () => void;
   onRevealPassword?: () => Promise<string>;
 }) {
+  const { t } = useTranslation();
   const existing = view.hosts.find((h) => h.id === value.id);
   const dirty = hasUnsavedChanges ?? hostDraftIsDirty(value, existing);
   const valid = hostDraftIsValid(value, view.identities, existing, view.groups);
@@ -49,8 +51,8 @@ export function HostEditor({
       className="host-editor"
       title={
         view.hosts.some((h) => h.id === value.id)
-          ? "Modifica host"
-          : "Nuovo host"
+          ? t("hosts.hostEditor.editHost")
+          : t("hosts.hostEditor.newHost")
       }
       {...{ onClose, busy, error }}
       dirty={dirty && (!saveStatus || !valid)}
@@ -68,7 +70,7 @@ export function HostEditor({
               disabled={busy}
               onClick={onRetrySave}
             >
-              Riprova
+              {t("vault.useVaultSync.retry")}
             </Button>
           )}
           <Button
@@ -78,7 +80,7 @@ export function HostEditor({
             className="primary"
             disabled={busy || !valid}
           >
-            Connetti
+            {t("hosts.hostEditor.connect")}
           </Button>
         </footer>
       }
@@ -90,11 +92,14 @@ export function HostEditor({
           onSubmit();
         }}
       >
-        <div className={vaultBar} aria-label="Vault corrente">
+        <div
+          className={vaultBar}
+          aria-label={t("hosts.hostEditor.currentVault")}
+        >
           <LockKeyhole className="size-5" aria-hidden="true" />
           <strong>{view.vaultName}</strong>
         </div>
-        <EditorSection title="Indirizzo">
+        <EditorSection title={t("hosts.hostEditor.address")}>
           <div className="flex items-center gap-[10px]">
             {value.os ? (
               <OsIcon os={value.os} size="field" />
@@ -104,27 +109,27 @@ export function HostEditor({
               </span>
             )}
             <label className="m-0! min-w-0 flex-1">
-              <span className="sr-only">Indirizzo</span>
+              <span className="sr-only">{t("hosts.hostEditor.address")}</span>
               <Input
                 required
                 value={value.address}
                 onChange={(e) =>
                   onChange({ ...value, address: e.target.value })
                 }
-                placeholder="IP o nome host"
+                placeholder={t("hosts.hostEditor.ipOrHostName")}
               />
             </label>
           </div>
         </EditorSection>
-        <EditorSection title="Generale">
+        <EditorSection title={t("hosts.groupEditor.general")}>
           <label className={sheetField}>
-            <span className="sr-only">Nome</span>
+            <span className="sr-only">{t("vault.vaultPanels.name")}</span>
             <Input
               autoFocus
               required
               value={value.name}
               onChange={(e) => onChange({ ...value, name: e.target.value })}
-              placeholder="Nome dell’host"
+              placeholder={t("hosts.hostEditor.hostName")}
             />
           </label>
           <GroupField

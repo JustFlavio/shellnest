@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { TERMINAL_THEMES, type AppSettings } from "./settings.ts";
 
@@ -8,13 +9,14 @@ export function ThemePicker({
   value: AppSettings["terminalTheme"];
   onChange: (theme: AppSettings["terminalTheme"]) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="border-t border-border pt-[11px] text-[13px]">
-      <div className="mb-[10px]">Tema colori</div>
+      <div className="mb-[10px]">{t("settings.themePicker.colorTheme")}</div>
       <div
         className="grid grid-cols-2 gap-[8px]"
         role="radiogroup"
-        aria-label="Tema colori"
+        aria-label={t("settings.themePicker.colorTheme")}
       >
         {TERMINAL_THEMES.map((t) => (
           <button

@@ -102,6 +102,10 @@ import {
   reservedReason,
   resolve,
 } from "./shortcuts.ts";
+import { i18n } from "../../i18n/i18n.ts";
+
+// These assertions read the Italian copy.
+await i18n.changeLanguage("it");
 
 test("comboFromEvent round-trips through matching", () => {
   for (const mac of [true, false])

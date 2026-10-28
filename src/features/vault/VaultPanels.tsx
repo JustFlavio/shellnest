@@ -1,3 +1,5 @@
+import { Trans } from "react-i18next";
+import { useTranslation } from "react-i18next";
 import { Panel } from "@/features/hosts/Panel";
 import { AlertDialogDescription } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -6,6 +8,7 @@ import { callout, help } from "@/lib/editor-ui";
 import { useApp } from "@/app/app-context";
 
 export function VaultPanels() {
+  const { t } = useTranslation();
   const {
     vault: { view, busy, error, setError },
     tabs: { tabs, pendingClose, setPendingClose, closeOthers },
@@ -28,7 +31,9 @@ export function VaultPanels() {
         <Panel
           variant="dialog"
           title={
-            vaultDialog.mode === "create" ? "Nuovo vault" : "Rinomina vault"
+            vaultDialog.mode === "create"
+              ? t("vault.vaultList.newVault")
+              : t("vault.vaultPanels.renameVault")
           }
           busy={busy}
           error={error}
@@ -44,7 +49,7 @@ export function VaultPanels() {
             }}
           >
             <label>
-              Nome
+              {t("vault.vaultPanels.name")}
               <Input
                 autoFocus
                 required
@@ -53,19 +58,19 @@ export function VaultPanels() {
                 onChange={(e) =>
                   setVaultDialog({ ...vaultDialog, name: e.target.value })
                 }
-                placeholder="Personale, Lavoro, Cliente…"
+                placeholder={t("vault.vaultPanels.personalWorkClient")}
               />
             </label>
             {vaultDialog.mode === "create" && (
               <>
                 <p className={help}>
-                  Dopo la creazione scegli la password o collega un vault
-                  remoto.
+                  {t("vault.vaultPanels.afterCreatingItChoose")}
                 </p>
                 {tabs.length > 0 && (
                   <div className={callout}>
-                    La creazione seleziona il nuovo vault e chiude tutte le{" "}
-                    {tabs.length} sessioni aperte, incluse le shell locali.
+                    {t("vault.vaultPanels.createClosesSessions", {
+                      count: tabs.length,
+                    })}
                   </div>
                 )}
               </>
@@ -77,7 +82,7 @@ export function VaultPanels() {
                 disabled={busy}
                 onClick={() => setVaultDialog(null)}
               >
-                Annulla
+                {t("vault.deleteVaultDialog.cancel")}
               </Button>
               <Button
                 variant="default"
@@ -85,7 +90,9 @@ export function VaultPanels() {
                 className="primary"
                 disabled={busy}
               >
-                {vaultDialog.mode === "create" ? "Crea vault" : "Salva nome"}
+                {vaultDialog.mode === "create"
+                  ? t("vault.vaultPanels.createVault")
+                  : t("vault.vaultPanels.saveName")}
               </Button>
             </footer>
           </form>
@@ -94,21 +101,24 @@ export function VaultPanels() {
       {pendingSwitch && (
         <Panel
           variant="alert"
-          title="Cambia vault"
+          title={t("vault.vaultPanels.switchVault")}
           busy={busy}
           error={error}
           onClose={() => setPendingSwitch(null)}
         >
           <AlertDialogDescription>
-            Passare a{" "}
-            <strong>
-              {view.vaults.find((v) => v.id === pendingSwitch)?.name}
-            </strong>
-            ?
+            <Trans
+              i18nKey="vault.vaultPanels.switchTo"
+              values={{
+                name: view.vaults.find((v) => v.id === pendingSwitch)?.name,
+              }}
+              components={{ strong: <strong /> }}
+            />
           </AlertDialogDescription>
           <div className={callout}>
-            Verranno chiuse tutte le {tabs.length} sessioni aperte, incluse le
-            shell locali. Il vault attuale verrà bloccato.
+            {t("vault.vaultPanels.switchClosesSessions", {
+              count: tabs.length,
+            })}
           </div>
           <footer>
             <Button
@@ -118,7 +128,7 @@ export function VaultPanels() {
               disabled={busy}
               onClick={() => switchVault(pendingSwitch)}
             >
-              Chiudi sessioni e cambia
+              {t("vault.vaultPanels.closeSessionsAndSwitch")}
             </Button>
           </footer>
         </Panel>
@@ -126,14 +136,15 @@ export function VaultPanels() {
       {pendingClose && (
         <Panel
           variant="alert"
-          title="Chiudi altre sessioni"
+          title={t("vault.vaultPanels.closeOtherSessions")}
           busy={busy}
           error={error}
           onClose={() => setPendingClose(null)}
         >
           <AlertDialogDescription>
-            Chiudere {pendingClose.length} sessioni? Le shell locali e le
-            connessioni SSH selezionate verranno terminate.
+            {t("vault.vaultPanels.closeSessions", {
+              count: pendingClose.length,
+            })}
           </AlertDialogDescription>
           <footer>
             <Button
@@ -143,7 +154,7 @@ export function VaultPanels() {
               className="danger"
               onClick={closeOthers}
             >
-              Chiudi sessioni
+              {t("vault.vaultPanels.closeSessions")}
             </Button>
           </footer>
         </Panel>
@@ -152,14 +163,13 @@ export function VaultPanels() {
       {pendingLock && (
         <Panel
           variant="alert"
-          title="Blocca vault"
+          title={t("vault.vaultPanels.lockVault")}
           busy={busy}
           error={error}
           onClose={() => setPendingLock(false)}
         >
           <AlertDialogDescription>
-            Bloccare il vault e chiudere tutte le {tabs.length} sessioni,
-            incluse le shell locali?
+            {t("vault.vaultPanels.lockAndClose", { count: tabs.length })}
           </AlertDialogDescription>
           <footer>
             <Button
@@ -169,7 +179,7 @@ export function VaultPanels() {
               disabled={busy}
               onClick={lockVault}
             >
-              Chiudi sessioni e blocca
+              {t("vault.vaultPanels.closeSessionsAndLock")}
             </Button>
           </footer>
         </Panel>

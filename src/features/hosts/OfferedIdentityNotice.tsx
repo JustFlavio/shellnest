@@ -1,3 +1,5 @@
+import { Trans } from "react-i18next";
+import { useTranslation } from "react-i18next";
 import { ContactRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Group, HostDraft, Identity } from "@/lib/types";
@@ -17,12 +19,19 @@ export function OfferedIdentityNotice({
   groups: Group[];
   onChange: (v: HostDraft) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className={inheritedBox}>
       <ContactRound aria-hidden="true" />
       <span>
-        Il gruppo <strong>{groupPath(groups, folder.id)}</strong> offre
-        l’identità <strong>{identity?.name ?? "—"}</strong>.
+        <Trans
+          i18nKey="hosts.offeredIdentityNotice.offers"
+          values={{
+            group: groupPath(groups, folder.id),
+            identity: identity?.name ?? "—",
+          }}
+          components={{ strong: <strong /> }}
+        />
       </span>
       <Button
         variant="ghost"
@@ -37,7 +46,7 @@ export function OfferedIdentityNotice({
           })
         }
       >
-        Usala
+        {t("hosts.offeredIdentityNotice.useIt")}
       </Button>
     </div>
   );

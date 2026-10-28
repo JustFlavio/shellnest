@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import type { VaultApi } from "@/features/vault/useVault";
 import type { Host, View, Workspace, WorkspaceDraft } from "@/lib/types";
@@ -18,6 +19,7 @@ export function useWorkspaces(
   list: TabList,
   setTrust: (trust: Trust) => void,
 ) {
+  const { t } = useTranslation();
   const { tabs, active } = list;
   const [savingWs, setSavingWs] = useState<WorkspaceSave | null>(null);
   // Recreate every session of the given layouts, one tab bar entry each. Hosts not trusted yet are
@@ -33,7 +35,7 @@ export function useWorkspaces(
       new Map(hosts.map((h) => [h.id, h])),
       () => crypto.randomUUID(),
     );
-    if (missing) throw new Error("Un host da aprire non esiste più.");
+    if (missing) throw new Error(t("terminal.useWorkspaces.aHostToOpen"));
     if (untrusted) {
       const fingerprint = await invokeScoped<string>("probe_host", {
         id: untrusted.id,
@@ -78,9 +80,7 @@ export function useWorkspaces(
         leaderId = leader.id;
         layout = workspaceTemplate(tabs, leader.layout);
         if (!layout)
-          throw new Error(
-            "Servono almeno due sessioni salvabili (host o terminale locale): le connessioni rapide non si salvano.",
-          );
+          throw new Error(t("terminal.useWorkspaces.atLeastTwoSaveable"));
       }
       const name = savingWs.name.trim(),
         existing = view.workspaces.find((w) => w.name === name);
@@ -90,7 +90,7 @@ export function useWorkspaces(
         }),
       );
       setSavingWs(null);
-      setNotice(`Workspace “${name}” salvato.`);
+      setNotice(t("terminal.useWorkspaces.workspaceSaved", { name }));
       if (leaderId)
         list.setTabs((old) =>
           old.map((t) => (t.id === leaderId ? { ...t, name } : t)),

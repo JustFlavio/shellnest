@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Row } from "./Row";
@@ -16,27 +17,28 @@ export function UpdateSettings({
   onChange: (next: AppSettings) => void;
   update: AppUpdate;
 }) {
+  const { t } = useTranslation();
   const { status } = update;
   const [label, run] =
     status.kind === "available"
-      ? ["Scarica", update.download]
+      ? [t("settings.updateSettings.download"), update.download]
       : status.kind === "ready"
-        ? ["Riavvia ora", update.restart]
-        : ["Controlla ora", update.check];
+        ? [t("settings.updateSettings.restartNow"), update.restart]
+        : [t("settings.updateSettings.checkNow"), update.check];
   return (
     <section className={card}>
-      <h3 className={cardTitle}>Aggiornamenti</h3>
-      <Row label="Versione installata">
+      <h3 className={cardTitle}>{t("settings.settingsNav.updates")}</h3>
+      <Row label={t("settings.updateSettings.installedVersion")}>
         <span className="text-muted-foreground">Shellnest {pkg.version}</span>
       </Row>
-      <Row label="Controlla all’avvio">
+      <Row label={t("settings.updateSettings.checkAtStartup")}>
         <Switch
-          label="Controlla all’avvio"
+          label={t("settings.updateSettings.checkAtStartup")}
           checked={settings.checkUpdates}
           onChange={(v) => onChange({ ...settings, checkUpdates: v })}
         />
       </Row>
-      <Row label="Stato">
+      <Row label={t("settings.updateSettings.status")}>
         <div className="flex items-center gap-[12px]">
           <span role="status" className="text-right text-muted-foreground">
             {statusLine(status)}

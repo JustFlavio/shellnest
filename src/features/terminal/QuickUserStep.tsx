@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ export function QuickUserStep({
   onSubmit: (save: boolean) => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const field = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -48,7 +50,7 @@ export function QuickUserStep({
       }}
     >
       <label className="block text-[12px]">
-        Utente
+        {t("terminal.quickUserStep.user")}
         <Input
           ref={field}
           autoComplete="off"
@@ -61,16 +63,18 @@ export function QuickUserStep({
       </label>
       {anyIdentity && (
         <div className="mt-[12px]">
-          <p className={help + " mt-0 mb-[6px]"}>Oppure un’identità salvata.</p>
+          <p className={help + " mt-0 mb-[6px]"}>
+            {t("terminal.quickUserStep.orASavedIdentity")}
+          </p>
           <Input
             type="search"
-            aria-label="Cerca identità"
-            placeholder="Cerca identità"
+            aria-label={t("terminal.quickUserStep.searchIdentity")}
+            placeholder={t("terminal.quickUserStep.searchIdentity")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
           <ul
-            aria-label="Identità salvate"
+            aria-label={t("terminal.quickUserStep.savedIdentities")}
             className="m-0 mt-[6px] max-h-[140px] list-none overflow-auto p-0"
           >
             {offered.map((identity) => (
@@ -103,7 +107,7 @@ export function QuickUserStep({
             ))}
             {!offered.length && (
               <li className={help + " m-0 px-[10px]"}>
-                Nessuna identità corrisponde.
+                {t("terminal.quickUserStep.noMatchingIdentity")}
               </li>
             )}
           </ul>
@@ -119,7 +123,7 @@ export function QuickUserStep({
       ) : (
         <div className="mt-[12px] flex justify-end gap-[8px]">
           <Button type="submit" disabled={!quickLogin(setup)}>
-            Avanti
+            {t("terminal.quickUserStep.next")}
           </Button>
         </div>
       )}

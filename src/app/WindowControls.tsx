@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+import { t as translate } from "@/i18n/i18n";
 import { useEffect, useState } from "react";
 import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -7,12 +9,13 @@ import { notifyError } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 
 const onError = (error: unknown) =>
-  notifyError("Operazione sulla finestra non riuscita", error);
+  notifyError(translate("app.windowControls.windowOperationFailed"), error);
 
 const control =
   "h-full w-[42px] rounded-none p-0 text-muted-foreground max-[760px]:w-[36px]";
 
 export function WindowControls() {
+  const { t } = useTranslation();
   const [maximized, setMaximized] = useState(false);
   const desktop = isTauri();
   useEffect(() => {
@@ -43,12 +46,12 @@ export function WindowControls() {
   return (
     <div
       className="flex shrink-0 items-stretch [.mac_&]:hidden"
-      aria-label="Controlli finestra"
+      aria-label={t("app.windowControls.windowControls")}
     >
       <Button
         variant="ghost"
         className={control}
-        aria-label="Riduci a icona"
+        aria-label={t("app.windowControls.minimize")}
         disabled={!desktop}
         onClick={() => act("minimize")}
       >
@@ -57,7 +60,11 @@ export function WindowControls() {
       <Button
         variant="ghost"
         className={control}
-        aria-label={maximized ? "Ripristina finestra" : "Massimizza finestra"}
+        aria-label={
+          maximized
+            ? t("app.windowControls.restoreWindow")
+            : t("app.windowControls.maximizeWindow")
+        }
         disabled={!desktop}
         onClick={() => act("toggleMaximize")}
       >
@@ -66,7 +73,7 @@ export function WindowControls() {
       <Button
         variant="ghost"
         className={cn(control, "hover:bg-[#c42b38] hover:text-white")}
-        aria-label="Chiudi finestra"
+        aria-label={t("app.windowControls.closeWindow")}
         disabled={!desktop}
         onClick={() => act("close")}
       >

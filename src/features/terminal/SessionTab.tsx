@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { ActionMenu } from "@/components/ActionMenu";
 import { OsIcon } from "@/components/OsIcon";
 import { TabLead, TabMain, TabShell, tabRenameClass } from "./Tab";
@@ -22,13 +23,18 @@ import {
   TerminalSquare,
   X,
 } from "lucide-react";
+import type { TFunction } from "i18next";
 import { useState } from "react";
 import { useApp } from "@/app/app-context";
 
-const tabLabel = (t: TerminalTab) =>
-  t.name ?? (t.layout ? "Workspace" : t.termTitle || t.title);
+const tabLabel = (tab: TerminalTab, t: TFunction) =>
+  tab.name ??
+  (tab.layout
+    ? t("terminal.sessionTab.workspace")
+    : tab.termTitle || tab.title);
 
 export function SessionTab({ tab }: { tab: TerminalTab }) {
+  const { t } = useTranslation();
   const {
     vault: { view },
     tabs: {
@@ -59,35 +65,35 @@ export function SessionTab({ tab }: { tab: TerminalTab }) {
     <>
       <DropdownMenuItem onClick={() => duplicateTab(tab)}>
         <Copy size={13} />
-        Duplica
+        {t("terminal.sessionTab.duplicate")}
       </DropdownMenuItem>
       <DropdownMenuItem onClick={() => setRenaming(true)}>
         <Pencil size={13} />
-        Rinomina
+        {t("terminal.sessionTab.rename")}
       </DropdownMenuItem>
       {tab.layout && (
         <DropdownMenuItem
           onClick={() => setSavingWs({ tabId: tab.id, name: tab.name ?? "" })}
         >
           <Save size={13} />
-          Salva come workspace…
+          {t("terminal.sessionTab.saveAsWorkspace")}
         </DropdownMenuItem>
       )}
       <DropdownMenuSeparator />
       <DropdownMenuItem onClick={() => splitTab(tab.id, "row")}>
         <Columns2 size={13} />
-        Dividi verticalmente
+        t("terminal.sessionTab.splitVertically")
         <DropdownMenuShortcut>{hint("splitRight")}</DropdownMenuShortcut>
       </DropdownMenuItem>
       <DropdownMenuItem onClick={() => splitTab(tab.id, "col")}>
         <Rows2 size={13} />
-        Dividi orizzontalmente
+        t("terminal.sessionTab.splitHorizontally")
         <DropdownMenuShortcut>{hint("splitDown")}</DropdownMenuShortcut>
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem onClick={() => askCloseTab(tab.id)}>
         <X size={13} />
-        Chiudi
+        t("terminal.connectionTimeline.close")
         <DropdownMenuShortcut>
           {hint(tab.layout ? "closeWorkspace" : "closePane")}
         </DropdownMenuShortcut>
@@ -141,7 +147,7 @@ export function SessionTab({ tab }: { tab: TerminalTab }) {
         <TabLead
           icon={icon}
           onClose={() => askCloseTab(tab.id)}
-          label={tabLabel(tab)}
+          label={tabLabel(tab, t)}
         />
         {renaming ? (
           <input
@@ -151,8 +157,8 @@ export function SessionTab({ tab }: { tab: TerminalTab }) {
             autoCapitalize="off"
             autoCorrect="off"
             spellCheck={false}
-            defaultValue={tabLabel(tab)}
-            aria-label="Nome scheda"
+            defaultValue={tabLabel(tab, t)}
+            aria-label={t("terminal.sessionTab.tabName")}
             onFocus={(e) => e.currentTarget.select()}
             onBlur={(e) => {
               const name = e.currentTarget.value.trim();
@@ -167,15 +173,15 @@ export function SessionTab({ tab }: { tab: TerminalTab }) {
         ) : (
           <TabMain
             aria-current={active === tab.id ? "page" : undefined}
-            title={tabLabel(tab)}
+            title={tabLabel(tab, t)}
             onClick={() => setActive(tab.id)}
             onDoubleClick={() => setRenaming(true)}
           >
-            {tabLabel(tab)}
+            {tabLabel(tab, t)}
           </TabMain>
         )}
         <ActionMenu
-          label={`Azioni scheda ${tab.title}`}
+          label={t("terminal.sessionTab.tabActions", { name: tab.title })}
           className="size-[24px] text-inherit opacity-0 transition-opacity group-hover/tab:opacity-100 group-focus-within/tab:opacity-100 group-data-[selected]/tab:opacity-100 aria-expanded:opacity-100 [@media(hover:none)]:opacity-100 motion-reduce:transition-none"
         >
           {items}
@@ -183,7 +189,7 @@ export function SessionTab({ tab }: { tab: TerminalTab }) {
       </ContextMenuTrigger>
       <ContextMenuContent
         className="min-w-[230px]"
-        aria-label={`Azioni scheda ${tab.title}`}
+        aria-label={t("terminal.sessionTab.tabActions", { name: tab.title })}
       >
         {items}
       </ContextMenuContent>

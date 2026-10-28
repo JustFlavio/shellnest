@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { isBusy, percentOf, statusLine, updateFailure } from "./update-flow.ts";
+import { i18n } from "../../i18n/i18n.ts";
+
+// These assertions read the Italian copy.
+await i18n.changeLanguage("it");
 
 test("percent is whole, clamped, and null without a total", () => {
   assert.equal(percentOf(0, 1000), 0);

@@ -8,6 +8,10 @@ import {
   syncTitle,
   unlockLabel,
 } from "./vault-copy.ts";
+import { i18n } from "../../i18n/i18n.ts";
+
+// These assertions read the Italian copy.
+await i18n.changeLanguage("it");
 
 const synced = { syncConfigured: true, dirty: false, lastSync: "10:30" };
 
@@ -76,7 +80,7 @@ test("the unlock button reflects busy, existing and linking", () => {
   );
 });
 
-test("only an empty vault other than Personale can be deleted", () => {
+test("only an empty vault other than the default one can be deleted", () => {
   const key = {
     id: "k",
     name: "k",
@@ -92,7 +96,7 @@ test("only an empty vault other than Personale can be deleted", () => {
     workspaces: [],
   };
   assert.equal(deleteBlock({ ...empty, vaultId: "work" }), "");
-  assert.match(deleteBlock({ ...empty, vaultId: "personal" }), /Personale/);
+  assert.match(deleteBlock({ ...empty, vaultId: "personal" }), /predefinito/);
   assert.match(
     deleteBlock({ ...empty, vaultId: "work", keys: [key] }),
     /Svuota/,

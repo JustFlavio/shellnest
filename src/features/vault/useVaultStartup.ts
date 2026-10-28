@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { describeError } from "@/lib/error-message";
 import { invoke } from "@tauri-apps/api/core";
 import { desktop } from "@/lib/platform";
 import type { View } from "@/lib/types";
@@ -17,7 +18,7 @@ export function useVaultStartup(
     if (!desktop) return;
     void invoke<View>("status")
       .then((next) => latest.current.update(next))
-      .catch((e) => latest.current.setError(String(e)))
+      .catch((e) => latest.current.setError(describeError(e)))
       .finally(() => setLoading(false));
   }, [latest]);
   // Once per vault and app run (a manual lock stays locked); stays true while the attempt runs.

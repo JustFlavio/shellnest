@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useApp } from "./app-context";
 import { Check } from "lucide-react";
 
@@ -18,10 +19,10 @@ export function NoticeBanner() {
 }
 
 export function PreviewBanner() {
+  const { t } = useTranslation();
   return (
     <div className="border-b border-[#c99b4920] bg-[#c99b4910] px-[22px] py-[6px] text-[12px] text-[#c4af83]">
-      Anteprima interattiva · Usa dati fittizi · Modifiche azzerate al
-      ricaricamento
+      {t("app.banners.interactivePreviewUsesSample")}
     </div>
   );
 }

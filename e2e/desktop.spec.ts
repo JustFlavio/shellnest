@@ -11,6 +11,14 @@ type State = {
 
 describe("Tauri desktop with an isolated real vault", () => {
   it("creates hosts, reuses an identity, switches layout and unlocks persisted data", async () => {
+    // The selectors below read the Italian interface, whatever the language of the machine.
+    await browser.execute(() =>
+      localStorage.setItem(
+        "shellnest.settings",
+        JSON.stringify({ language: "it" }),
+      ),
+    );
+    await browser.refresh();
     const master = await $("//label[contains(., 'Password principale')]/input");
     await master.waitForDisplayed();
     await master.setValue(password);

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 /** The bar inside the download toast; without a known size it only shows the text. */
 export function UpdateProgress({
   version,
@@ -6,6 +7,7 @@ export function UpdateProgress({
   version: string;
   percent: number | null;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="grid gap-[6px]">
       <span>
@@ -15,7 +17,7 @@ export function UpdateProgress({
       {percent !== null && (
         <div
           role="progressbar"
-          aria-label="Download dell’aggiornamento"
+          aria-label={t("settings.updateProgress.updateDownload")}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={percent}

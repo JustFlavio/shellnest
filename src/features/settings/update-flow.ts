@@ -1,3 +1,4 @@
+import { t } from "../../i18n/i18n.ts";
 // Pure parts of the update flow: what the status is, how a failure reads and how far a download is.
 import { describeError } from "../../lib/error-message.ts";
 
@@ -20,18 +21,18 @@ export function percentOf(done: number, total?: number): number | null {
   return Math.min(100, Math.max(0, Math.floor((done / total) * 100)));
 }
 
-/** A failure in plain Italian for the usual causes; anything else keeps the plugin's own text. */
+/** A failure in plain words for the usual causes; anything else keeps the plugin's own text. */
 export function updateFailure(error: unknown): string {
   const text = describeError(error);
   if (/pubkey|public key|base64|signature|minisign/i.test(text))
-    return "la chiave di firma degli aggiornamenti non è valida o non è stata configurata";
+    return t("settings.updateFlow.theUpdateSigningKey");
   if (
     /network|dns|connect|timed? ?out|error sending request|offline/i.test(text)
   )
-    return "server non raggiungibile, controlla la connessione";
+    return t("settings.updateFlow.unreachable");
   if (/valid release json|404|not found/i.test(text))
-    return "nessun elenco di aggiornamenti trovato sul server";
-  return text || "errore sconosciuto";
+    return t("settings.updateFlow.noManifest");
+  return text || t("settings.updateFlow.unknownError");
 }
 
 /** True while a check, download or install is running, so a second one must not start. */
@@ -45,20 +46,23 @@ export function statusLine(status: UpdateStatus): string {
     case "idle":
       return "";
     case "checking":
-      return "Controllo in corso…";
+      return t("settings.updateFlow.checking");
     case "uptodate":
-      return "Aggiornato.";
+      return t("settings.updateFlow.upToDate");
     case "available":
-      return `Disponibile la versione ${status.version}.`;
+      return t("settings.updateFlow.available", { version: status.version });
     case "downloading":
       return status.percent === null
-        ? `Download della versione ${status.version}…`
-        : `Download della versione ${status.version}: ${status.percent}%`;
+        ? t("settings.updateFlow.downloading", { version: status.version })
+        : t("settings.updateFlow.downloadingPercent", {
+            version: status.version,
+            percent: status.percent,
+          });
     case "ready":
-      return `Versione ${status.version} pronta.`;
+      return t("settings.updateFlow.ready", { version: status.version });
     case "installing":
-      return `Installazione della versione ${status.version}…`;
+      return t("settings.updateFlow.installing", { version: status.version });
     case "error":
-      return `Controllo non riuscito: ${status.message}`;
+      return t("settings.updateFlow.checkFailed", { message: status.message });
   }
 }

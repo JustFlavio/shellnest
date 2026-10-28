@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { ComponentProps, ReactNode } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -69,12 +70,15 @@ export function TabLead({
   onClose?: () => void;
   label?: string;
 }) {
+  const { t } = useTranslation();
   const swap = "group-hover/tab:hidden group-data-[selected]/tab:hidden";
   return (
     <Button
       variant="ghost"
       type="button"
-      aria-label={onClose ? `Chiudi ${label}` : undefined}
+      aria-label={
+        onClose ? t("terminal.tab.closeName", { name: label }) : undefined
+      }
       tabIndex={onClose ? 0 : -1}
       onClick={onClose}
       className={cn(

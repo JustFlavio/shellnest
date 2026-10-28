@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { TabLead, TabMain, TabShell } from "./Tab";
 import { Button } from "@/components/ui/button";
 import { Plus, Server, SquarePlus } from "lucide-react";
@@ -7,6 +8,7 @@ import { SessionTab } from "./SessionTab";
 import { SyncButton } from "@/features/vault/SyncButton";
 
 export function TabBar() {
+  const { t } = useTranslation();
   const {
     preferences: { hint },
     tabs: {
@@ -47,7 +49,7 @@ export function TabBar() {
         detachPane(dragPane);
         clearDnd();
       }}
-      aria-label="Sessioni e connessioni"
+      aria-label={t("terminal.tabBar.sessionsAndConnections")}
       data-tauri-drag-region
     >
       <TabShell
@@ -60,7 +62,7 @@ export function TabBar() {
           aria-current={active === "vault" ? "page" : undefined}
           onClick={() => setActive("vault")}
         >
-          Vault
+          {t("vault.vaultList.vault")}
         </TabMain>
       </TabShell>
       {bar.map((tab) => (
@@ -77,7 +79,7 @@ export function TabBar() {
             aria-current={active === "launcher" ? "page" : undefined}
             onClick={() => setActive("launcher")}
           >
-            Nuova scheda
+            {t("terminal.connectionLauncher.newTab")}
           </TabMain>
         </TabShell>
       )}
@@ -85,8 +87,8 @@ export function TabBar() {
         variant="ghost"
         type="button"
         className="size-[30px] shrink-0 rounded-[9px] p-0 text-muted-foreground"
-        aria-label="Nuova connessione"
-        title={["Nuova connessione", hint("quickConnect")]
+        aria-label={t("terminal.tabBar.newConnection")}
+        title={[t("terminal.tabBar.newConnection"), hint("quickConnect")]
           .filter(Boolean)
           .join(" · ")}
         onClick={openLauncher}

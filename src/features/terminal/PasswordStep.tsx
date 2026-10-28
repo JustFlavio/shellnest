@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useRef, useState } from "react";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ export function PasswordStep({
   onSubmit: (password: string) => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   const [value, setValue] = useState("");
   const field = useRef<HTMLInputElement>(null);
   // After a frame, as for the fingerprint card; again for every new question.
@@ -39,11 +41,11 @@ export function PasswordStep({
     >
       <p className={help + " mt-0"}>
         {refused
-          ? "Password non accettata."
-          : "Chiave rifiutata dal server: serve la password."}
+          ? t("terminal.passwordStep.passwordNotAccepted")
+          : t("terminal.passwordStep.keyRefusedByThe")}
       </p>
       <label className="mt-[10px] block text-[12px]">
-        Password
+        {t("hosts.collectionTables.password")}
         <PasswordInput
           ref={field}
           autoComplete="off"
@@ -53,10 +55,12 @@ export function PasswordStep({
       </label>
       <div className="mt-[12px] flex flex-wrap justify-end gap-[8px]">
         <Button variant="ghost" type="button" onClick={onCancel}>
-          Annulla
+          {t("vault.deleteVaultDialog.cancel")}
         </Button>
         <Button type="submit" disabled={!value}>
-          {refused ? "Riprova" : "Accedi"}
+          {refused
+            ? t("vault.useVaultSync.retry")
+            : t("terminal.passwordStep.signIn")}
         </Button>
       </div>
     </form>

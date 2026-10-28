@@ -8,12 +8,12 @@ export function configureSync(next: View, args: Args): void {
     url.protocol === "https:" ||
       (url.protocol === "http:" &&
         ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)),
-    "Usa HTTPS per la sincronizzazione remota",
+    "sync.InsecureUrl",
   );
   requireValue(
     next.syncConfigured ||
       (typeof args.token === "string" && args.token.length >= 32),
-    "Il token deve contenere almeno 32 caratteri fittizi",
+    "sync.TokenTooShort",
   );
   next.syncUrl = url.toString();
   next.syncConfigured = true;

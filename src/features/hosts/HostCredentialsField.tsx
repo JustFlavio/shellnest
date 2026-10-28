@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Combobox } from "@base-ui/react/combobox";
 import { UserRound, ContactRound, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ export function HostCredentialsField({
   onChange: (value: HostDraft) => void;
   onNewIdentity: () => void;
 }) {
+  const { t } = useTranslation();
   const selected = identities.find((i) => i.id === value.identityId) ?? null;
   const [open, setOpen] = useState(false);
   const credentials = value.credentials ?? {
@@ -63,9 +65,9 @@ export function HostCredentialsField({
           <UserRound className={fieldIcon} aria-hidden="true" />
           <Combobox.Input
             render={<Input />}
-            aria-label="Utente SSH"
+            aria-label={t("hosts.collectionTables.sshUser")}
             autoComplete="off"
-            placeholder="Utente SSH"
+            placeholder={t("hosts.collectionTables.sshUser")}
             required
           />
         </div>
@@ -89,7 +91,9 @@ export function HostCredentialsField({
                         <strong>{identity.name}</strong>
                         <small>
                           {identity.username} ·{" "}
-                          {identity.auth === "key" ? "Chiave SSH" : "Password"}
+                          {identity.auth === "key"
+                            ? t("hosts.hostCredentialsField.sshKey")
+                            : t("hosts.collectionTables.password")}
                         </small>
                       </span>
                     </Combobox.Item>
@@ -101,7 +105,7 @@ export function HostCredentialsField({
                   className="mt-[4px] w-full text-[12px] text-primary"
                   onClick={onNewIdentity}
                 >
-                  Crea identità condivisa
+                  {t("hosts.hostCredentialsField.createSharedIdentity")}
                 </Button>
               </Combobox.Popup>
             </Combobox.Positioner>
@@ -116,20 +120,21 @@ export function HostCredentialsField({
           className="w-full text-[12px] text-primary"
           onClick={onNewIdentity}
         >
-          Crea identità condivisa
+          {t("hosts.hostCredentialsField.createSharedIdentity")}
         </Button>
       )}
       {selected && (
         <div className={selectedHostIdentity}>
           <ContactRound aria-hidden="true" />
           <span>
-            Identità: <strong>{selected.name}</strong>
+            t("hosts.hostCredentialsField.identity"){" "}
+            <strong>{selected.name}</strong>
           </span>
           <Button
             variant="ghost"
             type="button"
             size="icon-xs"
-            aria-label="Usa credenziali proprie dell’host"
+            aria-label={t("hosts.hostCredentialsField.useTheHostS")}
             onClick={() => onChange({ ...value, identityId: "" })}
           >
             <X />

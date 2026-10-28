@@ -1,3 +1,4 @@
+import { t } from "../../i18n/i18n.ts";
 // Shortcut registry. A combo is { key, mod?, ctrl?, shift?, alt? }: `mod` is Cmd on macOS and Ctrl elsewhere, `ctrl` is the literal Control key.
 // Elsewhere letter combos also need Shift (and Alt when the combo already has Shift) so Ctrl+<letter> stays free for the shell.
 export type Combo = {
@@ -7,6 +8,7 @@ export type Combo = {
   shift?: boolean;
   alt?: boolean;
 };
+// `label` is a getter on the registry: it reads the active language when it is asked for.
 export type Binding = { id: string; label: string; combos: Combo[] };
 type KeyEvent = Pick<
   KeyboardEvent,
@@ -21,58 +23,86 @@ const arrow = (key: string, extra?: Partial<Combo>): Combo => ({
 export const SHORTCUTS: Binding[] = [
   {
     id: "quickConnect",
-    label: "Connessione rapida",
+    get label() {
+      return t("hosts.vaultHeader.quickConnect");
+    },
     combos: [{ key: "t", mod: true }],
   },
   {
     id: "jumpTab",
-    label: "Vai alla scheda",
+    get label() {
+      return t("settings.shortcuts.goToTab");
+    },
     combos: [{ key: "j", mod: true }],
   },
-  { id: "newHost", label: "Nuovo host", combos: [{ key: "n", mod: true }] },
+  {
+    id: "newHost",
+    get label() {
+      return t("hosts.hostEditor.newHost");
+    },
+    combos: [{ key: "n", mod: true }],
+  },
   {
     id: "newFolder",
-    label: "Nuova cartella",
+    get label() {
+      return t("hosts.vaultToolbar.newFolder");
+    },
     combos: [{ key: "n", mod: true, shift: true }],
   },
   {
     id: "searchVault",
-    label: "Cerca nella raccolta",
+    get label() {
+      return t("settings.shortcuts.searchTheCollection");
+    },
     combos: [{ key: "f", mod: true, shift: true }],
   },
   {
     id: "lockVault",
-    label: "Blocca vault",
+    get label() {
+      return t("vault.vaultPanels.lockVault");
+    },
     combos: [{ key: "l", mod: true, shift: true }],
   },
   {
     id: "openSettings",
-    label: "Impostazioni",
+    get label() {
+      return t("app.appMenu.settings");
+    },
     combos: [{ key: ",", mod: true }],
   },
   {
     id: "closePane",
-    label: "Chiudi pane o scheda",
+    get label() {
+      return t("settings.shortcuts.closePaneOrTab");
+    },
     combos: [{ key: "w", mod: true }],
   },
   {
     id: "closeWorkspace",
-    label: "Chiudi tutti i pane della scheda",
+    get label() {
+      return t("settings.shortcuts.closeAllPanesOf");
+    },
     combos: [{ key: "w", mod: true, shift: true }],
   },
   {
     id: "reopenTab",
-    label: "Riapri ultima scheda chiusa",
+    get label() {
+      return t("settings.shortcuts.reopenLastClosedTab");
+    },
     combos: [{ key: "t", mod: true, shift: true }],
   },
   {
     id: "gotoTab",
-    label: "Vai alla scheda 1–8, 9 = ultima",
+    get label() {
+      return t("settings.shortcuts.goToTab1");
+    },
     combos: [{ key: "1-9", mod: true }],
   },
   {
     id: "prevTab",
-    label: "Scheda precedente",
+    get label() {
+      return t("settings.shortcuts.previousTab");
+    },
     combos: [
       { key: "[", mod: true, shift: true },
       { key: "Tab", ctrl: true, shift: true },
@@ -80,7 +110,9 @@ export const SHORTCUTS: Binding[] = [
   },
   {
     id: "nextTab",
-    label: "Scheda successiva",
+    get label() {
+      return t("settings.shortcuts.nextTab");
+    },
     combos: [
       { key: "]", mod: true, shift: true },
       { key: "Tab", ctrl: true },
@@ -88,27 +120,37 @@ export const SHORTCUTS: Binding[] = [
   },
   {
     id: "moveTabLeft",
-    label: "Sposta scheda a sinistra",
+    get label() {
+      return t("settings.shortcuts.moveTabLeft");
+    },
     combos: [arrow("ArrowLeft", { shift: true, alt: true })],
   },
   {
     id: "moveTabRight",
-    label: "Sposta scheda a destra",
+    get label() {
+      return t("settings.shortcuts.moveTabRight");
+    },
     combos: [arrow("ArrowRight", { shift: true, alt: true })],
   },
   {
     id: "splitRight",
-    label: "Dividi il pane a destra",
+    get label() {
+      return t("settings.shortcuts.splitThePaneTo");
+    },
     combos: [{ key: "d", mod: true }],
   },
   {
     id: "splitDown",
-    label: "Dividi il pane in basso",
+    get label() {
+      return t("settings.shortcuts.splitThePaneDown");
+    },
     combos: [{ key: "d", mod: true, shift: true }],
   },
   {
     id: "prevPane",
-    label: "Pane precedente",
+    get label() {
+      return t("settings.shortcuts.previousPane");
+    },
     combos: [
       arrow("ArrowLeft", { alt: true }),
       arrow("ArrowUp", { alt: true }),
@@ -116,7 +158,9 @@ export const SHORTCUTS: Binding[] = [
   },
   {
     id: "nextPane",
-    label: "Pane successivo",
+    get label() {
+      return t("settings.shortcuts.nextPane");
+    },
     combos: [
       arrow("ArrowRight", { alt: true }),
       arrow("ArrowDown", { alt: true }),
@@ -124,22 +168,30 @@ export const SHORTCUTS: Binding[] = [
   },
   {
     id: "clearTerminal",
-    label: "Pulisci terminale",
+    get label() {
+      return t("settings.shortcuts.clearTerminal");
+    },
     combos: [{ key: "k", mod: true }],
   },
   {
     id: "zoomIn",
-    label: "Ingrandisci testo del terminale",
+    get label() {
+      return t("settings.shortcuts.increaseTerminalTextSize");
+    },
     combos: [{ key: "+", mod: true }],
   },
   {
     id: "zoomOut",
-    label: "Riduci testo del terminale",
+    get label() {
+      return t("settings.shortcuts.decreaseTerminalTextSize");
+    },
     combos: [{ key: "-", mod: true }],
   },
   {
     id: "zoomReset",
-    label: "Dimensione testo predefinita",
+    get label() {
+      return t("settings.shortcuts.defaultTextSize");
+    },
     combos: [{ key: "0", mod: true }],
   },
 ];
@@ -205,9 +257,9 @@ export function format(combo: Combo, mac: boolean): string {
   if (mac)
     return `${combo.ctrl ? "⌃" : ""}${alt ? "⌥" : ""}${shift ? "⇧" : ""}${combo.mod ? "⌘" : ""}${key}`;
   return [
-    combo.mod || combo.ctrl ? "Ctrl" : "",
-    alt ? "Alt" : "",
-    shift ? "Maiusc" : "",
+    combo.mod || combo.ctrl ? t("settings.shortcuts.ctrl") : "",
+    alt ? t("settings.shortcuts.alt") : "",
+    shift ? t("settings.shortcuts.shift") : "",
     key,
   ]
     .filter(Boolean)
@@ -277,11 +329,12 @@ export function comboFromEvent(
 export function reservedReason(combo: Combo, mac: boolean): string {
   const letter = /^[a-z]$/.test(combo.key);
   if (combo.ctrl && letter && !combo.shift && !combo.alt)
-    return "è riservata ai comandi del terminale";
+    return t("settings.shortcuts.isReservedForTerminal");
   if (mac && combo.mod && !combo.alt) {
     if (!combo.shift && "cvxazqhm".includes(combo.key) && letter)
-      return "è riservata al sistema";
-    if (combo.shift && combo.key === "z") return "è riservata al sistema";
+      return t("settings.shortcuts.isReservedByThe");
+    if (combo.shift && combo.key === "z")
+      return t("settings.shortcuts.isReservedByThe");
   }
   return "";
 }

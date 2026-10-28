@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,12 +12,16 @@ import { KeyFilePicker } from "./KeyFilePicker";
 import { EditorSection } from "./EditorSection";
 import { Panel } from "./Panel";
 
-const submitLabel = (existing: SshKey | undefined, returnTo?: string) =>
+const submitLabel = (
+  t: TFunction,
+  existing: SshKey | undefined,
+  returnTo?: string,
+) =>
   returnTo
-    ? "Importa e torna all’identità"
+    ? t("hosts.keyEditor.importAndBackTo")
     : existing
-      ? "Salva chiave"
-      : "Importa chiave";
+      ? t("hosts.keyEditor.saveKey")
+      : t("hosts.emptyState.importKey");
 
 export function KeyEditor({
   value,
@@ -36,11 +42,16 @@ export function KeyEditor({
   error: string;
   returnTo?: string;
 }) {
+  const { t } = useTranslation();
   const existing = view.keys.find((k) => k.id === value.id);
   const [fileError, setFileError] = useState("");
   return (
     <Panel
-      title={existing ? "Modifica chiave SSH" : "Importa chiave SSH"}
+      title={
+        existing
+          ? t("hosts.keyEditor.editSshKey")
+          : t("hosts.keyEditor.importSshKey")
+      }
       {...{ onClose, busy }}
       error={fileError || error}
       footer={
@@ -48,7 +59,9 @@ export function KeyEditor({
           <DialogClose
             render={<Button variant="ghost" type="button" disabled={busy} />}
           >
-            {returnTo ? "Torna all’identità" : "Annulla"}
+            {returnTo
+              ? t("hosts.keyEditor.backToIdentity")
+              : t("vault.deleteVaultDialog.cancel")}
           </DialogClose>
           <Button
             variant="default"
@@ -57,7 +70,7 @@ export function KeyEditor({
             className="primary"
             disabled={busy}
           >
-            {submitLabel(existing, returnTo)}
+            {submitLabel(t, existing, returnTo)}
           </Button>
         </footer>
       }
@@ -76,34 +89,38 @@ export function KeyEditor({
           onSubmit();
         }}
       >
-        <EditorSection title="Generale">
+        <EditorSection title={t("hosts.groupEditor.general")}>
           <label>
-            Nome
+            {t("vault.vaultPanels.name")}
             <Input
               autoFocus
               required
               value={value.name}
               onChange={(e) => onChange({ ...value, name: e.target.value })}
-              placeholder="Es. Chiave personale"
+              placeholder={t("hosts.keyEditor.eGPersonalKey")}
             />
           </label>
           {existing && (
             <>
               <div className="mt-[10px] flex flex-col gap-[7px] text-[12px] text-muted-foreground">
-                Impronta pubblica
+                t("hosts.collectionTables.publicFingerprint")
                 <code className={fingerprint}>
                   {existing.fingerprint ||
-                    "Non verificata: reimporta la chiave per validarla"}
+                    t("hosts.keyEditor.notVerifiedImportThe")}
                 </code>
               </div>
               <p className={sectionHelp}>
-                Usata da {existing.identityCount} identità e{" "}
-                {existing.hostCount} host.
+                {t("hosts.keyEditor.usedBy", {
+                  identities: t("common.identityCount", {
+                    count: existing.identityCount,
+                  }),
+                  hosts: t("common.hostCount", { count: existing.hostCount }),
+                })}
               </p>
             </>
           )}
         </EditorSection>
-        <EditorSection title="Chiave privata">
+        <EditorSection title={t("hosts.keyEditor.privateKey")}>
           <KeyFilePicker
             value={value}
             onChange={onChange}
@@ -111,8 +128,8 @@ export function KeyEditor({
           />
           <label>
             {existing
-              ? "Sostituisci chiave privata (opzionale)"
-              : "Chiave privata"}
+              ? t("hosts.keyEditor.replacePrivateKeyOptional")
+              : t("hosts.keyEditor.privateKey")}
             <Textarea
               rows={9}
               spellCheck={false}
@@ -126,7 +143,7 @@ export function KeyEditor({
             />
           </label>
           <label>
-            Passphrase della chiave
+            {t("hosts.keyEditor.keyPassphrase")}
             <PasswordInput
               autoComplete="new-password"
               value={value.passphrase}
@@ -134,17 +151,16 @@ export function KeyEditor({
                 onChange({ ...value, passphrase: e.target.value })
               }
               disabled={!!existing && !value.privateKey}
-              placeholder="Se la chiave è protetta"
+              placeholder={t("hosts.keyEditor.ifTheKeyIs")}
             />
           </label>
           {existing && value.privateKey && (
             <div className={callout}>
-              Sostituire la chiave modifica le prossime connessioni di tutte le
-              identità che la utilizzano.
+              {t("hosts.keyEditor.replacingTheKeyChanges")}
             </div>
           )}
           <p className={sectionHelp}>
-            Importata nel vault cifrato; il file originale resta intatto.
+            {t("hosts.keyEditor.importedIntoTheEncrypted")}
           </p>
         </EditorSection>
       </form>

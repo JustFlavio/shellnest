@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
   CommandGroup,
   CommandItem,
@@ -8,7 +9,11 @@ import { cn } from "@/lib/utils";
 import { LauncherIcon } from "./LauncherIcon";
 import type { LauncherResult } from "./launcher-results.ts";
 
-const titles = { hosts: "Host", tabs: "Schede", quick: "Connessione rapida" };
+const titles = {
+  hosts: "hosts.hostsView.hosts",
+  tabs: "hosts.vaultToolbar.cards",
+  quick: "hosts.vaultHeader.quickConnect",
+} as const;
 const order = ["hosts", "tabs", "quick"] as const;
 
 // The menu under the search box. Rows are picked from the search box's keys; a click opens a
@@ -33,6 +38,7 @@ export function SearchMenu({
   onJump: () => void;
   onActivate: (result: LauncherResult) => void;
 }) {
+  const { t } = useTranslation();
   const groups = order.flatMap((id) => {
     const items = results.flatMap((result, index) =>
       result.group === id ? [{ result, index }] : [],
@@ -55,15 +61,18 @@ export function SearchMenu({
         )}
         onClick={onJump}
       >
-        Vai alla scheda
+        {t("settings.shortcuts.goToTab")}
         {jumpShortcut && <kbd className="font-normal">{jumpShortcut}</kbd>}
       </button>
-      <CommandList label="Risultati ricerca" className="max-h-none">
+      <CommandList
+        label={t("terminal.searchMenu.searchResults")}
+        className="max-h-none"
+      >
         {groups.map(({ id, items }, n) => (
           <div key={id}>
             {n > 0 && <CommandSeparator className="mx-0 my-[6px]" />}
             <CommandGroup
-              heading={titles[id]}
+              heading={t(titles[id])}
               className="p-0 **:[[cmdk-group-heading]]:px-[8px] **:[[cmdk-group-heading]]:py-[7px] **:[[cmdk-group-heading]]:text-[12px]"
             >
               {items.map(({ result, index }) => (

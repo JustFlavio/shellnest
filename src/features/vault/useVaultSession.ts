@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import type { View } from "@/lib/types";
 import type { TabsApi } from "@/features/terminal/useTabs";
@@ -19,6 +20,7 @@ export function useVaultSession({
   hideSettings,
   onReset,
 }: SessionDeps) {
+  const { t } = useTranslation();
   const { view, run, update, invokeCommand, invokeScoped, epoch } = vault;
   const [vaultDialog, setVaultDialog] = useState<{
       mode: "create" | "rename";
@@ -42,7 +44,7 @@ export function useVaultSession({
         epoch.current++;
         leave(await invokeCommand<View>("select_vault", { vaultId: id }));
       },
-      pendingSwitch ? undefined : "Cambio vault non riuscito",
+      pendingSwitch ? undefined : t("vault.useVaultSession.vaultSwitchFailed"),
     );
   const lockVault = () =>
     void run(
@@ -51,7 +53,9 @@ export function useVaultSession({
         leave(await invokeScoped<View>("lock"));
         setPendingLock(false);
       },
-      pendingLock ? undefined : "Blocco del vault non riuscito",
+      pendingLock
+        ? undefined
+        : t("vault.useVaultSession.lockingTheVaultFailed"),
     );
   const deleteVault = () =>
     void run(async () => {

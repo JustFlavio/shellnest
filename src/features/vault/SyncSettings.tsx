@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,14 +30,17 @@ export function SyncSettings({
   onSave: () => void;
   onSyncNow: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <section className={card}>
-      <h3 className={cardTitle}>Sincronizzazione · {view.vaultName}</h3>
+      <h3 className={cardTitle}>
+        {t("vault.syncSettings.title", { name: view.vaultName })}
+      </h3>
       <p className={muted}>
-        Host, identità e chiavi, cifrati.
+        {t("vault.syncSettings.hostsIdentitiesAndKeys")}
         {view.syncConfigured &&
           lastSync &&
-          ` Ultima sincronizzazione riuscita: ${lastSync}.`}
+          t("vault.syncSettings.lastSyncOk", { time: lastSync })}
       </p>
       <form
         className="mt-[10px] grid gap-[6px]"
@@ -46,7 +50,7 @@ export function SyncSettings({
         }}
       >
         <label className="grid gap-[6px] text-[13px]">
-          URL servizio
+          {t("vault.syncSettings.serviceUrl")}
           <Input
             required
             type="url"
@@ -57,28 +61,25 @@ export function SyncSettings({
         </label>
         <p className={help}>
           {view.vaultId === "personal"
-            ? "Percorso: /vault"
-            : `Verrà usato /vaults/${view.vaultId}. Per un altro dispositivo copia l’URL completo dopo il salvataggio.`}
+            ? t("vault.syncSettings.pathVault")
+            : t("vault.syncSettings.pathWillBe", { id: view.vaultId })}
         </p>
         <label className="grid gap-[6px] text-[13px]">
-          Token
+          {t("vault.syncSettings.token")}
           <PasswordInput
             autoComplete="off"
             required={!view.syncConfigured}
             minLength={syncToken ? 32 : undefined}
             placeholder={
               view.syncConfigured
-                ? "Vuoto per mantenere il token esistente"
-                : "Almeno 32 caratteri"
+                ? t("vault.syncSettings.leaveEmptyToKeep")
+                : t("vault.syncSettings.atLeast32Characters")
             }
             value={syncToken}
             onChange={(e) => onSyncToken(e.target.value)}
           />
         </label>
-        <p className={help}>
-          Ogni 30 s a vault sbloccato. Con modifiche concorrenti la sync si
-          ferma e conserva i dati locali.
-        </p>
+        <p className={help}>{t("vault.syncSettings.every30SWhile")}</p>
         <div className="flex justify-end gap-[8px]">
           {view.syncConfigured && (
             <Button
@@ -88,11 +89,11 @@ export function SyncSettings({
               onClick={onSyncNow}
             >
               <RefreshCw size={14} />
-              Sincronizza ora
+              {t("vault.syncSettings.syncNow")}
             </Button>
           )}
           <Button variant="default" type="submit" disabled={busy}>
-            Salva configurazione
+            {t("vault.syncSettings.saveConfiguration")}
           </Button>
         </div>
       </form>

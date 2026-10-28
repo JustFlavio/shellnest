@@ -1,12 +1,15 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
-export type SettingsSection = "vault" | "terminal" | "shortcuts" | "updates";
-const sections: { id: SettingsSection; label: string }[] = [
-  { id: "vault", label: "Vault" },
-  { id: "terminal", label: "Terminale" },
-  { id: "shortcuts", label: "Scorciatoie" },
-  { id: "updates", label: "Aggiornamenti" },
-];
+export type SettingsSection =
+  "general" | "vault" | "terminal" | "shortcuts" | "updates";
+const sections = [
+  { id: "general", label: "settings.settingsNav.general" },
+  { id: "vault", label: "vault.vaultList.vault" },
+  { id: "terminal", label: "settings.settingsNav.terminal" },
+  { id: "shortcuts", label: "settings.settingsNav.shortcuts" },
+  { id: "updates", label: "settings.settingsNav.updates" },
+] as const satisfies readonly { id: SettingsSection; label: string }[];
 
 export function SettingsNav({
   section,
@@ -15,9 +18,10 @@ export function SettingsNav({
   section: SettingsSection;
   onSection: (s: SettingsSection) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <nav
-      aria-label="Sezioni delle impostazioni"
+      aria-label={t("settings.settingsNav.settingsSections")}
       className="flex w-[200px] shrink-0 flex-col gap-[2px] border-r border-border p-[10px]"
     >
       {sections.map((s) => (
@@ -33,7 +37,7 @@ export function SettingsNav({
               : "text-muted-foreground hover:bg-accent hover:text-foreground",
           )}
         >
-          {s.label}
+          {t(s.label)}
         </button>
       ))}
     </nav>

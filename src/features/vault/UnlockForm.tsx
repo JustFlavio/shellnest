@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,11 +9,12 @@ import { useApp } from "@/app/app-context";
 import { unlockLabel } from "./vault-copy.ts";
 
 function RemoteVaultFields() {
+  const { t } = useTranslation();
   const { unlock } = useApp();
   return (
     <>
       <label>
-        URL completo del vault remoto
+        {t("vault.unlockForm.fullUrlOfThe")}
         <Input
           required
           type="url"
@@ -22,7 +24,7 @@ function RemoteVaultFields() {
         />
       </label>
       <label>
-        Token
+        {t("vault.syncSettings.token")}
         <PasswordInput
           autoComplete="off"
           required
@@ -30,15 +32,13 @@ function RemoteVaultFields() {
           onChange={(e) => unlock.setToken(e.target.value)}
         />
       </label>
-      <p className={help}>
-        Copia l’URL completo dalle impostazioni dell’altro dispositivo, incluso
-        /vaults/… quando presente.
-      </p>
+      <p className={help}>{t("vault.unlockForm.copyTheFullUrl")}</p>
     </>
   );
 }
 
 export function UnlockForm() {
+  const { t } = useTranslation();
   const {
     vault: { view, busy },
     unlock,
@@ -53,7 +53,7 @@ export function UnlockForm() {
     >
       {unlock.restore && <RemoteVaultFields />}
       <label>
-        Password principale
+        {t("vault.unlockForm.mainPassword")}
         <PasswordInput
           autoFocus
           autoComplete={view.exists ? "current-password" : "new-password"}
@@ -65,7 +65,7 @@ export function UnlockForm() {
       </label>
       {creating && (
         <label>
-          Conferma password
+          {t("vault.unlockForm.confirmPassword")}
           <PasswordInput
             autoComplete="new-password"
             required
@@ -76,9 +76,9 @@ export function UnlockForm() {
       )}
       {desktop && !unlock.restore && (
         <div className="mt-[16px] flex items-center justify-between gap-[12px] text-[13px]">
-          Ricorda su questo dispositivo
+          {t("vault.rememberSetting.rememberOnThisDevice")}
           <Switch
-            label="Ricorda su questo dispositivo"
+            label={t("vault.rememberSetting.rememberOnThisDevice")}
             checked={unlock.remember}
             onChange={unlock.setRemember}
           />

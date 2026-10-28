@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommandItem } from "@/components/ui/command";
@@ -37,6 +38,7 @@ export function LauncherRow({
   onDelete: () => void;
   onNewSession: () => void;
 }) {
+  const { t } = useTranslation();
   const open = !!result.openTab;
   return (
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- cmdk owns the row's own element and keyboard use goes through the search box; this only adds pointer selection
@@ -97,8 +99,10 @@ export function LauncherRow({
           variant="ghost"
           type="button"
           className="mr-[6px] h-[28px] px-[8px] text-[12px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-          aria-label={`Nuova sessione ${result.title}`}
-          title="Nuova sessione (Maiusc+Invio)"
+          aria-label={t("terminal.launcherRow.newSessionName", {
+            name: result.title,
+          })}
+          title={t("terminal.launcherRow.newSessionShiftEnter")}
           disabled={busy}
           onKeyDown={stopKey}
           onClick={onNewSession}
@@ -114,12 +118,14 @@ export function LauncherRow({
             "mr-[6px] h-[28px] px-[8px] text-[12px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100",
             armed && "text-destructive opacity-100",
           )}
-          aria-label={`Elimina workspace ${result.title}`}
+          aria-label={t("terminal.launcherRow.deleteWorkspaceName", {
+            name: result.title,
+          })}
           disabled={busy}
           onKeyDown={stopKey}
           onClick={armed ? onDelete : onArmDelete}
         >
-          {armed ? "Conferma" : <Trash2 size={13} />}
+          {armed ? t("terminal.launcherRow.confirm") : <Trash2 size={13} />}
         </Button>
       )}
     </div>

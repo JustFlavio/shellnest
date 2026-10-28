@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { SelectField } from "@/components/SelectField";
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/PasswordInput";
@@ -19,12 +20,13 @@ export function IdentityAccessSection({
   existing: Identity | undefined;
   onNewKey: () => void;
 }) {
+  const { t } = useTranslation();
   return (
-    <EditorSection title="Accesso SSH">
+    <EditorSection title={t("hosts.hostAccessSection.sshAccess")}>
       <label>
-        Metodo
+        {t("hosts.identityAccessSection.method")}
         <SelectField
-          aria-label="Metodo di autenticazione"
+          aria-label={t("hosts.identityAccessSection.authenticationMethod")}
           value={value.auth}
           onValueChange={(auth) =>
             onChange({
@@ -35,21 +37,21 @@ export function IdentityAccessSection({
             })
           }
           options={[
-            { value: "key", label: "Chiave SSH" },
-            { value: "password", label: "Password" },
+            { value: "key", label: t("hosts.hostCredentialsField.sshKey") },
+            { value: "password", label: t("hosts.collectionTables.password") },
           ]}
         />
       </label>
       {value.auth === "key" ? (
         <>
           <label>
-            Chiave dal portachiavi
+            {t("hosts.identityAccessSection.keyFromTheKey")}
             <SelectField
-              aria-label="Chiave dal portachiavi"
+              aria-label={t("hosts.identityAccessSection.keyFromTheKey")}
               required
               value={value.keyId}
               onValueChange={(keyId) => onChange({ ...value, keyId })}
-              placeholder="Seleziona una chiave"
+              placeholder={t("hosts.identityAccessSection.selectAKey")}
               options={keys.map((k) => ({
                 value: k.id,
                 label: k.name,
@@ -63,12 +65,12 @@ export function IdentityAccessSection({
             onClick={onNewKey}
           >
             <Plus size={14} />
-            Importa una chiave
+            {t("hosts.identityAccessSection.importAKey")}
           </Button>
         </>
       ) : (
         <label>
-          Password
+          {t("hosts.collectionTables.password")}
           <PasswordInput
             autoComplete="new-password"
             required={!existing?.hasPassword}
@@ -76,7 +78,7 @@ export function IdentityAccessSection({
             onChange={(e) => onChange({ ...value, password: e.target.value })}
             placeholder={
               existing?.hasPassword
-                ? "Lascia vuoto per mantenere quella salvata"
+                ? t("hosts.identityAccessSection.leaveEmptyToKeep")
                 : ""
             }
           />
@@ -84,8 +86,9 @@ export function IdentityAccessSection({
       )}
       {existing && existing.hostCount > 0 && (
         <div className={callout}>
-          La modifica verrà usata dalle prossime connessioni di{" "}
-          {existing.hostCount} host. Le sessioni già aperte restano attive.
+          {t("hosts.identityAccessSection.changeAffects", {
+            count: existing.hostCount,
+          })}
         </div>
       )}
     </EditorSection>

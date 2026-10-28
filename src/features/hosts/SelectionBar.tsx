@@ -1,8 +1,10 @@
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { TerminalSquare, Trash2, UserRound, X } from "lucide-react";
 import { useApp } from "@/app/app-context";
 
 export function SelectionBar() {
+  const { t } = useTranslation();
   const {
     vault: { view, busy },
     tabs: { connectHosts },
@@ -12,7 +14,7 @@ export function SelectionBar() {
     <div
       className="absolute bottom-[20px] left-1/2 z-2 flex w-max max-w-[calc(100%-32px)] animate-[selection-enter_180ms_cubic-bezier(0.16,1,0.3,1)] flex-wrap items-center justify-center gap-[6px] rounded-[12px] border border-input bg-card px-[8px] py-[6px] text-[12px] shadow-[0_8px_28px_#0006] [transform:translateX(-50%)] [&_button]:text-[12px] [&_strong]:mr-auto [&_strong]:font-medium"
       role="toolbar"
-      aria-label="Azioni host selezionati"
+      aria-label={t("hosts.selectionBar.selectedHostActions")}
     >
       <Button
         variant="ghost"
@@ -22,7 +24,7 @@ export function SelectionBar() {
         }
       >
         <TerminalSquare size={15} />
-        Connetti
+        {t("hosts.hostEditor.connect")}
       </Button>
       <strong>{selected.size} selezionati</strong>
       <Button
@@ -32,7 +34,7 @@ export function SelectionBar() {
         onClick={() => openBulkAssign(selected)}
       >
         <UserRound size={14} />
-        Assegna identità
+        {t("hosts.bulkAssignDialog.assignIdentity")}
       </Button>
       <Button
         variant="destructive"
@@ -47,12 +49,12 @@ export function SelectionBar() {
         }
       >
         <Trash2 size={15} />
-        Elimina
+        {t("vault.deleteVaultDialog.delete")}
       </Button>
       <Button
         variant="ghost"
         type="button"
-        aria-label="Annulla selezione"
+        aria-label={t("hosts.selectionBar.cancelSelection")}
         disabled={busy}
         onClick={clearSelection}
       >

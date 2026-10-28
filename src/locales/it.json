@@ -64,7 +64,7 @@
       "AlreadyOpen": "Vault già aperto",
       "AlreadyExists": "Esiste già un vault locale",
       "PasswordRequired": "Serve la password per creare il vault",
-      "DefaultNotDeletable": "Il vault Personale non può essere eliminato",
+      "DefaultNotDeletable": "Il vault predefinito non può essere eliminato",
       "NotEmpty": "Il vault non è vuoto: eliminane prima il contenuto",
       "LockedForDeletion": "Sblocca il vault per eliminarlo",
       "Kdf": "{{value}}",
@@ -133,7 +133,762 @@
       "VaultNotFound": "Vault non trovato",
       "VaultSwitched": "Il vault attivo è cambiato. Ripeti l’operazione nel vault corretto.",
       "NoPrivatePassword": "Questo host non ha una password privata salvata",
-      "Task": "{{value}}"
+      "Task": "{{value}}",
+      "Raw": "{{value}}"
+    },
+    "preview": {
+      "Simulated": "Errore simulato in {{command}}",
+      "DesktopOnly": "Questa funzione richiede l’app desktop. L’anteprima non apre connessioni di rete."
+    },
+    "session": {
+      "metadataFailed": "Connessione attiva, ma aggiornamento metadati non riuscito: {{reason}}",
+      "EndedEarly": "La sessione è terminata prima di aprire il terminale."
     }
+  },
+  "connection": {
+    "phase": {
+      "starting": "Avvio della connessione",
+      "trust": "Verifica dell’impronta del server",
+      "connect": "Connessione al server SSH",
+      "verified": "Impronta del server verificata",
+      "auth": "Autenticazione SSH",
+      "session": "Apertura del terminale remoto",
+      "connected": "Connesso"
+    },
+    "kind": {
+      "network": "Rete",
+      "fingerprint": "Impronta",
+      "auth": "Autenticazione",
+      "tech": "Dettaglio tecnico",
+      "error": "Problema",
+      "success": "Riuscito"
+    },
+    "offsetSeconds": "+{{value}} s",
+    "offsetMinutes": "+{{minutes}} min {{seconds}} s",
+    "timeline": {
+      "user": "Utente",
+      "method": "Metodo di accesso",
+      "connectRemote": "Connessione a {{target}}",
+      "connectLocal": "Avvio del terminale locale",
+      "trust": "Verifica impronta",
+      "auth": "Autenticazione",
+      "password": "Password",
+      "passwordAttempt": "Password (tentativo {{n}})",
+      "session": "Sessione aperta",
+      "trustConfirmed": "Nuova impronta confermata",
+      "hostKnown": "Host già noto, impronta coincide"
+    },
+    "log": {
+      "network": {
+        "resolving": "Risoluzione di <b>{{target}}</b>",
+        "addresses": "Indirizzi trovati: <b>{{list}}</b>",
+        "connected": "Connessione stabilita",
+        "server": "Server remoto: <b>{{banner}}</b>",
+        "opening": "Apertura di terminale e shell remota",
+        "closedByUser": "Connessione chiusa dall’utente",
+        "closedByServer": "Connessione chiusa dal server"
+      },
+      "tech": {
+        "algorithms": "Algoritmi negoziati: scambio chiavi {{kex}}, chiave host {{hostKey}}, cifrario {{cipher}}"
+      },
+      "fingerprint": {
+        "known": "Impronta del server nota e coincidente: <b>{{fingerprint}}</b>"
+      },
+      "auth": {
+        "keyAttempt": "Autenticazione con <b>chiave</b> per l’utente <b>{{user}}</b>",
+        "savedPasswordAttempt": "Autenticazione con <b>password salvata</b> per l’utente <b>{{user}}</b>",
+        "methodsLeft": "Metodi ancora accettati dal server: <b>{{methods}}</b>",
+        "passwordAttempt": "Tentativo con password {{sent}} di {{max}}"
+      },
+      "success": {
+        "keyAccepted": "Autenticazione con <b>chiave</b> accettata",
+        "passwordAccepted": "Autenticazione con <b>password</b> accettata",
+        "passwordOk": "Password accettata"
+      },
+      "error": {
+        "resolveFailed": "Risoluzione non riuscita: {{reason}}",
+        "fingerprintChanged": "Impronta del server cambiata: attesa {{expected}}, ricevuta {{received}}",
+        "connectFailed": "Connessione non riuscita: {{reason}}",
+        "keyRefused": "Autenticazione con chiave rifiutata dal server",
+        "savedPasswordRefused": "Autenticazione con password salvata rifiutata dal server",
+        "authCancelled": "Autenticazione annullata dall’utente",
+        "passwordRefused": "Password rifiutata dal server"
+      }
+    },
+    "step": {
+      "authKeyNamed": "Autenticato con la chiave “{{name}}”",
+      "authKey": "Autenticato con la chiave",
+      "authPassword": "Autenticato con la password",
+      "keyRefused": "Chiave rifiutata dal server",
+      "savedPasswordRefused": "Password salvata rifiutata",
+      "passwordAccepted": "Password accettata",
+      "passwordRefused": "Password non accettata"
+    }
+  },
+  "vault": {
+    "browserGate": {
+      "inMemorySampleData": "Dati fittizi in memoria. SSH e cifratura solo nell’app desktop.",
+      "exploreTheInterface": "Esplora interfaccia"
+    },
+    "deleteVaultDialog": {
+      "deleteTheVault": "Eliminare il vault?",
+      "cancel": "Annulla",
+      "delete": "Elimina",
+      "emptyAndRemoved": "«{{name}}» è vuoto e verrà rimosso. Tornerai al vault predefinito e le sessioni aperte verranno chiuse."
+    },
+    "lockScreen": {
+      "createALocalVault": "Crea un vault locale",
+      "connectAnExistingVault": "Collega un vault esistente",
+      "atLeast12Characters": "Minimo 12 caratteri. La password principale non è recuperabile."
+    },
+    "rememberSetting": {
+      "rememberOnThisDevice": "Ricorda su questo dispositivo",
+      "theKeyStaysIn": "La chiave resta nel portachiavi di sistema. “Blocca vault” chiede comunque la password.",
+      "unlockTitle": "Sblocco · {{name}}"
+    },
+    "syncSettings": {
+      "hostsIdentitiesAndKeys": "Host, identità e chiavi, cifrati.",
+      "serviceUrl": "URL servizio",
+      "pathVault": "Percorso: /vault",
+      "token": "Token",
+      "leaveEmptyToKeep": "Vuoto per mantenere il token esistente",
+      "atLeast32Characters": "Almeno 32 caratteri",
+      "every30SWhile": "Ogni 30 s a vault sbloccato. Con modifiche concorrenti la sync si ferma e conserva i dati locali.",
+      "syncNow": "Sincronizza ora",
+      "saveConfiguration": "Salva configurazione",
+      "title": "Sincronizzazione · {{name}}",
+      "lastSyncOk": " Ultima sincronizzazione riuscita: {{time}}.",
+      "pathWillBe": "Verrà usato /vaults/{{id}}. Per un altro dispositivo copia l’URL completo dopo il salvataggio."
+    },
+    "unlockForm": {
+      "fullUrlOfThe": "URL completo del vault remoto",
+      "copyTheFullUrl": "Copia l’URL completo dalle impostazioni dell’altro dispositivo, incluso /vaults/… quando presente.",
+      "mainPassword": "Password principale",
+      "confirmPassword": "Conferma password"
+    },
+    "vaultList": {
+      "active": "Attivo",
+      "vault": "Vault",
+      "default": "Predefinito",
+      "new": "Nuovo",
+      "switchToThis": "Passa a questo",
+      "newVault": "Nuovo vault",
+      "renameName": "Rinomina “{{name}}”",
+      "deleteName": "Elimina “{{name}}”"
+    },
+    "vaultPanels": {
+      "renameVault": "Rinomina vault",
+      "name": "Nome",
+      "personalWorkClient": "Personale, Lavoro, Cliente…",
+      "afterCreatingItChoose": "Dopo la creazione scegli la password o collega un vault remoto.",
+      "createVault": "Crea vault",
+      "saveName": "Salva nome",
+      "switchVault": "Cambia vault",
+      "closeSessionsAndSwitch": "Chiudi sessioni e cambia",
+      "closeOtherSessions": "Chiudi altre sessioni",
+      "closeSessions": "Chiudi sessioni",
+      "lockVault": "Blocca vault",
+      "closeSessionsAndLock": "Chiudi sessioni e blocca",
+      "createClosesSessions_one": "La creazione seleziona il nuovo vault e chiude la {{count}} sessione aperta, incluse le shell locali.",
+      "createClosesSessions_other": "La creazione seleziona il nuovo vault e chiude tutte le {{count}} sessioni aperte, incluse le shell locali.",
+      "switchTo": "Passare a <strong>{{name}}</strong>?",
+      "switchClosesSessions_one": "Verrà chiusa la {{count}} sessione aperta, incluse le shell locali. Il vault attuale verrà bloccato.",
+      "switchClosesSessions_other": "Verranno chiuse tutte le {{count}} sessioni aperte, incluse le shell locali. Il vault attuale verrà bloccato.",
+      "closeSessions_one": "Chiudere {{count}} sessione? Le shell locali e le connessioni SSH selezionate verranno terminate.",
+      "closeSessions_other": "Chiudere {{count}} sessioni? Le shell locali e le connessioni SSH selezionate verranno terminate.",
+      "lockAndClose_one": "Bloccare il vault e chiudere la {{count}} sessione, incluse le shell locali?",
+      "lockAndClose_other": "Bloccare il vault e chiudere tutte le {{count}} sessioni, incluse le shell locali?"
+    },
+    "vaultPicker": {
+      "yourVaults": "I tuoi vault",
+      "activeVaultName": "Vault attivo: {{name}}"
+    },
+    "useUnlock": {
+      "thePasswordsDoNot": "Le password non coincidono.",
+      "passwordNotSaved": "Password non salvata"
+    },
+    "useVault": {
+      "startThePreviewFirst": "Avvia prima l'anteprima.",
+      "theOpenDesktopVersion": "La versione desktop aperta usa ancora il vecchio modello. Chiudi e riavvia l’app aggiornata.",
+      "vaultUpdateFailed": "Aggiornamento del vault non riuscito"
+    },
+    "useVaultSession": {
+      "vaultSwitchFailed": "Cambio vault non riuscito",
+      "lockingTheVaultFailed": "Blocco del vault non riuscito"
+    },
+    "useVaultSync": {
+      "vaultSynced": "Vault sincronizzato",
+      "syncFailed": "Sincronizzazione non riuscita",
+      "retry": "Riprova"
+    },
+    "vaultCopy": {
+      "setUpSync": "Configura sync",
+      "syncing": "Sincronizzazione…",
+      "syncFailedRetry": "Sync non riuscita · Riprova",
+      "toSync": "Da sincronizzare",
+      "syncSetUp": "Sync configurata",
+      "unlockVault": "Sblocca vault",
+      "connectDevice": "Collega dispositivo",
+      "createLocalVault": "Crea vault locale",
+      "exploreShellnest": "Esplora Shellnest",
+      "openSourceSshClient": "Client SSH open source per Windows e macOS, con sincronizzazione self-hosted opzionale.",
+      "savedOnTheDevice": "Salvato sul dispositivo, cifrato.",
+      "wait": "Attendi…",
+      "unlock": "Sblocca",
+      "theDefaultVaultCannot": "Il vault predefinito non si può eliminare",
+      "emptyTheVaultFirst": "Svuota prima il vault: host, identità, chiavi e cartelle",
+      "lastSyncOk": "Ultima sincronizzazione riuscita: {{time}}",
+      "syncTime": "Sync {{time}}"
+    }
+  },
+  "app": {
+    "appMenu": {
+      "applicationMenu": "Menu applicazione",
+      "settings": "Impostazioni",
+      "checkForUpdates": "Controlla aggiornamenti",
+      "closeAllSessions": "Chiudi tutte le sessioni"
+    },
+    "banners": {
+      "interactivePreviewUsesSample": "Anteprima interattiva · Usa dati fittizi · Modifiche azzerate al ricaricamento"
+    },
+    "openingScreen": {
+      "openingVault": "Apertura vault"
+    },
+    "sidebar": {
+      "mainNavigation": "Navigazione principale",
+      "hostFolders": "Cartelle host",
+      "folders": "Cartelle",
+      "folderName": "Cartella {{name}}"
+    },
+    "windowControls": {
+      "windowOperationFailed": "Operazione sulla finestra non riuscita",
+      "windowControls": "Controlli finestra",
+      "minimize": "Riduci a icona",
+      "restoreWindow": "Ripristina finestra",
+      "maximizeWindow": "Massimizza finestra",
+      "closeWindow": "Chiudi finestra"
+    }
+  },
+  "components": {
+    "osIcon": {
+      "systemNotDetectedYet": "Sistema non ancora rilevato"
+    },
+    "passwordInput": {
+      "hidePassword": "Nascondi password",
+      "showPassword": "Mostra password"
+    }
+  },
+  "hosts": {
+    "bulkAssignDialog": {
+      "assignIdentity": "Assegna identità",
+      "sessionsAlreadyOpenStay": "Le sessioni già aperte restano attive.",
+      "identity": "Identità",
+      "identityToAssign": "Identità da assegnare",
+      "selectAnIdentity": "Seleziona un’identità",
+      "assignToHosts_one": "Assegna a {{count}} host",
+      "assignToHosts_other": "Assegna a {{count}} host"
+    },
+    "collectionTables": {
+      "sshUser": "Utente SSH",
+      "methodKey": "Metodo / chiave",
+      "usage": "Utilizzo",
+      "actions": "Azioni",
+      "reassignTheHostsThat": "Riassegna prima gli host che utilizzano questa identità",
+      "deleteIdentity": "Elimina identità",
+      "keyMissing": "Chiave mancante",
+      "password": "Password",
+      "publicFingerprint": "Impronta pubblica",
+      "reassignTheIdentitiesThat": "Riassegna prima le identità che utilizzano questa chiave",
+      "deleteKey": "Elimina chiave",
+      "toVerify": "Da verificare",
+      "editName": "Modifica {{name}}",
+      "deleteName": "Elimina {{name}}",
+      "actionsName": "Azioni {{name}}"
+    },
+    "deletionDialog": {
+      "deleteHost": "Elimina host",
+      "deleteGroup": "Elimina gruppo",
+      "linkedIdentitiesAndKeys": "Identità e chiavi collegate restano nel vault.",
+      "theGroupMustBe": "Il gruppo deve essere vuoto: gli host e i sottogruppi non vengono eliminati.",
+      "theItemWillBe": "L’elemento verrà rimosso dal vault e dai dispositivi sincronizzati.",
+      "deleteFromVault": "Eliminare <strong>{{name}}</strong> dal vault?"
+    },
+    "emptyState": {
+      "addHost": "Aggiungi host",
+      "createIdentity": "Crea identità",
+      "importKey": "Importa chiave",
+      "noResults": "Nessun risultato",
+      "emptyFolder": "Cartella vuota",
+      "noHosts": "Nessun host",
+      "noIdentities": "Nessuna identità",
+      "noSshKeys": "Nessuna chiave SSH",
+      "clearFilters": "Rimuovi filtri"
+    },
+    "folderCard": {
+      "open": "Apri",
+      "editGroup": "Modifica gruppo",
+      "newSubgroup": "Nuovo sottogruppo",
+      "selectFolder": "Seleziona cartella {{name}}",
+      "folderActions": "Azioni cartella {{name}}"
+    },
+    "groupEditor": {
+      "newGroup": "Nuovo gruppo",
+      "backToHost": "Torna all’host",
+      "saveAndBackTo": "Salva e torna all’host",
+      "saveGroup": "Salva gruppo",
+      "general": "Generale",
+      "groupName": "Nome del gruppo",
+      "parentGroup": "Gruppo padre",
+      "noParentGroup": "Nessun gruppo padre",
+      "hostDefaults": "Predefiniti per gli host",
+      "inheritedByHostsAnd": "Ereditati da host e sottogruppi senza valore proprio.",
+      "defaultIdentity": "Identità predefinita",
+      "noDefaultIdentity": "Nessuna identità predefinita",
+      "sshPort": "Porta SSH"
+    },
+    "groupField": {
+      "noFolder": "Nessuna cartella",
+      "folder": "Cartella",
+      "folderOptional": "Cartella (facoltativa)",
+      "noFolderTypeTo": "Nessuna cartella. Scrivi per crearne una.",
+      "createFolder": "Crea cartella",
+      "createFolderNamed": "Crea cartella “{{name}}”"
+    },
+    "hostAccessSection": {
+      "sshAccess": "Accesso SSH",
+      "credentials": "Credenziali",
+      "sshPassword": "Password SSH",
+      "managedByTheIdentity": "Gestita dall’identità"
+    },
+    "hostCard": {
+      "credentialsMissing": "Credenziali mancanti",
+      "selectName": "Seleziona {{name}}"
+    },
+    "hostCredentialsField": {
+      "sshKey": "Chiave SSH",
+      "createSharedIdentity": "Crea identità condivisa",
+      "identity": "Identità:",
+      "useTheHostS": "Usa credenziali proprie dell’host"
+    },
+    "hostEditButton": {
+      "edit": "Modifica"
+    },
+    "hostEditor": {
+      "editHost": "Modifica host",
+      "newHost": "Nuovo host",
+      "connect": "Connetti",
+      "currentVault": "Vault corrente",
+      "address": "Indirizzo",
+      "ipOrHostName": "IP o nome host",
+      "hostName": "Nome dell’host"
+    },
+    "hostMenuItems": {
+      "duplicateHost": "Duplica host",
+      "copyFailed": "Copia non riuscita",
+      "copyAddress": "Copia indirizzo"
+    },
+    "hostRow": {
+      "identityMissing": "Identità mancante",
+      "hostSuffix": "host"
+    },
+    "hostSaveStatus": {
+      "saving": "Salvataggio in corso",
+      "saved": "Salvato",
+      "savingFailed": "Salvataggio non riuscito",
+      "unsavedChanges": "Modifiche non salvate"
+    },
+    "hostSummary": {
+      "hostsInvolved": "Host coinvolti"
+    },
+    "hostTable": {
+      "access": "Accesso"
+    },
+    "hostsView": {
+      "hosts": "Host"
+    },
+    "identityAccessSection": {
+      "method": "Metodo",
+      "authenticationMethod": "Metodo di autenticazione",
+      "keyFromTheKey": "Chiave dal portachiavi",
+      "selectAKey": "Seleziona una chiave",
+      "importAKey": "Importa una chiave",
+      "leaveEmptyToKeep": "Lascia vuoto per mantenere quella salvata",
+      "changeAffects_one": "La modifica verrà usata dalle prossime connessioni di {{count}} host. Le sessioni già aperte restano attive.",
+      "changeAffects_other": "La modifica verrà usata dalle prossime connessioni di {{count}} host. Le sessioni già aperte restano attive."
+    },
+    "identityEditor": {
+      "editIdentity": "Modifica identità",
+      "newIdentity": "Nuova identità",
+      "saveIdentity": "Salva identità",
+      "eGAdministration": "Es. Amministrazione"
+    },
+    "inheritedIdentityNotice": {
+      "useOwnCredentials": "Usa credenziali proprie"
+    },
+    "keyEditor": {
+      "importAndBackTo": "Importa e torna all’identità",
+      "saveKey": "Salva chiave",
+      "editSshKey": "Modifica chiave SSH",
+      "importSshKey": "Importa chiave SSH",
+      "backToIdentity": "Torna all’identità",
+      "eGPersonalKey": "Es. Chiave personale",
+      "notVerifiedImportThe": "Non verificata: reimporta la chiave per validarla",
+      "privateKey": "Chiave privata",
+      "replacePrivateKeyOptional": "Sostituisci chiave privata (opzionale)",
+      "keyPassphrase": "Passphrase della chiave",
+      "ifTheKeyIs": "Se la chiave è protetta",
+      "replacingTheKeyChanges": "Sostituire la chiave modifica le prossime connessioni di tutte le identità che la utilizzano.",
+      "importedIntoTheEncrypted": "Importata nel vault cifrato; il file originale resta intatto.",
+      "usedBy": "Usata da {{identities}} e {{hosts}}."
+    },
+    "keyFilePicker": {
+      "fileTooLarge1": "File troppo grande (massimo 1 MB)",
+      "privateKeyFile": "File della chiave privata",
+      "chooseThePrivateKey": "Scegli file della chiave privata"
+    },
+    "offeredIdentityNotice": {
+      "useIt": "Usala",
+      "offers": "Il gruppo <strong>{{group}}</strong> offre l’identità <strong>{{identity}}</strong>."
+    },
+    "panel": {
+      "closePanel": "Chiudi pannello",
+      "discardTheChanges": "Scartare le modifiche?",
+      "theChangesToThis": "Le modifiche a questo modulo non sono state salvate.",
+      "discardChanges": "Scarta modifiche"
+    },
+    "searchField": {
+      "search": "Cerca",
+      "searchNameAddressOr": "Cerca nome, indirizzo o identità…",
+      "searchIdentityUserOr": "Cerca identità, utente o chiave…",
+      "searchKeyOrFingerprint": "Cerca chiave o impronta…",
+      "clearSearch": "Cancella ricerca"
+    },
+    "selectionBar": {
+      "selectedHostActions": "Azioni host selezionati",
+      "cancelSelection": "Annulla selezione"
+    },
+    "usageFilter": {
+      "hostsLinkedTo": "Host collegati a:",
+      "removeIdentityFilter": "Rimuovi filtro identità"
+    },
+    "vaultContent": {
+      "allFolders": "Tutte le cartelle"
+    },
+    "vaultHeader": {
+      "quickConnect": "Connessione rapida"
+    },
+    "vaultToolbar": {
+      "moreCreateActions": "Altre azioni di creazione",
+      "newFolder": "Nuova cartella",
+      "localTerminal": "Terminale locale",
+      "filterByFolder": "Filtra per cartella",
+      "sortHosts": "Ordina host",
+      "nameAZ": "Nome A–Z",
+      "lastAccess": "Ultimo accesso",
+      "hostView": "Visualizzazione host",
+      "cards": "Schede",
+      "list": "Lista"
+    },
+    "useEditors": {
+      "theActiveVaultHas": "Il vault attivo è cambiato",
+      "copyOf": "{{name}} (copia)"
+    },
+    "useLibrary": {
+      "sshKeys": "Chiavi SSH"
+    },
+    "hostPortField": {
+      "portInherited": "Porta ereditata dal gruppo {{path}}."
+    }
+  },
+  "settings": {
+    "settingsNav": {
+      "terminal": "Terminale",
+      "shortcuts": "Scorciatoie",
+      "updates": "Aggiornamenti",
+      "settingsSections": "Sezioni delle impostazioni",
+      "general": "Generale"
+    },
+    "shortcutsEditor": {
+      "atLeastOneModifier": "Serve almeno un modificatore (⌘, ⌃ o ⌥) insieme al tasto.",
+      "ctrlOrAlt": "Ctrl o Alt",
+      "combinationsWithALetter": "Le combinazioni con una lettera usano Ctrl+Maiusc per lasciare liberi i comandi del terminale.",
+      "reassign": "Riassegna",
+      "pressTheCombination": "Premi la combinazione…",
+      "none": "Nessuna",
+      "restoreAll": "Ripristina tutte",
+      "escCancels": "Esc annulla, Backspace disattiva.",
+      "alreadyUsedBy": "{{combo}} è già usata da “{{other}}”.",
+      "editLabel": "Modifica “{{label}}”",
+      "restoreLabel": "Ripristina “{{label}}”"
+    },
+    "terminalAppearance": {
+      "appearance": "Aspetto",
+      "font": "Font",
+      "terminalFont": "Font del terminale",
+      "textSize": "Dimensione del testo",
+      "decreaseTextSize": "Riduci testo",
+      "increaseTextSize": "Ingrandisci testo",
+      "lineHeight": "Interlinea",
+      "decreaseLineHeight": "Riduci interlinea",
+      "increaseLineHeight": "Aumenta interlinea"
+    },
+    "terminalBehavior": {
+      "behavior": "Comportamento",
+      "copyTheSelectionAutomatically": "Copia automaticamente la selezione",
+      "pasteWithTheRight": "Incolla con il tasto destro",
+      "bellSound": "Suono del bell",
+      "useOptionAsThe": "Usa Option come tasto Meta",
+      "leaveItOffIf": "Lascialo spento sulle tastiere italiane: Option digita @ # [ ].",
+      "brightColorsForBold": "Colori vivaci per il testo in grassetto",
+      "scrollbackLines": "Righe di scrollback",
+      "from500To100000": "Da 500 a 100000."
+    },
+    "themePicker": {
+      "colorTheme": "Tema colori"
+    },
+    "updateProgress": {
+      "updateDownload": "Download dell’aggiornamento"
+    },
+    "updateSettings": {
+      "download": "Scarica",
+      "restartNow": "Riavvia ora",
+      "checkNow": "Controlla ora",
+      "installedVersion": "Versione installata",
+      "checkAtStartup": "Controlla all’avvio",
+      "status": "Stato"
+    },
+    "shortcuts": {
+      "goToTab": "Vai alla scheda",
+      "searchTheCollection": "Cerca nella raccolta",
+      "closePaneOrTab": "Chiudi pane o scheda",
+      "closeAllPanesOf": "Chiudi tutti i pane della scheda",
+      "reopenLastClosedTab": "Riapri ultima scheda chiusa",
+      "goToTab1": "Vai alla scheda 1–8, 9 = ultima",
+      "previousTab": "Scheda precedente",
+      "nextTab": "Scheda successiva",
+      "moveTabLeft": "Sposta scheda a sinistra",
+      "moveTabRight": "Sposta scheda a destra",
+      "splitThePaneTo": "Dividi il pane a destra",
+      "splitThePaneDown": "Dividi il pane in basso",
+      "previousPane": "Pane precedente",
+      "nextPane": "Pane successivo",
+      "clearTerminal": "Pulisci terminale",
+      "increaseTerminalTextSize": "Ingrandisci testo del terminale",
+      "decreaseTerminalTextSize": "Riduci testo del terminale",
+      "defaultTextSize": "Dimensione testo predefinita",
+      "ctrl": "Ctrl",
+      "alt": "Alt",
+      "shift": "Maiusc",
+      "isReservedForTerminal": "è riservata ai comandi del terminale",
+      "isReservedByThe": "è riservata al sistema"
+    },
+    "updateFlow": {
+      "theUpdateSigningKey": "la chiave di firma degli aggiornamenti non è valida o non è stata configurata",
+      "unreachable": "server non raggiungibile, controlla la connessione",
+      "noManifest": "nessun elenco di aggiornamenti trovato sul server",
+      "unknownError": "errore sconosciuto",
+      "checking": "Controllo in corso…",
+      "upToDate": "Aggiornato.",
+      "available": "Disponibile la versione {{version}}.",
+      "downloading": "Download della versione {{version}}…",
+      "downloadingPercent": "Download della versione {{version}}: {{percent}}%",
+      "ready": "Versione {{version}} pronta.",
+      "installing": "Installazione della versione {{version}}…",
+      "checkFailed": "Controllo non riuscito: {{message}}"
+    },
+    "useAppUpdate": {
+      "updateReady": "Aggiornamento pronto",
+      "installing": "Installazione in corso…",
+      "installationFailed": "Installazione non riuscita",
+      "downloadFailed": "Download non riuscito",
+      "updateAvailable": "Aggiornamento disponibile",
+      "checkingForUpdates": "Controllo aggiornamenti…",
+      "noUpdates": "Nessun aggiornamento",
+      "checkFailed": "Controllo non riuscito"
+    },
+    "general": {
+      "language": "Lingua",
+      "languageHint": "“Sistema” segue la lingua del sistema operativo.",
+      "languageLabel": "Lingua dell’interfaccia"
+    }
+  },
+  "terminal": {
+    "closeGuard": {
+      "restartToUpdate": "Riavviare per aggiornare?",
+      "stopTheSession": "Interrompere la sessione?",
+      "someSessionsAreStill": "Ci sono sessioni ancora connesse: riavviando verranno chiuse e i programmi in esecuzione nei terminali terminati.",
+      "theSessionIsStill": "La sessione è ancora connessa: chiudendola verranno terminati i programmi in esecuzione nel terminale.",
+      "donTAskMe": "Non chiedermelo più",
+      "restart": "Riavvia",
+      "stop": "Interrompi"
+    },
+    "connectionLauncher": {
+      "newTab": "Nuova scheda",
+      "searchHostsOrTabs": "Cerca host o schede",
+      "searchHostsOrTabs2": "Cerca host o schede · ssh utente@host -p 22",
+      "availableConnections": "Connessioni disponibili",
+      "noSavedHosts": "Nessun host salvato."
+    },
+    "connectionLog": {
+      "hideLog": "Nascondi log",
+      "showLog": "Mostra log",
+      "copyLog": "Copia log",
+      "logCopied": "Log copiato.",
+      "connectionLog": "Log della connessione"
+    },
+    "connectionTimeline": {
+      "connectionProgress": "Avanzamento della connessione",
+      "readingTheServerFingerprint": "Lettura dell’impronta del server…",
+      "startOver": "Ricomincia",
+      "close": "Chiudi",
+      "userWithIdentity": "{{user}} · identità “{{identity}}”",
+      "keyNamed": "Chiave “{{name}}”",
+      "stepDone": " — completato",
+      "stepWarning": " — completato con avviso",
+      "stepFailed": " — non riuscito"
+    },
+    "fingerprintCard": {
+      "compareTheFingerprintWith": "Confronta l’impronta con quella dell’amministratore o della console.",
+      "fingerprintVerifiedConnect": "Impronta verificata, connetti"
+    },
+    "launcherActions": {
+      "createWorkspace": "Crea workspace",
+      "restore": "Ripristina"
+    },
+    "launcherRow": {
+      "newSessionShiftEnter": "Nuova sessione (Maiusc+Invio)",
+      "confirm": "Conferma",
+      "newSessionName": "Nuova sessione {{name}}",
+      "deleteWorkspaceName": "Elimina workspace {{name}}"
+    },
+    "paneHeader": {
+      "connecting": "Connessione…",
+      "connected": "Connessa",
+      "ended": "Terminata",
+      "failed": "Non riuscita",
+      "closePaneName": "Chiudi pannello {{name}}"
+    },
+    "passwordStep": {
+      "passwordNotAccepted": "Password non accettata.",
+      "keyRefusedByThe": "Chiave rifiutata dal server: serve la password.",
+      "signIn": "Accedi"
+    },
+    "pasteConfirmDialog": {
+      "pasteMultipleLines": "Incollare più righe?",
+      "paste": "Incolla",
+      "aboutToPaste_one": "Stai per incollare {{count}} riga nel terminale. Ogni riga verrà eseguita dalla shell.",
+      "aboutToPaste_other": "Stai per incollare {{count}} righe nel terminale. Ogni riga verrà eseguita dalla shell."
+    },
+    "quickActions": {
+      "nameForContinueAnd": "Nome per “Continua e salva”",
+      "aPasswordIsNeeded": "Per salvare l’host serve una password.",
+      "continueAndSave": "Continua e salva",
+      "continue": "Continua"
+    },
+    "quickMethodStep": {
+      "signInWith": "Accedi con",
+      "key": "Chiave",
+      "noKeysInThe": "Nessuna chiave nel portachiavi.",
+      "back": "Indietro"
+    },
+    "quickUserStep": {
+      "user": "Utente",
+      "orASavedIdentity": "Oppure un’identità salvata.",
+      "searchIdentity": "Cerca identità",
+      "savedIdentities": "Identità salvate",
+      "noMatchingIdentity": "Nessuna identità corrisponde.",
+      "next": "Avanti"
+    },
+    "searchMenu": {
+      "searchResults": "Risultati ricerca"
+    },
+    "sessionTab": {
+      "workspace": "Workspace",
+      "duplicate": "Duplica",
+      "rename": "Rinomina",
+      "saveAsWorkspace": "Salva come workspace…",
+      "splitVertically": "Dividi verticalmente",
+      "splitHorizontally": "Dividi orizzontalmente",
+      "tabName": "Nome scheda",
+      "tabActions": "Azioni scheda {{name}}"
+    },
+    "tabBar": {
+      "sessionsAndConnections": "Sessioni e connessioni",
+      "newConnection": "Nuova connessione"
+    },
+    "terminalPane": {
+      "deviceShell": "Shell del dispositivo"
+    },
+    "terminalSearchBar": {
+      "searchInTheTerminal": "Cerca nel terminale",
+      "previousResult": "Risultato precedente",
+      "nextResult": "Risultato successivo",
+      "closeSearch": "Chiudi ricerca"
+    },
+    "terminalStage": {
+      "terminalProblem": "Problema nel terminale"
+    },
+    "trustDialog": {
+      "verifyTheServerIdentity": "Verifica identità del server",
+      "firstAccess": "Primo accesso a <strong>{{target}}</strong>."
+    },
+    "workspaceDialog": {
+      "saveAsWorkspace": "Salva come workspace",
+      "includesTheHostsAnd": "Include gli host e la disposizione dei pannelli.",
+      "save": "Salva",
+      "quickNotSaved_one": "{{count}} connessione rapida non verrà salvata: salvala prima come host per includerla.",
+      "quickNotSaved_other": "{{count}} connessioni rapide non verranno salvate: salvale prima come host per includerle."
+    },
+    "launcherResults": {
+      "openTab": "Scheda aperta",
+      "thisComputer": "Questo computer",
+      "recentConnections": "Connessioni recenti",
+      "savedHosts": "Host salvati",
+      "notAValidHost": "Non è un nome host o un indirizzo IP valido.",
+      "noTabMatchesThe": "Nessuna scheda corrisponde alla ricerca.",
+      "noOpenTabs": "Nessuna scheda aperta.",
+      "noHostOrTab": "Nessun host o scheda corrisponde alla ricerca.",
+      "connections_one": "{{count}} connessione",
+      "connections_other": "{{count}} connessioni"
+    },
+    "useHostConnections": {
+      "completeTheCredentialsOf": "Completa le credenziali degli host selezionati.",
+      "connectionFailed": "Connessione non riuscita",
+      "localTerminalNotAvailable": "Terminale locale non disponibile",
+      "theLocalTerminalWorks": "Il terminale locale funziona nell’app desktop.",
+      "completeTheSignIn": "Completa i dati di accesso."
+    },
+    "useTrust": {
+      "fingerprintNotSaved": "Impronta non salvata."
+    },
+    "useWorkspaces": {
+      "aHostToOpen": "Un host da aprire non esiste più.",
+      "atLeastTwoSaveable": "Servono almeno due sessioni salvabili (host o terminale locale): le connessioni rapide non si salvano.",
+      "workspaceSaved": "Workspace “{{name}}” salvato."
+    },
+    "localHost": "locale",
+    "sessionEnded": "Sessione terminata. Usa Riconnetti dal menu della scheda.",
+    "inputTooLong": "Input troppo lungo prima della connessione. Attendi il prompt e incolla nuovamente.",
+    "demoBanner": "Sessione dimostrativa: nessuna connessione reale.",
+    "tab": {
+      "closeName": "Chiudi {{name}}"
+    }
+  },
+  "common": {
+    "identityCount_one": "{{count}} identità",
+    "identityCount_other": "{{count}} identità",
+    "hostCount_one": "{{count}} host",
+    "hostCount_other": "{{count}} host"
+  },
+  "menu": {
+    "vault": "Vault",
+    "edit": "Modifica",
+    "window": "Finestra"
+  },
+  "preview": {
+    "production": "Produzione",
+    "development": "Sviluppo",
+    "administration": "Amministrazione",
+    "defaultVault": "Personale"
   }
 }

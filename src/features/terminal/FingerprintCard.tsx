@@ -1,13 +1,14 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { fingerprint, help } from "@/lib/editor-ui";
 import { useApp } from "@/app/app-context";
 
-export const compareHint =
-  "Confronta l’impronta con quella dell’amministratore o della console.";
+export const compareHint = "terminal.fingerprintCard.compareTheFingerprintWith";
 
 /** The host key of a first access, inside the timeline: an explicit answer, never automatic. */
 export function FingerprintCard({ value }: { value: string }) {
+  const { t } = useTranslation();
   const {
     vault: { busy },
     tabs: { approveTrust, rejectTrust },
@@ -29,7 +30,7 @@ export function FingerprintCard({ value }: { value: string }) {
         }
       }}
     >
-      <p className={help + " mt-0"}>{compareHint}</p>
+      <p className={help + " mt-0"}>{t(compareHint)}</p>
       <code className={fingerprint + " mt-[10px]"}>{value}</code>
       <div className="mt-[12px] flex flex-wrap justify-end gap-[8px]">
         <Button
@@ -38,7 +39,7 @@ export function FingerprintCard({ value }: { value: string }) {
           disabled={busy}
           onClick={rejectTrust}
         >
-          Annulla
+          {t("vault.deleteVaultDialog.cancel")}
         </Button>
         <Button
           ref={approve}
@@ -46,7 +47,7 @@ export function FingerprintCard({ value }: { value: string }) {
           disabled={busy}
           onClick={approveTrust}
         >
-          Impronta verificata, connetti
+          {t("terminal.fingerprintCard.fingerprintVerifiedConnect")}
         </Button>
       </div>
     </div>

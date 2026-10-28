@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { inheritedIdentity } from "./groups.ts";
 import { saveHostCommand } from "./save-host";
@@ -25,6 +26,7 @@ export function useEditors(
   page: Page,
   group: string,
 ) {
+  const { t } = useTranslation();
   const { view, busy, epoch, update, run, invokeScoped, setError } = vault;
   const [hostForm, setHostForm] = useState<HostDraft | null>(null),
     [groupForm, setGroupForm] = useState<GroupForm | null>(null),
@@ -41,7 +43,7 @@ export function useEditors(
       const generation = epoch.current;
       const next = await saveHostCommand(invokeScoped, draft);
       if (generation !== epoch.current)
-        throw new Error("Il vault attivo è cambiato");
+        throw new Error(t("hosts.useEditors.theActiveVaultHas"));
       update(next);
       return next.hosts.find((h) => h.id === draft.id)!;
     },
@@ -81,7 +83,7 @@ export function useEditors(
     setHostForm({
       ...editDraft(host),
       id: crypto.randomUUID(),
-      name: `${host.name} (copia)`,
+      name: t("hosts.useEditors.copyOf", { name: host.name }),
       fingerprint: "",
       os: null,
       lastConnectedAt: null,
@@ -182,7 +184,7 @@ export function useEditors(
       requestAnimationFrame(() =>
         document
           .querySelector<HTMLButtonElement>(
-            '[role="combobox"][aria-label="Identità"]',
+            `[role="combobox"][aria-label="${t("hosts.bulkAssignDialog.identity")}"]`,
           )
           ?.focus(),
       );

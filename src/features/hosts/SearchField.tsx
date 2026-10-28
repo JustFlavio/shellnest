@@ -1,9 +1,11 @@
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
 import { useApp } from "@/app/app-context";
 
 export function SearchField() {
+  const { t } = useTranslation();
   const {
     library: { page, query, setQuery, search },
   } = useApp();
@@ -14,13 +16,13 @@ export function SearchField() {
         <Input
           ref={search}
           className="h-[36px] flex-1 rounded-none border-0 bg-transparent px-0 py-[7px] shadow-none outline-none focus-visible:border-0 focus-visible:outline-none"
-          aria-label="Cerca"
+          aria-label={t("hosts.searchField.search")}
           placeholder={
             page === "hosts"
-              ? "Cerca nome, indirizzo o identità…"
+              ? t("hosts.searchField.searchNameAddressOr")
               : page === "identities"
-                ? "Cerca identità, utente o chiave…"
-                : "Cerca chiave o impronta…"
+                ? t("hosts.searchField.searchIdentityUserOr")
+                : t("hosts.searchField.searchKeyOrFingerprint")
           }
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -28,7 +30,7 @@ export function SearchField() {
         {query && (
           <Button
             variant="ghost"
-            aria-label="Cancella ricerca"
+            aria-label={t("hosts.searchField.clearSearch")}
             onClick={() => setQuery("")}
           >
             <X size={14} />

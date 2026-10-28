@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { Row } from "./Row";
 import { Stepper } from "./Stepper";
@@ -30,16 +31,19 @@ export function TerminalAppearance({
   settings: AppSettings;
   set: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <section className={card}>
-      <h3 className={cardTitle}>Aspetto</h3>
-      <Row label="Font">
+      <h3 className={cardTitle}>
+        {t("settings.terminalAppearance.appearance")}
+      </h3>
+      <Row label={t("settings.terminalAppearance.font")}>
         <>
           <Input
             className="w-[200px]"
             list="terminal-fonts"
-            aria-label="Font del terminale"
-            placeholder="Predefinito"
+            aria-label={t("settings.terminalAppearance.terminalFont")}
+            placeholder={t("vault.vaultList.default")}
             maxLength={200}
             value={settings.fontFamily}
             onChange={(e) => set("fontFamily", e.target.value)}
@@ -51,25 +55,25 @@ export function TerminalAppearance({
           </datalist>
         </>
       </Row>
-      <Row label="Dimensione del testo">
+      <Row label={t("settings.terminalAppearance.textSize")}>
         <Stepper
           value={settings.fontSize}
           min={MIN_FONT_SIZE}
           max={MAX_FONT_SIZE}
           step={1}
-          decrease="Riduci testo"
-          increase="Ingrandisci testo"
+          decrease={t("settings.terminalAppearance.decreaseTextSize")}
+          increase={t("settings.terminalAppearance.increaseTextSize")}
           onChange={(size) => set("fontSize", size)}
         />
       </Row>
-      <Row label="Interlinea">
+      <Row label={t("settings.terminalAppearance.lineHeight")}>
         <Stepper
           value={settings.lineHeight}
           min={MIN_LINE_HEIGHT}
           max={MAX_LINE_HEIGHT}
           step={0.05}
-          decrease="Riduci interlinea"
-          increase="Aumenta interlinea"
+          decrease={t("settings.terminalAppearance.decreaseLineHeight")}
+          increase={t("settings.terminalAppearance.increaseLineHeight")}
           onChange={(height) => set("lineHeight", height)}
         />
       </Row>

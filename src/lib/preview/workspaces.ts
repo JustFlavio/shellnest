@@ -4,7 +4,11 @@ import type { Args } from "./require";
 
 export function saveWorkspace(next: View, args: Args): void {
   const w = args.workspace as Workspace;
-  requireValue(w.name.trim() && w.name.length <= 80, "Nome non valido");
+  requireValue(
+    w.name.trim() && w.name.length <= 80,
+    "model.WorkspaceInvalid",
+    w.name,
+  );
   const saved = { ...w, id: w.id || crypto.randomUUID() };
   next.workspaces = [
     ...next.workspaces.filter((x) => x.id !== saved.id),

@@ -54,13 +54,14 @@ export function createPreviewBackend(
   ): Promise<T> => {
     if (command === "select_vault") {
       if (!vaults.has(String(args.vaultId)))
-        throw new Error("Vault non disponibile");
+        throw { code: "app.VaultNotFound" };
       selected = String(args.vaultId);
     }
-    if (failing.has(command)) throw new Error(`Errore simulato in ${command}`);
+    if (failing.has(command))
+      throw { code: "preview.Simulated", params: { command } };
     const current = vaults.get(selected)!;
     if (args.vaultId && args.vaultId !== selected)
-      throw new Error("Vault non attivo");
+      throw { code: "app.VaultSwitched" };
     const next = structuredClone(current);
     if (
       ![
@@ -72,7 +73,7 @@ export function createPreviewBackend(
         "delete_vault",
       ].includes(command)
     )
-      requireValue(next.unlocked, "Sblocca prima il vault");
+      requireValue(next.unlocked, "app.VaultLocked");
     switch (command) {
       case "status":
       case "select_vault":
@@ -81,7 +82,7 @@ export function createPreviewBackend(
         requireValue(
           typeof args.password === "string" &&
             args.password.length >= (next.exists ? 1 : 12),
-          "Inserisci una password fittizia valida",
+          "vault.PasswordRequired",
         );
         next.exists = true;
         next.unlocked = true;
@@ -94,7 +95,7 @@ export function createPreviewBackend(
           typeof args.name === "string" &&
             args.name.trim() &&
             args.name.length <= 80,
-          "Assegna un nome al vault (massimo 80 caratteri)",
+          "vault.NameInvalid",
         );
         const id = crypto.randomUUID();
         vaults.set(id, {
@@ -106,17 +107,14 @@ export function createPreviewBackend(
         return snapshot() as T;
       }
       case "delete_vault":
-        requireValue(
-          selected !== "personal",
-          "Il vault Personale non può essere eliminato",
-        );
+        requireValue(selected !== "personal", "vault.DefaultNotDeletable");
         requireValue(
           !current.hosts.length &&
             !current.identities.length &&
             !current.keys.length &&
             !current.groups.length &&
             !current.workspaces.length,
-          "Il vault non è vuoto: eliminane prima il contenuto",
+          "vault.NotEmpty",
         );
         vaults.delete(selected);
         selected = "personal";
@@ -126,7 +124,7 @@ export function createPreviewBackend(
           typeof args.name === "string" &&
             args.name.trim() &&
             args.name.length <= 80,
-          "Assegna un nome al vault (massimo 80 caratteri)",
+          "vault.NameInvalid",
         );
         next.vaultName = String(args.name).trim();
         break;
@@ -139,10 +137,7 @@ export function createPreviewBackend(
         return revealHostPassword(next, args) as T;
       default: {
         const edit = editors[command];
-        if (!edit)
-          throw new Error(
-            "Questa funzione richiede l’app desktop. L’anteprima non apre connessioni di rete.",
-          );
+        if (!edit) throw { code: "preview.DesktopOnly" };
         edit(next, args);
       }
     }

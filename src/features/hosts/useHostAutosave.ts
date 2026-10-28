@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { describeError } from "@/lib/error-message";
 import { useLatest } from "@/lib/useLatest";
 import type { Group, Host, HostDraft, Identity } from "@/lib/types";
 import { hostDraftIsDirty, hostDraftIsValid } from "./host-draft";
@@ -70,7 +71,7 @@ export function useHostAutosave(
           latest.current.vaultId === vaultId
         ) {
           failed.current = draft;
-          setError(String(e));
+          setError(describeError(e));
         }
         throw e;
       } finally {

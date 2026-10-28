@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { canSave, quickLogin } from "./quick-setup.ts";
@@ -15,11 +16,12 @@ export function QuickActions({
   onName: (name: string) => void;
   onSubmit: (save: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const ready = !!quickLogin(setup) && !busy;
   return (
     <>
       <label className="mt-[12px] block text-[12px]">
-        Nome per “Continua e salva”
+        {t("terminal.quickActions.nameForContinueAnd")}
         <Input
           value={setup.name}
           maxLength={80}
@@ -27,7 +29,9 @@ export function QuickActions({
         />
       </label>
       {!setup.identityId && setup.method === "password" && !setup.password && (
-        <p className={help + " mb-0"}>Per salvare l’host serve una password.</p>
+        <p className={help + " mb-0"}>
+          {t("terminal.quickActions.aPasswordIsNeeded")}
+        </p>
       )}
       <div className="mt-[12px] flex flex-wrap justify-end gap-[8px]">
         <Button
@@ -36,10 +40,10 @@ export function QuickActions({
           disabled={!ready || !canSave(setup)}
           onClick={() => onSubmit(true)}
         >
-          Continua e salva
+          {t("terminal.quickActions.continueAndSave")}
         </Button>
         <Button type="submit" disabled={!ready}>
-          Continua
+          {t("terminal.quickActions.continue")}
         </Button>
       </div>
     </>

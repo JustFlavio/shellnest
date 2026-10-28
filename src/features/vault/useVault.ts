@@ -1,4 +1,6 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useRef, useState } from "react";
+import { describeError } from "@/lib/error-message";
 import { invoke } from "@tauri-apps/api/core";
 import { desktop } from "@/lib/platform";
 import { createPreviewBackend } from "@/lib/preview";
@@ -9,6 +11,7 @@ import { notifyError } from "@/lib/notify";
 import { useVaultStartup } from "./useVaultStartup";
 
 export function useVault() {
+  const { t } = useTranslation();
   const [view, setView] = useState<View>(emptyView),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -27,7 +30,7 @@ export function useVault() {
   ): Promise<T> => {
     if (desktop) return invoke<T>(command, args);
     if (previewBackend.current) return previewBackend.current<T>(command, args);
-    return Promise.reject(new Error("Avvia prima l'anteprima."));
+    return Promise.reject(new Error(t("vault.useVault.startThePreviewFirst")));
   };
   const invokeScoped = <T>(
     command: string,
@@ -41,9 +44,7 @@ export function useVault() {
       !Array.isArray(next.vaults) ||
       !next.vaultId
     )
-      throw new Error(
-        "La versione desktop aperta usa ancora il vecchio modello. Chiudi e riavvia l’app aggiornata.",
-      );
+      throw new Error(t("vault.useVault.theOpenDesktopVersion"));
     setView(next);
   };
   // A failure shows inline in the form or dialog that started it, or as a toast titled `toastTitle` when none is open.
@@ -56,7 +57,7 @@ export function useVault() {
       await operation();
     } catch (e) {
       if (toastTitle) notifyError(toastTitle, e);
-      else setError(String(e));
+      else setError(describeError(e));
     } finally {
       busyRef.current = false;
       setBusy(false);
@@ -69,7 +70,7 @@ export function useVault() {
       .then((next) => {
         if (next.vaultId === currentVault.current) update(next);
       })
-      .catch((e) => notifyError("Aggiornamento del vault non riuscito", e));
+      .catch((e) => notifyError(t("vault.useVault.vaultUpdateFailed"), e));
   };
   const startPreview = () =>
     void run(async () => {

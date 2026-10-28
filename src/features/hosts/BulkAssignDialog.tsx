@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Panel } from "./Panel";
 import { HostSummary } from "./HostSummary";
 import { SelectField } from "@/components/SelectField";
@@ -6,6 +7,7 @@ import { muted } from "@/lib/editor-ui";
 import { useApp } from "@/app/app-context";
 
 export function BulkAssignDialog() {
+  const { t } = useTranslation();
   const {
     vault: { view, busy, error },
     library: {
@@ -22,7 +24,7 @@ export function BulkAssignDialog() {
   return (
     <Panel
       variant="dialog"
-      title="Assegna identità"
+      title={t("hosts.bulkAssignDialog.assignIdentity")}
       busy={busy}
       error={error}
       onClose={closeBulkAssign}
@@ -33,20 +35,22 @@ export function BulkAssignDialog() {
           assignIdentity();
         }}
       >
-        <p className={muted}>Le sessioni già aperte restano attive.</p>
+        <p className={muted}>
+          {t("hosts.bulkAssignDialog.sessionsAlreadyOpenStay")}
+        </p>
         <HostSummary
           hosts={view.hosts.filter((host) => selected.has(host.id))}
           identities={view.identities}
         />
         <label>
-          Identità
+          {t("hosts.bulkAssignDialog.identity")}
           <SelectField
-            aria-label="Identità da assegnare"
+            aria-label={t("hosts.bulkAssignDialog.identityToAssign")}
             autoFocus
             required
             value={bulkIdentity}
             onValueChange={setBulkIdentity}
-            placeholder="Seleziona un’identità"
+            placeholder={t("hosts.bulkAssignDialog.selectAnIdentity")}
             options={view.identities.map((i) => ({
               value: i.id,
               label: i.name + " — " + i.username,
@@ -60,7 +64,7 @@ export function BulkAssignDialog() {
             onClick={() => setBulkOpen(false)}
             disabled={busy}
           >
-            Annulla
+            {t("vault.deleteVaultDialog.cancel")}
           </Button>
           <Button
             variant="default"
@@ -68,7 +72,9 @@ export function BulkAssignDialog() {
             className="primary"
             disabled={busy || !bulkIdentity}
           >
-            Assegna a {selected.size} host
+            {t("hosts.bulkAssignDialog.assignToHosts", {
+              count: selected.size,
+            })}
           </Button>
         </footer>
       </form>

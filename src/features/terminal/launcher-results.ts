@@ -1,3 +1,4 @@
+import { t } from "../../i18n/i18n.ts";
 import type { Group, Host, Identity, Workspace } from "../../lib/types.ts";
 import { groupPath } from "../hosts/groups.ts";
 import type { ConnectionTarget } from "./connection-target.ts";
@@ -144,7 +145,7 @@ export function launcherResults({
       group: "tabs",
       kind: "tab",
       title: tab.title,
-      path: tab.subtitle ?? "Scheda aperta",
+      path: tab.subtitle ?? t("terminal.launcherResults.openTab"),
       tab,
     }));
   // tab rows carry `tab`, open host rows carry `openTab`
@@ -161,7 +162,9 @@ export function launcherResults({
         group: "workspace",
         kind: "workspace",
         title: workspace.name,
-        path: `${workspaceSize(workspace)} connessioni`,
+        path: t("terminal.launcherResults.connections", {
+          count: workspaceSize(workspace),
+        }),
         workspace,
       })),
     ...open,
@@ -191,8 +194,8 @@ const quickRows = (target: ConnectionTarget | null): LauncherResult[] => [
     key: "local",
     group: "quick",
     kind: "local",
-    title: "Terminale locale",
-    path: "Questo computer",
+    title: t("hosts.vaultToolbar.localTerminal"),
+    path: t("terminal.launcherResults.thisComputer"),
   },
 ];
 
@@ -245,7 +248,7 @@ export function menuResults({
       group: "tabs",
       kind: "tab",
       title: tab.title,
-      path: tab.subtitle ?? "Scheda aperta",
+      path: tab.subtitle ?? t("terminal.launcherResults.openTab"),
       os: tab.hostId ? hostById.get(tab.hostId)?.os : undefined,
       tab,
     }));
@@ -265,10 +268,10 @@ export function groupResults(
   heading: { text: string; hasRecent: boolean },
 ): ResultGroup[] {
   const titles: Record<LauncherGroup, string> = {
-    workspace: "Workspace",
-    tabs: "Schede",
+    workspace: t("terminal.sessionTab.workspace"),
+    tabs: t("hosts.vaultToolbar.cards"),
     hosts: listHeading(heading),
-    quick: "Connessione rapida",
+    quick: t("hosts.vaultHeader.quickConnect"),
   };
   const groups: ResultGroup[] = [];
   results.forEach((result, index) => {
@@ -326,8 +329,10 @@ export function listHeading({
   text: string;
   hasRecent: boolean;
 }): string {
-  if (text) return "Host";
-  return hasRecent ? "Connessioni recenti" : "Host salvati";
+  if (text) return t("hosts.hostsView.hosts");
+  return hasRecent
+    ? t("terminal.launcherResults.recentConnections")
+    : t("terminal.launcherResults.savedHosts");
 }
 
 // Why the tab and host groups are empty; asked only when they are.
@@ -345,13 +350,13 @@ export function emptyMessage({
   // the typed text matches nothing and is not an address either
   invalid?: boolean;
 }): string {
-  if (invalid && !jump) return "Non è un nome host o un indirizzo IP valido.";
+  if (invalid && !jump) return t("terminal.launcherResults.notAValidHost");
   if (jump)
     return text
-      ? "Nessuna scheda corrisponde alla ricerca."
-      : "Nessuna scheda aperta.";
-  if (!nothingSaved) return "Nessun host o scheda corrisponde alla ricerca.";
+      ? t("terminal.launcherResults.noTabMatchesThe")
+      : t("terminal.launcherResults.noOpenTabs");
+  if (!nothingSaved) return t("terminal.launcherResults.noHostOrTab");
   return text && hasTarget
-    ? "Nessun host o scheda corrisponde alla ricerca."
-    : "Nessun host salvato.";
+    ? t("terminal.launcherResults.noHostOrTab")
+    : t("terminal.connectionLauncher.noSavedHosts");
 }

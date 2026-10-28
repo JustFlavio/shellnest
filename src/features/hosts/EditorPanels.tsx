@@ -85,7 +85,7 @@ export function EditorPanels() {
           view={view}
           busy={busy}
           error={error}
-          returnTo={identityForm ? "identità" : undefined}
+          returnTo={identityForm ? "identity" : undefined}
           onClose={closeKeyEditor}
           onSubmit={saveKey}
         />

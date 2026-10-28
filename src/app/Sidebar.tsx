@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { NavItem } from "@/components/NavItem";
 import { ancestry, childGroups } from "@/features/hosts/groups.ts";
 import { cn } from "@/lib/utils";
@@ -8,6 +9,7 @@ import { pageLabels } from "@/features/hosts/useLibrary";
 import type { Page } from "@/features/hosts/useLibrary";
 
 export function Sidebar() {
+  const { t } = useTranslation();
   const {
     vault: { view },
     tabs: { active },
@@ -23,7 +25,7 @@ export function Sidebar() {
       )}
     >
       <VaultSwitcher />
-      <nav aria-label="Navigazione principale">
+      <nav aria-label={t("app.sidebar.mainNavigation")}>
         {(["hosts", "identities", "keys"] as Page[]).map((p) => {
           const Icon =
             p === "hosts" ? Server : p === "identities" ? UserRound : KeyRound;
@@ -31,7 +33,7 @@ export function Sidebar() {
             <NavItem
               key={p}
               icon={<Icon size={16} />}
-              label={pageLabels[p]}
+              label={t(pageLabels[p])}
               count={
                 p === "hosts"
                   ? view.hosts.length
@@ -40,8 +42,8 @@ export function Sidebar() {
                     : view.keys.length
               }
               active={page === p && active === "vault"}
-              aria-label={pageLabels[p]}
-              title={pageLabels[p]}
+              aria-label={t(pageLabels[p])}
+              title={t(pageLabels[p])}
               onClick={() => navigate(p)}
             />
           );
@@ -50,10 +52,10 @@ export function Sidebar() {
       {view.groups.length > 0 && (
         <nav
           className="mt-[24px] min-h-0 overflow-y-auto max-[760px]:hidden"
-          aria-label="Cartelle host"
+          aria-label={t("app.sidebar.hostFolders")}
         >
           <h2 className="px-[11px] pb-[8px] text-[12px] text-muted-foreground">
-            Cartelle
+            {t("app.sidebar.folders")}
           </h2>
           {childGroups(view.groups, "").map((g) => {
             const current =
@@ -67,7 +69,7 @@ export function Sidebar() {
                 label={g.name}
                 count={groupHostCount(g.id)}
                 active={current}
-                aria-label={`Cartella ${g.name}`}
+                aria-label={t("app.sidebar.folderName", { name: g.name })}
                 title={g.name}
                 onClick={() => showFolder(g.id)}
               />
