@@ -1,8 +1,14 @@
 import { Input } from "@/components/ui/input";
 import { Row } from "./Row";
-import { FontSizeControl } from "./FontSizeControl";
+import { Stepper } from "./Stepper";
 import { ThemePicker } from "./ThemePicker";
 import { card, cardTitle } from "./settings-ui";
+import {
+  MAX_FONT_SIZE,
+  MAX_LINE_HEIGHT,
+  MIN_FONT_SIZE,
+  MIN_LINE_HEIGHT,
+} from "./settings.ts";
 import type { AppSettings } from "./settings.ts";
 
 const fontSuggestions = [
@@ -46,9 +52,25 @@ export function TerminalAppearance({
         </>
       </Row>
       <Row label="Dimensione del testo">
-        <FontSizeControl
+        <Stepper
           value={settings.fontSize}
+          min={MIN_FONT_SIZE}
+          max={MAX_FONT_SIZE}
+          step={1}
+          decrease="Riduci testo"
+          increase="Ingrandisci testo"
           onChange={(size) => set("fontSize", size)}
+        />
+      </Row>
+      <Row label="Interlinea">
+        <Stepper
+          value={settings.lineHeight}
+          min={MIN_LINE_HEIGHT}
+          max={MAX_LINE_HEIGHT}
+          step={0.05}
+          decrease="Riduci interlinea"
+          increase="Aumenta interlinea"
+          onChange={(height) => set("lineHeight", height)}
         />
       </Row>
       <ThemePicker

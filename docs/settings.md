@@ -7,7 +7,7 @@ Le impostazioni dell'app stanno in `localStorage` (`shellnest.settings`, `shelln
 ## Fatto
 
 - Vault: elenco, nuovo, rinomina, elimina (solo il vault attivo, solo se vuoto, mai `personal`: il controllo è nel backend, `delete_vault`), sync per vault con "Sincronizza ora".
-- Terminale: font, dimensione, tema colori (Shellnest, Nord, Dracula, Solarized Dark), copia alla selezione, incolla col tasto destro, bell, Option come Meta (spento di default: le tastiere italiane digitano `@ # [ ]` con Option), colori vivaci per il grassetto, scrollback.
+- Terminale: font, dimensione, interlinea (1–1,6, default 1,15), tema colori (Shellnest, Nord, Dracula, Solarized Dark), copia alla selezione, incolla col tasto destro, bell, Option come Meta (spento di default: le tastiere italiane digitano `@ # [ ]` con Option), colori vivaci per il grassetto, scrollback.
 - Scorciatoie: rimappatura con reset e controllo dei conflitti.
 - Aggiornamenti: versione installata, "Controlla ora", interruttore "Controlla all'avvio" (`checkUpdates`, acceso di default). Il controllo contatta GitHub; scarica e riavvia solo su clic (vedi `docs/releases.md`).
 

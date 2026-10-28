@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   DEFAULT_SETTINGS,
   clampFontSize,
+  clampLineHeight,
   fontStack,
   parseSettings,
   terminalTheme,
@@ -48,4 +49,13 @@ test("update checks are on by default and only a boolean turns them off", () => 
   assert.equal(parseSettings(null).checkUpdates, true);
   assert.equal(parseSettings('{"checkUpdates":false}').checkUpdates, false);
   assert.equal(parseSettings('{"checkUpdates":"no"}').checkUpdates, true);
+});
+
+test("line height defaults to 1.15 and is clamped to its range", () => {
+  assert.equal(parseSettings(null).lineHeight, 1.15);
+  assert.equal(parseSettings('{"lineHeight":1.3}').lineHeight, 1.3);
+  assert.equal(parseSettings('{"lineHeight":5}').lineHeight, 1.6);
+  assert.equal(parseSettings('{"lineHeight":0.2}').lineHeight, 1);
+  assert.equal(parseSettings('{"lineHeight":"1.3"}').lineHeight, 1.15);
+  assert.equal(clampLineHeight(1.234), 1.23);
 });

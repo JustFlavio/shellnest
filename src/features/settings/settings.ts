@@ -8,6 +8,7 @@ export type TerminalThemeDef = {
 export type AppSettings = {
   fontFamily: string;
   fontSize: number;
+  lineHeight: number;
   terminalTheme: string;
   copyOnSelect: boolean;
   rightClickPaste: boolean;
@@ -21,6 +22,9 @@ export type AppSettings = {
 export const DEFAULT_FONT_SIZE = 13;
 export const MIN_FONT_SIZE = 8;
 export const MAX_FONT_SIZE = 32;
+const DEFAULT_LINE_HEIGHT = 1.15;
+export const MIN_LINE_HEIGHT = 1;
+export const MAX_LINE_HEIGHT = 1.6;
 const DEFAULT_FONT_STACK =
   '"Cascadia Code", "SFMono-Regular", Consolas, monospace';
 
@@ -144,6 +148,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   // "" = the default stack
   fontFamily: "",
   fontSize: DEFAULT_FONT_SIZE,
+  lineHeight: DEFAULT_LINE_HEIGHT,
   terminalTheme: "shellnest",
   copyOnSelect: false,
   rightClickPaste: true,
@@ -157,6 +162,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
 export const clampFontSize = (n: number): number =>
   Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, Math.round(n)));
+
+export const clampLineHeight = (n: number): number =>
+  Math.min(
+    MAX_LINE_HEIGHT,
+    Math.max(MIN_LINE_HEIGHT, Math.round(n * 100) / 100),
+  );
 
 export const fontStack = (family: string): string => {
   const f = family.trim();
@@ -199,6 +210,10 @@ export function parseSettings(text: string | null): AppSettings {
         ? raw.fontFamily
         : d.fontFamily,
     fontSize: int("fontSize", MIN_FONT_SIZE, MAX_FONT_SIZE),
+    lineHeight:
+      typeof raw.lineHeight === "number" && Number.isFinite(raw.lineHeight)
+        ? clampLineHeight(raw.lineHeight)
+        : d.lineHeight,
     terminalTheme:
       TERMINAL_THEMES.find((t) => t.id === raw.terminalTheme)?.id ??
       d.terminalTheme,
