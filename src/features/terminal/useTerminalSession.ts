@@ -128,7 +128,7 @@ export function useTerminalSession({
       if (focused !== false) xterm.current?.term.focus();
     });
     return () => cancelAnimationFrame(frame);
-  }, [xterm, active, focused]);
+  }, [xterm, active, focused, opened]);
   const submitPassword = (value: string) => {
     setPassword((old) => old && { ...old, waiting: false });
     sendSessionPassword(tab, value).catch((e) =>
