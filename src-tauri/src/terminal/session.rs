@@ -7,7 +7,8 @@ use super::{
     password::PasswordPrompt,
 };
 use crate::{
-    error::Error,
+    error::{Error, coded},
+    message::msg,
     model::Connection,
     state::{AppState, record_connection},
 };
@@ -55,7 +56,7 @@ async fn run(
     mut rx: mpsc::UnboundedReceiver<Input>,
     output: &Channel<Output>,
 ) -> Result<(), TerminalError> {
-    let _ = output.send(Output::Status("Connessione…".into()));
+    let _ = output.send(Output::Status("starting".into()));
     let prompt = PasswordPrompt::default();
     let opening = open(
         &host,
@@ -79,7 +80,7 @@ async fn run(
     else {
         return Ok(());
     };
-    let _ = output.send(Output::Status("Connesso".into()));
+    let _ = output.send(Output::Status("connected".into()));
     if !buffered.is_empty() {
         let _ = output.send(Output::Data(buffered));
     }
@@ -101,12 +102,12 @@ async fn run(
                 Some(Input::Data(bytes))=>channel.data(&bytes[..]).await?,
                 Some(Input::Resize(cols,rows))=>channel.window_change(cols,rows,0,0).await?,
                 Some(Input::Password(_))=>{}
-                Some(Input::Close)|None=>{let _=channel.close().await;let _=output.send(Output::Log("Connessione chiusa dall’utente".into()));break;}
+                Some(Input::Close)|None=>{let _=channel.close().await;let _=output.send(Output::Log(msg!("log.network.closedByUser")));break;}
             },
             msg=channel.wait()=>match msg{
                 Some(ChannelMsg::Data{data})|Some(ChannelMsg::ExtendedData{data,..})=>{if output.send(Output::Data(data.to_vec())).is_err(){break;}},
                 Some(ChannelMsg::Failure)=>return Err(TerminalError::ShellRefused),
-                Some(ChannelMsg::Close)|None=>{let _=output.send(Output::Log("Connessione chiusa dal server".into()));break;},
+                Some(ChannelMsg::Close)|None=>{let _=output.send(Output::Log(msg!("log.network.closedByServer")));break;},
                 _=>{}
             }
         }
@@ -155,8 +156,9 @@ fn publish_metadata(
                 }));
             }
             Err(error) => {
-                let _ = output.send(Output::Error(format!(
-                    "Connessione attiva, ma aggiornamento metadati non riuscito: {error}"
+                let _ = output.send(Output::Error(msg!(
+                    "session.metadataFailed",
+                    reason = error.to_string()
                 )));
             }
         }
@@ -188,7 +190,7 @@ pub(crate) fn register(
             output: output.clone(),
         };
         if let Err(e) = run(app, vault_id, saved, host, rx, &output).await {
-            let _ = output.send(Output::Error(e.to_string()));
+            let _ = output.send(Output::Error(coded("terminal", &e)));
         }
     });
     Ok(())
@@ -299,7 +301,7 @@ mod tests {
             ),
             typing
         );
-        assert_eq!(result.unwrap_err().to_string(), "Timeout connessione SSH");
+        assert_eq!(result.unwrap_err().to_string(), "SSH connection timed out");
         let since = answered.lock().unwrap().unwrap().elapsed();
         assert!(
             since >= LIMIT - Duration::from_millis(20),
@@ -313,7 +315,7 @@ mod tests {
         let never = || std::future::pending::<Result<u8, TerminalError>>();
         let started = Instant::now();
         let result = until_open(never(), &prompt, &mut rx, LIMIT).await;
-        assert_eq!(result.unwrap_err().to_string(), "Timeout connessione SSH");
+        assert_eq!(result.unwrap_err().to_string(), "SSH connection timed out");
         assert!(started.elapsed() >= LIMIT);
         tx.send(Input::Close).unwrap();
         assert!(matches!(

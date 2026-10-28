@@ -1,65 +1,71 @@
 //! Errors of SSH sessions, host key probing and the local PTY.
 /// Why a terminal session, a local PTY or a host key check failed. The messages are shown to the user.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, serde::Serialize)]
+#[serde(tag = "code", content = "params")]
 pub(crate) enum TerminalError {
     #[error("{0}")]
+    #[serde(serialize_with = "crate::error::as_text")]
     Ssh(#[from] russh::Error),
     #[error("{0}")]
+    #[serde(serialize_with = "crate::error::as_text")]
     Key(#[from] russh::keys::Error),
     #[error("{0}")]
+    #[serde(serialize_with = "crate::error::as_text")]
     Io(#[from] std::io::Error),
     // The PTY library reports opaque errors; only their text is kept.
     #[error("{0}")]
     Pty(String),
     #[cfg(unix)]
     #[error("{0}")]
+    #[serde(serialize_with = "crate::error::as_text")]
     Errno(#[from] nix::errno::Errno),
     #[cfg(unix)]
-    #[error("PTY locale senza descrittore nativo")]
+    #[error("Local PTY without a native descriptor")]
     NoPtyDescriptor,
-    #[error("Timeout durante la verifica del server")]
+    #[error("Timed out while checking the server")]
     ProbeTimeout,
-    #[error("Impronta non disponibile")]
+    #[error("Fingerprint not available")]
     FingerprintUnavailable,
-    #[error("Timeout connessione SSH")]
+    #[error("SSH connection timed out")]
     ConnectTimeout,
     #[error(
-        "Identità del server cambiata. Connessione bloccata: verifica la nuova impronta fuori dall’app."
+        "The server identity has changed. Connection blocked: check the new fingerprint outside the app."
     )]
     ServerKeyChanged,
     #[error("{}", refusal_text(.0))]
+    #[serde(serialize_with = "refusal")]
     AuthRefused(Vec<&'static str>),
-    #[error("Autenticazione annullata")]
+    #[error("Authentication cancelled")]
     AuthCancelled,
-    #[error("Password non accettata dopo {0} tentativi.")]
+    #[error("Password not accepted after {0} attempts.")]
     PasswordsExhausted(usize),
-    #[error("Risposta iniziale del server troppo grande")]
+    #[error("Initial server response too large")]
     InitialOutputTooLarge,
-    #[error("Il server ha rifiutato terminale o shell")]
+    #[error("The server refused the terminal or shell")]
     ShellRefused,
-    #[error("Il server ha chiuso la connessione prima di aprire la shell")]
+    #[error("The server closed the connection before opening the shell")]
     ClosedBeforeShell,
-    #[error("Identificativo sessione non valido")]
+    #[error("Invalid session identifier")]
     SessionIdInvalid,
-    #[error("Identificativo sessione non valido o già aperto")]
+    #[error("Invalid or already open session identifier")]
     SessionIdInvalidOrOpen,
-    #[error("Sessione già aperta")]
+    #[error("Session already open")]
     SessionOpen,
-    #[error("Sessione locale già aperta")]
+    #[error("Local session already open")]
     LocalSessionOpen,
-    #[error("Sessione chiusa")]
+    #[error("Session closed")]
     SessionClosed,
-    #[error("Impronta non valida")]
+    #[error("Invalid fingerprint")]
     FingerprintInvalid,
-    #[error("Questo host ha già un’impronta salvata")]
+    #[error("This host already has a saved fingerprint")]
     FingerprintAlreadySaved,
-    #[error("La destinazione è cambiata. Ripeti la verifica dell’impronta.")]
+    #[error("The destination has changed. Verify the fingerprint again.")]
     DestinationChanged,
-    #[error("Password troppo lunga")]
+    #[error("Password too long")]
     PasswordTooLong,
-    #[error("Invia al massimo 64 KiB per messaggio al terminale")]
+    #[error("Send at most 64 KiB per message to the terminal")]
     InputTooLarge,
-    #[error("Indirizzo non valido")]
+    #[error("Invalid address")]
     UrlInvalid,
 }
 impl TerminalError {
@@ -71,20 +77,37 @@ impl TerminalError {
 // What the server still accepts, so the user sees why key and password were both refused.
 fn refusal_text(methods: &[&'static str]) -> String {
     if methods.is_empty() {
-        return "Autenticazione fallita".into();
+        return "Authentication failed".into();
     }
-    let unsupported = methods
-        .iter()
-        .any(|m| !matches!(*m, "password" | "publickey"));
     format!(
-        "Autenticazione fallita. Metodi accettati dal server: {}.{}",
+        "Authentication failed. Methods accepted by the server: {}.{}",
         methods.join(", "),
-        if unsupported {
-            " Shellnest supporta solo chiave e password."
+        if has_unsupported(methods) {
+            " Shellnest only supports key and password."
         } else {
             ""
         }
     )
+}
+fn has_unsupported(methods: &[&str]) -> bool {
+    methods
+        .iter()
+        .any(|m| !matches!(*m, "password" | "publickey"))
+}
+// The UI picks the sentence by `context`: none, or a method Shellnest cannot use.
+fn refusal<S: serde::Serializer>(
+    methods: &[&'static str],
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    use serde::ser::SerializeMap;
+    let mut map = serializer.serialize_map(None)?;
+    map.serialize_entry("methods", &methods.join(", "))?;
+    if methods.is_empty() {
+        map.serialize_entry("context", "none")?;
+    } else if has_unsupported(methods) {
+        map.serialize_entry("context", "unsupported")?;
+    }
+    map.end()
 }
 
 #[cfg(test)]
@@ -94,15 +117,15 @@ mod tests {
     fn a_refusal_names_what_the_server_accepts() {
         assert_eq!(
             TerminalError::AuthRefused(vec![]).to_string(),
-            "Autenticazione fallita"
+            "Authentication failed"
         );
         assert_eq!(
             TerminalError::AuthRefused(vec!["password", "publickey"]).to_string(),
-            "Autenticazione fallita. Metodi accettati dal server: password, publickey."
+            "Authentication failed. Methods accepted by the server: password, publickey."
         );
         assert_eq!(
             TerminalError::AuthRefused(vec!["keyboard-interactive"]).to_string(),
-            "Autenticazione fallita. Metodi accettati dal server: keyboard-interactive. Shellnest supporta solo chiave e password."
+            "Authentication failed. Methods accepted by the server: keyboard-interactive. Shellnest only supports key and password."
         );
     }
 }

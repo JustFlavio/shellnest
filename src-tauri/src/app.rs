@@ -12,7 +12,7 @@ fn claim_instance(path: &Path) -> std::io::Result<std::fs::File> {
         .open(path)?;
     file.try_lock().map_err(|e| {
         std::io::Error::other(format!(
-            "Impossibile aprire il vault locale: chiudi le altre istanze di Shellnest. {e}"
+            "Cannot open the local vault: close the other instances of Shellnest. {e}"
         ))
     })?;
     Ok(file)

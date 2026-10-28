@@ -1,5 +1,5 @@
 //! What the UI and the session task send each other: `Input` in, `Output` out.
-use crate::model::Redacted;
+use crate::{message::Message, model::Redacted};
 use serde::Serialize;
 use zeroize::Zeroizing;
 
@@ -25,13 +25,14 @@ impl std::fmt::Debug for Input {
 #[serde(tag = "type", content = "data", rename_all = "lowercase")]
 pub(crate) enum Output {
     Data(Vec<u8>),
+    // The stage the connection reached: a code, never text.
     Status(String),
     // Authentication needs a password from the user; true when the previous one was refused.
     #[serde(rename = "password")]
     PasswordNeeded(bool),
-    Error(String),
-    // One line of the connection log: plain text, never a secret.
-    Log(String),
+    Error(Message),
+    // One line of the connection log: a message code with parameters, never a secret.
+    Log(Message),
     // The outcome of a timeline step; `warn` marks a partial result that must not look like a success.
     Detail(StepDetail),
     Metadata(ConnectionMetadata),
@@ -41,7 +42,7 @@ pub(crate) enum Output {
 pub(crate) struct StepDetail {
     pub step: String,
     pub warn: bool,
-    pub text: String,
+    pub text: Message,
 }
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

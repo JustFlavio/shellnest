@@ -7,6 +7,7 @@ mod local;
 mod locks;
 #[cfg(target_os = "macos")]
 mod menu;
+mod message;
 mod model;
 mod state;
 mod sync;
