@@ -25,6 +25,8 @@ export function useHostAutosave(
   const failed = useRef<HostDraft | null>(null);
   const pending = useRef<Promise<Host> | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [initial, setInitial] = useState(draft);
+  if (draft && draft.id !== initial?.id) setInitial(draft);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -81,7 +83,7 @@ export function useHostAutosave(
   const dirty =
     !!draft &&
     draft !== acknowledged.current &&
-    hostDraftIsDirty(draft, stored);
+    hostDraftIsDirty(draft, stored, initial ?? undefined);
   useEffect(() => {
     if (
       !draft ||

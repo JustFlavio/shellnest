@@ -37,7 +37,12 @@ export function hostDraftIsValid(
   );
 }
 
-export function hostDraftIsDirty(draft: HostDraft, stored?: Host) {
+// `initial` is the draft a new host opened with: the folder and inherited identity the page preset are not an edit.
+export function hostDraftIsDirty(
+  draft: HostDraft,
+  stored?: Host,
+  initial?: HostDraft,
+) {
   const credentials = draft.credentials ?? {
     username: draft.username ?? "",
     password: "",
@@ -51,14 +56,10 @@ export function hostDraftIsDirty(draft: HostDraft, stored?: Host) {
       ? (["name", "address", "ownPort", "groupId", "identityId"] as const).some(
           (key) => draft[key] !== stored[key],
         ) || !!draft.inheritIdentity !== hostInheritsIdentity(stored)
-      : !!(
-          draft.name ||
-          draft.address ||
-          draft.groupId ||
-          draft.identityId ||
-          draft.inheritIdentity ||
-          draft.ownPort !== null
-        ))
+      : !!(draft.name || draft.address || draft.identityId) ||
+        draft.ownPort !== null ||
+        draft.groupId !== (initial?.groupId ?? "") ||
+        !!draft.inheritIdentity !== !!initial?.inheritIdentity)
   );
 }
 

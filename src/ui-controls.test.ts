@@ -531,6 +531,29 @@ test("draft validation requires its own password or an explicit shared identity"
   );
 });
 
+test("a new host is dirty only past what its page preset", () => {
+  const preset = {
+    ...hostOf({
+      id: "n",
+      name: "",
+      address: "",
+      ownPort: null,
+      groupId: "folder",
+    }),
+    inheritIdentity: true,
+  };
+  assert.equal(hostDraftIsDirty(preset, undefined, preset), false);
+  assert.equal(hostDraftIsDirty(preset, undefined), true);
+  assert.equal(
+    hostDraftIsDirty({ ...preset, name: "API" }, undefined, preset),
+    true,
+  );
+  assert.equal(
+    hostDraftIsDirty({ ...preset, groupId: "" }, undefined, preset),
+    true,
+  );
+});
+
 test("preview CRUD uses isolated snapshots, preserves references and discards secrets", async () => {
   const invoke = previewInvoke();
   let view = await invoke("status");
