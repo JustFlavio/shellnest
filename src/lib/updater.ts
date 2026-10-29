@@ -1,4 +1,3 @@
-import { invoke } from "@tauri-apps/api/core";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check } from "@tauri-apps/plugin-updater";
 import { desktop } from "./platform";
@@ -12,8 +11,6 @@ export type PendingUpdate = {
   ) => Promise<void>;
   /** Windows: this quits the app and the installer restarts it. macOS: call `relaunch` afterwards. */
   install: () => Promise<void>;
-  /** Set when this install cannot replace itself (a Linux .deb): the page to download the new version from. */
-  manualUrl?: string;
 };
 
 export type Updater = {
@@ -22,18 +19,13 @@ export type Updater = {
 };
 
 const CHECK_TIMEOUT_MS = 15000;
-const RELEASES_URL = "https://github.com/JustFlavio/shellnest/releases/latest";
 
 const tauriUpdater: Updater = {
   async check() {
     const update = await check({ timeout: CHECK_TIMEOUT_MS });
     if (!update) return null;
-    const manualUrl = (await invoke<boolean>("can_self_update"))
-      ? undefined
-      : RELEASES_URL;
     return {
       version: update.version,
-      manualUrl,
       async download(onProgress) {
         let done = 0;
         let total: number | undefined;

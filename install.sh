@@ -1,6 +1,6 @@
 #!/bin/sh
 # Installs the latest Shellnest AppImage for the current user and adds it to the application menu.
-# It stays an AppImage, so the in-app updater keeps working (a .deb cannot update itself).
+# It stays an AppImage, so the in-app updater replaces it without asking for a password.
 #   curl -fsSL https://raw.githubusercontent.com/JustFlavio/shellnest/main/install.sh | sh
 set -eu
 
