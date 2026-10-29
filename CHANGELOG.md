@@ -2,6 +2,12 @@
 
 All notable changes are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/). Versions below 1.0.0 may change in incompatible ways.
 
+## [0.1.4] - Unreleased
+
+### Changed
+
+- Windows and Linux shortcuts: eight actions no longer need `Ctrl+Alt+Shift`. New folder is `Ctrl+Shift+O`, search the collection `Ctrl+Shift+F`, lock the vault `Ctrl+Shift+X`, close all panels `Ctrl+Shift+Q`, reopen a tab `Ctrl+Shift+Z`, split down `Ctrl+Shift+E`, move a tab `Ctrl+Shift+PageUp/PageDown`, and the previous/next panel is `Alt+arrows` (`Ctrl+Alt+arrows` switch desktops on Ubuntu). A shortcut you rebound keeps your choice; macOS is unchanged.
+
 ## [0.1.3] - 2026-10-29
 
 ### Added

@@ -42,7 +42,7 @@ export function usePreferences() {
       return {};
     }
   });
-  const bindings = useMemo(() => resolve(overrides), [overrides]);
+  const bindings = useMemo(() => resolve(overrides, mac), [overrides]);
   return {
     appSettings,
     saveSettings: (next: AppSettings) => {

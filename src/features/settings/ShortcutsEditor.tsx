@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { muted, shortcutList } from "@/lib/editor-ui";
 import {
   SHORTCUTS,
+  defaultCombos,
   comboFromEvent,
   findConflict,
   format,
@@ -40,7 +41,11 @@ export function ShortcutsEditor({
     combo: Combo;
     with: Binding;
   } | null>(null);
-  const defaults = (id: string) => SHORTCUTS.find((s) => s.id === id)!.combos;
+  const defaults = (id: string) =>
+    defaultCombos(
+      SHORTCUTS.find((s) => s.id === id)!,
+      mac,
+    );
 
   const assign = (next: Overrides, id: string, combos: Combo[]) => {
     const out = { ...next };
