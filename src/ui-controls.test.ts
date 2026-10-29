@@ -695,9 +695,16 @@ test("preview vaults switch, lock and unlock without losing or mixing data", asy
   assert.equal(view.vaultName, "Test");
 });
 
-const { selectionBounds, selectInRectangle } =
+const { selectionBounds, selectInRectangle, clampPoint } =
   await import("./features/hosts/CollectionSelection.tsx");
 const { HostSummary } = await import("./features/hosts/HostSummary.tsx");
+
+test("the selection rectangle stays inside the area that lists the hosts", () => {
+  const area = { left: 200, top: 250, right: 1000, bottom: 700 };
+  assert.deepEqual(clampPoint({ x: 500, y: 400 }, area), { x: 500, y: 400 });
+  assert.deepEqual(clampPoint({ x: 50, y: 100 }, area), { x: 200, y: 250 });
+  assert.deepEqual(clampPoint({ x: 1200, y: 900 }, area), { x: 1000, y: 700 });
+});
 
 test("rectangle selection works in every direction, intersects items and keeps folders out of host actions", () => {
   const bounds = selectionBounds({ x: 100, y: 100 }, { x: 10, y: 10 });
