@@ -70,6 +70,7 @@ export function TerminalPane({
   onMetadata,
   onClose,
   onRetry,
+  onReconnect,
   onEdit,
 }: {
   tab: TerminalTab;
@@ -88,6 +89,7 @@ export function TerminalPane({
   onDragPane?: (dragging: boolean) => void;
   onClose: () => void;
   onRetry: () => void;
+  onReconnect: () => void;
   onEdit?: () => void;
 } & SessionCallbacks) {
   const { t } = useTranslation();
@@ -136,6 +138,7 @@ export function TerminalPane({
         split={split}
         onDragPane={onDragPane}
         onClose={onClose}
+        onReconnect={onReconnect}
       />
       <div
         ref={container}
