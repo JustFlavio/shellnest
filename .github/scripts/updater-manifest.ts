@@ -11,6 +11,7 @@ export const REQUIRED_PLATFORMS = [
   "darwin-aarch64",
   "darwin-x86_64",
   "windows-x86_64",
+  "linux-x86_64",
 ];
 
 /** The platforms missing from the manifest; "darwin-aarch64-app" counts as "darwin-aarch64". */

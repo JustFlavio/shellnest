@@ -331,7 +331,7 @@
       "connectDevice": "Connect device",
       "createLocalVault": "Create local vault",
       "exploreShellnest": "Explore Shellnest",
-      "openSourceSshClient": "Open source SSH client for Windows and macOS, with optional self-hosted sync.",
+      "openSourceSshClient": "Open source SSH client for Windows, macOS and Linux, with optional self-hosted sync.",
       "savedOnTheDevice": "Saved on the device, encrypted.",
       "wait": "Wait…",
       "unlock": "Unlock",

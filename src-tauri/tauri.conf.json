@@ -35,7 +35,7 @@
     "licenseFile": "../LICENSE",
     "category": "DeveloperTool",
     "shortDescription": "SSH client with encrypted vaults",
-    "longDescription": "Shellnest is a desktop SSH client for Windows and macOS: hosts, identities and keys in an encrypted local vault, tabbed terminals with split panes, and optional self-hosted sync.",
+    "longDescription": "Shellnest is a desktop SSH client for Windows, macOS and Linux: hosts, identities and keys in an encrypted local vault, tabbed terminals with split panes, and optional self-hosted sync.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

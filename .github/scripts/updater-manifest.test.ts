@@ -7,13 +7,14 @@ import {
   retarget,
 } from "./updater-manifest.ts";
 
-test("a manifest with all three platforms is complete, with or without a bundle suffix", () => {
+test("a manifest with all four platforms is complete, with or without a bundle suffix", () => {
   assert.deepEqual(
     missingPlatforms({
       platforms: {
         "darwin-aarch64": {},
         "darwin-x86_64-app": {},
         "windows-x86_64-nsis": {},
+        "linux-x86_64-appimage": {},
       },
     }),
     [],
@@ -24,8 +25,9 @@ test("missing platforms are listed", () => {
   assert.deepEqual(missingPlatforms({ platforms: { "darwin-aarch64": {} } }), [
     "darwin-x86_64",
     "windows-x86_64",
+    "linux-x86_64",
   ]);
-  assert.equal(missingPlatforms({}).length, 3);
+  assert.equal(missingPlatforms({}).length, 4);
 });
 
 test("only a strictly higher version is newer", () => {
@@ -44,18 +46,26 @@ test("a latest/download URL is rewritten to the tag, others are left alone", () 
         signature: "sig",
         url: "https://github.com/o/r/releases/latest/download/a.app.tar.gz",
       },
+      "linux-x86_64": {
+        signature: "sig",
+        url: "https://github.com/o/r/releases/latest/download/c.AppImage",
+      },
       "windows-x86_64": {
         signature: "sig",
         url: "https://github.com/o/r/releases/download/v0.1.1/b.exe",
       },
     },
   };
-  assert.deepEqual(latestUrls(manifest), ["darwin-aarch64"]);
+  assert.deepEqual(latestUrls(manifest), ["darwin-aarch64", "linux-x86_64"]);
   const fixed = retarget(manifest, "v0.1.1");
   assert.deepEqual(latestUrls(fixed), []);
   assert.equal(
     fixed.platforms?.["darwin-aarch64"]?.url,
     "https://github.com/o/r/releases/download/v0.1.1/a.app.tar.gz",
+  );
+  assert.equal(
+    fixed.platforms?.["linux-x86_64"]?.url,
+    "https://github.com/o/r/releases/download/v0.1.1/c.AppImage",
   );
   assert.equal(
     fixed.platforms?.["windows-x86_64"]?.url,

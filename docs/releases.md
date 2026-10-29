@@ -4,9 +4,11 @@
 
 1. Set the new version in `package.json` and `src-tauri/Cargo.toml`, move the `CHANGELOG.md` entry from "Unreleased" to the version, and commit.
 2. Tag the commit `vX.Y.Z` (it must equal the `package.json` version, the workflow checks) and push the tag.
-3. `.github/workflows/release.yml` creates **one draft pre-release**, then builds macOS arm64, macOS x64 and Windows in parallel and uploads the installers, their `.sig` signatures and a `latest.json` into it. The first job stops while the updater key is still a placeholder (see below).
+3. `.github/workflows/release.yml` creates **one draft pre-release**, then builds macOS arm64, macOS x64, Windows and Linux x86_64 (on `ubuntu-22.04`, for an older glibc) in parallel and uploads the installers, their `.sig` signatures and a `latest.json` into it. The first job stops while the updater key is still a placeholder (see below).
 4. Open the draft, try an installer, and **publish** it. Publishing is the go-live moment.
 5. Publishing triggers `.github/workflows/updater-manifest.yml`, which copies that release's `latest.json` to the permanent `updater` release. Installed apps read it from there.
+
+Linux ships a `.deb` and an AppImage. Only the AppImage is an updater artifact (`linux-x86_64`): an installed `.deb` does not self-update, the user installs the new `.deb`. The `bundle-linux` job in `ci.yml` builds both on every pull request (without updater artifacts) so a broken bundle shows up before a release.
 
 Installers are not code-signed (no Apple or Windows certificate). That is separate from the update signature below.
 
@@ -18,7 +20,7 @@ GitHub's own `releases/latest/download/…` only resolves to the newest release 
 
 The asset URLs inside `latest.json` have the same problem: tauri-action writes them as `releases/latest/download/…`, so the manifest workflow rewrites them to `releases/download/<tag>/…` (`updater-manifest.ts retarget`) before it uploads the file. Without that step the update is found but the download is a 404.
 
-The workflow refuses to replace the manifest with an older or equal version, and fails if the manifest misses a platform (`darwin-aarch64`, `darwin-x86_64`, `windows-x86_64`). The three build jobs each merge their platform into the release's `latest.json`; if one of them raced and a platform is missing, re-run that build job and then re-run the manifest workflow.
+The workflow refuses to replace the manifest with an older or equal version, and fails if the manifest misses a platform (`darwin-aarch64`, `darwin-x86_64`, `windows-x86_64`, `linux-x86_64`). The four build jobs each merge their platform into the release's `latest.json`; if one of them raced and a platform is missing, re-run that build job and then re-run the manifest workflow.
 
 Until the repository is public, the endpoint returns 404 for everyone, so the real path cannot be tested. A pre-release check from the app then reads "Controllo non riuscito: nessun elenco di aggiornamenti trovato sul server".
 

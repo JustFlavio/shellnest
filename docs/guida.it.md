@@ -2,11 +2,11 @@
 
 Guida dettagliata in italiano. Per una panoramica in inglese vedi il [README](../README.md).
 
-Client SSH open source per utenti individuali su Windows e macOS, con sincronizzazione self-hosted opzionale. Nessun account necessario per l'uso locale. Versione alpha.
+Client SSH open source per utenti individuali su Windows, macOS e Linux, con sincronizzazione self-hosted opzionale. Nessun account necessario per l'uso locale. Versione alpha.
 
 ## Avvio
 
-Servono Node.js 22.18+, Rust e i prerequisiti Tauri 2 (su Windows: Visual Studio C++ Build Tools e WebView2; su macOS: Xcode Command Line Tools). SSH usa russh con backend ring, senza richiedere OpenSSL o Perl. Riferimento: https://v2.tauri.app/start/prerequisites/.
+Servono Node.js 22.18+, Rust e i prerequisiti Tauri 2 (su Windows: Visual Studio C++ Build Tools e WebView2; su macOS: Xcode Command Line Tools; su Ubuntu: `libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libdbus-1-dev libxdo-dev pkg-config patchelf`). SSH usa russh con backend ring, senza richiedere OpenSSL o Perl. Riferimento: https://v2.tauri.app/start/prerequisites/.
 
 ```sh
 npm ci

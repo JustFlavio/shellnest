@@ -47,6 +47,10 @@ keyring = { version = "3", default-features = false, features = ["apple-native"]
 [target.'cfg(target_os = "windows")'.dependencies]
 keyring = { version = "3", default-features = false, features = ["windows-native"] }
 
+# Secret Service over D-Bus (GNOME Keyring, KWallet). Without a running service the calls fail and the app asks for the password.
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3", default-features = false, features = ["sync-secret-service", "crypto-rust"] }
+
 [profile.release]
 strip = true
 lto = true

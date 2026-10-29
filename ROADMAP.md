@@ -1,6 +1,6 @@
 # Product roadmap
 
-Goal: an open source SSH client for individual users on Windows and macOS, with reusable credentials and optional self-hosted sync. The initial use case is the daily management of about thirty servers. Feature parity between the two systems and full keyboard use are requirements.
+Goal: an open source SSH client for individual users on Windows, macOS and Linux, with reusable credentials and optional self-hosted sync. The initial use case is the daily management of about thirty servers. Feature parity between the systems and full keyboard use are requirements.
 
 ## 1. Daily flow — implemented, visual verification pending
 
@@ -14,7 +14,7 @@ Goal: an open source SSH client for individual users on Windows and macOS, with 
 - [x] Automated tests for vault separation, migration, connection parsing, SSH and PTY.
 - [x] UX review: destination and identity visible in tabs, selection separate from connecting, folders in navigation and a filter for small windows, protection of form edits and a shortcuts guide.
 - [x] Flows checked in the browser preview on Windows: creating hosts/identities, returning to forms, multi-select, filters and search. The demo uses synthetic data, without SSH or encryption.
-- [ ] Visual check in the desktop WebView on Windows and macOS; screen reader test and a full keyboard-flow check on both systems.
+- [ ] Visual check in the desktop WebView on Windows, macOS and Linux; screen reader test and a full keyboard-flow check on each system. Linux: CI builds, lints and tests it and builds the `.deb` and AppImage, but nobody has run the app on a real desktop yet (window resize edges, Secret Service prompt).
 
 Boundaries: switching or locking a vault closes the sessions, after confirmation when there are any. Vault names are local metadata visible before unlocking; credentials stay encrypted. The initial recents are the saved hosts with a successful last access: commands and terminal output are never recorded. The sync service is personal, with no multi-user sharing.
 
