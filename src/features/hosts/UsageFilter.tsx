@@ -11,7 +11,7 @@ export function UsageFilter() {
   if (!usage || page !== "hosts") return null;
   return (
     <div className="mx-[22px] mt-[12px] flex shrink-0 items-center gap-[10px] rounded-[7px] border border-input bg-card px-[10px] py-[6px] text-[12px]">
-      t("hosts.usageFilter.hostsLinkedTo") <strong>{usage.label}</strong>
+      {t("hosts.usageFilter.hostsLinkedTo")} <strong>{usage.label}</strong>
       <Button
         variant="ghost"
         type="button"

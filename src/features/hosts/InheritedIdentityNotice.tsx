@@ -23,7 +23,7 @@ export function InheritedIdentityNotice({
     <div className={inheritedBox}>
       <ContactRound aria-hidden="true" />
       <span>
-        t("hosts.bulkAssignDialog.identity"){" "}
+        {t("hosts.bulkAssignDialog.identity")}{" "}
         <strong>{identity?.name ?? "—"}</strong>
         {identity ? ` (${identity.username})` : ""} dal gruppo{" "}
         <strong>{groupPath(groups, folder.id)}</strong>

@@ -82,12 +82,12 @@ export function VaultToolbar() {
             <DropdownMenuContent align="start" className="min-w-56">
               <DropdownMenuItem onClick={createNew}>
                 <Plus size={14} />
-                t("hosts.hostEditor.newHost")
+                {t("hosts.hostEditor.newHost")}
                 <DropdownMenuShortcut>{hint("newHost")}</DropdownMenuShortcut>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={newFolder}>
                 <FolderPlus size={14} />
-                t("hosts.vaultToolbar.newFolder")
+                {t("hosts.vaultToolbar.newFolder")}
                 <DropdownMenuShortcut>{hint("newFolder")}</DropdownMenuShortcut>
               </DropdownMenuItem>
             </DropdownMenuContent>

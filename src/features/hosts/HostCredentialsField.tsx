@@ -127,7 +127,7 @@ export function HostCredentialsField({
         <div className={selectedHostIdentity}>
           <ContactRound aria-hidden="true" />
           <span>
-            t("hosts.hostCredentialsField.identity"){" "}
+            {t("hosts.hostCredentialsField.identity")}{" "}
             <strong>{selected.name}</strong>
           </span>
           <Button

@@ -82,18 +82,18 @@ export function SessionTab({ tab }: { tab: TerminalTab }) {
       <DropdownMenuSeparator />
       <DropdownMenuItem onClick={() => splitTab(tab.id, "row")}>
         <Columns2 size={13} />
-        t("terminal.sessionTab.splitVertically")
+        {t("terminal.sessionTab.splitVertically")}
         <DropdownMenuShortcut>{hint("splitRight")}</DropdownMenuShortcut>
       </DropdownMenuItem>
       <DropdownMenuItem onClick={() => splitTab(tab.id, "col")}>
         <Rows2 size={13} />
-        t("terminal.sessionTab.splitHorizontally")
+        {t("terminal.sessionTab.splitHorizontally")}
         <DropdownMenuShortcut>{hint("splitDown")}</DropdownMenuShortcut>
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem onClick={() => askCloseTab(tab.id)}>
         <X size={13} />
-        t("terminal.connectionTimeline.close")
+        {t("terminal.connectionTimeline.close")}
         <DropdownMenuShortcut>
           {hint(tab.layout ? "closeWorkspace" : "closePane")}
         </DropdownMenuShortcut>

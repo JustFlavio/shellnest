@@ -103,7 +103,7 @@ export function KeyEditor({
           {existing && (
             <>
               <div className="mt-[10px] flex flex-col gap-[7px] text-[12px] text-muted-foreground">
-                t("hosts.collectionTables.publicFingerprint")
+                {t("hosts.collectionTables.publicFingerprint")}
                 <code className={fingerprint}>
                   {existing.fingerprint ||
                     t("hosts.keyEditor.notVerifiedImportThe")}
