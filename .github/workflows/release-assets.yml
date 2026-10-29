@@ -1,0 +1,38 @@
+name: Release assets
+# Runs when the draft is published by hand (the go-live moment). It checks that latest.json,
+# which the app reads at releases/latest/download/latest.json, has every platform, and adds
+# copies of the installers without the version in the name (and a SHA256SUMS) to the same
+# release, so the README and install.sh can link to releases/latest/download/<file>.
+on:
+  release:
+    types: [published]
+
+jobs:
+  assets:
+    if: startsWith(github.event.release.tag_name, 'v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Check that latest.json has every platform
+        run: |
+          gh release download "$TAG" --pattern latest.json --dir manifest
+          node .github/scripts/updater-manifest.ts check manifest/latest.json "${TAG#v}"
+      - name: Add the copies without the version in the name
+        run: |
+          mkdir stable
+          gh release download "$TAG" --dir stable --pattern '*.dmg' --pattern '*.exe' --pattern '*.msi' --pattern '*.deb' --pattern '*.AppImage'
+          cd stable
+          for f in Shellnest_*; do
+            mv "$f" "$(echo "$f" | sed -E "s/^Shellnest_${TAG#v}_/Shellnest_/; s/_en-US//")"
+          done
+          sha256sum Shellnest_* > SHA256SUMS
+          gh release upload "$TAG" Shellnest_* SHA256SUMS --clobber

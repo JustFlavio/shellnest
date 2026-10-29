@@ -4,9 +4,9 @@
 
 1. Set the new version in `package.json` and `src-tauri/Cargo.toml`, move the `CHANGELOG.md` entry from "Unreleased" to the version, and commit.
 2. Tag the commit `vX.Y.Z` (it must equal the `package.json` version, the workflow checks) and push the tag.
-3. `.github/workflows/release.yml` creates **one draft pre-release**, then builds macOS arm64, macOS x64, Windows and Linux x86_64 (on `ubuntu-22.04`, for an older glibc) in parallel and uploads the installers, their `.sig` signatures and a `latest.json` into it. The draft body is a fixed sentence followed by the pull requests merged since the last release, which GitHub generates (grouped by label as `.github/release.yml` says: `enhancement`, `bug`, `documentation`, `dependencies`); read and edit it before publishing. `CHANGELOG.md` stays the hand-written summary. The first job stops while the updater key is still a placeholder (see below).
+3. `.github/workflows/release.yml` creates **one draft release**, then builds macOS arm64, macOS x64, Windows and Linux x86_64 (on `ubuntu-22.04`, for an older glibc) in parallel and uploads the installers, their `.sig` signatures and a `latest.json` into it. The draft body is a fixed sentence followed by the pull requests merged since the last release, which GitHub generates (grouped by label as `.github/release.yml` says: `enhancement`, `bug`, `documentation`, `dependencies`); read and edit it before publishing. `CHANGELOG.md` stays the hand-written summary. The first job stops while the updater key is still a placeholder (see below).
 4. Open the draft, try an installer, and **publish** it. Publishing is the go-live moment.
-5. Publishing triggers `.github/workflows/updater-manifest.yml`, which copies that release's `latest.json` to the permanent `updater` release. Installed apps read it from there. The same step uploads the installers there without the version in the name (`Shellnest_aarch64.dmg`, `Shellnest_amd64.deb`, …) and a `SHA256SUMS`: the README table and `install.sh` link to those, so the links never change.
+5. Publishing triggers `.github/workflows/release-assets.yml`: it checks that `latest.json` has every platform and uploads the installers without the version in the name (`Shellnest_aarch64.dmg`, `Shellnest_amd64.deb`, …) and a `SHA256SUMS` to the same release. The README table and `install.sh` link to those through `releases/latest/download/`, so the links never change.
 
 Linux ships a `.deb` and an AppImage. Only the AppImage is an updater artifact (`linux-x86_64`): an installed `.deb` does not self-update: the app detects it (no `APPIMAGE` variable, command `can_self_update`), and its update toast opens the releases page instead of downloading. The `bundle-linux` job in `ci.yml` builds both on every pull request (without updater artifacts) so a broken bundle shows up before a release.
 
@@ -14,15 +14,20 @@ Installers are not code-signed (no Apple or Windows certificate). That is separa
 
 ## How the app finds updates
 
-The app asks `https://github.com/JustFlavio/shellnest/releases/download/updater/latest.json` (`plugins.updater.endpoints` in `src-tauri/tauri.conf.json`).
+The app asks `https://github.com/JustFlavio/shellnest/releases/latest/download/latest.json` (`plugins.updater.endpoints` in `src-tauri/tauri.conf.json`). GitHub resolves `releases/latest` to the newest release that is neither a draft nor a pre-release, so releases are published as normal releases, not pre-releases (the alpha state is said in the release text and the README). A pre-release would never be found.
 
-GitHub's own `releases/latest/download/…` only resolves to the newest release that is neither a draft nor a pre-release. Shellnest 0.x releases are pre-releases, so that URL would never find them. The `updater` release has a fixed tag, is created once by the manifest workflow, is not marked "Latest" and never changes meaning: only its `latest.json` asset is replaced.
+`latest.json` is merged by the four build jobs, one platform each; if one raced and a platform is missing, re-run that build job and then the "Release assets" workflow, which fails when a platform (`darwin-aarch64`, `darwin-x86_64`, `windows-x86_64`, `linux-x86_64`) is missing.
 
-The asset URLs inside `latest.json` have the same problem: tauri-action writes them as `releases/latest/download/…`, so the manifest workflow rewrites them to `releases/download/<tag>/…` (`updater-manifest.ts retarget`) before it uploads the file. Without that step the update is found but the download is a 404.
+### Apps up to 0.1.2
 
-The workflow refuses to replace the manifest with an older or equal version, and fails if the manifest misses a platform (`darwin-aarch64`, `darwin-x86_64`, `windows-x86_64`, `linux-x86_64`). The four build jobs each merge their platform into the release's `latest.json`; if one of them raced and a platform is missing, re-run that build job and then re-run the manifest workflow.
+Those versions read `releases/download/updater/latest.json` from a permanent release with the tag `updater`. It is no longer maintained. After the first release published the new way, copy its manifest there once, so the old apps find it (the URLs inside it use `releases/latest/download/`, which works from then on):
 
-Until the repository is public, the endpoint returns 404 for everyone, so the real path cannot be tested. A pre-release check from the app then reads "Controllo non riuscito: nessun elenco di aggiornamenti trovato sul server".
+```sh
+gh release download vX.Y.Z --pattern latest.json --dir /tmp/manifest
+gh release upload updater /tmp/manifest/latest.json --clobber
+```
+
+Delete the `updater` release when no installed copy of 0.1.2 or older is left.
 
 The check contacts only GitHub and sends nothing from the vault.
 
@@ -72,7 +77,7 @@ Releases can no longer be signed with the old key, and installed apps trust only
 
 ### Leaked key
 
-Whoever holds the private key and can write to the `updater` release or the release assets could serve a malicious update. Treat it like a lost key: delete the GitHub secrets, generate a new pair, change `pubkey`, publish a release users install by hand, and tell them. Rotating cannot be done through the update channel itself, because the old, compromised key is what installed apps still trust.
+Whoever holds the private key and can write to the release assets could serve a malicious update. Treat it like a lost key: delete the GitHub secrets, generate a new pair, change `pubkey`, publish a release users install by hand, and tell them. Rotating cannot be done through the update channel itself, because the old, compromised key is what installed apps still trust.
 
 ## Trying an update locally
 

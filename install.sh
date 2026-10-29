@@ -4,7 +4,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/JustFlavio/shellnest/main/install.sh | sh
 set -eu
 
-BASE="https://github.com/JustFlavio/shellnest/releases/download/updater"
+BASE="https://github.com/JustFlavio/shellnest/releases/latest/download"
 FILE="Shellnest_amd64.AppImage"
 BIN="${HOME}/.local/bin"
 APPS="${XDG_DATA_HOME:-$HOME/.local/share}/applications"

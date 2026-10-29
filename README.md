@@ -30,12 +30,12 @@ Not implemented yet: SFTP, port forwarding, jump hosts, agent forwarding, keyboa
 
 ## Install
 
-| System                 | Download                                                                                                                                                                                                                |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| macOS, Apple Silicon   | [Shellnest_aarch64.dmg](https://github.com/JustFlavio/shellnest/releases/download/updater/Shellnest_aarch64.dmg)                                                                                                        |
-| macOS, Intel           | [Shellnest_x64.dmg](https://github.com/JustFlavio/shellnest/releases/download/updater/Shellnest_x64.dmg)                                                                                                                |
-| Windows 10/11 (64 bit) | [Shellnest_x64-setup.exe](https://github.com/JustFlavio/shellnest/releases/download/updater/Shellnest_x64-setup.exe) or [.msi](https://github.com/JustFlavio/shellnest/releases/download/updater/Shellnest_x64.msi)     |
-| Linux (Ubuntu, x86_64) | [Shellnest_amd64.AppImage](https://github.com/JustFlavio/shellnest/releases/download/updater/Shellnest_amd64.AppImage) or [.deb](https://github.com/JustFlavio/shellnest/releases/download/updater/Shellnest_amd64.deb) |
+| System                 | Download                                                                                                                                                                                                              |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS, Apple Silicon   | [Shellnest_aarch64.dmg](https://github.com/JustFlavio/shellnest/releases/latest/download/Shellnest_aarch64.dmg)                                                                                                       |
+| macOS, Intel           | [Shellnest_x64.dmg](https://github.com/JustFlavio/shellnest/releases/latest/download/Shellnest_x64.dmg)                                                                                                               |
+| Windows 10/11 (64 bit) | [Shellnest_x64-setup.exe](https://github.com/JustFlavio/shellnest/releases/latest/download/Shellnest_x64-setup.exe) or [.msi](https://github.com/JustFlavio/shellnest/releases/latest/download/Shellnest_x64.msi)     |
+| Linux (Ubuntu, x86_64) | [Shellnest_amd64.AppImage](https://github.com/JustFlavio/shellnest/releases/latest/download/Shellnest_amd64.AppImage) or [.deb](https://github.com/JustFlavio/shellnest/releases/latest/download/Shellnest_amd64.deb) |
 
 These links always give the newest version. Older ones and the release notes are on the [releases page](https://github.com/JustFlavio/shellnest/releases). The builds are not code-signed (see [First launch](#first-launch)).
 
