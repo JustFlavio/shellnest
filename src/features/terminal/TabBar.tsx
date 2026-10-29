@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { TabLead, TabMain, TabShell } from "./Tab";
 import { Button } from "@/components/ui/button";
 import { Plus, Server, SquarePlus } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useApp } from "@/app/app-context";
 import { SessionTab } from "./SessionTab";
 import { SyncButton } from "@/features/vault/SyncButton";
@@ -23,13 +23,22 @@ export function TabBar() {
     },
     dnd: { dragPane, clearSpring, clearDnd },
   } = useApp();
+  const strip = useRef<HTMLElement>(null);
   useEffect(() => {
-    document
-      .querySelector(".tab.selected")
-      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [active, tabs.length]);
+    const selected = strip.current?.querySelector("[data-selected]");
+    const opts: ScrollIntoViewOptions = {
+      block: "nearest",
+      inline: "nearest",
+      behavior: "instant",
+    };
+    selected?.scrollIntoView(opts);
+    // On the last tab, keep the + button in reach too.
+    const next = selected?.nextElementSibling;
+    if (next?.hasAttribute("data-new-tab")) next.scrollIntoView(opts);
+  }, [active, tabs.length, launcherOpen]);
   return (
     <nav
+      ref={strip}
       className="flex min-w-0 flex-1 items-center gap-[6px] overflow-x-auto px-[8px] py-[5px]"
       onDragOver={(e) => {
         if (dragPane) {
@@ -86,6 +95,7 @@ export function TabBar() {
       <Button
         variant="ghost"
         type="button"
+        data-new-tab
         className="size-[30px] shrink-0 rounded-[9px] p-0 text-muted-foreground"
         aria-label={t("terminal.tabBar.newConnection")}
         title={[t("terminal.tabBar.newConnection"), hint("quickConnect")]
