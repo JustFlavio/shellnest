@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/PasswordInput";
@@ -52,17 +51,11 @@ export function KeyEditor({
           ? t("hosts.keyEditor.editSshKey")
           : t("hosts.keyEditor.importSshKey")
       }
+      backLabel={returnTo ? t("hosts.keyEditor.backToIdentity") : undefined}
       {...{ onClose, busy }}
       error={fileError || error}
       footer={
         <footer>
-          <DialogClose
-            render={<Button variant="ghost" type="button" disabled={busy} />}
-          >
-            {returnTo
-              ? t("hosts.keyEditor.backToIdentity")
-              : t("vault.deleteVaultDialog.cancel")}
-          </DialogClose>
           <Button
             variant="default"
             type="submit"

@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next";
-import { DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -57,17 +56,11 @@ export function GroupEditor({
           ? t("hosts.folderCard.editGroup")
           : t("hosts.groupEditor.newGroup")
       }
+      backLabel={returnTo ? t("hosts.groupEditor.backToHost") : undefined}
       {...{ onClose, busy, error }}
       dirty={dirty}
       footer={
         <footer>
-          <DialogClose
-            render={<Button variant="ghost" type="button" disabled={busy} />}
-          >
-            {returnTo
-              ? t("hosts.groupEditor.backToHost")
-              : t("vault.deleteVaultDialog.cancel")}
-          </DialogClose>
           <Button
             variant="default"
             type="submit"
