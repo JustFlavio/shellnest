@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { TerminalTab } from "@/lib/types";
-import { setTermTitle } from "./tabs-state.ts";
+import { setTabStatus, setTermTitle } from "./tabs-state.ts";
 import { leafIds, reorderTabs } from "./workbench-state.ts";
 
 export function useTabList() {
@@ -47,7 +47,7 @@ export function useTabList() {
   const renameTab = (id: string, name?: string) =>
     setTabs((old) => old.map((t) => (t.id === id ? { ...t, name } : t)));
   const tabStatus = (id: string, status: NonNullable<TerminalTab["status"]>) =>
-    setTabs((old) => old.map((t) => (t.id === id ? { ...t, status } : t)));
+    setTabs((old) => setTabStatus(old, id, status));
   const tabTitle = (id: string, termTitle?: string) =>
     setTabs((old) => setTermTitle(old, id, termTitle));
   const reset = () => {

@@ -100,6 +100,8 @@ export type TerminalTab = {
   username: string;
   identityName: string;
   status?: "connecting" | "connected" | "closed" | "failed";
+  // This session reached the terminal, rather than only attempting a connection.
+  hasConnected?: boolean;
   error?: Message;
   // pane of another tab's split workspace; hidden from the tab bar
   // user-chosen tab name; overrides the title (or "Workspace" when split)
