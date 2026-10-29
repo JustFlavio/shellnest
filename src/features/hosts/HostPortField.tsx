@@ -1,9 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import type { HostDraft, View } from "@/lib/types";
 import { groupPath, portSource } from "./groups.ts";
-import { portInline, sectionHelp } from "@/lib/editor-ui";
 
 export function HostPortField({
   value,
@@ -16,11 +14,19 @@ export function HostPortField({
 }) {
   const { t } = useTranslation();
   const portFrom = portSource(view.groups, value.groupId);
+  const inherited =
+    value.ownPort === null && portFrom
+      ? t("hosts.hostPortField.portInherited", {
+          path: groupPath(view.groups, portFrom.id),
+        })
+      : undefined;
   return (
-    <>
-      <label className={cn(portInline, "m-0! text-[14px]! font-semibold")}>
-        {t("hosts.groupEditor.sshPort")}
+    <div className="w-[78px] shrink-0">
+      <label className="m-0! w-[78px] shrink-0" title={inherited}>
+        <span className="sr-only">{t("hosts.groupEditor.sshPort")}</span>
         <Input
+          aria-label={t("hosts.groupEditor.sshPort")}
+          aria-describedby={inherited ? `${value.id}-port-source` : undefined}
           type="number"
           min={1}
           max={65535}
@@ -34,13 +40,11 @@ export function HostPortField({
           }
         />
       </label>
-      {value.ownPort === null && portFrom && (
-        <p className={sectionHelp}>
-          {t("hosts.hostPortField.portInherited", {
-            path: groupPath(view.groups, portFrom.id),
-          })}
-        </p>
+      {inherited && (
+        <span id={`${value.id}-port-source`} className="sr-only">
+          {inherited}
+        </span>
       )}
-    </>
+    </div>
   );
 }

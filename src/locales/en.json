@@ -44,7 +44,9 @@
       "KeyInUse_one": "Key used by {{count}} identity. Reassign the identity first.",
       "KeyInUse_other": "Key used by {{count}} identities. Reassign the identities first.",
       "IdentityInUse_one": "Identity used by {{count}} host or folder. Reassign it first.",
-      "IdentityInUse_other": "Identity used by {{count}} hosts or folders. Reassign them first."
+      "IdentityInUse_other": "Identity used by {{count}} hosts or folders. Reassign them first.",
+      "HostTagsInvalid": "Use up to 32 tags, each with 1–64 characters.",
+      "KeyInUseByHosts": "Key used by {{count}} hosts. Reassign them first."
     },
     "vault": {
       "UnsupportedVersion": "Unsupported vault version",
@@ -458,7 +460,13 @@
       "sshAccess": "SSH access",
       "credentials": "Credentials",
       "sshPassword": "SSH password",
-      "managedByTheIdentity": "Managed by the identity"
+      "managedByTheIdentity": "Managed by the identity",
+      "add": "Identity or SSH key",
+      "newIdentity": "New SSH identity",
+      "key": "Key",
+      "chooseKey": "Choose a key",
+      "password": "Use password",
+      "importKey": "Import a key"
     },
     "hostCard": {
       "credentialsMissing": "Credentials missing",
@@ -539,7 +547,8 @@
       "ifTheKeyIs": "If the key is protected",
       "replacingTheKeyChanges": "Replacing the key changes the next connections of every identity that uses it.",
       "importedIntoTheEncrypted": "Imported into the encrypted vault; the original file is left untouched.",
-      "usedBy": "Used by {{identities}} and {{hosts}}."
+      "usedBy": "Used by {{identities}} and {{hosts}}.",
+      "importAndBackToHost": "Import and return to host"
     },
     "keyFilePicker": {
       "fileTooLarge1": "File too large (1 MB maximum)",
@@ -580,7 +589,7 @@
     "vaultToolbar": {
       "moreCreateActions": "More create actions",
       "newFolder": "New folder",
-      "localTerminal": "Local terminal",
+      "localTerminal": "Terminal",
       "filterByFolder": "Filter by folder",
       "sortHosts": "Sort hosts",
       "nameAZ": "Name A–Z",
@@ -598,6 +607,12 @@
     },
     "hostPortField": {
       "portInherited": "Port inherited from group {{path}}."
+    },
+    "hostTagsField": {
+      "tags": "Tags",
+      "search": "Find or create tags",
+      "create": "Create tag {{name}}",
+      "remove": "Remove tag {{name}}"
     }
   },
   "settings": {

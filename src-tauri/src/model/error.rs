@@ -27,6 +27,10 @@ pub(crate) enum ModelError {
     HostPlacementInvalid(String),
     #[error("Host credentials are invalid or conflict with an identity")]
     HostCredentialsInvalid,
+    #[error("Use up to 32 tags, each with 1–64 characters")]
+    HostTagsInvalid,
+    #[error("Key used by {0} hosts. Reassign them first.")]
+    KeyInUseByHosts(usize),
     #[error("Host {0} has no identity and its folder does not provide one")]
     HostWithoutIdentity(String),
     #[error("Host {0} refers to a missing identity")]

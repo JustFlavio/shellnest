@@ -513,6 +513,41 @@ test("private credentials stay local and omitted passwords survive edits", async
 
 const { hostDraftIsDirty, hostDraftIsValid } =
   await import("./features/hosts/host-draft.ts");
+
+test("direct key selection validates after a choice and tags trigger autosave", async () => {
+  const draft = {
+    ...hostOf(),
+    credentials: { username: "deploy", password: "", keyId: "key-personal" },
+    tags: ["production"],
+  };
+  const stored = {
+    ...hostOf(),
+    username: "deploy",
+    keyId: "key-personal",
+    tags: ["production"],
+  };
+  assert.equal(hostDraftIsValid(draft, []), true);
+  assert.equal(
+    hostDraftIsValid(
+      { ...draft, credentials: { ...draft.credentials, keyId: "" } },
+      [],
+      { ...stored, hasPassword: true },
+    ),
+    false,
+  );
+  assert.equal(hostDraftIsDirty(draft, stored), false);
+  assert.equal(hostDraftIsDirty({ ...draft, tags: ["staging"] }, stored), true);
+  const invoke = previewInvoke();
+  const view = await invoke("save_host", {
+    host: { ...draft, port: draft.ownPort, credentials: undefined },
+    credentials: draft.credentials,
+  });
+  const saved = view.hosts.find((host) => host.id === draft.id)!;
+  assert.equal(saved.keyId, "key-personal");
+  assert.equal(saved.hasPassword, false);
+  assert.deepEqual(saved.tags, draft.tags);
+  await assert.rejects(invoke("delete_key", { id: saved.keyId }));
+});
 test("draft validation requires its own password or an explicit shared identity", () => {
   const host = hostOf({
     id: "a",

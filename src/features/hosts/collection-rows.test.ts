@@ -27,9 +27,9 @@ const base = {
   sort: "name" as "name" | "recent",
 };
 
-test("hosts match name, address, group path and identity", () => {
+test("hosts match name, address, group path, identity and tags", () => {
   const hosts = [
-    host("a", "Alpha", { groupId: "prod" }),
+    host("a", "Alpha", { groupId: "prod", tags: ["critical"] }),
     host("b", "Beta", { identityId: "adm" }),
   ];
   const names = (query: string) =>
@@ -37,6 +37,7 @@ test("hosts match name, address, group path and identity", () => {
   assert.deepEqual(names("produzione"), ["Alpha"]);
   assert.deepEqual(names("root"), ["Beta"]);
   assert.deepEqual(names("b.example"), ["Beta"]);
+  assert.deepEqual(names("CRITICAL"), ["Alpha"]);
 });
 
 test("hosts filter by folder and identity usage", () => {

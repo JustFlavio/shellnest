@@ -23,6 +23,9 @@ pub(crate) struct HostView {
     pub(crate) port: u16,
     pub(crate) own_port: Option<u16>,
     pub(crate) group_id: String,
+    pub(crate) tags: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) key_id: Option<String>,
     pub(crate) identity_id: String,
     pub(crate) effective_identity_id: String,
     // The group an inherited identity comes from; empty when the host has its own.
@@ -42,6 +45,12 @@ impl HostView {
             port: data.effective_port(h),
             own_port: h.port,
             group_id: h.group_id.clone(),
+            tags: h.tags.clone(),
+            key_id: h
+                .credentials
+                .as_ref()
+                .filter(|c| !c.key_id.is_empty())
+                .map(|c| c.key_id.clone()),
             identity_id: h.identity_id.clone(),
             effective_identity_id: data.effective_identity_id(h),
             identity_source: data
@@ -167,10 +176,11 @@ pub(crate) fn view(s: &AppState) -> Result<View, Error> {
                         .hosts
                         .iter()
                         .filter(|h| {
-                            v.data
-                                .identities
-                                .iter()
-                                .any(|i| i.id == h.identity_id && i.key_id == k.id)
+                            h.credentials.as_ref().is_some_and(|c| c.key_id == k.id)
+                                || v.data
+                                    .identities
+                                    .iter()
+                                    .any(|i| i.id == h.identity_id && i.key_id == k.id)
                         })
                         .count(),
                 })
@@ -223,6 +233,7 @@ mod tests {
                 address: "192.0.2.1".into(),
                 port: Some(22),
                 group_id: String::new(),
+                tags: vec![],
                 identity_id: "login".into(),
                 credentials: None,
                 fingerprint: String::new(),

@@ -46,14 +46,24 @@ impl Data {
         if let Some(credentials) = &host.credentials {
             let username = username.unwrap_or(&credentials.username).into();
             let password = credentials.password.clone();
+            let key = if credentials.key_id.is_empty() {
+                None
+            } else {
+                Some(
+                    self.keys
+                        .iter()
+                        .find(|k| k.id == credentials.key_id)
+                        .ok_or(ModelError::KeyNotFound)?,
+                )
+            };
             return Ok(Connection {
                 host,
                 username,
-                auth: "password".into(),
+                auth: if key.is_some() { "key" } else { "password" }.into(),
                 password,
-                private_key: String::new(),
-                passphrase: String::new(),
-                key_name: String::new(),
+                private_key: key.map(|k| k.private_key.clone()).unwrap_or_default(),
+                passphrase: key.map(|k| k.passphrase.clone()).unwrap_or_default(),
+                key_name: key.map(|k| k.name.clone()).unwrap_or_default(),
             });
         }
         let identity = self
@@ -125,6 +135,7 @@ impl Data {
             address: address.into(),
             port: Some(port),
             group_id: String::new(),
+            tags: vec![],
             identity_id: identity_id.into(),
             credentials: None,
             fingerprint: expected_fingerprint.into(),

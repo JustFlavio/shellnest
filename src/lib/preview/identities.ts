@@ -65,6 +65,8 @@ export function deleteIdentity(next: View, args: Args): void {
 }
 
 export function deleteKey(next: View, args: Args): void {
+  const hosts = next.hosts.filter((h) => h.keyId === args.id).length;
+  requireValue(!hosts, "model.KeyInUseByHosts", hosts);
   const users = next.identities.filter((i) => i.keyId === args.id).length;
   requireValue(!users, "model.KeyInUse", users);
   next.keys = next.keys.filter((k) => k.id !== args.id);

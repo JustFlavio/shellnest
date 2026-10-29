@@ -7,7 +7,7 @@ export function sshTab(
   vaultId: string,
   id: string = crypto.randomUUID(),
 ): TerminalTab {
-  if (!identity && !(host.username && host.hasPassword))
+  if (!identity && !(host.username && (host.hasPassword || host.keyId)))
     throw { code: "model.CredentialsRequired" };
   return {
     id,

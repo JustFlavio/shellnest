@@ -29,6 +29,7 @@ pub(super) fn host(id: &str, identity_id: &str) -> Host {
         address: "192.0.2.10".into(),
         port: Some(22),
         group_id: String::new(),
+        tags: vec![],
         identity_id: identity_id.into(),
         credentials: None,
         fingerprint: String::new(),

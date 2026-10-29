@@ -1,6 +1,4 @@
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
-import { TerminalSquare } from "lucide-react";
 import { useApp } from "@/app/app-context";
 import { pageLabels } from "./useLibrary";
 
@@ -8,8 +6,6 @@ export function VaultHeader() {
   const { t } = useTranslation();
   const {
     vault: { view },
-    preferences: { hint },
-    tabs: { openLauncher },
     library: { page, group, hostRows, identityRows, keyRows },
   } = useApp();
   return (
@@ -32,17 +28,6 @@ export function VaultHeader() {
               : keyRows.length}
         </span>
       </div>
-      {page === "hosts" && (
-        <Button
-          variant="ghost"
-          type="button"
-          onClick={openLauncher}
-          title={hint("quickConnect") || undefined}
-        >
-          <TerminalSquare size={15} />
-          {t("hosts.vaultHeader.quickConnect")}
-        </Button>
-      )}
     </header>
   );
 }

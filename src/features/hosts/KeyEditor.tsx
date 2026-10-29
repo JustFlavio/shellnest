@@ -16,11 +16,13 @@ const submitLabel = (
   existing: SshKey | undefined,
   returnTo?: string,
 ) =>
-  returnTo
-    ? t("hosts.keyEditor.importAndBackTo")
-    : existing
-      ? t("hosts.keyEditor.saveKey")
-      : t("hosts.emptyState.importKey");
+  returnTo === "host"
+    ? t("hosts.keyEditor.importAndBackToHost")
+    : returnTo
+      ? t("hosts.keyEditor.importAndBackTo")
+      : existing
+        ? t("hosts.keyEditor.saveKey")
+        : t("hosts.emptyState.importKey");
 
 export function KeyEditor({
   value,
@@ -51,7 +53,13 @@ export function KeyEditor({
           ? t("hosts.keyEditor.editSshKey")
           : t("hosts.keyEditor.importSshKey")
       }
-      backLabel={returnTo ? t("hosts.keyEditor.backToIdentity") : undefined}
+      backLabel={
+        returnTo === "host"
+          ? t("hosts.groupEditor.backToHost")
+          : returnTo
+            ? t("hosts.keyEditor.backToIdentity")
+            : undefined
+      }
       {...{ onClose, busy }}
       error={fileError || error}
       footer={
