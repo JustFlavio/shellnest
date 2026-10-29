@@ -47,7 +47,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/JustFlavio/shellnest/releases/download/updater/latest.json"
+        "https://github.com/JustFlavio/shellnest/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVFMjJFRTgxNzdDRjY3OTcKUldTWFo4OTNnZTRpWHZ4TGlQOXlHRjRuSnJ6cnFId3hTS3dFQnlkV25VTmlsZWJtMHRXOUVhbXcK"
     }
