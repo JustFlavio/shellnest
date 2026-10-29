@@ -30,9 +30,9 @@ Not implemented yet: SFTP, port forwarding, jump hosts, agent forwarding, keyboa
 
 ## Install
 
-Prebuilt binaries are not published yet. Until then, build from source.
+Download an installer from the [releases page](https://github.com/JustFlavio/shellnest/releases): `aarch64.dmg` for Apple Silicon Macs, `x64.dmg` for Intel Macs, `x64-setup.exe` or `.msi` for Windows. The builds are not code-signed (see [First launch](#first-launch)).
 
-You need Node.js 22.18+, Rust, and the [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/) (Xcode Command Line Tools on macOS; Visual Studio C++ Build Tools and WebView2 on Windows).
+Or build from source. You need Node.js 22.18+, Rust, and the [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/) (Xcode Command Line Tools on macOS; Visual Studio C++ Build Tools and WebView2 on Windows).
 
 ```sh
 git clone https://github.com/JustFlavio/shellnest.git
@@ -42,7 +42,17 @@ npm run desktop        # run in development
 npm run desktop:build  # produce an installer
 ```
 
-Builds are not code-signed, so macOS and Windows will warn on first launch.
+### First launch
+
+The builds are not signed or notarized, so the system warns on first launch.
+
+- **macOS:** after dragging `Shellnest.app` to Applications, remove the download quarantine, then open it. Without this, macOS says the app "is damaged and can't be opened".
+
+  ```sh
+  xattr -dr com.apple.quarantine /Applications/Shellnest.app
+  ```
+
+- **Windows:** in the SmartScreen window choose "More info", then "Run anyway".
 
 ## Updates
 
