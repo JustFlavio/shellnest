@@ -16,6 +16,8 @@ The app asks `https://github.com/JustFlavio/shellnest/releases/download/updater/
 
 GitHub's own `releases/latest/download/…` only resolves to the newest release that is neither a draft nor a pre-release. Shellnest 0.x releases are pre-releases, so that URL would never find them. The `updater` release has a fixed tag, is created once by the manifest workflow, is not marked "Latest" and never changes meaning: only its `latest.json` asset is replaced.
 
+The asset URLs inside `latest.json` have the same problem: tauri-action writes them as `releases/latest/download/…`, so the manifest workflow rewrites them to `releases/download/<tag>/…` (`updater-manifest.ts retarget`) before it uploads the file. Without that step the update is found but the download is a 404.
+
 The workflow refuses to replace the manifest with an older or equal version, and fails if the manifest misses a platform (`darwin-aarch64`, `darwin-x86_64`, `windows-x86_64`). The three build jobs each merge their platform into the release's `latest.json`; if one of them raced and a platform is missing, re-run that build job and then re-run the manifest workflow.
 
 Until the repository is public, the endpoint returns 404 for everyone, so the real path cannot be tested. A pre-release check from the app then reads "Controllo non riuscito: nessun elenco di aggiornamenti trovato sul server".

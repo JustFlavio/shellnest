@@ -26,6 +26,9 @@ jobs:
         run: gh release download "$TAG" --pattern latest.json --dir new
       - name: Check that every platform is in it
         run: node .github/scripts/updater-manifest.ts check new/latest.json "${TAG#v}"
+      - name: Point the download URLs at this tag
+        # tauri-action writes releases/latest/download/…, which never finds a pre-release.
+        run: node .github/scripts/updater-manifest.ts retarget new/latest.json "$TAG"
       - name: Create the permanent release once
         run: |
           gh release view updater >/dev/null 2>&1 || gh release create updater \
