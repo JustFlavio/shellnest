@@ -2,7 +2,7 @@
 
 A desktop SSH client for people who manage their own servers. Hosts, folders, reusable identities and SSH keys live in an encrypted local vault. No account is needed. Optional self-hosted sync keeps several devices in step.
 
-Built with Tauri 2, React and Rust. Windows and macOS.
+Built with Tauri 2, React and Rust. Windows, macOS and Linux (Ubuntu 22.04+, x86_64).
 
 > **Alpha.** Shellnest is under active development and has not had a security audit. Local use is the tested path. **Sync between devices is experimental.** Back up your vault before trusting it with anything important. The interface is available in English and Italian; more translations are welcome (see [CONTRIBUTING](CONTRIBUTING.md#translations)).
 
@@ -18,7 +18,7 @@ The screenshots come from the browser demo (`npm run dev`) with sample data.
 
 ## Features
 
-- Encrypted local vault (Argon2id + XChaCha20-Poly1305), several independent vaults, optional unlock key in the system keychain.
+- Encrypted local vault (Argon2id + XChaCha20-Poly1305), several independent vaults, optional unlock key in the system keychain (Linux: a Secret Service such as GNOME Keyring or KWallet).
 - Hosts, nested folders, search, multi-select, quick connect (`Ctrl/Cmd K`).
 - Reusable identities and an SSH key store; one identity can serve many hosts.
 - Tabbed terminals with split panes, reconnect, duplicate and reorder; local terminal with a native PTY.
@@ -32,7 +32,7 @@ Not implemented yet: SFTP, port forwarding, jump hosts, agent forwarding, keyboa
 
 Prebuilt binaries are not published yet. Until then, build from source.
 
-You need Node.js 22.18+, Rust, and the [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/) (Xcode Command Line Tools on macOS; Visual Studio C++ Build Tools and WebView2 on Windows).
+You need Node.js 22.18+, Rust, and the [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/) (Xcode Command Line Tools on macOS; Visual Studio C++ Build Tools and WebView2 on Windows; on Ubuntu `libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libdbus-1-dev libxdo-dev pkg-config patchelf`).
 
 ```sh
 git clone https://github.com/JustFlavio/shellnest.git
@@ -42,7 +42,7 @@ npm run desktop        # run in development
 npm run desktop:build  # produce an installer
 ```
 
-Builds are not code-signed, so macOS and Windows will warn on first launch.
+Builds are not code-signed, so macOS and Windows will warn on first launch. Linux builds are a `.deb` and an AppImage (`chmod +x` it to run); only the AppImage updates itself, a `.deb` is updated by installing the new one.
 
 ## Updates
 
