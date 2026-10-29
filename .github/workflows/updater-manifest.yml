@@ -35,6 +35,7 @@ jobs:
             --target "${{ github.event.repository.default_branch }}" \
             --title "Updater manifest" \
             --notes "Holds latest.json for the in-app updater. Not a version: download Shellnest from the releases named v0.x.y." \
+            --prerelease \
             --latest=false
       - name: Upload it, never going back to an older version
         run: |

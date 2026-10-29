@@ -16,7 +16,7 @@ Installers are not code-signed (no Apple or Windows certificate). That is separa
 
 The app asks `https://github.com/JustFlavio/shellnest/releases/download/updater/latest.json` (`plugins.updater.endpoints` in `src-tauri/tauri.conf.json`).
 
-GitHub's own `releases/latest/download/…` only resolves to the newest release that is neither a draft nor a pre-release. Shellnest 0.x releases are pre-releases, so that URL would never find them. The `updater` release has a fixed tag, is created once by the manifest workflow, is not marked "Latest" and never changes meaning: only its `latest.json` asset is replaced.
+GitHub's own `releases/latest/download/…` only resolves to the newest release that is neither a draft nor a pre-release. Shellnest 0.x releases are pre-releases, so that URL would never find them. The `updater` release has a fixed tag, is created once by the manifest workflow, is a pre-release (a normal release would take the "Latest" badge and the top of the releases list, because it is the only one that is not a pre-release; `--latest=false` alone does not prevent that) and never changes meaning: only its `latest.json` asset is replaced.
 
 The asset URLs inside `latest.json` have the same problem: tauri-action writes them as `releases/latest/download/…`, so the manifest workflow rewrites them to `releases/download/<tag>/…` (`updater-manifest.ts retarget`) before it uploads the file. Without that step the update is found but the download is a 404.
 
