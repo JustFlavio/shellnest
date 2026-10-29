@@ -21,7 +21,7 @@ The screenshots come from the browser demo (`npm run dev`) with sample data.
 - Encrypted local vault (Argon2id + XChaCha20-Poly1305), several independent vaults, optional unlock key in the system keychain (Linux: a Secret Service such as GNOME Keyring or KWallet).
 - Hosts, nested folders, search, multi-select, quick connect (`Ctrl/Cmd K`).
 - Reusable identities and an SSH key store; one identity can serve many hosts.
-- Tabbed terminals with split panes, reconnect, duplicate and reorder; local terminal with a native PTY.
+- Tabbed terminals with split panels, reconnect, duplicate and reorder; local terminal with a native PTY.
 - Host key fingerprint check before authenticating, and a hard stop if it changes.
 - Terminal themes, fonts and rebindable keyboard shortcuts.
 - Optional sync of the encrypted vault through the small Node.js server in [`sync/`](sync) ([deployment guide](sync/README.md)).

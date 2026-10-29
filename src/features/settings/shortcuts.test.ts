@@ -62,6 +62,23 @@ test("plain keys and extra modifiers never match", () => {
   assert.equal(actionFor(ev("w", { ctrlKey: true }), false), undefined);
 });
 
+test("newLocal: Cmd+L on macOS, Ctrl+Shift+L elsewhere, apart from lockVault", () => {
+  assert.equal(actionFor(ev("l", { metaKey: true }), true), "newLocal");
+  assert.equal(
+    actionFor(ev("L", { metaKey: true, shiftKey: true }), true),
+    "lockVault",
+  );
+  assert.equal(
+    actionFor(ev("L", { ctrlKey: true, shiftKey: true }), false),
+    "newLocal",
+  );
+  assert.equal(
+    actionFor(ev("L", { ctrlKey: true, shiftKey: true, altKey: true }), false),
+    "lockVault",
+  );
+  assert.equal(actionFor(ev("l", { ctrlKey: true }), false), undefined);
+});
+
 test("other platforms keep Ctrl+letter free for the shell", () => {
   assert.equal(
     actionFor(ev("W", { ctrlKey: true, shiftKey: true }), false),
