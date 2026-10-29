@@ -73,14 +73,16 @@ pub(crate) fn start(
     let mut reader = pair.master.try_clone_reader().map_err(TerminalError::pty)?;
     let mut writer = pair.master.take_writer().map_err(TerminalError::pty)?;
     #[cfg(unix)]
-    #[allow(unsafe_code)] // the crate's only unsafe block, justified below
+    #[allow(unsafe_code)] // the crate's only unsafe blocks, justified below
     let poll_fd = {
-        use std::os::fd::{FromRawFd, OwnedFd};
+        use std::os::fd::{BorrowedFd, FromRawFd, OwnedFd};
         let fd = pair
             .master
             .as_raw_fd()
             .ok_or(TerminalError::NoPtyDescriptor)?;
-        let duplicate = nix::fcntl::fcntl(fd, nix::fcntl::FcntlArg::F_DUPFD_CLOEXEC(0))?;
+        // SAFETY: `fd` is the descriptor of `pair.master`, which outlives this borrow.
+        let borrowed = unsafe { BorrowedFd::borrow_raw(fd) };
+        let duplicate = nix::fcntl::fcntl(borrowed, nix::fcntl::FcntlArg::F_DUPFD_CLOEXEC(0))?;
         // SAFETY: `duplicate` was just returned by a successful F_DUPFD_CLOEXEC, so it is a valid open
         // descriptor that no other owner has: wrapping it in an `OwnedFd` makes this the only closer.
         unsafe { OwnedFd::from_raw_fd(duplicate) }

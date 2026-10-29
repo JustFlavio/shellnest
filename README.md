@@ -30,9 +30,9 @@ Not implemented yet: SFTP, port forwarding, jump hosts, agent forwarding, keyboa
 
 ## Install
 
-Prebuilt binaries are not published yet. Until then, build from source.
+Download an installer from the [releases page](https://github.com/JustFlavio/shellnest/releases): `aarch64.dmg` for Apple Silicon Macs, `x64.dmg` for Intel Macs, `x64-setup.exe` or `.msi` for Windows, `amd64.AppImage` or `amd64.deb` for Ubuntu (x86_64). The builds are not code-signed (see [First launch](#first-launch)).
 
-You need Node.js 22.18+, Rust, and the [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/) (Xcode Command Line Tools on macOS; Visual Studio C++ Build Tools and WebView2 on Windows; on Ubuntu `libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libdbus-1-dev libxdo-dev pkg-config patchelf`).
+Or build from source. You need Node.js 22.18+, Rust, and the [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/) (Xcode Command Line Tools on macOS; Visual Studio C++ Build Tools and WebView2 on Windows; on Ubuntu `libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libdbus-1-dev libxdo-dev pkg-config patchelf`).
 
 ```sh
 git clone https://github.com/JustFlavio/shellnest.git
@@ -42,7 +42,19 @@ npm run desktop        # run in development
 npm run desktop:build  # produce an installer
 ```
 
-Builds are not code-signed, so macOS and Windows will warn on first launch. Linux builds are a `.deb` and an AppImage (`chmod +x` it to run); only the AppImage updates itself, a `.deb` is updated by installing the new one.
+### First launch
+
+The builds are not signed or notarized, so the system warns on first launch.
+
+- **macOS:** after dragging `Shellnest.app` to Applications, remove the download quarantine, then open it. Without this, macOS says the app "is damaged and can't be opened".
+
+  ```sh
+  xattr -dr com.apple.quarantine /Applications/Shellnest.app
+  ```
+
+- **Windows:** in the SmartScreen window choose "More info", then "Run anyway".
+
+- **Linux:** the AppImage needs `chmod +x` before it runs; the `.deb` installs with `sudo apt install ./file.deb`. Only the AppImage updates itself, a `.deb` is updated by installing the new one.
 
 ## Updates
 
