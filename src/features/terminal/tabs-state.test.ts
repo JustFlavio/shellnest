@@ -199,3 +199,37 @@ test("planning workspaces flags missing and untrusted hosts", () => {
     true,
   );
 });
+
+test("broadcast ends when the workspace is back to one pane and survives otherwise", () => {
+  const three = [
+    {
+      id: "a",
+      broadcast: true,
+      layout: {
+        dir: "row" as const,
+        ratio: 0.5,
+        a: { id: "a" },
+        b: {
+          dir: "col" as const,
+          ratio: 0.5,
+          a: { id: "b" },
+          b: { id: "c" },
+        },
+      },
+    },
+    { id: "b", parent: "a" },
+    { id: "c", parent: "a" },
+  ];
+  const two = defined(unlinkPane(three, "c", false));
+  assert.equal(two.tabs[0].broadcast, true);
+  const promoted = defined(unlinkPane(three, "a", false));
+  assert.equal(promoted.tabs.find((t) => t.id === "b")?.broadcast, true);
+  const one = defined(unlinkPane(two.tabs, "b", false));
+  assert.equal(one.tabs[0].broadcast, undefined);
+  assert.equal(one.tabs[0].layout, undefined);
+  const detached = defined(unlinkPane(two.tabs, "b", true));
+  assert.equal(
+    detached.tabs.every((t) => !t.broadcast),
+    true,
+  );
+});

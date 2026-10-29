@@ -109,6 +109,7 @@ export function useTabs(
     dropOnPane: panes.dropOnPane,
     detachPane: panes.detachPane,
     resizeActive: panes.resizeActive,
+    toggleBroadcast: panes.toggleBroadcast,
     reconnectPane: panes.reconnectPane,
     duplicateTab: panes.duplicateTab,
     approveTrust: trustActions.approveTrust,

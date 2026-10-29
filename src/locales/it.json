@@ -672,6 +672,7 @@
       "splitThePaneDown": "Dividi il pannello in basso",
       "previousPane": "Pannello precedente",
       "nextPane": "Pannello successivo",
+      "broadcastInput": "Input condiviso a tutti i pannelli",
       "clearTerminal": "Pulisci terminale",
       "increaseTerminalTextSize": "Ingrandisci testo del terminale",
       "decreaseTerminalTextSize": "Riduci testo del terminale",
@@ -767,7 +768,8 @@
       "connected": "Connessa",
       "ended": "Terminata",
       "failed": "Non riuscita",
-      "closePaneName": "Chiudi pannello {{name}}"
+      "closePaneName": "Chiudi pannello {{name}}",
+      "broadcastInput": "Input condiviso"
     },
     "passwordStep": {
       "passwordNotAccepted": "Password non accettata.",
@@ -811,7 +813,8 @@
       "splitVertically": "Dividi verticalmente",
       "splitHorizontally": "Dividi orizzontalmente",
       "tabName": "Nome scheda",
-      "tabActions": "Azioni scheda {{name}}"
+      "tabActions": "Azioni scheda {{name}}",
+      "broadcastInput": "Input condiviso"
     },
     "tabBar": {
       "sessionsAndConnections": "Sessioni e connessioni",

@@ -108,6 +108,8 @@ export type TerminalTab = {
   termTitle?: string;
   parent?: string;
   layout?: LayoutNode;
+  // on a workspace leader: typing in one pane is sent to the other connected panes too
+  broadcast?: boolean;
 } & (
   | { kind: "ssh"; host: Host }
   | { kind: "quick"; target: QuickTarget }

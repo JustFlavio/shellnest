@@ -14,6 +14,7 @@ export type TabLike = {
   name?: string;
   parent?: string;
   layout?: LayoutNode;
+  broadcast?: boolean;
 };
 
 // Tab-list transitions behind the tab bar and split workspaces. A tab with a `layout` leads a
@@ -83,7 +84,7 @@ export function joinWorkspace<T extends TabLike>(
     t.id === leader.id
       ? { ...t, layout }
       : t.id === src.id
-        ? { ...t, layout: undefined, parent: leader.id }
+        ? { ...t, layout: undefined, broadcast: undefined, parent: leader.id }
         : ids.has(t.id)
           ? { ...t, parent: leader.id }
           : t,
@@ -110,7 +111,14 @@ export function unlinkPane<T extends TabLike>(
     tabs: tabs.flatMap((t) =>
       t.id === id
         ? keep
-          ? [{ ...t, parent: undefined, layout: undefined }]
+          ? [
+              {
+                ...t,
+                parent: undefined,
+                layout: undefined,
+                broadcast: undefined,
+              },
+            ]
           : []
         : t.id === next
           ? [
@@ -119,6 +127,8 @@ export function unlinkPane<T extends TabLike>(
                 name: id === leader.id ? leader.name : t.name,
                 parent: undefined,
                 layout: ids.length > 1 ? rest : undefined,
+                // the flag lives on the leader: it follows the workspace, and ends with it
+                broadcast: ids.length > 1 ? leader.broadcast : undefined,
               },
             ]
           : [inRest.has(t.id) ? { ...t, parent: next } : t],

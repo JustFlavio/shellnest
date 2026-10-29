@@ -130,7 +130,8 @@ test("comboFromEvent round-trips through matching", () => {
       for (const c of s.combos) {
         if (c.key === "1-9") continue;
         // Build the event a user would press for this combo.
-        const shiftLetter = !mac && !!c.mod && /^[a-z]$/.test(c.key);
+        const shiftLetter =
+          !mac && !!c.mod && !c.plain && /^[a-z]$/.test(c.key);
         const e = ev(
           c.shift && !shiftLetter && c.key.length === 1
             ? c.key.toUpperCase()
@@ -180,5 +181,23 @@ test("overrides replace defaults, bad input falls back", () => {
   assert.equal(
     findConflict(resolve(), "closePane", { key: "t", mod: true }, true)?.id,
     "quickConnect",
+  );
+});
+
+test("broadcast input is plain Cmd+B / Ctrl+B, without the Shift other Ctrl letters need", () => {
+  assert.equal(actionFor(ev("b", { metaKey: true }), true), "broadcast");
+  assert.equal(actionFor(ev("b", { ctrlKey: true }), false), "broadcast");
+  assert.equal(
+    actionFor(ev("B", { ctrlKey: true, shiftKey: true }), false),
+    undefined,
+  );
+  assert.equal(actionFor(ev("b", { ctrlKey: true }), true), undefined);
+  assert.equal(
+    format(SHORTCUTS.find((s) => s.id === "broadcast")!.combos[0], true),
+    "⌘B",
+  );
+  assert.equal(
+    format(SHORTCUTS.find((s) => s.id === "broadcast")!.combos[0], false),
+    "Ctrl+B",
   );
 });

@@ -672,6 +672,7 @@
       "splitThePaneDown": "Split the panel down",
       "previousPane": "Previous panel",
       "nextPane": "Next panel",
+      "broadcastInput": "Broadcast input to all panels",
       "clearTerminal": "Clear terminal",
       "increaseTerminalTextSize": "Increase terminal text size",
       "decreaseTerminalTextSize": "Decrease terminal text size",
@@ -767,7 +768,8 @@
       "connected": "Connected",
       "ended": "Ended",
       "failed": "Failed",
-      "closePaneName": "Close panel {{name}}"
+      "closePaneName": "Close panel {{name}}",
+      "broadcastInput": "Broadcast input"
     },
     "passwordStep": {
       "passwordNotAccepted": "Password not accepted.",
@@ -811,7 +813,8 @@
       "splitVertically": "Split vertically",
       "splitHorizontally": "Split horizontally",
       "tabName": "Tab name",
-      "tabActions": "Actions for tab {{name}}"
+      "tabActions": "Actions for tab {{name}}",
+      "broadcastInput": "Broadcast input"
     },
     "tabBar": {
       "sessionsAndConnections": "Sessions and connections",
