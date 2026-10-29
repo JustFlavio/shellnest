@@ -4,7 +4,7 @@
 
 1. Set the new version in `package.json` and `src-tauri/Cargo.toml`, move the `CHANGELOG.md` entry from "Unreleased" to the version, and commit.
 2. Tag the commit `vX.Y.Z` (it must equal the `package.json` version, the workflow checks) and push the tag.
-3. `.github/workflows/release.yml` creates **one draft pre-release**, then builds macOS arm64, macOS x64, Windows and Linux x86_64 (on `ubuntu-22.04`, for an older glibc) in parallel and uploads the installers, their `.sig` signatures and a `latest.json` into it. The first job stops while the updater key is still a placeholder (see below).
+3. `.github/workflows/release.yml` creates **one draft pre-release**, then builds macOS arm64, macOS x64, Windows and Linux x86_64 (on `ubuntu-22.04`, for an older glibc) in parallel and uploads the installers, their `.sig` signatures and a `latest.json` into it. The draft body is a fixed sentence followed by the pull requests merged since the last release, which GitHub generates (grouped by label as `.github/release.yml` says: `enhancement`, `bug`, `documentation`, `dependencies`); read and edit it before publishing. `CHANGELOG.md` stays the hand-written summary. The first job stops while the updater key is still a placeholder (see below).
 4. Open the draft, try an installer, and **publish** it. Publishing is the go-live moment.
 5. Publishing triggers `.github/workflows/updater-manifest.yml`, which copies that release's `latest.json` to the permanent `updater` release. Installed apps read it from there.
 
