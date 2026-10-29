@@ -3,7 +3,9 @@ use super::{
     TerminalError,
     host_key::{Handler, config, handler},
 };
+use crate::error::coded;
 use crate::locks::MutexExt;
+use crate::message::{Message, msg};
 use crate::model::Connection;
 use russh::{
     ChannelMsg, MethodKind, MethodSet,
@@ -19,13 +21,13 @@ pub(super) const MAX_PASSWORD_ATTEMPTS: usize = 3;
 /// What `open` tells the UI along the way.
 pub(super) enum Note {
     Stage(&'static str),
-    /// One line of the connection log: plain text, never a password, key or answer.
-    Log(String),
+    /// One line of the connection log: never a password, key or answer.
+    Log(Message),
     /// How a step ended. `warn` is a partial result (a fallback), not a plain success.
     Detail {
         step: String,
         warn: bool,
-        text: String,
+        text: Message,
     },
 }
 
@@ -70,22 +72,25 @@ where
 {
     let host = &connection.host;
     let port = host.port.unwrap_or(22);
-    let log = |text: String| report(Note::Log(text));
-    let detail = |step: &str, warn: bool, text: &str| {
+    let log = |message: Message| report(Note::Log(message));
+    let detail = |step: &str, warn: bool, text: Message| {
         report(Note::Detail {
             step: step.into(),
             warn,
-            text: text.into(),
+            text,
         })
     };
-    report(Note::Stage("Connessione al server SSH"));
-    log(format!("Risoluzione di {}:{port}", host.address));
+    report(Note::Stage("connect"));
+    log(msg!(
+        "log.network.resolving",
+        target = format!("{}:{port}", host.address)
+    ));
     match tokio::net::lookup_host((host.address.as_str(), port)).await {
         Ok(found) => {
             let list: Vec<String> = found.map(|a| a.ip().to_string()).collect();
-            log(format!("Indirizzi trovati: {}", list.join(", ")));
+            log(msg!("log.network.addresses", list = list.join(", ")));
         }
-        Err(e) => log(format!("Risoluzione non riuscita: {e}")),
+        Err(e) => log(msg!("log.error.resolveFailed", reason = e.to_string())),
     }
     let h = handler(Some(host.fingerprint.clone()));
     let seen = h.seen.clone();
@@ -95,29 +100,34 @@ where
         .map_err(|e| {
             let found = seen.lock_recovering().clone();
             if found.as_ref().is_some_and(|f| *f != host.fingerprint) {
-                log(format!(
-                    "Impronta del server cambiata: attesa {}, ricevuta {}",
-                    host.fingerprint,
-                    found.unwrap_or_default()
+                log(msg!(
+                    "log.error.fingerprintChanged",
+                    expected = host.fingerprint.clone(),
+                    received = found.unwrap_or_default()
                 ));
                 TerminalError::ServerKeyChanged
             } else {
-                log(format!("Connessione non riuscita: {e}"));
+                log(msg!("log.error.connectFailed", reason = e.to_string()));
                 e.into()
             }
         })?;
-    log("Connessione stabilita".into());
+    log(msg!("log.network.connected"));
     let server = info.lock_recovering().clone();
     if let Some(server) = &server {
-        log(format!("Server remoto: {}", server.banner));
-        log(format!("Algoritmi negoziati: {}", server.algorithms));
+        log(msg!("log.network.server", banner = server.banner.clone()));
+        log(msg!(
+            "log.tech.algorithms",
+            kex = server.kex.clone(),
+            hostKey = server.host_key.clone(),
+            cipher = server.cipher.clone()
+        ));
     }
-    log(format!(
-        "Impronta del server nota e coincidente: {}",
-        host.fingerprint
+    log(msg!(
+        "log.fingerprint.known",
+        fingerprint = host.fingerprint.clone()
     ));
-    report(Note::Stage("Impronta del server verificata"));
-    report(Note::Stage("Autenticazione SSH"));
+    report(Note::Stage("verified"));
+    report(Note::Stage("auth"));
     let is_key = connection.auth == "key";
     let mut auth = if is_key {
         let secret = decode_secret_key(
@@ -129,9 +139,9 @@ where
             },
         )?;
         let algorithm = session.best_supported_rsa_hash().await?.flatten();
-        log(format!(
-            "Autenticazione con chiave per l’utente {}",
-            connection.username
+        log(msg!(
+            "log.auth.keyAttempt",
+            user = connection.username.clone()
         ));
         session
             .authenticate_publickey(
@@ -146,9 +156,9 @@ where
             partial_success: false,
         })
     } else {
-        log(format!(
-            "Autenticazione con password salvata per l’utente {}",
-            connection.username
+        log(msg!(
+            "log.auth.savedPasswordAttempt",
+            user = connection.username.clone()
         ));
         session
             .authenticate_password(&connection.username, &connection.password)
@@ -156,37 +166,40 @@ where
     }?;
     let tried_something = is_key || !connection.password.is_empty();
     if auth.success() {
-        let how = if is_key { "chiave" } else { "password" };
-        log(format!("Autenticazione con {how} accettata"));
+        log(msg!(if is_key {
+            "log.success.keyAccepted"
+        } else {
+            "log.success.passwordAccepted"
+        }));
         detail(
             "auth",
             false,
-            &if is_key && !connection.key_name.is_empty() {
-                format!("Autenticato con la chiave “{}”", connection.key_name)
+            if is_key && !connection.key_name.is_empty() {
+                msg!("step.authKeyNamed", name = connection.key_name.clone())
             } else if is_key {
-                "Autenticato con la chiave".into()
+                msg!("step.authKey")
             } else {
-                "Autenticato con la password".into()
+                msg!("step.authPassword")
             },
         );
     } else if tried_something {
-        let what = if is_key { "chiave" } else { "password salvata" };
-        log(format!("Autenticazione con {what} rifiutata dal server"));
+        log(msg!(if is_key {
+            "log.error.keyRefused"
+        } else {
+            "log.error.savedPasswordRefused"
+        }));
         let methods = methods_of(&auth);
         if !methods.is_empty() {
-            log(format!(
-                "Metodi ancora accettati dal server: {}",
-                methods.join(", ")
-            ));
+            log(msg!("log.auth.methodsLeft", methods = methods.join(", ")));
         }
         detail(
             "auth",
             true,
-            &if is_key {
-                "Chiave rifiutata dal server".to_string()
+            msg!(if is_key {
+                "step.keyRefused"
             } else {
-                "Password salvata rifiutata".to_string()
-            },
+                "step.savedPasswordRefused"
+            }),
         );
     }
     let mut refused = false;
@@ -194,12 +207,12 @@ where
     while !auth.success() {
         if !accepts_password(&auth) {
             let error = TerminalError::AuthRefused(methods_of(&auth));
-            log(error.to_string());
+            log(coded("terminal", &error));
             return Err(error);
         }
         asked += 1;
         let password = ask(refused).await.ok_or_else(|| {
-            log("Autenticazione annullata dall’utente".into());
+            log(msg!("log.error.authCancelled"));
             TerminalError::AuthCancelled
         })?;
         refused = true;
@@ -208,28 +221,30 @@ where
             continue;
         }
         sent += 1;
-        log(format!(
-            "Tentativo con password {sent} di {MAX_PASSWORD_ATTEMPTS}"
+        log(msg!(
+            "log.auth.passwordAttempt",
+            sent = sent,
+            max = MAX_PASSWORD_ATTEMPTS
         ));
         auth = session
             .authenticate_password(&connection.username, password.as_str())
             .await?;
         let step = password_step(asked);
         if auth.success() {
-            log("Password accettata".into());
-            detail(&step, false, "Password accettata");
+            log(msg!("log.success.passwordOk"));
+            detail(&step, false, msg!("step.passwordAccepted"));
         } else {
-            log("Password rifiutata dal server".into());
-            detail(&step, true, "Password non accettata");
+            log(msg!("log.error.passwordRefused"));
+            detail(&step, true, msg!("step.passwordRefused"));
             if sent >= MAX_PASSWORD_ATTEMPTS {
                 let error = TerminalError::PasswordsExhausted(MAX_PASSWORD_ATTEMPTS);
-                log(error.to_string());
+                log(coded("terminal", &error));
                 return Err(error);
             }
         }
     }
-    report(Note::Stage("Apertura del terminale remoto"));
-    log("Apertura di terminale e shell remota".into());
+    report(Note::Stage("session"));
+    log(msg!("log.network.opening"));
     let mut channel = session.channel_open_session().await?;
     channel
         .request_pty(true, "xterm-256color", 100, 30, 0, 0, &[])
@@ -348,14 +363,14 @@ mod tests {
             }
             host.auth = "password".into();
             allow_shell.store(false,Ordering::SeqCst);
-            assert!(matches!(open(&host, |_| {}, |_| async { None }).await,Err(error) if error.to_string().contains("rifiutato terminale o shell")));
+            assert!(matches!(open(&host, |_| {}, |_| async { None }).await,Err(error) if error.to_string().contains("refused the terminal or shell")));
             allow_shell.store(true,Ordering::SeqCst);
             host.password = "incorrect".into();
             assert!(open(&host, |_| {}, |_| async { None }).await.is_err());
             let before = attempts.load(Ordering::SeqCst);
             host.host.fingerprint = "SHA256:wrong".into();
             let result = open(&host, |_| {}, |_| async { None }).await;
-            assert!(matches!(result,Err(e) if e.to_string().contains("Identità del server cambiata")));
+            assert!(matches!(result,Err(e) if e.to_string().contains("server identity has changed")));
             assert_eq!(
                 attempts.load(Ordering::SeqCst),
                 before,
@@ -400,7 +415,7 @@ mod tests {
             // Cancelling ends the attempt without a session.
             let asked = Arc::new(Mutex::new(Vec::new()));
             let result = open(&connection, |_| {}, answers(vec![None], asked.clone())).await;
-            assert!(matches!(result, Err(e) if e.to_string() == "Autenticazione annullata"));
+            assert!(matches!(result, Err(e) if e.to_string() == "Authentication cancelled"));
             assert_eq!(*asked.lock().unwrap(), vec![false]);
 
             // An empty answer asks again without a server round trip counting as a refusal by the server.
@@ -428,7 +443,7 @@ mod tests {
             let (connection, task) = fixture(false).await;
             let asked = Arc::new(Mutex::new(Vec::new()));
             let result = open(&connection, |_| {}, answers(vec![Some("x")], asked.clone())).await;
-            assert!(matches!(result, Err(e) if e.to_string() == "Autenticazione fallita. Metodi accettati dal server: publickey."));
+            assert!(matches!(result, Err(e) if e.to_string() == "Authentication failed. Methods accepted by the server: publickey."));
             assert!(asked.lock().unwrap().is_empty());
             task.abort();
         })
@@ -464,21 +479,21 @@ mod tests {
                 asked.clone(),
             );
             let result = open(&connection, collect(&notes), ask).await;
-            assert!(matches!(result, Err(e) if e.to_string() == "Password non accettata dopo 3 tentativi."));
+            assert!(matches!(result, Err(e) if e.to_string() == "Password not accepted after 3 attempts."));
             assert_eq!(*asked.lock().unwrap(), vec![false, true, true]);
             let notes = notes.lock().unwrap().join("\n");
-            assert!(notes.contains("log: Server remoto: SSH-2.0-"), "{notes}");
+            assert!(notes.contains(r#"log: {"code":"log.network.server","params":{"banner":"SSH-2.0-"#), "{notes}");
             assert!(
-                notes.contains("log: Algoritmi negoziati: scambio chiavi"),
+                notes.contains(r#""code":"log.tech.algorithms""#),
                 "{notes}"
             );
             assert!(
-                notes.contains("log: Metodi ancora accettati dal server: password, publickey"),
+                notes.contains(r#""code":"log.auth.methodsLeft","params":{"methods":"password, publickey"}"#),
                 "{notes}"
             );
-            assert!(notes.contains("step auth warn: Chiave rifiutata dal server"));
-            assert!(notes.contains("step password warn: Password non accettata"));
-            assert!(notes.contains("step password-3 warn: Password non accettata"));
+            assert!(notes.contains(r#"step auth warn: {"code":"step.keyRefused"}"#));
+            assert!(notes.contains(r#"step password warn: {"code":"step.passwordRefused"}"#));
+            assert!(notes.contains(r#"step password-3 warn: {"code":"step.passwordRefused"}"#));
             assert!(!notes.contains("password-4"));
             assert!(!notes.contains("hunter2") && !notes.contains("test-only-password"));
             task.abort();
@@ -498,15 +513,16 @@ mod tests {
                 .await;
             let notes = notes.lock().unwrap().join("\n");
             assert!(
-                notes.contains("step auth warn: Chiave rifiutata dal server"),
+                notes.contains(r#"step auth warn: {"code":"step.keyRefused"}"#),
                 "{notes}"
             );
             assert!(
-                notes.contains("step password ok: Password accettata"),
+                notes.contains(r#"step password ok: {"code":"step.passwordAccepted"}"#),
                 "{notes}"
             );
             assert!(
-                notes.contains("log: Impronta del server nota e coincidente: SHA256:"),
+                notes
+                    .contains(r#""code":"log.fingerprint.known","params":{"fingerprint":"SHA256:"#),
                 "{notes}"
             );
             let mut known = connection.clone();
@@ -523,7 +539,7 @@ mod tests {
                 plain
                     .lock()
                     .unwrap()
-                    .contains(&"step auth ok: Autenticato con la password".to_string())
+                    .contains(&r#"step auth ok: {"code":"step.authPassword"}"#.to_string())
             );
             task.abort();
         })

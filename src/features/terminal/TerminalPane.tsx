@@ -1,5 +1,7 @@
+import { useTranslation } from "react-i18next";
 import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import type { TFunction } from "i18next";
 import type { TerminalTab } from "@/lib/types";
 import type { AppSettings } from "@/features/settings/settings.ts";
 import { PaneHeader } from "./PaneHeader";
@@ -12,12 +14,12 @@ import { useTerminalSession } from "./useTerminalSession";
 import type { Xterm } from "./xterm";
 
 // The standard SSH port is noise: only a different one is worth showing.
-function endpointOf(tab: TerminalTab) {
+function endpointOf(tab: TerminalTab, t: TFunction) {
   const target =
     tab.kind === "ssh" ? tab.host : tab.kind === "quick" ? tab.target : null;
   return target
     ? `${tab.username ? `${tab.username}@` : ""}${target.address}${target.port === 22 ? "" : `:${target.port}`}`
-    : "Shell del dispositivo";
+    : t("terminal.terminalPane.deviceShell");
 }
 
 type Box = { x: number; y: number; w: number; h: number };
@@ -88,6 +90,7 @@ export function TerminalPane({
   onRetry: () => void;
   onEdit?: () => void;
 } & SessionCallbacks) {
+  const { t } = useTranslation();
   const [pendingPaste, setPendingPaste] = useState<string | null>(null);
   const container = useRef<HTMLDivElement>(null);
   // No session until the host key is confirmed (and, for a quick connection, the login chosen).
@@ -116,7 +119,7 @@ export function TerminalPane({
     setPendingPaste(null);
     xterm.current?.term.focus();
   };
-  const endpoint = endpointOf(tab);
+  const endpoint = endpointOf(tab, t);
   const split = focused !== undefined;
   return (
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- focus follows pointer and focus anywhere inside the pane

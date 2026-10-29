@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { BrandIcon } from "@/app/BrandIcon";
 import { Button } from "@/components/ui/button";
 import { errorBox, help, muted } from "@/lib/editor-ui";
@@ -11,6 +12,7 @@ import { VaultSwitcher } from "./VaultSwitcher";
 import { lockLead, lockTitle } from "./vault-copy.ts";
 
 export function LockScreen() {
+  const { t } = useTranslation();
   const {
     vault: { view, busy, preview, error },
     unlock,
@@ -48,14 +50,12 @@ export function LockScreen() {
             disabled={busy}
           >
             {unlock.restore
-              ? "Crea un vault locale"
-              : "Collega un vault esistente"}
+              ? t("vault.lockScreen.createALocalVault")
+              : t("vault.lockScreen.connectAnExistingVault")}
           </Button>
         )}
         {interactive && !view.exists && !unlock.restore && (
-          <p className={help}>
-            Minimo 12 caratteri. La password principale non è recuperabile.
-          </p>
+          <p className={help}>{t("vault.lockScreen.atLeast12Characters")}</p>
         )}
       </section>
       <VaultPanels />

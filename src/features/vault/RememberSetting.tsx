@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Switch } from "@/components/ui/switch";
 import { Row } from "@/features/settings/Row";
 import { card, cardTitle } from "@/features/settings/settings-ui";
@@ -11,15 +12,18 @@ export function RememberSetting({
   remembered: boolean;
   onRemember: (enabled: boolean) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <section className={card}>
-      <h3 className={cardTitle}>Sblocco · {vaultName}</h3>
+      <h3 className={cardTitle}>
+        {t("vault.rememberSetting.unlockTitle", { name: vaultName })}
+      </h3>
       <Row
-        label="Ricorda su questo dispositivo"
-        hint="La chiave resta nel portachiavi di sistema. “Blocca vault” chiede comunque la password."
+        label={t("vault.rememberSetting.rememberOnThisDevice")}
+        hint={t("vault.rememberSetting.theKeyStaysIn")}
       >
         <Switch
-          label="Ricorda su questo dispositivo"
+          label={t("vault.rememberSetting.rememberOnThisDevice")}
           checked={remembered}
           onChange={onRemember}
         />

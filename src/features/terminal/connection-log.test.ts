@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { i18n } from "../../i18n/i18n.ts";
 import {
   atBottom,
   formatOffset,
@@ -8,70 +9,75 @@ import {
   logText,
 } from "./connection-log.ts";
 
-test("kinds follow the wording of the Rust lines", () => {
+await i18n.changeLanguage("en");
+
+test("the kind is part of the code; other codes are errors", () => {
   const kinds: [string, string][] = [
-    ["Risoluzione di h.example:22", "network"],
-    ["Indirizzi trovati: 192.0.2.10", "network"],
-    ["Server remoto: SSH-2.0-OpenSSH_9.6", "network"],
-    ["Connessione stabilita", "network"],
-    ["Algoritmi negoziati: scambio chiavi curve25519-sha256", "tech"],
-    ["Impronta del server nota e coincidente: SHA256:abc", "fingerprint"],
-    ["Autenticazione con chiave per l’utente root", "auth"],
-    ["Metodi ancora accettati dal server: password, publickey", "auth"],
-    ["Tentativo con password 1 di 3", "auth"],
-    ["Autenticazione con chiave rifiutata dal server", "error"],
-    ["Password rifiutata dal server", "error"],
-    ["Password non accettata dopo 3 tentativi.", "error"],
-    ["Autenticazione annullata dall’utente", "error"],
-    ["Impronta del server cambiata: attesa A, ricevuta B", "error"],
-    ["Errore: Timeout connessione SSH", "error"],
-    ["Password accettata", "success"],
-    ["Autenticazione con chiave accettata", "success"],
+    ["log.network.resolving", "network"],
+    ["log.network.server", "network"],
+    ["log.tech.algorithms", "tech"],
+    ["log.fingerprint.known", "fingerprint"],
+    ["log.auth.keyAttempt", "auth"],
+    ["log.auth.passwordAttempt", "auth"],
+    ["log.error.keyRefused", "error"],
+    ["log.error.fingerprintChanged", "error"],
+    ["log.success.passwordOk", "success"],
+    ["log.success.keyAccepted", "success"],
+    ["terminal.PasswordsExhausted", "error"],
+    ["terminal.ConnectTimeout", "error"],
   ];
-  for (const [text, kind] of kinds) assert.equal(logKind(text), kind, text);
+  for (const [code, kind] of kinds) assert.equal(logKind({ code }), kind, code);
 });
 
 test("offsets in seconds, then in minutes", () => {
-  assert.equal(formatOffset(0), "+0,0 s");
-  assert.equal(formatOffset(340), "+0,3 s");
-  assert.equal(formatOffset(12_340), "+12,3 s");
+  assert.equal(formatOffset(0), "+0.0 s");
+  assert.equal(formatOffset(340), "+0.3 s");
+  assert.equal(formatOffset(12_340), "+12.3 s");
   assert.equal(formatOffset(125_000), "+2 min 05 s");
-  assert.equal(formatOffset(-5), "+0,0 s");
+  assert.equal(formatOffset(-5), "+0.0 s");
+});
+
+test("the offset follows the language", async () => {
+  await i18n.changeLanguage("it");
+  assert.equal(formatOffset(340), "+0,3 s");
+  await i18n.changeLanguage("en");
 });
 
 test("the copied text is one plain line per event, with the offset", () => {
   assert.equal(
     logText([
-      { text: "Risoluzione di h:22", at: 0 },
-      { text: "<b>Errore: x</b>", at: 1500 },
+      {
+        message: { code: "log.network.resolving", params: { target: "h:22" } },
+        at: 0,
+      },
+      { message: { code: "terminal.ConnectTimeout" }, at: 1500 },
     ]),
-    "+0,0 s  Risoluzione di h:22\n+1,5 s  <b>Errore: x</b>",
+    "+0.0 s  Resolving h:22\n+1.5 s  SSH connection timed out",
   );
 });
 
 test("values are emphasised, technical lines and errors are not", () => {
-  const joined = (text: string) =>
-    logSegments(text, logKind(text))
+  const joined = (code: string, params: object = {}) =>
+    logSegments({ code, params })
       .map((s) => (s.strong ? `[${s.text}]` : s.text))
       .join("");
   assert.equal(
-    joined("Risoluzione di h.example:22"),
-    "Risoluzione di [h.example:22]",
+    joined("log.network.resolving", { target: "h.example:22" }),
+    "Resolving [h.example:22]",
   );
   assert.equal(
-    joined("Server remoto: SSH-2.0-X"),
-    "Server remoto: [SSH-2.0-X]",
+    joined("log.auth.savedPasswordAttempt", { user: "root" }),
+    "Authenticating with [saved password] for user [root]",
   );
   assert.equal(
-    joined("Autenticazione con password salvata per l’utente root"),
-    "Autenticazione con [password salvata] per l’utente [root]",
+    joined("log.tech.algorithms", { kex: "a", hostKey: "b", cipher: "c" }),
+    "Negotiated algorithms: key exchange a, host key b, cipher c",
   );
   assert.equal(
-    joined("Algoritmi negoziati: a, b"),
-    "Algoritmi negoziati: a, b",
+    joined("log.error.resolveFailed", { reason: "Fingerprint: x" }),
+    "Resolution failed: Fingerprint: x",
   );
-  assert.equal(joined("Errore: Impronta: x"), "Errore: Impronta: x");
-  assert.equal(joined("Connessione stabilita"), "Connessione stabilita");
+  assert.equal(joined("log.network.connected"), "Connection established");
 });
 
 test("stays pinned only near the end", () => {

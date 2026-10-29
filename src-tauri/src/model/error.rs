@@ -1,79 +1,80 @@
 //! Errors of editing and resolving the vault contents.
 /// Why an edit of the vault contents was refused. The messages are shown to the user as they are.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, serde::Serialize)]
+#[serde(tag = "code", content = "params")]
 pub(crate) enum ModelError {
-    #[error("Identificativi mancanti o duplicati nel vault")]
+    #[error("Missing or duplicate identifiers in the vault")]
     InvalidIds,
-    #[error("Identità senza nome o utente")]
+    #[error("Identity without a name or user")]
     IdentityIncomplete,
-    #[error("Identità con riferimento alla chiave non valido")]
+    #[error("Identity with an invalid key reference")]
     IdentityKeyInvalid,
-    #[error("Gruppo padre non trovato")]
+    #[error("Parent folder not found")]
     GroupParentMissing,
-    #[error("Le cartelle possono avere al massimo {0} livelli")]
+    #[error("Folders can be at most {0} levels deep")]
     GroupTooDeep(usize),
-    #[error("Nome cartella non valido")]
+    #[error("Invalid folder name")]
     GroupNameInvalid,
-    #[error("Impostazioni della cartella {0} non valide")]
+    #[error("Invalid settings for folder {0}")]
     GroupSettingsInvalid(String),
-    #[error("Esiste già una cartella chiamata {0}")]
+    #[error("A folder named {0} already exists")]
     GroupNameTaken(String),
-    #[error("Una cartella non può stare dentro se stessa")]
+    #[error("A folder cannot be inside itself")]
     GroupInsideItself,
-    #[error("La cartella non è vuota: sposta o elimina prima il suo contenuto.")]
+    #[error("The folder is not empty: move or delete its contents first.")]
     GroupNotEmpty,
-    #[error("Porta o cartella non valida per l’host {0}")]
+    #[error("Invalid port or folder for host {0}")]
     HostPlacementInvalid(String),
-    #[error("Credenziali dell’host non valide o in conflitto con un’identità")]
+    #[error("Host credentials are invalid or conflict with an identity")]
     HostCredentialsInvalid,
-    #[error("L’host {0} non ha un’identità e la sua cartella non ne fornisce una")]
+    #[error("Host {0} has no identity and its folder does not provide one")]
     HostWithoutIdentity(String),
-    #[error("L’host {0} fa riferimento a un’identità mancante")]
+    #[error("Host {0} refers to a missing identity")]
     HostIdentityMissing(String),
-    #[error("Workspace {0} non valido")]
+    #[error("Invalid workspace {0}")]
     WorkspaceInvalid(String),
-    #[error("Chiave privata non valida o passphrase errata")]
+    #[error("Invalid private key or wrong passphrase")]
     KeyUnreadable,
-    #[error("Assegna un nome alla chiave")]
+    #[error("Give the key a name")]
     KeyNameMissing,
-    #[error("Importa una chiave privata")]
+    #[error("Import a private key")]
     KeyImportRequired,
-    #[error("Questa chiave è già presente nel portachiavi")]
+    #[error("This key is already in the key store")]
     KeyDuplicate,
-    #[error("Chiave utilizzata da {0} identità. Riassegna prima le identità.")]
+    #[error("Key used by {0} identities. Reassign the identities first.")]
     KeyInUse(usize),
-    #[error("Identità utilizzata da {0} host o cartelle. Riassegnali prima.")]
+    #[error("Identity used by {0} hosts or folders. Reassign them first.")]
     IdentityInUse(usize),
-    #[error("Seleziona host e identità validi")]
+    #[error("Select valid hosts and an identity")]
     AssignInvalid,
-    #[error("Uno degli host selezionati non esiste più")]
+    #[error("One of the selected hosts no longer exists")]
     AssignHostMissing,
-    #[error("Nome, indirizzo e porta valida sono obbligatori")]
+    #[error("Name, address and a valid port are required")]
     HostFieldsRequired,
-    #[error("Eredita l’identità dalla cartella oppure sceglila, non entrambe")]
+    #[error("Inherit the identity from the folder or choose one, not both")]
     InheritConflict,
-    #[error("Inserisci le credenziali dell’host o scegli un’identità")]
+    #[error("Enter the host credentials or choose an identity")]
     CredentialsRequired,
-    #[error("Utente SSH non valido")]
+    #[error("Invalid SSH user")]
     UsernameInvalid,
-    #[error("Inserisci una password per questo host")]
+    #[error("Enter a password for this host")]
     PasswordRequired,
-    #[error("Scegli credenziali dell’host oppure un’identità, non entrambe")]
+    #[error("Choose host credentials or an identity, not both")]
     CredentialsAndIdentity,
-    #[error("Host non trovato")]
+    #[error("Host not found")]
     HostNotFound,
-    #[error("Sistema operativo non valido")]
+    #[error("Invalid operating system")]
     OsInvalid,
-    #[error("Indirizzo IP o nome host e porta non validi")]
+    #[error("Invalid IP address or host name and port")]
     EndpointInvalid,
-    #[error("Identità non trovata")]
+    #[error("Identity not found")]
     IdentityNotFound,
-    #[error("Chiave non trovata")]
+    #[error("Key not found")]
     KeyNotFound,
-    #[error("Indirizzo o porta non validi")]
+    #[error("Invalid address or port")]
     TargetInvalid,
-    #[error("Verifica prima l’impronta del server")]
+    #[error("Verify the server fingerprint first")]
     FingerprintUnverified,
-    #[error("Indica l’utente SSH")]
+    #[error("Enter the SSH user")]
     UsernameMissing,
 }

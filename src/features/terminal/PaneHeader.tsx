@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { TerminalSquare, X } from "lucide-react";
 import { OsIcon } from "@/components/OsIcon";
 import { Button } from "@/components/ui/button";
@@ -6,11 +7,11 @@ import type { TerminalTab } from "@/lib/types";
 import { StatusDot } from "./Tab";
 
 const statusLabel = {
-  connecting: "Connessione…",
-  connected: "Connessa",
-  closed: "Terminata",
-  failed: "Non riuscita",
-};
+  connecting: "terminal.paneHeader.connecting",
+  connected: "terminal.paneHeader.connected",
+  closed: "terminal.paneHeader.ended",
+  failed: "terminal.paneHeader.failed",
+} as const;
 
 // The pane itself fades out while the others close ranks, so the cursor carries a
 // small card with its name instead of the bare header text.
@@ -41,6 +42,7 @@ export function PaneHeader({
   onDragPane?: (dragging: boolean) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const status = tab.status ?? "connecting";
   return (
     <div className="mt-[2px] mb-[6px] flex h-[34px] shrink-0 items-center gap-[8px] text-[12px] text-muted-foreground">
@@ -71,7 +73,7 @@ export function PaneHeader({
           <span className="truncate font-mono text-[11px]">{endpoint}</span>
         )}
         <StatusDot status={status} className="ml-[2px]" />
-        <span className="sr-only">{statusLabel[status]}</span>
+        <span className="sr-only">{t(statusLabel[status])}</span>
       </div>
       {split && (
         <Button
@@ -79,7 +81,9 @@ export function PaneHeader({
           type="button"
           size="icon-sm"
           className="text-muted-foreground opacity-0 transition-opacity group-focus-within/pane:opacity-100 group-hover/pane:opacity-100"
-          aria-label={`Chiudi pannello ${tab.title}`}
+          aria-label={t("terminal.paneHeader.closePaneName", {
+            name: tab.title,
+          })}
           onClick={onClose}
         >
           <X size={15} />

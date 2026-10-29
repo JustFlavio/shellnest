@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { desktop } from "@/lib/platform";
@@ -12,6 +13,7 @@ export function useUnlock({
   invokeScoped,
   setError,
 }: VaultApi) {
+  const { t } = useTranslation();
   const [password, setPassword] = useState(""),
     [confirmPassword, setConfirmPassword] = useState(""),
     [restore, setRestore] = useState(false),
@@ -21,7 +23,7 @@ export function useUnlock({
   const submit = () =>
     void run(async () => {
       if (!view.exists && !restore && password !== confirmPassword)
-        throw new Error("Le password non coincidono.");
+        throw new Error(t("vault.useUnlock.thePasswordsDoNot"));
       const next = restore
         ? await invokeScoped<View>("restore_vault", { url, token, password })
         : await invokeScoped<View>("unlock", {
@@ -33,7 +35,7 @@ export function useUnlock({
         await invoke("set_remembered", {
           vaultId: next.vaultId,
           enabled: true,
-        }).catch((e) => notifyError("Password non salvata", e));
+        }).catch((e) => notifyError(t("vault.useUnlock.passwordNotSaved"), e));
       setPassword("");
       setConfirmPassword("");
       setToken("");

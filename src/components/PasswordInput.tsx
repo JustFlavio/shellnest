@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import type { ComponentProps } from "react";
 import { Eye, EyeOff } from "lucide-react";
@@ -9,6 +10,7 @@ export function PasswordInput({
   className,
   ...props
 }: Omit<ComponentProps<typeof Input>, "type">) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   return (
     <div className="relative">
@@ -22,7 +24,11 @@ export function PasswordInput({
         type="button"
         size="icon-sm"
         className="absolute inset-y-0 right-[5px] my-auto text-muted-foreground"
-        aria-label={visible ? "Nascondi password" : "Mostra password"}
+        aria-label={
+          visible
+            ? t("components.passwordInput.hidePassword")
+            : t("components.passwordInput.showPassword")
+        }
         aria-pressed={visible}
         disabled={props.disabled}
         onClick={() => setVisible(!visible)}

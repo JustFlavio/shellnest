@@ -13,6 +13,8 @@ export default defineConfig({
     viewport: { width: 1280, height: 800 },
     deviceScaleFactor: 1,
     colorScheme: "dark",
+    // The specs and snapshots read the Italian interface.
+    locale: "it-IT",
   },
   projects: [
     { name: "chromium" },

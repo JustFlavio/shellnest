@@ -1,3 +1,5 @@
+import { Trans } from "react-i18next";
+import { useTranslation } from "react-i18next";
 import { Panel } from "@/features/hosts/Panel";
 import { compareHint } from "./FingerprintCard";
 import { Button } from "@/components/ui/button";
@@ -5,6 +7,7 @@ import { fingerprint, help } from "@/lib/editor-ui";
 import { useApp } from "@/app/app-context";
 
 export function TrustDialog() {
+  const { t } = useTranslation();
   const {
     vault: { busy, error, setError },
     tabs: { trust, approveTrust, rejectTrust },
@@ -14,7 +17,7 @@ export function TrustDialog() {
   return (
     <Panel
       variant="dialog"
-      title="Verifica identità del server"
+      title={t("terminal.trustDialog.verifyTheServerIdentity")}
       busy={busy}
       error={error}
       onClose={() => {
@@ -23,14 +26,15 @@ export function TrustDialog() {
       }}
     >
       <p>
-        Primo accesso a{" "}
-        <strong>
-          {trust.host?.address ?? trust.quick?.address}:
-          {trust.host?.port ?? trust.quick?.port}
-        </strong>
-        .
+        <Trans
+          i18nKey="terminal.trustDialog.firstAccess"
+          values={{
+            target: `${trust.host?.address ?? trust.quick?.address}:${trust.host?.port ?? trust.quick?.port}`,
+          }}
+          components={{ strong: <strong /> }}
+        />
       </p>
-      <p className={help}>{compareHint}</p>
+      <p className={help}>{t(compareHint)}</p>
       <code className={fingerprint}>{trust.fingerprint}</code>
       <footer>
         <Button
@@ -40,7 +44,7 @@ export function TrustDialog() {
           disabled={busy}
           onClick={rejectTrust}
         >
-          Annulla
+          {t("vault.deleteVaultDialog.cancel")}
         </Button>
         <Button
           variant="default"
@@ -49,7 +53,7 @@ export function TrustDialog() {
           disabled={busy}
           onClick={approveTrust}
         >
-          Impronta verificata, connetti
+          {t("terminal.fingerprintCard.fingerprintVerifiedConnect")}
         </Button>
       </footer>
     </Panel>

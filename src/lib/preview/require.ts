@@ -1,5 +1,10 @@
 export type Args = Record<string, unknown>;
 
-export function requireValue(condition: unknown, message: string): void {
-  if (!condition) throw new Error(message);
+/** Refuses like the Rust side does: with the `{ code, params }` the UI translates. */
+export function requireValue(
+  condition: unknown,
+  code: string,
+  params?: unknown,
+): void {
+  if (!condition) throw { code, params };
 }

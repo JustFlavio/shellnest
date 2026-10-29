@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Panel } from "@/features/hosts/Panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +7,7 @@ import { leafIds } from "./workbench-state.ts";
 import { useApp } from "@/app/app-context";
 
 export function WorkspaceDialog() {
+  const { t } = useTranslation();
   const {
     vault: { busy, error },
     tabs: { tabs, savingWs, setSavingWs, saveWorkspace },
@@ -22,16 +24,18 @@ export function WorkspaceDialog() {
   return (
     <Panel
       variant="dialog"
-      title={savingWs.hostIds ? "Crea workspace" : "Salva come workspace"}
+      title={
+        savingWs.hostIds
+          ? t("terminal.launcherActions.createWorkspace")
+          : t("terminal.workspaceDialog.saveAsWorkspace")
+      }
       busy={busy}
       error={error}
       onClose={() => setSavingWs(null)}
     >
       {skippedQuick > 0 && (
         <p className={help}>
-          {skippedQuick === 1
-            ? "1 connessione rapida non verrà salvata: salvala prima come host per includerla."
-            : `${skippedQuick} connessioni rapide non verranno salvate: salvale prima come host per includerle.`}
+          {t("terminal.workspaceDialog.quickNotSaved", { count: skippedQuick })}
         </p>
       )}
       <form
@@ -41,7 +45,7 @@ export function WorkspaceDialog() {
         }}
       >
         <label>
-          Nome
+          {t("vault.vaultPanels.name")}
           <Input
             autoFocus
             maxLength={80}
@@ -51,7 +55,7 @@ export function WorkspaceDialog() {
         </label>
         {!savingWs.hostIds && (
           <p className={help}>
-            Include gli host e la disposizione dei pannelli.
+            {t("terminal.workspaceDialog.includesTheHostsAnd")}
           </p>
         )}
         <footer>
@@ -60,7 +64,7 @@ export function WorkspaceDialog() {
             type="button"
             onClick={() => setSavingWs(null)}
           >
-            Annulla
+            {t("vault.deleteVaultDialog.cancel")}
           </Button>
           <Button
             variant="default"
@@ -68,7 +72,7 @@ export function WorkspaceDialog() {
             className="primary"
             disabled={busy || !savingWs.name.trim()}
           >
-            Salva
+            {t("terminal.workspaceDialog.save")}
           </Button>
         </footer>
       </form>

@@ -63,9 +63,7 @@ impl<'de> Deserialize<'de> for Data {
             stored.schema_version,
             None | Some(1) | Some(2) | Some(3) | Some(4) | Some(5)
         ) {
-            return Err(serde::de::Error::custom(
-                "Versione dati vault non supportata",
-            ));
+            return Err(serde::de::Error::custom("Unsupported vault data version"));
         }
         let legacy = matches!(stored.schema_version, None | Some(1));
         let mut data = Self {
@@ -82,7 +80,7 @@ impl<'de> Deserialize<'de> for Data {
         for h in &stored.hosts {
             let identity_id = if legacy {
                 if !matches!(h.auth.as_str(), "key" | "password") {
-                    return Err(serde::de::Error::custom("Metodo legacy non supportato"));
+                    return Err(serde::de::Error::custom("Unsupported legacy method"));
                 }
                 let key_id = if h.auth == "key" {
                     let normalized = Zeroizing::new(h.private_key.replace("\r\n", "\n"));
@@ -150,7 +148,7 @@ impl<'de> Deserialize<'de> for Data {
                     || !h.passphrase.is_empty()
                 {
                     return Err(serde::de::Error::custom(
-                        "Credenziali inline non ammesse nello schema 2",
+                        "Inline credentials are not allowed in schema 2",
                     ));
                 }
                 h.identity_id.clone()

@@ -1,3 +1,4 @@
+import type { Message } from "@/i18n/message";
 import type {
   LayoutNode,
   SavedNode,
@@ -99,7 +100,7 @@ export type TerminalTab = {
   username: string;
   identityName: string;
   status?: "connecting" | "connected" | "closed" | "failed";
-  error?: string;
+  error?: Message;
   // pane of another tab's split workspace; hidden from the tab bar
   // user-chosen tab name; overrides the title (or "Workspace" when split)
   name?: string;
@@ -114,17 +115,19 @@ export type TerminalTab = {
 );
 export type Output =
   | { type: "data"; data: number[] }
-  | { type: "status" | "error" | "log"; data: string }
+  // status is a stage id; error and log are coded messages the UI translates
+  | { type: "status"; data: string }
+  | { type: "error" | "log"; data: Message }
   // how a timeline step ended; warn = a partial result, such as a fallback
-  | { type: "detail"; data: { step: string; warn: boolean; text: string } }
+  | { type: "detail"; data: { step: string; warn: boolean; text: Message } }
   // authentication needs a password; data = the previous one was refused
   | { type: "password"; data: boolean }
   | { type: "metadata"; data: { os: string | null; lastConnectedAt: number } }
   | { type: "closed" };
 export const emptyView: View = {
   vaultId: "personal",
-  vaultName: "Personale",
-  vaults: [{ id: "personal", name: "Personale", exists: false }],
+  vaultName: "Personal",
+  vaults: [{ id: "personal", name: "Personal", exists: false }],
   exists: false,
   unlocked: false,
   hosts: [],

@@ -14,7 +14,9 @@ use std::{
 #[derive(Clone)]
 pub(super) struct ServerInfo {
     pub(super) banner: String,
-    pub(super) algorithms: String,
+    pub(super) kex: String,
+    pub(super) host_key: String,
+    pub(super) cipher: String,
 }
 pub(super) struct Handler {
     expected: Option<String>,
@@ -53,12 +55,9 @@ impl client::Handler for Handler {
             .lock_recovering()
             .get_or_insert_with(|| ServerInfo {
                 banner: printable(session.remote_sshid()),
-                algorithms: format!(
-                    "scambio chiavi {}, chiave host {}, cifrario {}",
-                    names.kex.as_ref(),
-                    names.key,
-                    names.cipher.as_ref()
-                ),
+                kex: names.kex.as_ref().to_string(),
+                host_key: names.key.to_string(),
+                cipher: names.cipher.as_ref().to_string(),
             });
         Ok(())
     }

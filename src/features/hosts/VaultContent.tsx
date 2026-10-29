@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { IdentitiesTable, KeysTable } from "./CollectionTables";
 import { HostsView } from "./HostsView";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { useApp } from "@/app/app-context";
 import { EmptyState } from "./EmptyState";
 
 export function VaultContent() {
+  const { t } = useTranslation();
   const {
     vault: { view, busy },
     tabs: { connect },
@@ -54,7 +56,7 @@ export function VaultContent() {
             onClick={() => openGroup("")}
           >
             <ArrowLeft size={12} />
-            Tutte le cartelle
+            {t("hosts.vaultContent.allFolders")}
           </Button>
           {ancestry(view.groups, group)
             .reverse()

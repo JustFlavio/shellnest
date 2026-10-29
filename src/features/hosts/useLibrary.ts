@@ -12,11 +12,11 @@ import type { Host } from "@/lib/types";
 import type { VaultApi } from "@/features/vault/useVault";
 
 export type { Page };
-export const pageLabels: Record<Page, string> = {
-  hosts: "Host",
-  identities: "Identità",
-  keys: "Chiavi SSH",
-};
+export const pageLabels = {
+  hosts: "hosts.hostsView.hosts",
+  identities: "hosts.bulkAssignDialog.identity",
+  keys: "hosts.useLibrary.sshKeys",
+} as const satisfies Record<Page, string>;
 
 export function useLibrary(
   vault: VaultApi,

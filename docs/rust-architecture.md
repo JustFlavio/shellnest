@@ -21,7 +21,7 @@ Dependencies point down: `model` knows nothing about files or the network, `vaul
 
 Each area owns an error enum built with `thiserror`: `ModelError`, `VaultError`, `KeychainError`, `SyncError`, `TerminalError`. `error::Error` wraps them (plus the lock and "vault locked/switched" cases) and is what commands return.
 
-`Error` serializes as its `Display` text, so the UI receives a plain string. Those strings are Italian, shown to the user and asserted by tests: change a message only together with its tests. Internal code never builds an error from a `String`.
+`Error` serializes as `{ "code": "model.HostNotFound", "params": … }`: the area enums derive `Serialize` (adjacently tagged) and `error::coded` prefixes the code with the area. A one-field variant sends its value as `params`; a variant wrapping a library error sends its text. The UI translates `error.<code>` (`src/locales/`). `Display` texts are English and only for logs and tests. The connection log, timeline steps and stages use the same shape (`message::msg!`). A new variant needs its key in every locale. Internal code never builds an error from a `String`.
 
 Poisoned mutexes have one policy (`locks.rs`):
 

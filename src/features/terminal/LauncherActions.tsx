@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { History, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -21,6 +22,7 @@ export function LauncherActions({
   onCreate: () => void;
   onRestore: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- Escape and arrow keys from the buttons must not reach the launcher list
     <div
@@ -40,7 +42,7 @@ export function LauncherActions({
           onClick={onCreate}
         >
           <LayoutGrid size={14} />
-          Crea workspace
+          {t("terminal.launcherActions.createWorkspace")}
         </Button>
         <Button
           variant="ghost"
@@ -50,7 +52,8 @@ export function LauncherActions({
           onClick={onRestore}
         >
           <History size={14} />
-          Ripristina{restoring > 1 ? ` (${restoring})` : ""}
+          {t("terminal.launcherActions.restore")}
+          {restoring > 1 ? ` (${restoring})` : ""}
         </Button>
       </span>
     </div>

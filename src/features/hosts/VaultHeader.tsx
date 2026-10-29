@@ -1,9 +1,11 @@
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { TerminalSquare } from "lucide-react";
 import { useApp } from "@/app/app-context";
 import { pageLabels } from "./useLibrary";
 
 export function VaultHeader() {
+  const { t } = useTranslation();
   const {
     vault: { view },
     preferences: { hint },
@@ -16,8 +18,8 @@ export function VaultHeader() {
         <h1 className="overflow-hidden text-[22px] text-ellipsis whitespace-nowrap">
           {page === "hosts" && group
             ? (view.groups.find((g) => g.id === group)?.name ??
-              pageLabels[page])
-            : pageLabels[page]}
+              t(pageLabels[page]))
+            : t(pageLabels[page])}
         </h1>
         <span
           className="text-[12px] whitespace-nowrap text-muted-foreground"
@@ -38,7 +40,7 @@ export function VaultHeader() {
           title={hint("quickConnect") || undefined}
         >
           <TerminalSquare size={15} />
-          Connessione rapida
+          {t("hosts.vaultHeader.quickConnect")}
         </Button>
       )}
     </header>

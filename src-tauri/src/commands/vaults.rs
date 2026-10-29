@@ -168,7 +168,7 @@ mod tests {
         })
         .unwrap();
         let personal_bytes = std::fs::read(&state.path).unwrap();
-        assert!(create(&state, "personal", "  PERSONALE ").is_err());
+        assert!(create(&state, "personal", "  PERSONAL ").is_err());
         assert!(state.vault.lock().unwrap().is_some());
         let work = create(&state, "personal", "Lavoro").unwrap();
         assert!(!work.unlocked);

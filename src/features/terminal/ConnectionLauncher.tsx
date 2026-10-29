@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useRef, useState } from "react";
 import { quickConnectTarget } from "./connection-target.ts";
 import { Command } from "@/components/ui/command";
@@ -45,6 +46,7 @@ export function ConnectionLauncher({
   jumpShortcut,
   busy,
 }: ConnectionLauncherProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [jump, setJump] = useState(mode === "jump");
   const [open, setOpen] = useState(mode === "jump");
@@ -225,11 +227,15 @@ export function ConnectionLauncher({
   return (
     <section
       className="mx-auto min-h-0 w-full max-w-[760px] flex-1 overflow-auto px-[24px] pt-[40px] pb-[56px]"
-      aria-label={jump ? "Vai alla scheda" : "Nuova scheda"}
+      aria-label={
+        jump
+          ? t("settings.shortcuts.goToTab")
+          : t("terminal.connectionLauncher.newTab")
+      }
     >
       <Command
         shouldFilter={false}
-        label="Cerca host o schede"
+        label={t("terminal.connectionLauncher.searchHostsOrTabs")}
         value={currentKey ?? ""}
         disablePointerSelection
         onValueChange={(key) => {
@@ -245,8 +251,8 @@ export function ConnectionLauncher({
             shortcut={shortcut}
             placeholder={
               jump
-                ? "Vai alla scheda"
-                : "Cerca host o schede · ssh utente@host -p 22"
+                ? t("settings.shortcuts.goToTab")
+                : t("terminal.connectionLauncher.searchHostsOrTabs2")
             }
             onChange={(value) => {
               setQuery(value);
@@ -274,10 +280,14 @@ export function ConnectionLauncher({
         </div>
         <div ref={pageRef}>
           <LauncherList
-            label="Connessioni disponibili"
+            label={t("terminal.connectionLauncher.availableConnections")}
             multiselectable
             groups={groupResults(pageResults, { text: "", hasRecent })}
-            empty={pageResults.length ? null : "Nessun host salvato."}
+            empty={
+              pageResults.length
+                ? null
+                : t("terminal.connectionLauncher.noSavedHosts")
+            }
             renderRow={row}
             renderHeading={({ id, heading }) =>
               id === "hosts" && (

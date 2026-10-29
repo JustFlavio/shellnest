@@ -34,8 +34,18 @@ Optional: `npx react-doctor@latest .` reports React issues (missing effect depen
 - Add a test for new logic. Rust tests live next to the code; JS tests are `src/**/*.test.ts` and `sync/*.test.ts`.
 - Match the surrounding code style. Prettier (defaults) and ESLint enforce it; run them before you push.
 - `src/components/ui` holds shadcn primitives with exports that are not all used; knip ignores that folder.
-- The interface is in Italian. Keep new UI strings in Italian for now; a translation layer is a welcome contribution.
+- Every UI text goes through `t()` and lives in `src/locales/en.json` (the source) and the other locale files. See [Translations](#translations).
 - Visual tests (`npm run test:visual`) compare screenshots made on macOS and are not run in CI. Update snapshots only if you changed the UI on purpose.
+
+## Translations
+
+The interface uses [i18next](https://www.i18next.com/). `src/locales/en.json` is the source and the fallback; every other language is a JSON file beside it.
+
+- **Add a text:** add the key to `en.json`, then to every other file (`it.json`). Use it with `t("area.component.key")`: keys are typed, so a wrong one does not compile. `npm test` checks that all locales have the same keys and placeholders.
+- **Placeholders** are `{{name}}`. For counts use `count` with `_one` and `_other` keys (`item_one`, `item_other`). Markup inside a sentence uses `<b>…</b>` in the connection log and `<Trans>` with `<strong>` elsewhere.
+- **Add a language:** copy `en.json` to `src/locales/<code>.json`, translate it, then add the code to `LANGUAGES` and to the `resources` in `src/i18n/i18n.ts`, and its name to the `language` block of every locale file.
+- **Rust never writes text for the UI.** Errors and connection messages travel as `{ code, params }` (`src-tauri/src/error.rs`, `src-tauri/src/message.rs`); their texts are the `error.*` and `connection.*` keys. A new error variant needs its key in each locale.
+- Keep `docs/guida.it.md` Italian; the rest of the documentation is English.
 
 ## Git blame
 

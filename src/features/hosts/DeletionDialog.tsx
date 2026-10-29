@@ -1,3 +1,5 @@
+import { Trans } from "react-i18next";
+import { useTranslation } from "react-i18next";
 import { Panel } from "./Panel";
 import { HostSummary } from "./HostSummary";
 import { AlertDialogDescription } from "@/components/ui/alert-dialog";
@@ -6,6 +8,7 @@ import { help } from "@/lib/editor-ui";
 import { useApp } from "@/app/app-context";
 
 export function DeletionDialog() {
+  const { t } = useTranslation();
   const {
     vault: { view, busy, error },
     library: { deletion, closeDeletion, confirmDeletion },
@@ -17,26 +20,30 @@ export function DeletionDialog() {
       variant="alert"
       title={
         deletion.kind === "hosts"
-          ? "Elimina host"
+          ? t("hosts.deletionDialog.deleteHost")
           : deletion.kind === "identities"
-            ? "Elimina identità"
+            ? t("hosts.collectionTables.deleteIdentity")
             : deletion.kind === "groups"
-              ? "Elimina gruppo"
-              : "Elimina chiave"
+              ? t("hosts.deletionDialog.deleteGroup")
+              : t("hosts.collectionTables.deleteKey")
       }
       busy={busy}
       error={error}
       onClose={closeDeletion}
     >
       <AlertDialogDescription>
-        Eliminare <strong>{deletion.name}</strong> dal vault?
+        <Trans
+          i18nKey="hosts.deletionDialog.deleteFromVault"
+          values={{ name: deletion.name }}
+          components={{ strong: <strong /> }}
+        />
       </AlertDialogDescription>
       <p className={help}>
         {deletion.kind === "hosts"
-          ? "Identità e chiavi collegate restano nel vault."
+          ? t("hosts.deletionDialog.linkedIdentitiesAndKeys")
           : deletion.kind === "groups"
-            ? "Il gruppo deve essere vuoto: gli host e i sottogruppi non vengono eliminati."
-            : "L’elemento verrà rimosso dal vault e dai dispositivi sincronizzati."}
+            ? t("hosts.deletionDialog.theGroupMustBe")
+            : t("hosts.deletionDialog.theItemWillBe")}
       </p>
       {deletion.kind === "hosts" && (
         <HostSummary
@@ -52,7 +59,7 @@ export function DeletionDialog() {
           disabled={busy}
           onClick={confirmDeletion}
         >
-          Elimina
+          {t("vault.deleteVaultDialog.delete")}
         </Button>
       </footer>
     </Panel>

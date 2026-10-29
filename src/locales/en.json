@@ -1,0 +1,894 @@
+{
+  "language": {
+    "system": "System",
+    "en": "English",
+    "it": "Italiano"
+  },
+  "error": {
+    "model": {
+      "InvalidIds": "Missing or duplicate identifiers in the vault",
+      "IdentityIncomplete": "Identity without a name or user",
+      "IdentityKeyInvalid": "Identity with an invalid key reference",
+      "GroupParentMissing": "Parent folder not found",
+      "GroupTooDeep": "Folders can be at most {{value}} levels deep",
+      "GroupNameInvalid": "Invalid folder name",
+      "GroupSettingsInvalid": "Invalid settings for folder {{value}}",
+      "GroupNameTaken": "A folder named {{value}} already exists",
+      "GroupInsideItself": "A folder cannot be inside itself",
+      "GroupNotEmpty": "The folder is not empty: move or delete its contents first.",
+      "HostPlacementInvalid": "Invalid port or folder for host {{value}}",
+      "HostCredentialsInvalid": "Host credentials are invalid or conflict with an identity",
+      "HostWithoutIdentity": "Host {{value}} has no identity and its folder does not provide one",
+      "HostIdentityMissing": "Host {{value}} refers to a missing identity",
+      "WorkspaceInvalid": "Invalid workspace {{value}}",
+      "KeyUnreadable": "Invalid private key or wrong passphrase",
+      "KeyNameMissing": "Give the key a name",
+      "KeyImportRequired": "Import a private key",
+      "KeyDuplicate": "This key is already in the key store",
+      "AssignInvalid": "Select valid hosts and an identity",
+      "AssignHostMissing": "One of the selected hosts no longer exists",
+      "HostFieldsRequired": "Name, address and a valid port are required",
+      "InheritConflict": "Inherit the identity from the folder or choose one, not both",
+      "CredentialsRequired": "Enter the host credentials or choose an identity",
+      "UsernameInvalid": "Invalid SSH user",
+      "PasswordRequired": "Enter a password for this host",
+      "CredentialsAndIdentity": "Choose host credentials or an identity, not both",
+      "HostNotFound": "Host not found",
+      "OsInvalid": "Invalid operating system",
+      "EndpointInvalid": "Invalid IP address or host name and port",
+      "IdentityNotFound": "Identity not found",
+      "KeyNotFound": "Key not found",
+      "TargetInvalid": "Invalid address or port",
+      "FingerprintUnverified": "Verify the server fingerprint first",
+      "UsernameMissing": "Enter the SSH user",
+      "KeyInUse_one": "Key used by {{count}} identity. Reassign the identity first.",
+      "KeyInUse_other": "Key used by {{count}} identities. Reassign the identities first.",
+      "IdentityInUse_one": "Identity used by {{count}} host or folder. Reassign it first.",
+      "IdentityInUse_other": "Identity used by {{count}} hosts or folders. Reassign them first."
+    },
+    "vault": {
+      "UnsupportedVersion": "Unsupported vault version",
+      "InvalidNonce": "Invalid nonce",
+      "InvalidSalt": "Invalid salt",
+      "Invalid": "Invalid vault",
+      "WrongPassword": "Wrong password or damaged vault",
+      "InvalidContent": "Invalid vault content",
+      "PasswordTooShort": "Use at least 12 characters for the main password",
+      "SealFailed": "Encryption failed",
+      "CatalogInvalid": "Invalid vault registry",
+      "CatalogIncomplete": "Incomplete vault registry",
+      "IdInvalid": "Invalid vault identifier",
+      "PathInvalid": "Invalid vault path",
+      "NameInvalid": "The vault name must be 1 to 80 characters long",
+      "NameTaken": "A vault with this name already exists",
+      "AlreadyOpen": "Vault already open",
+      "AlreadyExists": "A local vault already exists",
+      "PasswordRequired": "A password is required to create the vault",
+      "DefaultNotDeletable": "The default vault cannot be deleted",
+      "NotEmpty": "The vault is not empty: delete its contents first",
+      "LockedForDeletion": "Unlock the vault to delete it",
+      "Kdf": "{{value}}",
+      "Io": "{{value}}",
+      "Json": "{{value}}"
+    },
+    "terminal": {
+      "NoPtyDescriptor": "Local PTY without a native descriptor",
+      "ProbeTimeout": "Timed out while checking the server",
+      "FingerprintUnavailable": "Fingerprint not available",
+      "ConnectTimeout": "SSH connection timed out",
+      "ServerKeyChanged": "The server identity has changed. Connection blocked: check the new fingerprint outside the app.",
+      "AuthCancelled": "Authentication cancelled",
+      "PasswordsExhausted": "Password not accepted after {{value}} attempts.",
+      "InitialOutputTooLarge": "Initial server response too large",
+      "ShellRefused": "The server refused the terminal or shell",
+      "ClosedBeforeShell": "The server closed the connection before opening the shell",
+      "SessionIdInvalid": "Invalid session identifier",
+      "SessionIdInvalidOrOpen": "Invalid or already open session identifier",
+      "SessionOpen": "Session already open",
+      "LocalSessionOpen": "Local session already open",
+      "SessionClosed": "Session closed",
+      "FingerprintInvalid": "Invalid fingerprint",
+      "FingerprintAlreadySaved": "This host already has a saved fingerprint",
+      "DestinationChanged": "The destination has changed. Verify the fingerprint again.",
+      "PasswordTooLong": "Password too long",
+      "InputTooLarge": "Send at most 64 KiB per message to the terminal",
+      "UrlInvalid": "Invalid address",
+      "Ssh": "{{value}}",
+      "Key": "{{value}}",
+      "Io": "{{value}}",
+      "Pty": "{{value}}",
+      "Errno": "{{value}}",
+      "AuthRefused": "Authentication failed. Methods accepted by the server: {{methods}}.",
+      "AuthRefused_none": "Authentication failed",
+      "AuthRefused_unsupported": "Authentication failed. Methods accepted by the server: {{methods}}. Shellnest only supports key and password."
+    },
+    "sync": {
+      "UrlInvalid": "Invalid URL",
+      "InsecureUrl": "Use HTTPS; HTTP is only allowed on localhost",
+      "UrlParts": "URLs with credentials, a query or a fragment are not allowed",
+      "RemoteIdInvalid": "Invalid remote vault identifier",
+      "VaultUrlRequired": "For this vault use a full /vaults/<id> URL, the same on every device.",
+      "Unauthorized": "Invalid sync token",
+      "RemoteChanged": "Conflict: the remote vault has changed. Local data is kept; resolve the conflict before syncing.",
+      "Status": "Sync failed (HTTP {{value}})",
+      "RevisionMissing": "Remote revision missing",
+      "RemoteInvalid": "Invalid remote vault",
+      "LocalChanges": "Conflict: there are local changes and a different remote revision. No data was overwritten.",
+      "RemoteRemoved": "Remote vault removed: local data kept",
+      "DifferentVault": "The server holds a different vault",
+      "RestoreUnavailable": "Restore is only available on a device with no local vault",
+      "TokenTooShort": "The token must be at least 32 characters long",
+      "Http": "{{value}}"
+    },
+    "keychain": {
+      "InvalidKey": "Invalid saved key",
+      "Unsupported": "Keychain not available on this system",
+      "Keyring": "{{value}}",
+      "Encoding": "{{value}}"
+    },
+    "app": {
+      "StatePoisoned": "State not available",
+      "CatalogPoisoned": "Vault registry not available",
+      "VaultLocked": "Vault locked",
+      "VaultNotFound": "Vault not found",
+      "VaultSwitched": "The active vault has changed. Repeat the operation in the right vault.",
+      "NoPrivatePassword": "This host has no private password saved",
+      "Task": "{{value}}",
+      "Raw": "{{value}}"
+    },
+    "preview": {
+      "Simulated": "Simulated error in {{command}}",
+      "DesktopOnly": "This feature needs the desktop app. The preview does not open network connections."
+    },
+    "session": {
+      "metadataFailed": "Connected, but updating the metadata failed: {{reason}}",
+      "EndedEarly": "The session ended before the terminal opened."
+    }
+  },
+  "connection": {
+    "phase": {
+      "starting": "Starting the connection",
+      "trust": "Checking the server fingerprint",
+      "connect": "Connecting to the SSH server",
+      "verified": "Server fingerprint verified",
+      "auth": "SSH authentication",
+      "session": "Opening the remote terminal",
+      "connected": "Connected"
+    },
+    "kind": {
+      "network": "Network",
+      "fingerprint": "Fingerprint",
+      "auth": "Authentication",
+      "tech": "Technical detail",
+      "error": "Problem",
+      "success": "Success"
+    },
+    "offsetSeconds": "+{{value}} s",
+    "offsetMinutes": "+{{minutes}} min {{seconds}} s",
+    "timeline": {
+      "user": "User",
+      "method": "Sign-in method",
+      "connectRemote": "Connecting to {{target}}",
+      "connectLocal": "Starting the local terminal",
+      "trust": "Check fingerprint",
+      "auth": "Authentication",
+      "password": "Password",
+      "passwordAttempt": "Password (attempt {{n}})",
+      "session": "Session open",
+      "trustConfirmed": "New fingerprint confirmed",
+      "hostKnown": "Known host, fingerprint matches"
+    },
+    "log": {
+      "network": {
+        "resolving": "Resolving <b>{{target}}</b>",
+        "addresses": "Addresses found: <b>{{list}}</b>",
+        "connected": "Connection established",
+        "server": "Remote server: <b>{{banner}}</b>",
+        "opening": "Opening terminal and remote shell",
+        "closedByUser": "Connection closed by the user",
+        "closedByServer": "Connection closed by the server"
+      },
+      "tech": {
+        "algorithms": "Negotiated algorithms: key exchange {{kex}}, host key {{hostKey}}, cipher {{cipher}}"
+      },
+      "fingerprint": {
+        "known": "Server fingerprint known and matching: <b>{{fingerprint}}</b>"
+      },
+      "auth": {
+        "keyAttempt": "Authenticating with <b>key</b> for user <b>{{user}}</b>",
+        "savedPasswordAttempt": "Authenticating with <b>saved password</b> for user <b>{{user}}</b>",
+        "methodsLeft": "Methods still accepted by the server: <b>{{methods}}</b>",
+        "passwordAttempt": "Password attempt {{sent}} of {{max}}"
+      },
+      "success": {
+        "keyAccepted": "Authentication with <b>key</b> accepted",
+        "passwordAccepted": "Authentication with <b>password</b> accepted",
+        "passwordOk": "Password accepted"
+      },
+      "error": {
+        "resolveFailed": "Resolution failed: {{reason}}",
+        "fingerprintChanged": "Server fingerprint changed: expected {{expected}}, received {{received}}",
+        "connectFailed": "Connection failed: {{reason}}",
+        "keyRefused": "Authentication with key refused by the server",
+        "savedPasswordRefused": "Authentication with saved password refused by the server",
+        "authCancelled": "Authentication cancelled by the user",
+        "passwordRefused": "Password refused by the server"
+      }
+    },
+    "step": {
+      "authKeyNamed": "Authenticated with the key “{{name}}”",
+      "authKey": "Authenticated with the key",
+      "authPassword": "Authenticated with the password",
+      "keyRefused": "Key refused by the server",
+      "savedPasswordRefused": "Saved password refused",
+      "passwordAccepted": "Password accepted",
+      "passwordRefused": "Password not accepted"
+    }
+  },
+  "vault": {
+    "browserGate": {
+      "inMemorySampleData": "In-memory sample data. SSH and encryption only in the desktop app.",
+      "exploreTheInterface": "Explore the interface"
+    },
+    "deleteVaultDialog": {
+      "deleteTheVault": "Delete the vault?",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "emptyAndRemoved": "“{{name}}” is empty and will be removed. You will return to the default vault and the open sessions will be closed."
+    },
+    "lockScreen": {
+      "createALocalVault": "Create a local vault",
+      "connectAnExistingVault": "Connect an existing vault",
+      "atLeast12Characters": "At least 12 characters. The main password cannot be recovered."
+    },
+    "rememberSetting": {
+      "rememberOnThisDevice": "Remember on this device",
+      "theKeyStaysIn": "The key stays in the system keychain. “Lock vault” still asks for the password.",
+      "unlockTitle": "Unlock · {{name}}"
+    },
+    "syncSettings": {
+      "hostsIdentitiesAndKeys": "Hosts, identities and keys, encrypted.",
+      "serviceUrl": "Service URL",
+      "pathVault": "Path: /vault",
+      "token": "Token",
+      "leaveEmptyToKeep": "Leave empty to keep the existing token",
+      "atLeast32Characters": "At least 32 characters",
+      "every30SWhile": "Every 30 s while the vault is unlocked. With concurrent changes sync stops and keeps the local data.",
+      "syncNow": "Sync now",
+      "saveConfiguration": "Save configuration",
+      "title": "Sync · {{name}}",
+      "lastSyncOk": " Last successful sync: {{time}}.",
+      "pathWillBe": "/vaults/{{id}} will be used. For another device, copy the full URL after saving."
+    },
+    "unlockForm": {
+      "fullUrlOfThe": "Full URL of the remote vault",
+      "copyTheFullUrl": "Copy the full URL from the other device's settings, including /vaults/… when present.",
+      "mainPassword": "Main password",
+      "confirmPassword": "Confirm password"
+    },
+    "vaultList": {
+      "active": "Active",
+      "vault": "Vault",
+      "default": "Default",
+      "new": "New",
+      "switchToThis": "Switch to this",
+      "newVault": "New vault",
+      "renameName": "Rename “{{name}}”",
+      "deleteName": "Delete “{{name}}”"
+    },
+    "vaultPanels": {
+      "renameVault": "Rename vault",
+      "name": "Name",
+      "personalWorkClient": "Personal, Work, Client…",
+      "afterCreatingItChoose": "After creating it, choose the password or connect a remote vault.",
+      "createVault": "Create vault",
+      "saveName": "Save name",
+      "switchVault": "Switch vault",
+      "closeSessionsAndSwitch": "Close sessions and switch",
+      "closeOtherSessions": "Close other sessions",
+      "closeSessions": "Close sessions",
+      "lockVault": "Lock vault",
+      "closeSessionsAndLock": "Close sessions and lock",
+      "createClosesSessions_one": "Creating it selects the new vault and closes the {{count}} open session, including local shells.",
+      "createClosesSessions_other": "Creating it selects the new vault and closes all {{count}} open sessions, including local shells.",
+      "switchTo": "Switch to <strong>{{name}}</strong>?",
+      "switchClosesSessions_one": "The {{count}} open session will be closed, including local shells. The current vault will be locked.",
+      "switchClosesSessions_other": "All {{count}} open sessions will be closed, including local shells. The current vault will be locked.",
+      "closeSessions_one": "Close {{count}} session? Local shells and the selected SSH connections will be ended.",
+      "closeSessions_other": "Close {{count}} sessions? Local shells and the selected SSH connections will be ended.",
+      "lockAndClose_one": "Lock the vault and close the {{count}} session, including local shells?",
+      "lockAndClose_other": "Lock the vault and close all {{count}} sessions, including local shells?"
+    },
+    "vaultPicker": {
+      "yourVaults": "Your vaults",
+      "activeVaultName": "Active vault: {{name}}"
+    },
+    "useUnlock": {
+      "thePasswordsDoNot": "The passwords do not match.",
+      "passwordNotSaved": "Password not saved"
+    },
+    "useVault": {
+      "startThePreviewFirst": "Start the preview first.",
+      "theOpenDesktopVersion": "The open desktop version still uses the old model. Close and restart the updated app.",
+      "vaultUpdateFailed": "Vault update failed"
+    },
+    "useVaultSession": {
+      "vaultSwitchFailed": "Vault switch failed",
+      "lockingTheVaultFailed": "Locking the vault failed"
+    },
+    "useVaultSync": {
+      "vaultSynced": "Vault synced",
+      "syncFailed": "Sync failed",
+      "retry": "Retry"
+    },
+    "vaultCopy": {
+      "setUpSync": "Set up sync",
+      "syncing": "Syncing…",
+      "syncFailedRetry": "Sync failed · Retry",
+      "toSync": "To sync",
+      "syncSetUp": "Sync set up",
+      "unlockVault": "Unlock vault",
+      "connectDevice": "Connect device",
+      "createLocalVault": "Create local vault",
+      "exploreShellnest": "Explore Shellnest",
+      "openSourceSshClient": "Open source SSH client for Windows and macOS, with optional self-hosted sync.",
+      "savedOnTheDevice": "Saved on the device, encrypted.",
+      "wait": "Wait…",
+      "unlock": "Unlock",
+      "theDefaultVaultCannot": "The default vault cannot be deleted",
+      "emptyTheVaultFirst": "Empty the vault first: hosts, identities, keys and folders",
+      "lastSyncOk": "Last successful sync: {{time}}",
+      "syncTime": "Sync {{time}}"
+    }
+  },
+  "app": {
+    "appMenu": {
+      "applicationMenu": "Application menu",
+      "settings": "Settings",
+      "checkForUpdates": "Check for updates",
+      "closeAllSessions": "Close all sessions"
+    },
+    "banners": {
+      "interactivePreviewUsesSample": "Interactive preview · Uses sample data · Changes are reset on reload"
+    },
+    "openingScreen": {
+      "openingVault": "Opening vault"
+    },
+    "sidebar": {
+      "mainNavigation": "Main navigation",
+      "hostFolders": "Host folders",
+      "folders": "Folders",
+      "folderName": "Folder {{name}}"
+    },
+    "windowControls": {
+      "windowOperationFailed": "Window operation failed",
+      "windowControls": "Window controls",
+      "minimize": "Minimize",
+      "restoreWindow": "Restore window",
+      "maximizeWindow": "Maximize window",
+      "closeWindow": "Close window"
+    }
+  },
+  "components": {
+    "osIcon": {
+      "systemNotDetectedYet": "System not detected yet"
+    },
+    "passwordInput": {
+      "hidePassword": "Hide password",
+      "showPassword": "Show password"
+    }
+  },
+  "hosts": {
+    "bulkAssignDialog": {
+      "assignIdentity": "Assign identity",
+      "sessionsAlreadyOpenStay": "Sessions already open stay active.",
+      "identity": "Identities",
+      "identityToAssign": "Identity to assign",
+      "selectAnIdentity": "Select an identity",
+      "assignToHosts_one": "Assign to {{count}} host",
+      "assignToHosts_other": "Assign to {{count}} hosts"
+    },
+    "collectionTables": {
+      "sshUser": "SSH user",
+      "methodKey": "Method / key",
+      "usage": "Usage",
+      "actions": "Actions",
+      "reassignTheHostsThat": "Reassign the hosts that use this identity first",
+      "deleteIdentity": "Delete identity",
+      "keyMissing": "Key missing",
+      "password": "Password",
+      "publicFingerprint": "Public fingerprint",
+      "reassignTheIdentitiesThat": "Reassign the identities that use this key first",
+      "deleteKey": "Delete key",
+      "toVerify": "To verify",
+      "editName": "Edit {{name}}",
+      "deleteName": "Delete {{name}}",
+      "actionsName": "Actions for {{name}}"
+    },
+    "deletionDialog": {
+      "deleteHost": "Delete host",
+      "deleteGroup": "Delete group",
+      "linkedIdentitiesAndKeys": "Linked identities and keys stay in the vault.",
+      "theGroupMustBe": "The group must be empty: hosts and subgroups are not deleted.",
+      "theItemWillBe": "The item will be removed from the vault and from the synced devices.",
+      "deleteFromVault": "Delete <strong>{{name}}</strong> from the vault?"
+    },
+    "emptyState": {
+      "addHost": "Add host",
+      "createIdentity": "Create identity",
+      "importKey": "Import key",
+      "noResults": "No results",
+      "emptyFolder": "Empty folder",
+      "noHosts": "No hosts",
+      "noIdentities": "No identities",
+      "noSshKeys": "No SSH keys",
+      "clearFilters": "Clear filters"
+    },
+    "folderCard": {
+      "open": "Open",
+      "editGroup": "Edit group",
+      "newSubgroup": "New subgroup",
+      "selectFolder": "Select folder {{name}}",
+      "folderActions": "Actions for folder {{name}}"
+    },
+    "groupEditor": {
+      "newGroup": "New group",
+      "backToHost": "Back to host",
+      "saveAndBackTo": "Save and back to host",
+      "saveGroup": "Save group",
+      "general": "General",
+      "groupName": "Group name",
+      "parentGroup": "Parent group",
+      "noParentGroup": "No parent group",
+      "hostDefaults": "Host defaults",
+      "inheritedByHostsAnd": "Inherited by hosts and subgroups without a value of their own.",
+      "defaultIdentity": "Default identity",
+      "noDefaultIdentity": "No default identity",
+      "sshPort": "SSH port"
+    },
+    "groupField": {
+      "noFolder": "No folder",
+      "folder": "Folder",
+      "folderOptional": "Folder (optional)",
+      "noFolderTypeTo": "No folder. Type to create one.",
+      "createFolder": "Create folder",
+      "createFolderNamed": "Create folder “{{name}}”"
+    },
+    "hostAccessSection": {
+      "sshAccess": "SSH access",
+      "credentials": "Credentials",
+      "sshPassword": "SSH password",
+      "managedByTheIdentity": "Managed by the identity"
+    },
+    "hostCard": {
+      "credentialsMissing": "Credentials missing",
+      "selectName": "Select {{name}}"
+    },
+    "hostCredentialsField": {
+      "sshKey": "SSH key",
+      "createSharedIdentity": "Create shared identity",
+      "identity": "Identity:",
+      "useTheHostS": "Use the host's own credentials"
+    },
+    "hostEditButton": {
+      "edit": "Edit"
+    },
+    "hostEditor": {
+      "editHost": "Edit host",
+      "newHost": "New host",
+      "connect": "Connect",
+      "currentVault": "Current vault",
+      "address": "Address",
+      "ipOrHostName": "IP or host name",
+      "hostName": "Host name"
+    },
+    "hostMenuItems": {
+      "duplicateHost": "Duplicate host",
+      "copyFailed": "Copy failed",
+      "copyAddress": "Copy address"
+    },
+    "hostRow": {
+      "identityMissing": "Identity missing",
+      "hostSuffix": "host"
+    },
+    "hostSaveStatus": {
+      "saving": "Saving",
+      "saved": "Saved",
+      "savingFailed": "Saving failed",
+      "unsavedChanges": "Unsaved changes"
+    },
+    "hostSummary": {
+      "hostsInvolved": "Hosts involved"
+    },
+    "hostTable": {
+      "access": "Access"
+    },
+    "hostsView": {
+      "hosts": "Hosts"
+    },
+    "identityAccessSection": {
+      "method": "Method",
+      "authenticationMethod": "Authentication method",
+      "keyFromTheKey": "Key from the key store",
+      "selectAKey": "Select a key",
+      "importAKey": "Import a key",
+      "leaveEmptyToKeep": "Leave empty to keep the saved one",
+      "changeAffects_one": "The change will be used by the next connections of {{count}} host. Sessions already open stay active.",
+      "changeAffects_other": "The change will be used by the next connections of {{count}} hosts. Sessions already open stay active."
+    },
+    "identityEditor": {
+      "editIdentity": "Edit identity",
+      "newIdentity": "New identity",
+      "saveIdentity": "Save identity",
+      "eGAdministration": "E.g. Administration"
+    },
+    "inheritedIdentityNotice": {
+      "useOwnCredentials": "Use own credentials"
+    },
+    "keyEditor": {
+      "importAndBackTo": "Import and back to identity",
+      "saveKey": "Save key",
+      "editSshKey": "Edit SSH key",
+      "importSshKey": "Import SSH key",
+      "backToIdentity": "Back to identity",
+      "eGPersonalKey": "E.g. Personal key",
+      "notVerifiedImportThe": "Not verified: import the key again to validate it",
+      "privateKey": "Private key",
+      "replacePrivateKeyOptional": "Replace private key (optional)",
+      "keyPassphrase": "Key passphrase",
+      "ifTheKeyIs": "If the key is protected",
+      "replacingTheKeyChanges": "Replacing the key changes the next connections of every identity that uses it.",
+      "importedIntoTheEncrypted": "Imported into the encrypted vault; the original file is left untouched.",
+      "usedBy": "Used by {{identities}} and {{hosts}}."
+    },
+    "keyFilePicker": {
+      "fileTooLarge1": "File too large (1 MB maximum)",
+      "privateKeyFile": "Private key file",
+      "chooseThePrivateKey": "Choose the private key file"
+    },
+    "offeredIdentityNotice": {
+      "useIt": "Use it",
+      "offers": "Folder <strong>{{group}}</strong> offers the identity <strong>{{identity}}</strong>."
+    },
+    "panel": {
+      "closePanel": "Close panel",
+      "discardTheChanges": "Discard the changes?",
+      "theChangesToThis": "The changes to this form have not been saved.",
+      "discardChanges": "Discard changes"
+    },
+    "searchField": {
+      "search": "Search",
+      "searchNameAddressOr": "Search name, address or identity…",
+      "searchIdentityUserOr": "Search identity, user or key…",
+      "searchKeyOrFingerprint": "Search key or fingerprint…",
+      "clearSearch": "Clear search"
+    },
+    "selectionBar": {
+      "selectedHostActions": "Selected host actions",
+      "cancelSelection": "Cancel selection"
+    },
+    "usageFilter": {
+      "hostsLinkedTo": "Hosts linked to:",
+      "removeIdentityFilter": "Remove identity filter"
+    },
+    "vaultContent": {
+      "allFolders": "All folders"
+    },
+    "vaultHeader": {
+      "quickConnect": "Quick connection"
+    },
+    "vaultToolbar": {
+      "moreCreateActions": "More create actions",
+      "newFolder": "New folder",
+      "localTerminal": "Local terminal",
+      "filterByFolder": "Filter by folder",
+      "sortHosts": "Sort hosts",
+      "nameAZ": "Name A–Z",
+      "lastAccess": "Last access",
+      "hostView": "Host view",
+      "cards": "Tabs",
+      "list": "List"
+    },
+    "useEditors": {
+      "theActiveVaultHas": "The active vault has changed",
+      "copyOf": "{{name}} (copy)"
+    },
+    "useLibrary": {
+      "sshKeys": "SSH keys"
+    },
+    "hostPortField": {
+      "portInherited": "Port inherited from group {{path}}."
+    }
+  },
+  "settings": {
+    "settingsNav": {
+      "terminal": "Terminal",
+      "shortcuts": "Shortcuts",
+      "updates": "Updates",
+      "settingsSections": "Settings sections",
+      "general": "General"
+    },
+    "shortcutsEditor": {
+      "atLeastOneModifier": "At least one modifier (⌘, ⌃ or ⌥) is needed along with the key.",
+      "ctrlOrAlt": "Ctrl or Alt",
+      "combinationsWithALetter": "Combinations with a letter use Ctrl+Shift to leave the terminal commands free.",
+      "reassign": "Reassign",
+      "pressTheCombination": "Press the combination…",
+      "none": "None",
+      "restoreAll": "Restore all",
+      "escCancels": "Esc cancels, Backspace disables.",
+      "alreadyUsedBy": "{{combo}} is already used by “{{other}}”.",
+      "editLabel": "Edit “{{label}}”",
+      "restoreLabel": "Restore “{{label}}”"
+    },
+    "terminalAppearance": {
+      "appearance": "Appearance",
+      "font": "Font",
+      "terminalFont": "Terminal font",
+      "textSize": "Text size",
+      "decreaseTextSize": "Decrease text size",
+      "increaseTextSize": "Increase text size",
+      "lineHeight": "Line height",
+      "decreaseLineHeight": "Decrease line height",
+      "increaseLineHeight": "Increase line height"
+    },
+    "terminalBehavior": {
+      "behavior": "Behavior",
+      "copyTheSelectionAutomatically": "Copy the selection automatically",
+      "pasteWithTheRight": "Paste with the right click",
+      "bellSound": "Bell sound",
+      "useOptionAsThe": "Use Option as the Meta key",
+      "leaveItOffIf": "Leave it off if Option types characters on your keyboard, such as @ # [ ].",
+      "brightColorsForBold": "Bright colors for bold text",
+      "scrollbackLines": "Scrollback lines",
+      "from500To100000": "From 500 to 100000."
+    },
+    "themePicker": {
+      "colorTheme": "Color theme"
+    },
+    "updateProgress": {
+      "updateDownload": "Update download"
+    },
+    "updateSettings": {
+      "download": "Download",
+      "restartNow": "Restart now",
+      "checkNow": "Check now",
+      "installedVersion": "Installed version",
+      "checkAtStartup": "Check at startup",
+      "status": "Status"
+    },
+    "shortcuts": {
+      "goToTab": "Go to tab",
+      "searchTheCollection": "Search the collection",
+      "closePaneOrTab": "Close pane or tab",
+      "closeAllPanesOf": "Close all panes of the tab",
+      "reopenLastClosedTab": "Reopen last closed tab",
+      "goToTab1": "Go to tab 1–8, 9 = last",
+      "previousTab": "Previous tab",
+      "nextTab": "Next tab",
+      "moveTabLeft": "Move tab left",
+      "moveTabRight": "Move tab right",
+      "splitThePaneTo": "Split the pane to the right",
+      "splitThePaneDown": "Split the pane down",
+      "previousPane": "Previous pane",
+      "nextPane": "Next pane",
+      "clearTerminal": "Clear terminal",
+      "increaseTerminalTextSize": "Increase terminal text size",
+      "decreaseTerminalTextSize": "Decrease terminal text size",
+      "defaultTextSize": "Default text size",
+      "ctrl": "Ctrl",
+      "alt": "Alt",
+      "shift": "Shift",
+      "isReservedForTerminal": "is reserved for terminal commands",
+      "isReservedByThe": "is reserved by the system"
+    },
+    "updateFlow": {
+      "theUpdateSigningKey": "the update signing key is invalid or has not been configured",
+      "unreachable": "server unreachable, check the connection",
+      "noManifest": "no update list found on the server",
+      "unknownError": "unknown error",
+      "checking": "Checking…",
+      "upToDate": "Up to date.",
+      "available": "Version {{version}} is available.",
+      "downloading": "Downloading version {{version}}…",
+      "downloadingPercent": "Downloading version {{version}}: {{percent}}%",
+      "ready": "Version {{version}} is ready.",
+      "installing": "Installing version {{version}}…",
+      "checkFailed": "Check failed: {{message}}"
+    },
+    "useAppUpdate": {
+      "updateReady": "Update ready",
+      "installing": "Installing…",
+      "installationFailed": "Installation failed",
+      "downloadFailed": "Download failed",
+      "updateAvailable": "Update available",
+      "checkingForUpdates": "Checking for updates…",
+      "noUpdates": "No updates",
+      "checkFailed": "Check failed"
+    },
+    "general": {
+      "language": "Language",
+      "languageHint": "“System” follows the language of the operating system.",
+      "languageLabel": "Interface language"
+    }
+  },
+  "terminal": {
+    "closeGuard": {
+      "restartToUpdate": "Restart to update?",
+      "stopTheSession": "Stop the session?",
+      "someSessionsAreStill": "Some sessions are still connected: restarting will close them and end the programs running in the terminals.",
+      "theSessionIsStill": "The session is still connected: closing it will end the programs running in the terminal.",
+      "donTAskMe": "Don't ask me again",
+      "restart": "Restart",
+      "stop": "Stop"
+    },
+    "connectionLauncher": {
+      "newTab": "New tab",
+      "searchHostsOrTabs": "Search hosts or tabs",
+      "searchHostsOrTabs2": "Search hosts or tabs · ssh user@host -p 22",
+      "availableConnections": "Available connections",
+      "noSavedHosts": "No saved hosts."
+    },
+    "connectionLog": {
+      "hideLog": "Hide log",
+      "showLog": "Show log",
+      "copyLog": "Copy log",
+      "logCopied": "Log copied.",
+      "connectionLog": "Connection log"
+    },
+    "connectionTimeline": {
+      "connectionProgress": "Connection progress",
+      "readingTheServerFingerprint": "Reading the server fingerprint…",
+      "startOver": "Start over",
+      "close": "Close",
+      "userWithIdentity": "{{user}} · identity “{{identity}}”",
+      "keyNamed": "Key “{{name}}”",
+      "stepDone": " — completed",
+      "stepWarning": " — completed with a warning",
+      "stepFailed": " — failed"
+    },
+    "fingerprintCard": {
+      "compareTheFingerprintWith": "Compare the fingerprint with the one from the administrator or the console.",
+      "fingerprintVerifiedConnect": "Fingerprint verified, connect"
+    },
+    "launcherActions": {
+      "createWorkspace": "Create workspace",
+      "restore": "Restore"
+    },
+    "launcherRow": {
+      "newSessionShiftEnter": "New session (Shift+Enter)",
+      "confirm": "Confirm",
+      "newSessionName": "New session {{name}}",
+      "deleteWorkspaceName": "Delete workspace {{name}}"
+    },
+    "paneHeader": {
+      "connecting": "Connecting…",
+      "connected": "Connected",
+      "ended": "Ended",
+      "failed": "Failed",
+      "closePaneName": "Close pane {{name}}"
+    },
+    "passwordStep": {
+      "passwordNotAccepted": "Password not accepted.",
+      "keyRefusedByThe": "Key refused by the server: a password is needed.",
+      "signIn": "Sign in"
+    },
+    "pasteConfirmDialog": {
+      "pasteMultipleLines": "Paste multiple lines?",
+      "paste": "Paste",
+      "aboutToPaste_one": "You are about to paste {{count}} line into the terminal. Each line will be run by the shell.",
+      "aboutToPaste_other": "You are about to paste {{count}} lines into the terminal. Each line will be run by the shell."
+    },
+    "quickActions": {
+      "nameForContinueAnd": "Name for “Continue and save”",
+      "aPasswordIsNeeded": "A password is needed to save the host.",
+      "continueAndSave": "Continue and save",
+      "continue": "Continue"
+    },
+    "quickMethodStep": {
+      "signInWith": "Sign in with",
+      "key": "Key",
+      "noKeysInThe": "No keys in the key store.",
+      "back": "Back"
+    },
+    "quickUserStep": {
+      "user": "User",
+      "orASavedIdentity": "Or a saved identity.",
+      "searchIdentity": "Search identity",
+      "savedIdentities": "Saved identities",
+      "noMatchingIdentity": "No matching identity.",
+      "next": "Next"
+    },
+    "searchMenu": {
+      "searchResults": "Search results"
+    },
+    "sessionTab": {
+      "workspace": "Workspace",
+      "duplicate": "Duplicate",
+      "rename": "Rename",
+      "saveAsWorkspace": "Save as workspace…",
+      "splitVertically": "Split vertically",
+      "splitHorizontally": "Split horizontally",
+      "tabName": "Tab name",
+      "tabActions": "Actions for tab {{name}}"
+    },
+    "tabBar": {
+      "sessionsAndConnections": "Sessions and connections",
+      "newConnection": "New connection"
+    },
+    "terminalPane": {
+      "deviceShell": "Device shell"
+    },
+    "terminalSearchBar": {
+      "searchInTheTerminal": "Search in the terminal",
+      "previousResult": "Previous result",
+      "nextResult": "Next result",
+      "closeSearch": "Close search"
+    },
+    "terminalStage": {
+      "terminalProblem": "Terminal problem"
+    },
+    "trustDialog": {
+      "verifyTheServerIdentity": "Verify the server identity",
+      "firstAccess": "First access to <strong>{{target}}</strong>."
+    },
+    "workspaceDialog": {
+      "saveAsWorkspace": "Save as workspace",
+      "includesTheHostsAnd": "Includes the hosts and the layout of the panes.",
+      "save": "Save",
+      "quickNotSaved_one": "{{count}} quick connection will not be saved: save it as a host first to include it.",
+      "quickNotSaved_other": "{{count}} quick connections will not be saved: save them as hosts first to include them."
+    },
+    "launcherResults": {
+      "openTab": "Open tab",
+      "thisComputer": "This computer",
+      "recentConnections": "Recent connections",
+      "savedHosts": "Saved hosts",
+      "notAValidHost": "Not a valid host name or IP address.",
+      "noTabMatchesThe": "No tab matches the search.",
+      "noOpenTabs": "No open tabs.",
+      "noHostOrTab": "No host or tab matches the search.",
+      "connections_one": "{{count}} connection",
+      "connections_other": "{{count}} connections"
+    },
+    "useHostConnections": {
+      "completeTheCredentialsOf": "Complete the credentials of the selected hosts.",
+      "connectionFailed": "Connection failed",
+      "localTerminalNotAvailable": "Local terminal not available",
+      "theLocalTerminalWorks": "The local terminal works in the desktop app.",
+      "completeTheSignIn": "Complete the sign-in details."
+    },
+    "useTrust": {
+      "fingerprintNotSaved": "Fingerprint not saved."
+    },
+    "useWorkspaces": {
+      "aHostToOpen": "A host to open no longer exists.",
+      "atLeastTwoSaveable": "At least two saveable sessions are needed (hosts or local terminal): quick connections cannot be saved.",
+      "workspaceSaved": "Workspace “{{name}}” saved."
+    },
+    "localHost": "local",
+    "sessionEnded": "Session ended. Use Reconnect from the tab menu.",
+    "inputTooLong": "Input too long before the connection. Wait for the prompt and paste again.",
+    "demoBanner": "Demo session: no real connection.",
+    "tab": {
+      "closeName": "Close {{name}}"
+    }
+  },
+  "common": {
+    "identityCount_one": "{{count}} identity",
+    "identityCount_other": "{{count}} identities",
+    "hostCount_one": "{{count}} host",
+    "hostCount_other": "{{count}} hosts"
+  },
+  "menu": {
+    "vault": "Vault",
+    "edit": "Edit",
+    "window": "Window"
+  },
+  "preview": {
+    "production": "Production",
+    "development": "Development",
+    "administration": "Administration",
+    "defaultVault": "Personal"
+  }
+}

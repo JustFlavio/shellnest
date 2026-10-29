@@ -1,3 +1,4 @@
+import { t } from "../../i18n/i18n.ts";
 import type { View } from "../../lib/types.ts";
 
 // Texts that depend on the state of the vault; kept apart from the components that show them.
@@ -12,10 +13,10 @@ export function syncTitle({
   syncConfigured: boolean;
   lastSync: string;
 }): string {
-  if (!syncConfigured) return "Configura sync";
+  if (!syncConfigured) return t("vault.vaultCopy.setUpSync");
   return lastSync
-    ? `Ultima sincronizzazione riuscita: ${lastSync}`
-    : "Sincronizza ora";
+    ? t("vault.vaultCopy.lastSyncOk", { time: lastSync })
+    : t("vault.syncSettings.syncNow");
 }
 
 // null when sync is not set up: only the icon shows.
@@ -30,25 +31,28 @@ export function syncLabel({
   dirty?: boolean;
   lastSync: string;
 }): string | null {
-  if (syncState === "syncing") return "Sincronizzazione…";
-  if (syncState === "error") return "Sync non riuscita · Riprova";
+  if (syncState === "syncing") return t("vault.vaultCopy.syncing");
+  if (syncState === "error") return t("vault.vaultCopy.syncFailedRetry");
   if (!syncConfigured) return null;
-  if (dirty) return "Da sincronizzare";
-  return lastSync ? `Sync ${lastSync}` : "Sync configurata";
+  if (dirty) return t("vault.vaultCopy.toSync");
+  return lastSync
+    ? t("vault.vaultCopy.syncTime", { time: lastSync })
+    : t("vault.vaultCopy.syncSetUp");
 }
 
 // `interactive`: the desktop app or the in-memory preview; a plain browser only gets the gate.
 export function lockTitle({ exists, restore, interactive }: LockState): string {
-  if (exists) return "Sblocca vault";
-  if (restore) return "Collega dispositivo";
-  return interactive ? "Crea vault locale" : "Esplora Shellnest";
+  if (exists) return t("vault.vaultCopy.unlockVault");
+  if (restore) return t("vault.vaultCopy.connectDevice");
+  return interactive
+    ? t("vault.vaultCopy.createLocalVault")
+    : t("vault.vaultCopy.exploreShellnest");
 }
 
 export function lockLead({ exists, restore, interactive }: LockState): string {
-  if (!interactive)
-    return "Client SSH open source per Windows e macOS, con sincronizzazione self-hosted opzionale.";
+  if (!interactive) return t("vault.vaultCopy.openSourceSshClient");
   if (exists || restore) return "";
-  return "Salvato sul dispositivo, cifrato.";
+  return t("vault.vaultCopy.savedOnTheDevice");
 }
 
 export function unlockLabel({
@@ -60,9 +64,11 @@ export function unlockLabel({
   exists: boolean;
   restore: boolean;
 }): string {
-  if (busy) return "Attendi…";
-  if (exists) return "Sblocca";
-  return restore ? "Collega dispositivo" : "Crea vault";
+  if (busy) return t("vault.vaultCopy.wait");
+  if (exists) return t("vault.vaultCopy.unlock");
+  return restore
+    ? t("vault.vaultCopy.connectDevice")
+    : t("vault.vaultPanels.createVault");
 }
 
 // Why the active vault cannot be deleted, or "" when it can.
@@ -73,14 +79,12 @@ export function deleteBlock(
   >,
 ): string {
   if (view.vaultId === "personal")
-    return "Il vault Personale non si può eliminare";
+    return t("vault.vaultCopy.theDefaultVaultCannot");
   const empty =
     !view.hosts.length &&
     !view.identities.length &&
     !view.keys.length &&
     !view.groups.length &&
     !view.workspaces.length;
-  return empty
-    ? ""
-    : "Svuota prima il vault: host, identità, chiavi e cartelle";
+  return empty ? "" : t("vault.vaultCopy.emptyTheVaultFirst");
 }

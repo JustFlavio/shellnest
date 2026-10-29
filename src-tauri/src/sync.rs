@@ -9,43 +9,46 @@ use reqwest::{StatusCode, Url, blocking::Client};
 use std::time::Duration;
 
 /// Why the sync client refused a URL or the server refused the sync. The messages are shown to the user.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, serde::Serialize)]
+#[serde(tag = "code", content = "params")]
 pub(crate) enum SyncError {
-    #[error("URL non valido")]
+    #[error("Invalid URL")]
     UrlInvalid,
-    #[error("Usa HTTPS; HTTP è consentito solo su localhost")]
+    #[error("Use HTTPS; HTTP is only allowed on localhost")]
     InsecureUrl,
-    #[error("URL con credenziali, query o frammenti non consentito")]
+    #[error("URLs with credentials, a query or a fragment are not allowed")]
     UrlParts,
-    #[error("Identificativo vault remoto non valido")]
+    #[error("Invalid remote vault identifier")]
     RemoteIdInvalid,
-    #[error("Per questo vault usa un URL completo /vaults/<id>, uguale su tutti i dispositivi.")]
+    #[error("For this vault use a full /vaults/<id> URL, the same on every device.")]
     VaultUrlRequired,
     #[error("{0}")]
+    #[serde(serialize_with = "crate::error::as_text")]
     Http(#[from] reqwest::Error),
-    #[error("Token di sincronizzazione non valido")]
+    #[error("Invalid sync token")]
     Unauthorized,
     #[error(
-        "Conflitto: il vault remoto è cambiato. I dati locali sono conservati; risolvi il conflitto prima di sincronizzare."
+        "Conflict: the remote vault has changed. Local data is kept; resolve the conflict before syncing."
     )]
     RemoteChanged,
-    #[error("Sync non riuscita (HTTP {0})")]
+    #[error("Sync failed (HTTP {0})")]
+    #[serde(serialize_with = "crate::error::status_code")]
     Status(StatusCode),
-    #[error("Revisione remota assente")]
+    #[error("Remote revision missing")]
     RevisionMissing,
-    #[error("Vault remoto non valido")]
+    #[error("Invalid remote vault")]
     RemoteInvalid,
     #[error(
-        "Conflitto: esistono modifiche locali e una revisione remota diversa. Nessun dato è stato sovrascritto."
+        "Conflict: there are local changes and a different remote revision. No data was overwritten."
     )]
     LocalChanges,
-    #[error("Vault remoto rimosso: dati locali conservati")]
+    #[error("Remote vault removed: local data kept")]
     RemoteRemoved,
-    #[error("Il server contiene un vault differente")]
+    #[error("The server holds a different vault")]
     DifferentVault,
-    #[error("Il ripristino è disponibile solo su un dispositivo senza vault locale")]
+    #[error("Restore is only available on a device with no local vault")]
     RestoreUnavailable,
-    #[error("Il token deve avere almeno 32 caratteri")]
+    #[error("The token must be at least 32 characters long")]
     TokenTooShort,
 }
 
@@ -297,7 +300,7 @@ mod tests {
             .data
             .upsert_key(model::SshKey {
                 id: "shared-key".into(),
-                name: "Personale".into(),
+                name: "Personal".into(),
                 private_key: secret.to_openssh(Default::default()).unwrap().to_string(),
                 passphrase: String::new(),
                 fingerprint: String::new(),
@@ -369,7 +372,7 @@ mod tests {
                 .err()
                 .unwrap()
                 .to_string()
-                .contains("Conflitto")
+                .contains("Conflict")
         );
         assert_eq!(before, std::fs::read(&b.path).unwrap());
         assert!(

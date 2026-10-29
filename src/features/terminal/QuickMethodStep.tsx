@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { PasswordInput } from "@/components/PasswordInput";
 import { SelectField } from "@/components/SelectField";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ export function QuickMethodStep({
   onSubmit: (save: boolean) => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Escape bubbles up from the form fields
     <form
@@ -36,7 +38,9 @@ export function QuickMethodStep({
       }}
     >
       <fieldset className="m-0 flex gap-[16px] border-0 p-0">
-        <legend className="mb-[6px] p-0 text-[12px]">Accedi con</legend>
+        <legend className="mb-[6px] p-0 text-[12px]">
+          {t("terminal.quickMethodStep.signInWith")}
+        </legend>
         {(["password", "key"] as const).map((method) => (
           <label
             key={method}
@@ -50,13 +54,15 @@ export function QuickMethodStep({
               disabled={method === "key" && !keys.length}
               onChange={() => patch({ method })}
             />
-            {method === "password" ? "Password" : "Chiave"}
+            {method === "password"
+              ? t("hosts.collectionTables.password")
+              : t("terminal.quickMethodStep.key")}
           </label>
         ))}
       </fieldset>
       {setup.method === "password" ? (
         <label className="mt-[10px] block text-[12px]">
-          Password
+          {t("hosts.collectionTables.password")}
           <PasswordInput
             autoComplete="off"
             value={setup.password}
@@ -65,18 +71,20 @@ export function QuickMethodStep({
         </label>
       ) : (
         <label className="mt-[10px] block text-[12px]">
-          Chiave
+          {t("terminal.quickMethodStep.key")}
           <SelectField
-            aria-label="Chiave dal portachiavi"
+            aria-label={t("hosts.identityAccessSection.keyFromTheKey")}
             value={setup.keyId}
             onValueChange={(keyId) => patch({ keyId })}
-            placeholder="Seleziona una chiave"
+            placeholder={t("hosts.identityAccessSection.selectAKey")}
             options={keys.map((key) => ({ value: key.id, label: key.name }))}
           />
         </label>
       )}
       {!keys.length && (
-        <p className={help + " mb-0"}>Nessuna chiave nel portachiavi.</p>
+        <p className={help + " mb-0"}>
+          {t("terminal.quickMethodStep.noKeysInThe")}
+        </p>
       )}
       <QuickActions
         setup={setup}
@@ -86,7 +94,7 @@ export function QuickMethodStep({
       />
       <div className="mt-[8px]">
         <Button variant="ghost" type="button" onClick={() => setStage("user")}>
-          Indietro
+          {t("terminal.quickMethodStep.back")}
         </Button>
       </div>
     </form>

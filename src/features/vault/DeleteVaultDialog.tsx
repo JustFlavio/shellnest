@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { AlertDialogDescription } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/features/hosts/Panel";
@@ -13,17 +14,17 @@ export function DeleteVaultDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Panel
       variant="alert"
-      title="Eliminare il vault?"
+      title={t("vault.deleteVaultDialog.deleteTheVault")}
       busy={busy}
       error=""
       onClose={onCancel}
     >
       <AlertDialogDescription>
-        «{vaultName}» è vuoto e verrà rimosso. Tornerai al vault Personale e le
-        sessioni aperte verranno chiuse.
+        {t("vault.deleteVaultDialog.emptyAndRemoved", { name: vaultName })}
       </AlertDialogDescription>
       <footer>
         <Button
@@ -32,7 +33,7 @@ export function DeleteVaultDialog({
           data-alert-cancel
           onClick={onCancel}
         >
-          Annulla
+          {t("vault.deleteVaultDialog.cancel")}
         </Button>
         <Button
           variant="destructive"
@@ -41,7 +42,7 @@ export function DeleteVaultDialog({
           disabled={busy}
           onClick={onConfirm}
         >
-          Elimina
+          {t("vault.deleteVaultDialog.delete")}
         </Button>
       </footer>
     </Panel>

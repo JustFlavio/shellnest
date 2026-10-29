@@ -1,4 +1,8 @@
 import type { RefObject } from "react";
+import { t } from "@/i18n/i18n";
+import { toMessage, translateMessage } from "@/i18n/message";
+import type { Message } from "@/i18n/message";
+import { describeError } from "@/lib/error-message";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { desktop } from "@/lib/platform";
 import type { Output, TerminalTab } from "@/lib/types";
@@ -17,11 +21,11 @@ export type SessionCallbacks = {
 };
 
 export type SessionUi = {
-  status: (text: string) => void;
-  log: (text: string) => void;
-  detail: (step: string, text: string, warn: boolean) => void;
+  status: (stage: string) => void;
+  log: (message: Message) => void;
+  detail: (step: string, message: Message, warn: boolean) => void;
   opened: () => void;
-  failure: (text: string, log?: boolean) => void;
+  failure: (message: Message, log?: boolean) => void;
   // the server needs a password; true when the previous one was refused
   password: (refused: boolean) => void;
 };
@@ -58,7 +62,7 @@ export function startSession(
     inputQueue = Promise.resolve();
   let pendingInput = "";
   let pendingOverflow = false;
-  const prompt = `\x1b[32m${tab.kind === "ssh" ? tab.host.username || "root" : tab.kind === "quick" ? tab.username || "root" : "demo"}@${tab.kind === "ssh" ? tab.host.name : tab.kind === "quick" ? tab.target.address : "locale"}\x1b[0m:\x1b[34m~\x1b[0m$ `;
+  const prompt = `\x1b[32m${tab.kind === "ssh" ? tab.host.username || "root" : tab.kind === "quick" ? tab.username || "root" : "demo"}@${tab.kind === "ssh" ? tab.host.name : tab.kind === "quick" ? tab.target.address : t("terminal.localHost")}\x1b[0m:\x1b[34m~\x1b[0m$ `;
   const session = { vaultId: tab.vaultId, sessionId: tab.id };
   const send = (data: string) => {
     if (!desktop) {
@@ -76,7 +80,7 @@ export function startSession(
         }
       })
       .catch((e) => {
-        if (!disposed) callbacks.current.onError(String(e));
+        if (!disposed) callbacks.current.onError(describeError(e));
       });
   };
   const sendSize = () => {
@@ -92,12 +96,12 @@ export function startSession(
     term.write(RESET_MODES);
     callbacks.current.onTitle(tab.id, undefined);
   };
-  const fail = (message: string) => {
+  const fail = (message: Message) => {
     failed = true;
     ui.failure(message);
     callbacks.current.onStatus(tab.id, "failed");
     resetModes();
-    term.writeln(`\r\n\x1b[31m${message}\x1b[0m`);
+    term.writeln(`\r\n\x1b[31m${translateMessage(message, "error")}\x1b[0m`);
   };
   const disconnect = () => void invoke("disconnect", session).catch(() => {});
   const handle = (event: Output) => {
@@ -107,7 +111,7 @@ export function startSession(
     if (event.type === "log") ui.log(event.data);
     if (event.type === "detail")
       ui.detail(event.data.step, event.data.text, event.data.warn);
-    if (event.type === "status" && event.data === "Connesso") {
+    if (event.type === "status" && event.data === "connected") {
       ready = true;
       ui.opened();
       pendingOverflow = false;
@@ -126,19 +130,14 @@ export function startSession(
     if (event.type === "closed") {
       if (!ready && !failed) {
         failed = true;
-        ui.failure(
-          "La sessione è terminata prima di aprire il terminale.",
-          false,
-        );
+        ui.failure({ code: "session.EndedEarly" }, false);
         callbacks.current.onStatus(tab.id, "failed");
       }
       ready = false;
       pendingInput = "";
       if (!failed) callbacks.current.onStatus(tab.id, "closed");
       resetModes();
-      term.writeln(
-        "\r\n\x1b[90mSessione terminata. Usa Riconnetti dal menu della scheda.\x1b[0m",
-      );
+      term.writeln(`\r\n\x1b[90m${t("terminal.sessionEnded")}\x1b[0m`);
       disconnect();
     }
   };
@@ -153,9 +152,7 @@ export function startSession(
         else {
           pendingOverflow = true;
           pendingInput = "";
-          callbacks.current.onError(
-            "Input troppo lungo prima della connessione. Attendi il prompt e incolla nuovamente.",
-          );
+          callbacks.current.onError(t("terminal.inputTooLong"));
         }
       }
     }),
@@ -192,7 +189,7 @@ export function startSession(
   request.catch((e) => {
     if (!disposed) {
       ready = false;
-      fail(String(e));
+      fail(toMessage(e));
     }
   });
   return () => {
@@ -225,85 +222,100 @@ function startPreview(
         ms,
       ),
     );
-  const log = (data: string): Output => ({ type: "log", data });
-  const status = (data: string): Output => ({ type: "status", data });
-  const detail = (step: string, text: string, warn = false): Output => ({
-    type: "detail",
-    data: { step, text, warn },
+  const log = (code: string, params?: object): Output => ({
+    type: "log",
+    data: { code, params },
   });
-  const byPassword =
-    tab.kind !== "local" &&
-    ["Credenziali dell’host", "Password"].includes(tab.identityName);
+  const status = (data: string): Output => ({ type: "status", data });
+  const detail = (step: string, code: string, params?: object, warn = false) =>
+    ({
+      type: "detail",
+      data: { step, text: { code, params }, warn },
+    }) satisfies Output;
+  const byPassword = tab.kind !== "local" && !tab.identityName;
   const banner = () =>
-    term.write(
-      "\x1b[90mSessione dimostrativa: nessuna connessione reale.\x1b[0m\r\n" +
-        prompt,
-    );
-  const open = (ms: number, step: string, text: string) => {
-    at(ms, status("Apertura del terminale remoto"));
-    at(ms, detail(step, text));
-    at(ms, log("Apertura di terminale e shell remota"));
-    at(ms + 70, status("Connesso"));
+    term.write(`\x1b[90m${t("terminal.demoBanner")}\x1b[0m\r\n` + prompt);
+  const open = (ms: number, step: string, code: string, params?: object) => {
+    at(ms, status("session"));
+    at(ms, detail(step, code, params));
+    at(ms, log("log.network.opening"));
+    at(ms + 70, status("connected"));
     at(ms + 120, banner);
   };
-  at(0, status("Connessione al server SSH"));
-  at(0, log(`Risoluzione di ${address}:22`));
-  at(0, log("Indirizzi trovati: 192.0.2.10"));
-  at(60, status("Impronta del server verificata"));
-  at(60, log("Connessione stabilita"));
-  at(60, log("Server remoto: SSH-2.0-OpenSSH_9.6"));
+  at(0, status("connect"));
+  at(0, log("log.network.resolving", { target: `${address}:22` }));
+  at(0, log("log.network.addresses", { list: "192.0.2.10" }));
+  at(60, status("verified"));
+  at(60, log("log.network.connected"));
+  at(60, log("log.network.server", { banner: "SSH-2.0-OpenSSH_9.6" }));
   at(
     60,
-    log(
-      "Algoritmi negoziati: scambio chiavi curve25519-sha256, chiave host ssh-ed25519, cifrario chacha20-poly1305@openssh.com",
-    ),
+    log("log.tech.algorithms", {
+      kex: "curve25519-sha256",
+      hostKey: "ssh-ed25519",
+      cipher: "chacha20-poly1305@openssh.com",
+    }),
   );
   at(
     60,
-    log("Impronta del server nota e coincidente: SHA256:impronta-dimostrativa"),
+    log("log.fingerprint.known", {
+      fingerprint: "SHA256:impronta-dimostrativa",
+    }),
   );
-  at(120, status("Autenticazione SSH"));
+  at(120, status("auth"));
   if (address.endsWith(".fail.test")) {
-    at(180, log("Autenticazione con chiave rifiutata dal server"));
-    at(180, log("Metodi ancora accettati dal server: keyboard-interactive"));
+    at(180, log("log.error.keyRefused"));
+    at(180, log("log.auth.methodsLeft", { methods: "keyboard-interactive" }));
     at(250, {
       type: "error",
-      data: "Autenticazione fallita",
+      data: {
+        code: "terminal.AuthRefused",
+        params: { methods: "keyboard-interactive", context: "unsupported" },
+      },
     });
   } else if (address.endsWith(".password.test")) {
     let wrong = 0;
-    at(180, log("Autenticazione con chiave rifiutata dal server"));
-    at(180, log("Metodi ancora accettati dal server: password, publickey"));
-    at(180, detail("auth", "Chiave rifiutata dal server", true));
+    at(180, log("log.error.keyRefused"));
+    at(180, log("log.auth.methodsLeft", { methods: "password, publickey" }));
+    at(180, detail("auth", "step.keyRefused", undefined, true));
     at(180, { type: "password", data: false });
     previewAnswers.set(tab.id, (password) => {
       const n = wrong + 1;
       const step = n === 1 ? "password" : `password-${n}`;
-      at(60, log(`Tentativo con password ${n} di ${MAX_PASSWORD_ATTEMPTS}`));
+      at(
+        60,
+        log("log.auth.passwordAttempt", {
+          sent: n,
+          max: MAX_PASSWORD_ATTEMPTS,
+        }),
+      );
       if (password === PREVIEW_PASSWORD) {
-        at(60, log("Password accettata"));
-        open(60, step, "Password accettata");
+        at(60, log("log.success.passwordOk"));
+        open(60, step, "step.passwordAccepted");
         return;
       }
       wrong = n;
-      at(60, log("Password rifiutata dal server"));
-      at(60, detail(step, "Password non accettata", true));
+      at(60, log("log.error.passwordRefused"));
+      at(60, detail(step, "step.passwordRefused", undefined, true));
       if (n >= MAX_PASSWORD_ATTEMPTS)
         at(60, {
           type: "error",
-          data: `Password non accettata dopo ${MAX_PASSWORD_ATTEMPTS} tentativi.`,
+          data: {
+            code: "terminal.PasswordsExhausted",
+            params: MAX_PASSWORD_ATTEMPTS,
+          },
         });
       else at(60, { type: "password", data: true });
     });
   } else if (!address.endsWith(".slow.test")) {
-    at(180, log("Autenticazione accettata"));
-    open(
+    at(
       180,
-      "auth",
-      byPassword
-        ? "Autenticato con la password"
-        : `Autenticato con la chiave “${tab.identityName}”`,
+      log(
+        byPassword ? "log.success.passwordAccepted" : "log.success.keyAccepted",
+      ),
     );
+    if (byPassword) open(180, "auth", "step.authPassword");
+    else open(180, "auth", "step.authKeyNamed", { name: tab.identityName });
   }
   return () => {
     stop();

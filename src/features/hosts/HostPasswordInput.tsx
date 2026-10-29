@@ -1,4 +1,6 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useRef, useState } from "react";
+import { describeError } from "@/lib/error-message";
 import { Eye, EyeOff, KeyRound, LoaderCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,6 +15,7 @@ export function HostPasswordInput({
   hasSavedPassword: boolean;
   onReveal?: () => Promise<string>;
 }) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [recovered, setRecovered] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -41,7 +44,7 @@ export function HostPasswordInput({
         setRecovered(password);
         setVisible(true);
       } catch (e) {
-        if (generation === request.current) setError(String(e));
+        if (generation === request.current) setError(describeError(e));
       } finally {
         if (generation === request.current) setLoading(false);
       }
@@ -71,7 +74,11 @@ export function HostPasswordInput({
           type="button"
           size="icon-sm"
           className="absolute inset-y-0 right-[5px] my-auto text-muted-foreground"
-          aria-label={visible ? "Nascondi password" : "Mostra password"}
+          aria-label={
+            visible
+              ? t("components.passwordInput.hidePassword")
+              : t("components.passwordInput.showPassword")
+          }
           aria-pressed={visible}
           aria-busy={loading}
           disabled={

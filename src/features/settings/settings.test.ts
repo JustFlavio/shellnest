@@ -59,3 +59,11 @@ test("line height defaults to 1.15 and is clamped to its range", () => {
   assert.equal(parseSettings('{"lineHeight":"1.3"}').lineHeight, 1.15);
   assert.equal(clampLineHeight(1.234), 1.23);
 });
+
+test("the language is kept when it is supported, otherwise it follows the system", () => {
+  assert.equal(parseSettings('{"language":"it"}').language, "it");
+  assert.equal(parseSettings('{"language":"en"}').language, "en");
+  assert.equal(parseSettings('{"language":"system"}').language, "system");
+  assert.equal(parseSettings('{"language":"xx"}').language, "system");
+  assert.equal(parseSettings("{}").language, "system");
+});

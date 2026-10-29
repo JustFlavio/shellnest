@@ -9,7 +9,8 @@ import type { Updater } from "../updater";
 export function previewUpdater(mode: string | null): Updater {
   return {
     async check() {
-      if (mode === "error") throw new Error("Errore simulato in check");
+      if (mode === "error")
+        throw { code: "preview.Simulated", params: { command: "check" } };
       if (mode !== "available" && mode !== "hold") return null;
       return {
         version: "9.9.9",

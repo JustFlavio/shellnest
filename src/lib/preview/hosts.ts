@@ -7,7 +7,7 @@ export function revealHostPassword(next: View, args: Args): string {
   const host = next.hosts.find((h) => h.id === args.id);
   requireValue(
     host && !host.identityId && host.hasPassword,
-    "Questo host non ha una password privata salvata",
+    "app.NoPrivatePassword",
   );
   // Preview never retains entered secrets; reveal only a labelled sample.
   return "password-dimostrativa";
@@ -23,11 +23,11 @@ export function saveHost(next: View, args: Args): void {
       !/[\s\x00-\x1f\x7f/@\\[\]]/.test(host.address) &&
       (host.port === null ||
         (Number.isInteger(host.port) && host.port > 0 && host.port <= 65535)),
-    "Nome, indirizzo e porta valida sono obbligatori",
+    "model.HostFieldsRequired",
   );
   requireValue(
     !host.groupId || next.groups.some((g) => g.id === host.groupId),
-    "Cartella non trovata",
+    "model.GroupParentMissing",
   );
   const inherit = args.inherit === true;
   const previous = next.hosts.find((h) => h.id === host.id);
@@ -38,7 +38,7 @@ export function saveHost(next: View, args: Args): void {
       !host.identityId &&
         args.credentials == null &&
         inheritedIdentity(next.groups, host.groupId),
-      "La cartella non fornisce un’identità",
+      "model.CredentialsRequired",
     );
   } else if (!host.identityId) {
     const credentials = args.credentials as HostCredentials | undefined;
@@ -46,7 +46,7 @@ export function saveHost(next: View, args: Args): void {
       credentials == null ||
         (typeof credentials.username === "string" &&
           typeof credentials.password === "string"),
-      "Credenziali non valide",
+      "model.HostCredentialsInvalid",
     );
     username = credentials?.username?.trim() ?? previous?.username ?? "";
     hasPassword =
@@ -57,16 +57,13 @@ export function saveHost(next: View, args: Args): void {
         !/[\s\x00-\x1f\x7f]/.test(username) &&
         hasPassword &&
         (credentials == null || typeof credentials.password === "string"),
-      "Inserisci utente SSH e password per questo host",
+      "model.CredentialsRequired",
     );
   } else {
-    requireValue(
-      args.credentials == null,
-      "Scegli credenziali dell’host oppure un’identità",
-    );
+    requireValue(args.credentials == null, "model.CredentialsAndIdentity");
     requireValue(
       next.identities.some((i) => i.id === host.identityId),
-      "Seleziona un’identità valida",
+      "model.IdentityNotFound",
     );
   }
   const old = next.hosts.find(
@@ -107,7 +104,7 @@ export function assignIdentity(next: View, args: Args): void {
       ids.length &&
       ids.every((id) => known.has(id)) &&
       next.identities.some((i) => i.id === args.identityId),
-    "Seleziona host e identità validi",
+    "model.AssignInvalid",
   );
   const assigned = new Set(ids);
   next.hosts = next.hosts.map((h) =>
@@ -128,14 +125,17 @@ const PREVIEW_FINGERPRINT = "SHA256:impronta-dimostrativa";
 export function probeHost(next: View, args: Args): string {
   requireValue(
     next.hosts.some((h) => h.id === args.id),
-    "Host non trovato",
+    "model.HostNotFound",
   );
   return PREVIEW_FINGERPRINT;
 }
 
 export function trustHost(next: View, args: Args): void {
   const host = next.hosts.find((h) => h.id === args.id);
-  requireValue(host, "Host non trovato");
-  requireValue(args.expected === PREVIEW_FINGERPRINT, "Impronta non valida");
+  requireValue(host, "model.HostNotFound");
+  requireValue(
+    args.expected === PREVIEW_FINGERPRINT,
+    "terminal.FingerprintInvalid",
+  );
   host!.fingerprint = PREVIEW_FINGERPRINT;
 }

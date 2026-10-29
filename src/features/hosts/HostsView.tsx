@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { MouseEvent } from "react";
 import type { Group, Host, Identity } from "@/lib/types";
 import { childGroups } from "./groups.ts";
@@ -36,6 +37,7 @@ type Props = {
 const cardsGrid =
   "grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-[10px]";
 export function HostsView(p: Props) {
+  const { t } = useTranslation();
   const identitiesById = new Map(p.identities.map((i) => [i.id, i]));
   const identity = (h: Host) =>
     identitiesById.get(h.effectiveIdentityId || h.identityId);
@@ -80,8 +82,8 @@ export function HostsView(p: Props) {
       }}
     >
       {folders.length > 0 && (
-        <section aria-label="Cartelle">
-          <h2>Cartelle</h2>
+        <section aria-label={t("app.sidebar.folders")}>
+          <h2>{t("app.sidebar.folders")}</h2>
           <div className={p.layout === "cards" ? cardsGrid : "grid gap-[6px]"}>
             {folders.map((g) => (
               <FolderCard
@@ -105,9 +107,12 @@ export function HostsView(p: Props) {
         </section>
       )}
       {hosts.length > 0 && (
-        <section aria-label="Host">
+        <section aria-label={t("hosts.hostsView.hosts")}>
           {p.layout === "cards" && (
-            <h2>{p.groups.find((g) => g.id === p.group)?.name ?? "Host"}</h2>
+            <h2>
+              {p.groups.find((g) => g.id === p.group)?.name ??
+                t("hosts.hostsView.hosts")}
+            </h2>
           )}
           {p.layout === "cards" ? (
             <div className={cardsGrid}>

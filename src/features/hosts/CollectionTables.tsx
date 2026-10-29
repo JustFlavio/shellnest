@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
 import { KeyRound, Pencil, Trash2, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ function Row({
   busy: boolean;
   children: ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <tr
       className="group animate-in cursor-pointer fade-in duration-300 hover:bg-card"
@@ -68,7 +70,7 @@ function Row({
             variant="ghost"
             type="button"
             size="icon-sm"
-            aria-label={`Modifica ${name}`}
+            aria-label={t("hosts.collectionTables.editName", { name })}
             disabled={busy}
             onClick={onEdit}
           >
@@ -79,7 +81,7 @@ function Row({
             type="button"
             size="icon-sm"
             className="hover:bg-destructive/15 hover:text-destructive"
-            aria-label={`Elimina ${name}`}
+            aria-label={t("hosts.collectionTables.deleteName", { name })}
             disabled={busy || !canDelete}
             title={deleteHint}
             onClick={onDelete}
@@ -102,9 +104,16 @@ export function IdentitiesTable({
   keys,
   ...p
 }: Shared & { identities: Identity[]; keys: SshKey[] }) {
+  const { t } = useTranslation();
   return (
     <Table
-      heads={["Nome", "Utente SSH", "Metodo / chiave", "Utilizzo", "Azioni"]}
+      heads={[
+        t("vault.vaultPanels.name"),
+        t("hosts.collectionTables.sshUser"),
+        t("hosts.collectionTables.methodKey"),
+        t("hosts.collectionTables.usage"),
+        t("hosts.collectionTables.actions"),
+      ]}
     >
       {identities.map((i) => (
         <Row
@@ -114,8 +123,8 @@ export function IdentitiesTable({
           canDelete={i.hostCount === 0}
           deleteHint={
             i.hostCount
-              ? "Riassegna prima gli host che utilizzano questa identità"
-              : "Elimina identità"
+              ? t("hosts.collectionTables.reassignTheHostsThat")
+              : t("hosts.collectionTables.deleteIdentity")
           }
           onEdit={() => p.onEdit(i.id)}
           onDelete={() => p.onDelete(i.id, i.name)}
@@ -137,10 +146,13 @@ export function IdentitiesTable({
             {i.auth === "key" ? (
               <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                 <KeyRound size={13} />
-                {keys.find((k) => k.id === i.keyId)?.name ?? "Chiave mancante"}
+                {keys.find((k) => k.id === i.keyId)?.name ??
+                  t("hosts.collectionTables.keyMissing")}
               </span>
             ) : (
-              <span className="text-muted-foreground">Password</span>
+              <span className="text-muted-foreground">
+                {t("hosts.collectionTables.password")}
+              </span>
             )}
           </td>
           <td className={cell}>
@@ -164,8 +176,16 @@ export function KeysTable({
   identities,
   ...p
 }: Shared & { keys: SshKey[]; identities: Identity[] }) {
+  const { t } = useTranslation();
   return (
-    <Table heads={["Nome", "Impronta pubblica", "Utilizzo", "Azioni"]}>
+    <Table
+      heads={[
+        t("vault.vaultPanels.name"),
+        t("hosts.collectionTables.publicFingerprint"),
+        t("hosts.collectionTables.usage"),
+        t("hosts.collectionTables.actions"),
+      ]}
+    >
       {keys.map((k) => (
         <Row
           key={k.id}
@@ -174,8 +194,8 @@ export function KeysTable({
           canDelete={k.identityCount === 0}
           deleteHint={
             k.identityCount
-              ? "Riassegna prima le identità che utilizzano questa chiave"
-              : "Elimina chiave"
+              ? t("hosts.collectionTables.reassignTheIdentitiesThat")
+              : t("hosts.collectionTables.deleteKey")
           }
           onEdit={() => p.onEdit(k.id)}
           onDelete={() => p.onDelete(k.id, k.name)}
@@ -198,7 +218,7 @@ export function KeysTable({
               "max-w-96 truncate font-mono text-xs text-muted-foreground",
             )}
           >
-            {k.fingerprint || "Da verificare"}
+            {k.fingerprint || t("hosts.collectionTables.toVerify")}
           </td>
           <td className={cell}>
             <Button
@@ -212,7 +232,8 @@ export function KeysTable({
                 )
               }
             >
-              {k.identityCount} identità · {k.hostCount} host
+              {t("common.identityCount", { count: k.identityCount })} ·{" "}
+              {t("common.hostCount", { count: k.hostCount })}
             </Button>
           </td>
         </Row>

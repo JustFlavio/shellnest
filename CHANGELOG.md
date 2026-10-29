@@ -15,10 +15,12 @@ First public alpha, not audited and not code-signed.
 - Local terminal, terminal themes, fonts and rebindable keyboard shortcuts.
 - Automatic update check with in-app install (signed with a Tauri updater key).
 - Optional sync of the encrypted vault through the self-hosted Node.js server in `sync/` (experimental).
+- English and Italian interface, chosen from the system language or in Settings → General.
 
 ### Known limitations
 
 - No SFTP, port forwarding, jump hosts, agent forwarding or keyboard-interactive/2FA.
 - Quick connections do not remember the server fingerprint.
 - Sync between devices has not been tested against a real remote deployment.
-- The interface is in Italian only.
+- The default vault of a new installation is named "Personal"; an existing vault keeps the name it has.
+- A notification or a form error that is already on screen keeps the language it was produced in when the language changes.

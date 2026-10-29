@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { desktop } from "@/lib/platform";
 import type { View } from "@/lib/types";
@@ -27,6 +28,7 @@ export function useVaultSync(
   }: VaultApi,
   { hostSaved, canAutoSync }: SyncOptions,
 ) {
+  const { t } = useTranslation();
   const [syncState, setSyncState] = useState<SyncState>("idle"),
     [lastSync, setLastSync] = useState("");
   const syncing = useRef(false);
@@ -54,12 +56,12 @@ export function useVaultSync(
           minute: "2-digit",
         }),
       );
-      if (manual) setNotice("Vault sincronizzato");
+      if (manual) setNotice(t("vault.useVaultSync.vaultSynced"));
     } catch (e) {
       failed = true;
       if (generation === epoch.current)
-        notifyError("Sincronizzazione non riuscita", e, {
-          label: "Riprova",
+        notifyError(t("vault.useVaultSync.syncFailed"), e, {
+          label: t("vault.useVaultSync.retry"),
           onClick: () => void latest.current(true),
         });
     } finally {

@@ -1,11 +1,12 @@
 # Impostazioni
 
-Dialog unico (menu ☰ → Impostazioni, `⌘,`) con sezioni: **Vault**, **Terminale**, **Scorciatoie**, **Aggiornamenti**.
+Dialog unico (menu ☰ → Impostazioni, `⌘,`) con sezioni: **Generale**, **Vault**, **Terminale**, **Scorciatoie**, **Aggiornamenti**.
 
 Le impostazioni dell'app stanno in `localStorage` (`shellnest.settings`, `shellnest.shortcuts`): valgono per questo dispositivo, non si sincronizzano con il vault. Il parsing (`src/features/settings/settings.ts`, `src/features/settings/shortcuts.ts`) non lancia mai errori: ogni campo non valido torna al default.
 
 ## Fatto
 
+- Generale: lingua dell'interfaccia (`language`: Sistema, English, Italiano). "Sistema" segue la lingua del sistema operativo e ripiega sull'inglese; la scelta vale subito, menu nativo di macOS compreso.
 - Vault: elenco, nuovo, rinomina, elimina (solo il vault attivo, solo se vuoto, mai `personal`: il controllo è nel backend, `delete_vault`), sync per vault con "Sincronizza ora".
 - Terminale: font, dimensione, interlinea (1–1,6, default 1,15), tema colori (Shellnest, Nord, Dracula, Solarized Dark), copia alla selezione, incolla col tasto destro, bell, Option come Meta (spento di default: le tastiere italiane digitano `@ # [ ]` con Option), colori vivaci per il grassetto, scrollback.
 - Scorciatoie: rimappatura con reset e controllo dei conflitti.

@@ -1,9 +1,14 @@
+import { t } from "../../i18n/i18n.ts";
 import { emptyView } from "../types";
 import type { Group, View } from "../types";
 
 export function previewView(): View {
-  const groups: Group[] = ["Produzione", "Staging", "Sviluppo"].map((name) => ({
-    id: `group-${name.toLowerCase()}`,
+  const groups: Group[] = [
+    ["production", t("preview.production")],
+    ["staging", "Staging"],
+    ["development", t("preview.development")],
+  ].map(([id, name]) => ({
+    id: `group-${id}`,
     name,
     parentId: "",
     identityId: "",
@@ -13,11 +18,11 @@ export function previewView(): View {
     ...emptyView,
     exists: true,
     unlocked: true,
-    vaults: [{ id: "personal", name: "Personale", exists: true }],
+    vaults: [{ id: "personal", name: t("preview.defaultVault"), exists: true }],
     keys: [
       {
         id: "key-personal",
-        name: "Personale",
+        name: t("preview.defaultVault"),
         fingerprint: "SHA256:impronta-dimostrativa",
         identityCount: 2,
         hostCount: 30,
@@ -35,7 +40,7 @@ export function previewView(): View {
       },
       {
         id: "identity-admin",
-        name: "Amministrazione",
+        name: t("preview.administration"),
         username: "root",
         auth: "key",
         keyId: "key-personal",
@@ -47,7 +52,7 @@ export function previewView(): View {
     workspaces: [
       {
         id: "preview-workspace",
-        name: "Produzione",
+        name: t("preview.production"),
         layout: {
           dir: "row",
           ratio: 0.5,
@@ -81,6 +86,6 @@ export function emptyPreviewView(): View {
     ...emptyView,
     exists: true,
     unlocked: true,
-    vaults: [{ id: "personal", name: "Personale", exists: true }],
+    vaults: [{ id: "personal", name: t("preview.defaultVault"), exists: true }],
   };
 }

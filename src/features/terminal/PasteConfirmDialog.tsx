@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { AlertDialogDescription } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/features/hosts/Panel";
@@ -14,17 +15,19 @@ export function PasteConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Panel
       variant="alert"
-      title="Incollare più righe?"
+      title={t("terminal.pasteConfirmDialog.pasteMultipleLines")}
       busy={false}
       error=""
       onClose={onCancel}
     >
       <AlertDialogDescription>
-        Stai per incollare {pasteLineCount(text)} righe nel terminale. Ogni riga
-        verrà eseguita dalla shell.
+        {t("terminal.pasteConfirmDialog.aboutToPaste", {
+          count: pasteLineCount(text),
+        })}
       </AlertDialogDescription>
       <pre className="max-h-[160px] overflow-auto rounded-[10px] bg-muted p-[14px] text-left font-mono text-[12px] whitespace-pre-wrap [overflow-wrap:anywhere]">
         {text.slice(0, PREVIEW_CHARS)}
@@ -37,10 +40,10 @@ export function PasteConfirmDialog({
           data-alert-cancel
           onClick={onCancel}
         >
-          Annulla
+          {t("vault.deleteVaultDialog.cancel")}
         </Button>
         <Button type="button" onClick={onConfirm}>
-          Incolla
+          {t("terminal.pasteConfirmDialog.paste")}
         </Button>
       </footer>
     </Panel>

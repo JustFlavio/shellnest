@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -16,21 +17,22 @@ export function HostMenuItems({
   busy: boolean;
   actions: HostActions;
 }) {
+  const { t } = useTranslation();
   return (
     <>
       <DropdownMenuItem disabled={busy} onClick={() => actions.onConnect(h)}>
         <ChevronRight size={14} />
-        Connetti
+        {t("hosts.hostEditor.connect")}
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem
         role="menuitem"
-        aria-label={`Modifica ${h.name}`}
+        aria-label={t("hosts.collectionTables.editName", { name: h.name })}
         disabled={busy}
         onClick={() => actions.onEdit(h)}
       >
         <Pencil size={13} />
-        Modifica
+        {t("hosts.hostEditButton.edit")}
       </DropdownMenuItem>
       <DropdownMenuItem
         role="menuitem"
@@ -38,7 +40,7 @@ export function HostMenuItems({
         onClick={() => actions.onDuplicate(h)}
       >
         <Copy size={13} />
-        Duplica host
+        {t("hosts.hostMenuItems.duplicateHost")}
       </DropdownMenuItem>
       <DropdownMenuItem
         role="menuitem"
@@ -46,18 +48,18 @@ export function HostMenuItems({
         onClick={() => actions.onAssign(h)}
       >
         <UserRound size={13} />
-        Assegna identità
+        {t("hosts.bulkAssignDialog.assignIdentity")}
       </DropdownMenuItem>
       <DropdownMenuItem
         role="menuitem"
         onClick={() =>
           void navigator.clipboard
             .writeText(h.address)
-            .catch((e) => notifyError("Copia non riuscita", e))
+            .catch((e) => notifyError(t("hosts.hostMenuItems.copyFailed"), e))
         }
       >
         <Copy size={13} />
-        Copia indirizzo
+        {t("hosts.hostMenuItems.copyAddress")}
       </DropdownMenuItem>
       <DropdownMenuItem
         role="menuitem"
@@ -66,7 +68,7 @@ export function HostMenuItems({
         onClick={() => actions.onDelete(h)}
       >
         <Trash2 size={13} />
-        Elimina host
+        {t("hosts.deletionDialog.deleteHost")}
       </DropdownMenuItem>
     </>
   );

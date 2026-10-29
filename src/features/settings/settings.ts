@@ -1,4 +1,7 @@
 // App settings: one flat object in localStorage. Parsing never throws; every bad field falls back to its default.
+import { LANGUAGES } from "../../i18n/i18n.ts";
+import type { LanguagePreference } from "../../i18n/i18n.ts";
+
 type TerminalColors = Record<string, string>;
 export type TerminalThemeDef = {
   id: string;
@@ -6,6 +9,7 @@ export type TerminalThemeDef = {
   colors: TerminalColors;
 };
 export type AppSettings = {
+  language: LanguagePreference;
   fontFamily: string;
   fontSize: number;
   lineHeight: number;
@@ -145,6 +149,7 @@ export const TERMINAL_THEMES: TerminalThemeDef[] = [
 ];
 
 export const DEFAULT_SETTINGS: AppSettings = {
+  language: "system",
   // "" = the default stack
   fontFamily: "",
   fontSize: DEFAULT_FONT_SIZE,
@@ -203,6 +208,10 @@ export function parseSettings(text: string | null): AppSettings {
       : d[k];
   };
   return {
+    language:
+      raw.language === "system" || LANGUAGES.some((l) => l === raw.language)
+        ? (raw.language as LanguagePreference)
+        : d.language,
     fontFamily:
       typeof raw.fontFamily === "string" &&
       raw.fontFamily.length <= 200 &&

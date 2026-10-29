@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { ContactRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Group, HostDraft, Identity } from "@/lib/types";
@@ -17,11 +18,13 @@ export function InheritedIdentityNotice({
   groups: Group[];
   onChange: (v: HostDraft) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className={inheritedBox}>
       <ContactRound aria-hidden="true" />
       <span>
-        Identità <strong>{identity?.name ?? "—"}</strong>
+        {t("hosts.bulkAssignDialog.identity")}{" "}
+        <strong>{identity?.name ?? "—"}</strong>
         {identity ? ` (${identity.username})` : ""} dal gruppo{" "}
         <strong>{groupPath(groups, folder.id)}</strong>
       </span>
@@ -31,7 +34,7 @@ export function InheritedIdentityNotice({
         className="shrink-0 text-[12px] text-primary"
         onClick={() => onChange({ ...value, inheritIdentity: false })}
       >
-        Usa credenziali proprie
+        {t("hosts.inheritedIdentityNotice.useOwnCredentials")}
       </Button>
     </div>
   );

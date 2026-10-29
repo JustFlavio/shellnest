@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -11,15 +12,18 @@ const tableClass = cn(
 );
 
 export function HostTable({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   return (
     <table className={tableClass}>
       <thead>
         <tr>
-          <th>Nome</th>
-          <th>Indirizzo</th>
-          <th>Accesso</th>
+          <th>{t("vault.vaultPanels.name")}</th>
+          <th>{t("hosts.hostEditor.address")}</th>
+          <th>{t("hosts.hostTable.access")}</th>
           <th className="min-w-[88px] text-right">
-            <span className="sr-only">Azioni</span>
+            <span className="sr-only">
+              {t("hosts.collectionTables.actions")}
+            </span>
           </th>
         </tr>
       </thead>

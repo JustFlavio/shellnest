@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { MouseEvent } from "react";
 import {
   DropdownMenuItem,
@@ -34,6 +35,7 @@ export function FolderCard({
   onNewGroup: (parentId: string) => void;
   onDelete: (group: Group) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="group relative min-w-0 animate-[rise_0.28s_cubic-bezier(0.2,0.7,0.2,1)_backwards]">
       <Button
@@ -44,7 +46,7 @@ export function FolderCard({
         )}
         data-selection-id={g.id}
         data-selection-kind="folder"
-        aria-label={`Seleziona cartella ${g.name}`}
+        aria-label={t("hosts.folderCard.selectFolder", { name: g.name })}
         aria-pressed={selected}
         disabled={busy}
         onClick={(e) => onSelect(g.id, e)}
@@ -80,20 +82,20 @@ export function FolderCard({
         </span>
       </Button>
       <ActionMenu
-        label={`Azioni cartella ${g.name}`}
+        label={t("hosts.folderCard.folderActions", { name: g.name })}
         className="absolute inset-y-0 right-[10px] my-auto opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 data-popup-open:opacity-100"
       >
         <DropdownMenuItem disabled={busy} onClick={() => onOpen(g.id)}>
           <Folder size={13} />
-          Apri
+          {t("hosts.folderCard.open")}
         </DropdownMenuItem>
         <DropdownMenuItem disabled={busy} onClick={() => onEdit(g)}>
           <Pencil size={13} />
-          Modifica gruppo
+          {t("hosts.folderCard.editGroup")}
         </DropdownMenuItem>
         <DropdownMenuItem disabled={busy} onClick={() => onNewGroup(g.id)}>
           <FolderPlus size={13} />
-          Nuovo sottogruppo
+          {t("hosts.folderCard.newSubgroup")}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -102,7 +104,7 @@ export function FolderCard({
           onClick={() => onDelete(g)}
         >
           <Trash2 size={13} />
-          Elimina gruppo
+          {t("hosts.deletionDialog.deleteGroup")}
         </DropdownMenuItem>
       </ActionMenu>
     </div>

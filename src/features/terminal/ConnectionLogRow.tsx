@@ -9,8 +9,8 @@ import {
 import type { ComponentType } from "react";
 import { cn } from "@/lib/utils";
 import {
-  KIND_LABEL,
   formatOffset,
+  kindLabel,
   logKind,
   logSegments,
 } from "./connection-log.ts";
@@ -26,7 +26,7 @@ const icons: Record<LogKind, ComponentType<{ className?: string }>> = {
 };
 
 export function ConnectionLogRow({ entry }: { entry: LogEntry }) {
-  const kind = logKind(entry.text);
+  const kind = logKind(entry.message);
   const Icon = icons[kind];
   return (
     <li
@@ -47,9 +47,9 @@ export function ConnectionLogRow({ entry }: { entry: LogEntry }) {
           kind === "error" && "text-destructive",
         )}
       />
-      <span className="sr-only">{KIND_LABEL[kind]}: </span>
+      <span className="sr-only">{kindLabel(kind)}: </span>
       <span className="min-w-0 [overflow-wrap:anywhere]">
-        {logSegments(entry.text, kind).map((part, i) =>
+        {logSegments(entry.message).map((part, i) =>
           part.strong ? (
             <strong key={i} className="font-semibold text-primary">
               {part.text}

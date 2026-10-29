@@ -7,6 +7,7 @@ mod local;
 mod locks;
 #[cfg(target_os = "macos")]
 mod menu;
+mod message;
 mod model;
 mod state;
 mod sync;
@@ -63,6 +64,7 @@ pub fn run() {
             commands::terminal::terminal_input,
             commands::terminal::terminal_resize,
             commands::system::open_url,
+            commands::system::set_menu_labels,
             commands::terminal::disconnect
         ])
         .on_window_event(|_, event| {

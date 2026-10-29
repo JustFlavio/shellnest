@@ -1,4 +1,6 @@
+import { useTranslation } from "react-i18next";
 import { useCallback, useRef } from "react";
+import { toMessage } from "@/i18n/message";
 import type { VaultApi } from "@/features/vault/useVault";
 import { hostIdentity } from "@/features/hosts/host-draft";
 import { hostDraftIsValid } from "@/features/hosts/host-draft";
@@ -19,6 +21,7 @@ export function useHostConnections(
   list: TabList,
   setTrust: (trust: Trust) => void,
 ) {
+  const { t } = useTranslation();
   // Hosts still to open, and the tabs waiting for their host key to be verified.
   const queue = useRef<Host[]>([]),
     verifying = useRef(new Set<string>());
@@ -53,7 +56,7 @@ export function useHostConnections(
         list.setTabs((old) =>
           old.map((tab) =>
             tab.id === pendingTab
-              ? { ...tab, status: "failed", error: String(e) }
+              ? { ...tab, status: "failed", error: toMessage(e) }
               : tab,
           ),
         );
@@ -70,16 +73,18 @@ export function useHostConnections(
           (host) => !identity(host) && !(host.username && host.hasPassword),
         )
       )
-        throw new Error("Completa le credenziali degli host selezionati.");
+        throw new Error(
+          t("terminal.useHostConnections.completeTheCredentialsOf"),
+        );
       queue.current = [...hosts];
       await continueConnections();
-    }, "Connessione non riuscita");
+    }, t("terminal.useHostConnections.connectionFailed"));
   const connect = (host: Host) => connectHosts([host]);
   const openLocal = () => {
     if (preview) {
       notifyError(
-        "Terminale locale non disponibile",
-        "Il terminale locale funziona nell’app desktop.",
+        t("terminal.useHostConnections.localTerminalNotAvailable"),
+        t("terminal.useHostConnections.theLocalTerminalWorks"),
       );
       return;
     }
@@ -93,7 +98,7 @@ export function useHostConnections(
     void run(async () => {
       const login = quickLogin(setup);
       if (tab.kind !== "quick" || !login)
-        throw new Error("Completa i dati di accesso.");
+        throw new Error(t("terminal.useHostConnections.completeTheSignIn"));
       const keyName = (id: string) =>
         view.keys.find((k) => k.id === id)?.name ?? "";
       let identityId = login.kind === "identity" ? login.id : "";
@@ -124,9 +129,7 @@ export function useHostConnections(
         }
         const draft = hostToSave(setup, tab.target, newHost(), identityId);
         if (!hostDraftIsValid(draft, identities, undefined, view.groups))
-          throw new Error(
-            "I dati dell’host non sono validi per il salvataggio.",
-          );
+          throw { code: "model.HostCredentialsInvalid" };
         update(await saveHostCommand(invokeScoped, draft));
       }
       if (login.kind === "password" && setup.password)
@@ -137,7 +140,7 @@ export function useHostConnections(
           ? (view.identities.find((i) => i.id === login.id)?.name ?? "")
           : login.kind === "key"
             ? keyName(login.id)
-            : "Password";
+            : "";
       const patch = (change: Partial<TerminalTab>) =>
         list.setTabs((old) =>
           old.map((t) =>
@@ -153,9 +156,9 @@ export function useHostConnections(
         setTrust({ quick: target, fingerprint, tabId: tab.id });
       } catch (e) {
         takeQuickPassword(tab.id);
-        patch({ status: "failed", error: String(e) });
+        patch({ status: "failed", error: toMessage(e) });
       }
-    }, "Connessione non riuscita");
+    }, t("terminal.useHostConnections.connectionFailed"));
   // Other hooks drive the queue through these, so the refs stay private to this hook.
   const skipQueued = useCallback(() => {
     queue.current.shift();

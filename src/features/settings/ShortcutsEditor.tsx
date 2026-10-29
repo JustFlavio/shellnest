@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { Pencil, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ export function ShortcutsEditor({
   onChange: (next: Overrides) => void;
   onResetAll: () => void;
 }) {
+  const { t } = useTranslation();
   const [capturing, setCapturing] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   // A combo already taken by another action, waiting for the user to confirm the move.
@@ -63,9 +65,9 @@ export function ShortcutsEditor({
       if (!combo) {
         if (!["Shift", "Control", "Alt", "Meta"].includes(e.key))
           setMessage(
-            "Serve almeno un modificatore (⌘, ⌃ o ⌥) insieme al tasto.".replace(
+            t("settings.shortcutsEditor.atLeastOneModifier").replace(
               /⌘, ⌃ o ⌥/,
-              mac ? "⌘, ⌃ o ⌥" : "Ctrl o Alt",
+              mac ? "⌘, ⌃ o ⌥" : t("settings.shortcutsEditor.ctrlOrAlt"),
             ),
           );
         return;
@@ -100,14 +102,16 @@ export function ShortcutsEditor({
   return (
     <>
       <p className={muted}>
-        Esc annulla, Backspace disattiva.
-        {!mac &&
-          " Le combinazioni con una lettera usano Ctrl+Maiusc per lasciare liberi i comandi del terminale."}
+        {t("settings.shortcutsEditor.escCancels")}
+        {!mac && t("settings.shortcutsEditor.combinationsWithALetter")}
       </p>
       {(message || clash) && (
         <p role="alert" className="text-destructive">
           {clash
-            ? `${format(clash.combo, mac)} è già usata da “${clash.with.label}”.`
+            ? t("settings.shortcutsEditor.alreadyUsedBy", {
+                combo: format(clash.combo, mac),
+                other: clash.with.label,
+              })
             : message}
           {clash && (
             <>
@@ -118,7 +122,7 @@ export function ShortcutsEditor({
                 type="button"
                 onClick={confirmClash}
               >
-                Riassegna
+                {t("settings.shortcutsEditor.reassign")}
               </Button>{" "}
               <Button
                 variant="ghost"
@@ -126,7 +130,7 @@ export function ShortcutsEditor({
                 type="button"
                 onClick={() => setClash(null)}
               >
-                Annulla
+                {t("vault.deleteVaultDialog.cancel")}
               </Button>
             </>
           )}
@@ -140,17 +144,21 @@ export function ShortcutsEditor({
               <dt>{s.label}</dt>
               <dd className="flex items-center gap-[6px]">
                 {capturing === s.id ? (
-                  <kbd>Premi la combinazione…</kbd>
+                  <kbd>{t("settings.shortcutsEditor.pressTheCombination")}</kbd>
                 ) : s.combos.length ? (
                   <kbd>{s.combos.map((c) => format(c, mac)).join(" / ")}</kbd>
                 ) : (
-                  <span className="text-muted-foreground">Nessuna</span>
+                  <span className="text-muted-foreground">
+                    {t("settings.shortcutsEditor.none")}
+                  </span>
                 )}
                 <Button
                   variant="ghost"
                   size="icon-sm"
                   type="button"
-                  aria-label={`Modifica “${s.label}”`}
+                  aria-label={t("settings.shortcutsEditor.editLabel", {
+                    label: s.label,
+                  })}
                   onClick={() => {
                     setClash(null);
                     setMessage("");
@@ -163,7 +171,9 @@ export function ShortcutsEditor({
                   variant="ghost"
                   size="icon-sm"
                   type="button"
-                  aria-label={`Ripristina “${s.label}”`}
+                  aria-label={t("settings.shortcutsEditor.restoreLabel", {
+                    label: s.label,
+                  })}
                   disabled={!changed}
                   className={changed ? "" : "invisible"}
                   onClick={() => {
@@ -185,7 +195,7 @@ export function ShortcutsEditor({
           disabled={!Object.keys(overrides).length}
           onClick={onResetAll}
         >
-          Ripristina tutte
+          {t("settings.shortcutsEditor.restoreAll")}
         </Button>
       </div>
     </>

@@ -1,5 +1,6 @@
 //! The local shell: a PTY with a reader thread and a writer thread, killed when the session or the app closes.
 use crate::{
+    error::coded,
     locks::MutexExt,
     terminal::{Input, Output, TerminalError},
 };
@@ -139,7 +140,7 @@ pub(crate) fn start(
         read_failed.store(true, Ordering::Release);
     });
     thread::spawn(move || {
-        let _ = sink(Output::Status("Connesso".into()));
+        let _ = sink(Output::Status("connected".into()));
         let result = (|| -> Result<(), TerminalError> {
             loop {
                 if failed.load(Ordering::Acquire) {
@@ -176,7 +177,7 @@ pub(crate) fn start(
         drop(pair.master);
         let _ = reader_thread.join();
         if let Err(error) = result {
-            let _ = sink(Output::Error(error.to_string()));
+            let _ = sink(Output::Error(coded("terminal", &error)));
         }
         let _ = sink(Output::Closed);
     });

@@ -6,7 +6,7 @@ pub(super) fn key(id: &str) -> SshKey {
             .unwrap();
     SshKey {
         id: id.into(),
-        name: "Personale".into(),
+        name: "Personal".into(),
         private_key: secret.to_openssh(Default::default()).unwrap().to_string(),
         passphrase: String::new(),
         fingerprint: String::new(),

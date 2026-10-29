@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
   AlertDialog,
   AlertDialogDescription,
@@ -48,6 +49,7 @@ export function Panel({
   footer?: ReactNode;
   status?: ReactNode;
 }) {
+  const { t } = useTranslation();
   const [discarding, setDiscarding] = useState(false);
   const popup = useRef<HTMLDivElement>(null);
   const [opener] = useState(currentOpener);
@@ -126,7 +128,7 @@ export function Panel({
           <Button
             variant="ghost"
             type="button"
-            aria-label="Chiudi pannello"
+            aria-label={t("hosts.panel.closePanel")}
             onClick={requestClose}
             disabled={busy}
           >
@@ -150,13 +152,13 @@ export function Panel({
       {discarding && (
         <Panel
           variant="alert"
-          title="Scartare le modifiche?"
+          title={t("hosts.panel.discardTheChanges")}
           busy={busy}
           error=""
           onClose={() => setDiscarding(false)}
         >
           <AlertDialogDescription>
-            Le modifiche a questo modulo non sono state salvate.
+            {t("hosts.panel.theChangesToThis")}
           </AlertDialogDescription>
           <footer>
             <Button
@@ -166,7 +168,7 @@ export function Panel({
               disabled={busy}
               onClick={onClose}
             >
-              Scarta modifiche
+              {t("hosts.panel.discardChanges")}
             </Button>
           </footer>
         </Panel>

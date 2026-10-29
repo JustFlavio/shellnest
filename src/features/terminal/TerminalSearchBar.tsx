@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,13 +9,14 @@ export function TerminalSearchBar({
 }: {
   search: ReturnType<typeof useTerminalSearch>;
 }) {
+  const { t } = useTranslation();
   return (
     <search className="absolute top-[48px] right-[20px] z-10 flex items-center gap-[4px] rounded-[10px] border border-border bg-card p-[4px] shadow-lg">
       <Input
         ref={input}
         value={query}
-        placeholder="Cerca nel terminale"
-        aria-label="Cerca nel terminale"
+        placeholder={t("terminal.terminalSearchBar.searchInTheTerminal")}
+        aria-label={t("terminal.terminalSearchBar.searchInTheTerminal")}
         aria-invalid={noMatch || undefined}
         className="h-[30px] w-[200px]"
         onChange={(e) => change(e.target.value)}
@@ -33,7 +35,7 @@ export function TerminalSearchBar({
         variant="ghost"
         type="button"
         size="icon-sm"
-        aria-label="Risultato precedente"
+        aria-label={t("terminal.terminalSearchBar.previousResult")}
         onClick={() => find(false)}
       >
         <ChevronUp size={15} />
@@ -42,7 +44,7 @@ export function TerminalSearchBar({
         variant="ghost"
         type="button"
         size="icon-sm"
-        aria-label="Risultato successivo"
+        aria-label={t("terminal.terminalSearchBar.nextResult")}
         onClick={() => find(true)}
       >
         <ChevronDown size={15} />
@@ -51,7 +53,7 @@ export function TerminalSearchBar({
         variant="ghost"
         type="button"
         size="icon-sm"
-        aria-label="Chiudi ricerca"
+        aria-label={t("terminal.terminalSearchBar.closeSearch")}
         onClick={close}
       >
         <X size={15} />

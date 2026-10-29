@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertDialogDescription } from "@/components/ui/alert-dialog";
@@ -17,6 +18,7 @@ function confirmCloseEnabled() {
 // and the user did not opt out; then it shows the confirmation and runs it on "Interrompi".
 // A restart for an update always asks while a session is live: "never ask again" is about closing tabs.
 export function useCloseGuard() {
+  const { t } = useTranslation();
   const [pending, setPending] = useState<(() => void) | null>(null);
   const [restart, setRestart] = useState(false);
   const [never, setNever] = useState(false);
@@ -37,7 +39,9 @@ export function useCloseGuard() {
       <Panel
         variant="alert"
         title={
-          restart ? "Riavviare per aggiornare?" : "Interrompere la sessione?"
+          restart
+            ? t("terminal.closeGuard.restartToUpdate")
+            : t("terminal.closeGuard.stopTheSession")
         }
         busy={false}
         error=""
@@ -45,8 +49,8 @@ export function useCloseGuard() {
       >
         <AlertDialogDescription>
           {restart
-            ? "Ci sono sessioni ancora connesse: riavviando verranno chiuse e i programmi in esecuzione nei terminali terminati."
-            : "La sessione è ancora connessa: chiudendola verranno terminati i programmi in esecuzione nel terminale."}
+            ? t("terminal.closeGuard.someSessionsAreStill")
+            : t("terminal.closeGuard.theSessionIsStill")}
         </AlertDialogDescription>
         {!restart && (
           <div className="mt-[12px] flex items-center gap-[8px] text-[13px] text-muted-foreground">
@@ -58,7 +62,7 @@ export function useCloseGuard() {
               onChange={(e) => setNever(e.target.checked)}
             />
             <label htmlFor="close-guard-never" className="cursor-pointer">
-              Non chiedermelo più
+              {t("terminal.closeGuard.donTAskMe")}
             </label>
           </div>
         )}
@@ -69,7 +73,7 @@ export function useCloseGuard() {
             data-alert-cancel
             onClick={cancel}
           >
-            Annulla
+            {t("vault.deleteVaultDialog.cancel")}
           </Button>
           <Button
             type="button"
@@ -84,7 +88,9 @@ export function useCloseGuard() {
               cancel();
             }}
           >
-            {restart ? "Riavvia" : "Interrompi"}
+            {restart
+              ? t("terminal.closeGuard.restart")
+              : t("terminal.closeGuard.stop")}
           </Button>
         </footer>
       </Panel>

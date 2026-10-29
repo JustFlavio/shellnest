@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Row } from "./Row";
@@ -13,57 +14,61 @@ export function TerminalBehavior({
   set: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
   mac: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <section className={card}>
-      <h3 className={cardTitle}>Comportamento</h3>
-      <Row label="Copia automaticamente la selezione">
+      <h3 className={cardTitle}>{t("settings.terminalBehavior.behavior")}</h3>
+      <Row label={t("settings.terminalBehavior.copyTheSelectionAutomatically")}>
         <Switch
-          label="Copia automaticamente la selezione"
+          label={t("settings.terminalBehavior.copyTheSelectionAutomatically")}
           checked={settings.copyOnSelect}
           onChange={(v) => set("copyOnSelect", v)}
         />
       </Row>
-      <Row label="Incolla con il tasto destro">
+      <Row label={t("settings.terminalBehavior.pasteWithTheRight")}>
         <Switch
-          label="Incolla con il tasto destro"
+          label={t("settings.terminalBehavior.pasteWithTheRight")}
           checked={settings.rightClickPaste}
           onChange={(v) => set("rightClickPaste", v)}
         />
       </Row>
-      <Row label="Suono del bell">
+      <Row label={t("settings.terminalBehavior.bellSound")}>
         <Switch
-          label="Suono del bell"
+          label={t("settings.terminalBehavior.bellSound")}
           checked={settings.bell}
           onChange={(v) => set("bell", v)}
         />
       </Row>
       {mac && (
         <Row
-          label="Usa Option come tasto Meta"
-          hint="Lascialo spento sulle tastiere italiane: Option digita @ # [ ]."
+          label={t("settings.terminalBehavior.useOptionAsThe")}
+          hint={t("settings.terminalBehavior.leaveItOffIf")}
         >
           <Switch
-            label="Usa Option come tasto Meta"
+            label={t("settings.terminalBehavior.useOptionAsThe")}
             checked={settings.optionAsMeta}
             onChange={(v) => set("optionAsMeta", v)}
           />
         </Row>
       )}
-      <Row label="Colori vivaci per il testo in grassetto">
+      <Row label={t("settings.terminalBehavior.brightColorsForBold")}>
         <Switch
-          label="Colori vivaci per il testo in grassetto"
+          label={t("settings.terminalBehavior.brightColorsForBold")}
           checked={settings.brightBold}
           onChange={(v) => set("brightBold", v)}
         />
       </Row>
-      <Row label="Righe di scrollback" hint="Da 500 a 100000.">
+      <Row
+        label={t("settings.terminalBehavior.scrollbackLines")}
+        hint={t("settings.terminalBehavior.from500To100000")}
+      >
         <Input
           className="w-[110px]"
           type="number"
           min={500}
           max={100000}
           step={500}
-          aria-label="Righe di scrollback"
+          aria-label={t("settings.terminalBehavior.scrollbackLines")}
           value={settings.scrollback}
           onChange={(e) => {
             const n = e.target.valueAsNumber;

@@ -1,4 +1,7 @@
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
+import { translateMessage } from "@/i18n/message";
+import type { Message } from "@/i18n/message";
 import { Check, LoaderCircle, TriangleAlert, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,7 +15,7 @@ import { QuickMethodStep } from "./QuickMethodStep";
 import { QuickUserStep } from "./QuickUserStep";
 import type { PasswordAsk } from "./useTerminalSession";
 import type { LogEntry } from "./connection-log.ts";
-import { targetLabel, timelineSteps } from "./connection-steps.ts";
+import { phaseText, targetLabel, timelineSteps } from "./connection-steps.ts";
 import { needsMethod } from "./quick-setup.ts";
 import { useQuickSetup } from "./useQuickSetup";
 import type { StepNote, StepState } from "./connection-steps.ts";
@@ -42,13 +45,14 @@ export function ConnectionTimeline({
   phase: string;
   logs: LogEntry[];
   details: Record<string, StepNote>;
-  failure: string;
+  failure: Message | null;
   password: PasswordAsk | null;
   onPassword: (password: string) => void;
   onCancel: () => void;
   onRetry: () => void;
   onEdit?: () => void;
 }) {
+  const { t } = useTranslation();
   const {
     vault: { view, busy },
     tabs: { trust, finishQuick },
@@ -65,7 +69,8 @@ export function ConnectionTimeline({
   const asking = tab.kind === "quick" && !tab.target.login;
   const target =
     tab.kind === "ssh" ? tab.host : tab.kind === "quick" ? tab.target : null;
-  const message = failure || tab.error || "";
+  const message = failure ?? tab.error ?? null;
+  const failureText = message ? translateMessage(message, "error") : "";
   const awaitingTrust =
     ((tab.kind === "ssh" && !tab.host.fingerprint) ||
       (tab.kind === "quick" && !asking && !tab.target.expectedFingerprint)) &&
@@ -76,7 +81,10 @@ export function ConnectionTimeline({
       ? {
           user: {
             text: chosen
-              ? `${quick.setup.username} · identità “${chosen.name}”`
+              ? t("terminal.connectionTimeline.userWithIdentity", {
+                  user: quick.setup.username,
+                  identity: chosen.name,
+                })
               : quick.setup.username,
             warn: false,
           },
@@ -87,8 +95,12 @@ export function ConnectionTimeline({
                   method: {
                     text:
                       quick.setup.method === "key"
-                        ? `Chiave “${view.keys.find((k) => k.id === quick.setup.keyId)?.name ?? ""}”`
-                        : "Password",
+                        ? t("terminal.connectionTimeline.keyNamed", {
+                            name:
+                              view.keys.find((k) => k.id === quick.setup.keyId)
+                                ?.name ?? "",
+                          })
+                        : t("hosts.collectionTables.password"),
                     warn: false,
                   },
                 }
@@ -115,13 +127,14 @@ export function ConnectionTimeline({
           }
         : undefined,
   });
-  const lines = tab.error && !logs.length ? [{ text: tab.error, at: 0 }] : logs;
+  const lines =
+    tab.error && !logs.length ? [{ message: tab.error, at: 0 }] : logs;
   return (
     <div className="grid min-h-0 flex-1 place-items-center overflow-auto p-[24px]">
       <div className="w-[min(100%,460px)]">
         <h2 className="mb-[20px] text-[18px] font-semibold">{tab.title}</h2>
         <ol
-          aria-label="Avanzamento della connessione"
+          aria-label={t("terminal.connectionTimeline.connectionProgress")}
           className="m-0 list-none p-0"
         >
           {steps.map((step, i) => {
@@ -170,11 +183,11 @@ export function ConnectionTimeline({
                   {step.label}
                   <span className="sr-only">
                     {step.state === "done"
-                      ? " — completato"
+                      ? t("terminal.connectionTimeline.stepDone")
                       : step.state === "warning"
-                        ? " — completato con avviso"
+                        ? t("terminal.connectionTimeline.stepWarning")
                         : step.state === "failed"
-                          ? " — non riuscito"
+                          ? t("terminal.connectionTimeline.stepFailed")
                           : ""}
                   </span>
                 </div>
@@ -223,7 +236,7 @@ export function ConnectionTimeline({
                   step.id !== "method" &&
                   !(step.id.startsWith("password") && password?.waiting) && (
                     <p role="status" className={help + " mt-[2px]"}>
-                      {phase}
+                      {phaseText(phase)}
                     </p>
                   )}
                 {step.state === "current" &&
@@ -232,7 +245,9 @@ export function ConnectionTimeline({
                     <FingerprintCard value={trust.fingerprint} />
                   ) : (
                     <p role="status" className={help + " mt-[2px]"}>
-                      Lettura dell’impronta del server…
+                      {t(
+                        "terminal.connectionTimeline.readingTheServerFingerprint",
+                      )}
                     </p>
                   ))}
                 {step.state === "failed" && (
@@ -240,7 +255,7 @@ export function ConnectionTimeline({
                     role="alert"
                     className="mt-[4px] text-[13px] leading-[1.6] text-destructive [overflow-wrap:anywhere]"
                   >
-                    {message}
+                    {failureText}
                   </p>
                 )}
               </li>
@@ -249,14 +264,16 @@ export function ConnectionTimeline({
         </ol>
         {message && (
           <div className="mt-[20px] flex flex-wrap gap-[8px]">
-            <Button onClick={onRetry}>Ricomincia</Button>
+            <Button onClick={onRetry}>
+              {t("terminal.connectionTimeline.startOver")}
+            </Button>
             {onEdit && (
               <Button variant="outline" onClick={onEdit}>
-                Modifica host
+                {t("hosts.hostEditor.editHost")}
               </Button>
             )}
             <Button variant="outline" onClick={onCancel}>
-              Chiudi
+              {t("terminal.connectionTimeline.close")}
             </Button>
           </div>
         )}

@@ -6,11 +6,11 @@ export function saveIdentity(next: View, args: Args): void {
   const identity = args.identity as IdentityForm;
   requireValue(
     identity?.id && identity.name?.trim() && identity.username?.trim(),
-    "Nome e utente SSH sono obbligatori",
+    "model.IdentityIncomplete",
   );
   requireValue(
     identity.auth === "key" || identity.auth === "password",
-    "Metodo di autenticazione non valido",
+    "model.IdentityKeyInvalid",
   );
   const old = next.identities.find((i) => i.id === identity.id);
   const hasPassword =
@@ -19,7 +19,7 @@ export function saveIdentity(next: View, args: Args): void {
     identity.auth === "password"
       ? hasPassword
       : next.keys.some((k) => k.id === identity.keyId),
-    "Seleziona una chiave o inserisci una password fittizia",
+    "model.CredentialsRequired",
   );
   next.identities = [
     ...next.identities.filter((i) => i.id !== identity.id),
@@ -40,7 +40,7 @@ export function saveKey(next: View, args: Args): void {
   const old = next.keys.find((k) => k.id === key?.id);
   requireValue(
     key?.id && key.name?.trim() && (old || key.privateKey?.trim()),
-    "Nome e chiave fittizia sono obbligatori",
+    "model.KeyNameMissing",
   );
   next.keys = [
     ...next.keys.filter((k) => k.id !== key.id),
@@ -57,18 +57,15 @@ export function saveKey(next: View, args: Args): void {
 }
 
 export function deleteIdentity(next: View, args: Args): void {
-  requireValue(
-    !next.hosts.some((h) => h.identityId === args.id) &&
-      !next.groups.some((g) => g.identityId === args.id),
-    "Riassegna prima gli host che utilizzano questa identità",
-  );
+  const users =
+    next.hosts.filter((h) => h.identityId === args.id).length +
+    next.groups.filter((g) => g.identityId === args.id).length;
+  requireValue(!users, "model.IdentityInUse", users);
   next.identities = next.identities.filter((i) => i.id !== args.id);
 }
 
 export function deleteKey(next: View, args: Args): void {
-  requireValue(
-    !next.identities.some((i) => i.keyId === args.id),
-    "Riassegna prima le identità che utilizzano questa chiave",
-  );
+  const users = next.identities.filter((i) => i.keyId === args.id).length;
+  requireValue(!users, "model.KeyInUse", users);
   next.keys = next.keys.filter((k) => k.id !== args.id);
 }

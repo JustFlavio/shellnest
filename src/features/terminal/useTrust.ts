@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useEffect } from "react";
 import type { VaultApi } from "@/features/vault/useVault";
 import type { View } from "@/lib/types";
@@ -21,6 +22,7 @@ export function useTrust(
   trust: Trust | null,
   setTrust: (trust: Trust | null) => void,
 ) {
+  const { t } = useTranslation();
   const approveTrust = () =>
     void run(async () => {
       if (!trust) return;
@@ -49,7 +51,8 @@ export function useTrust(
         const next = await invokeScoped<View>("status");
         update(next);
         const approved = next.hosts.find((h) => h.id === trust.host!.id);
-        if (!approved?.fingerprint) throw new Error("Impronta non salvata.");
+        if (!approved?.fingerprint)
+          throw new Error(t("terminal.useTrust.fingerprintNotSaved"));
         if (trust.workspaces) {
           setTrust(null);
           await openWorkspaces(trust.workspaces, next.hosts, trust.activeIndex);

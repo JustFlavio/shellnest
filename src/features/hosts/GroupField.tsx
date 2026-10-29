@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Combobox } from "@base-ui/react/combobox";
 import { Folder, FolderPlus, FolderX } from "lucide-react";
 import { useState } from "react";
@@ -36,6 +37,7 @@ export function GroupField({
   onChange: (value: HostDraft) => void;
   onNewGroup: (name: string) => void;
 }) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const selectedPath = value.groupId ? groupPath(groups, value.groupId) : "";
@@ -62,13 +64,19 @@ export function GroupField({
           {
             key: "create",
             kind: "create" as const,
-            label: `Crea cartella “${text}”`,
+            label: t("hosts.groupField.createFolderNamed", { name: text }),
             name: text,
           },
         ]
       : []),
     ...(value.groupId && !text
-      ? [{ key: "none", kind: "none" as const, label: "Nessuna cartella" }]
+      ? [
+          {
+            key: "none",
+            kind: "none" as const,
+            label: t("hosts.groupField.noFolder"),
+          },
+        ]
       : []),
   ];
   const selected: Item | null = value.groupId
@@ -128,9 +136,9 @@ export function GroupField({
         <Folder className={fieldIcon} aria-hidden="true" />
         <Combobox.Input
           render={<Input />}
-          aria-label="Cartella"
+          aria-label={t("hosts.groupField.folder")}
           autoComplete="off"
-          placeholder="Cartella (facoltativa)"
+          placeholder={t("hosts.groupField.folderOptional")}
         />
       </div>
       <Combobox.Portal>
@@ -162,7 +170,7 @@ export function GroupField({
             </Combobox.List>
             {!items.length && (
               <p className={suggestionEmpty}>
-                Nessuna cartella. Scrivi per crearne una.
+                {t("hosts.groupField.noFolderTypeTo")}
               </p>
             )}
             {!text && (
@@ -172,7 +180,7 @@ export function GroupField({
                 className="mt-[4px] w-full text-[12px] text-primary"
                 onClick={() => onNewGroup("")}
               >
-                Crea cartella
+                {t("hosts.groupField.createFolder")}
               </Button>
             )}
           </Combobox.Popup>

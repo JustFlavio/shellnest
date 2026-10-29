@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,7 @@ export function GroupEditor({
   busy: boolean;
   error: string;
 }) {
+  const { t } = useTranslation();
   const existing = view.groups.find((g) => g.id === value.id);
   const dirty = existing
     ? (["name", "parentId", "identityId", "port"] as const).some(
@@ -50,7 +52,11 @@ export function GroupEditor({
   const invalidName = /[/\x00-\x1f\x7f]/.test(value.name);
   return (
     <Panel
-      title={existing ? "Modifica gruppo" : "Nuovo gruppo"}
+      title={
+        existing
+          ? t("hosts.folderCard.editGroup")
+          : t("hosts.groupEditor.newGroup")
+      }
       {...{ onClose, busy, error }}
       dirty={dirty}
       footer={
@@ -58,7 +64,9 @@ export function GroupEditor({
           <DialogClose
             render={<Button variant="ghost" type="button" disabled={busy} />}
           >
-            {returnTo ? "Torna all’host" : "Annulla"}
+            {returnTo
+              ? t("hosts.groupEditor.backToHost")
+              : t("vault.deleteVaultDialog.cancel")}
           </DialogClose>
           <Button
             variant="default"
@@ -67,7 +75,9 @@ export function GroupEditor({
             className="primary"
             disabled={busy || !value.name.trim() || invalidName}
           >
-            {returnTo ? "Salva e torna all’host" : "Salva gruppo"}
+            {returnTo
+              ? t("hosts.groupEditor.saveAndBackTo")
+              : t("hosts.groupEditor.saveGroup")}
           </Button>
         </footer>
       }
@@ -79,9 +89,9 @@ export function GroupEditor({
           onSubmit();
         }}
       >
-        <EditorSection title="Generale">
+        <EditorSection title={t("hosts.groupEditor.general")}>
           <label className={sheetField}>
-            <span className="sr-only">Nome</span>
+            <span className="sr-only">{t("vault.vaultPanels.name")}</span>
             <Input
               autoFocus
               required
@@ -89,36 +99,39 @@ export function GroupEditor({
               value={value.name}
               aria-invalid={invalidName || undefined}
               onChange={(e) => onChange({ ...value, name: e.target.value })}
-              placeholder="Nome del gruppo"
+              placeholder={t("hosts.groupEditor.groupName")}
             />
           </label>
           <div className={sheetField}>
             <SelectField
-              aria-label="Gruppo padre"
+              aria-label={t("hosts.groupEditor.parentGroup")}
               value={value.parentId || ROOT}
               onValueChange={(next) =>
                 onChange({ ...value, parentId: next === ROOT ? "" : next })
               }
               options={[
-                { value: ROOT, label: "Nessun gruppo padre" },
+                { value: ROOT, label: t("hosts.groupEditor.noParentGroup") },
                 ...parents.map((o) => ({ value: o.group.id, label: o.path })),
               ]}
             />
           </div>
         </EditorSection>
-        <EditorSection title="Predefiniti per gli host">
+        <EditorSection title={t("hosts.groupEditor.hostDefaults")}>
           <p className={sectionHelp}>
-            Ereditati da host e sottogruppi senza valore proprio.
+            {t("hosts.groupEditor.inheritedByHostsAnd")}
           </p>
           <div className={sheetField}>
             <SelectField
-              aria-label="Identità predefinita"
+              aria-label={t("hosts.groupEditor.defaultIdentity")}
               value={value.identityId || NONE}
               onValueChange={(next) =>
                 onChange({ ...value, identityId: next === NONE ? "" : next })
               }
               options={[
-                { value: NONE, label: "Nessuna identità predefinita" },
+                {
+                  value: NONE,
+                  label: t("hosts.groupEditor.noDefaultIdentity"),
+                },
                 ...view.identities.map((i) => ({
                   value: i.id,
                   label: `${i.name} — ${i.username}`,
@@ -127,7 +140,7 @@ export function GroupEditor({
             />
           </div>
           <label className={cn(portInline, "mt-[10px] text-[12px]")}>
-            Porta SSH
+            {t("hosts.groupEditor.sshPort")}
             <Input
               type="number"
               min={1}

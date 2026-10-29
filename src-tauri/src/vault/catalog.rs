@@ -18,7 +18,7 @@ impl Default for VaultCatalog {
             selected: "personal".into(),
             vaults: vec![VaultEntry {
                 id: "personal".into(),
-                name: "Personale".into(),
+                name: "Personal".into(),
             }],
         }
     }
@@ -133,7 +133,7 @@ mod tests {
             Path::new("root/vault-vaults/work-1.json")
         );
         let catalog = VaultCatalog::default();
-        assert!(catalog.validate_name(" PERSONALE ", None).is_err());
+        assert!(catalog.validate_name(" PERSONAL ", None).is_err());
         assert!(catalog.validate_name("", None).is_err());
         assert_eq!(catalog.validate_name("  Lavoro  ", None).unwrap(), "Lavoro");
     }

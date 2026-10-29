@@ -1,5 +1,7 @@
+import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
 import { Panel } from "@/features/hosts/Panel";
+import { GeneralSettings } from "./GeneralSettings";
 import { ShortcutsEditor } from "./ShortcutsEditor";
 import { SettingsNav } from "./SettingsNav";
 import type { SettingsSection } from "./SettingsNav";
@@ -36,10 +38,11 @@ export function SettingsDialog({
   onOverrides: (next: Record<string, Combo[]>) => void;
   mac: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <Panel
       variant="dialog"
-      title="Impostazioni"
+      title={t("app.appMenu.settings")}
       className="w-[860px] sm:max-w-[calc(100vw-32px)]"
       busy={false}
       error=""
@@ -55,6 +58,9 @@ export function SettingsDialog({
             <p role="alert" className="mb-[12px] text-destructive">
               {error}
             </p>
+          )}
+          {section === "general" && (
+            <GeneralSettings settings={settings} onChange={onSettings} />
           )}
           {section === "vault" && vault}
           {section === "updates" && updates}

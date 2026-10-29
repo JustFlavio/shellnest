@@ -1,7 +1,9 @@
+import { useTranslation } from "react-i18next";
 import { ConnectionLauncher } from "./ConnectionLauncher";
 import { useApp } from "@/app/app-context";
 
 export function LauncherPage() {
+  const { t } = useTranslation();
   const {
     vault: { view, busy, preview },
     preferences: { hint },
@@ -32,20 +34,20 @@ export function LauncherPage() {
       workspaces={view.workspaces}
       hosts={view.hosts}
       identities={view.identities}
-      tabs={bar.map((t) => ({
-        id: t.id,
-        title: t.title,
+      tabs={bar.map((tab) => ({
+        id: tab.id,
+        title: tab.title,
         subtitle:
-          t.kind === "local"
-            ? "Terminale locale"
-            : t.kind === "ssh"
-              ? `${t.username}@${t.host.address}`
-              : `${t.username ? `${t.username}@` : ""}${t.target.address}`,
-        hostId: t.kind === "ssh" ? t.host.id : undefined,
+          tab.kind === "local"
+            ? t("hosts.vaultToolbar.localTerminal")
+            : tab.kind === "ssh"
+              ? `${tab.username}@${tab.host.address}`
+              : `${tab.username ? `${tab.username}@` : ""}${tab.target.address}`,
+        hostId: tab.kind === "ssh" ? tab.host.id : undefined,
         paneHostIds: tabs.flatMap((pane) =>
-          pane.parent === t.id && pane.kind === "ssh" ? [pane.host.id] : [],
+          pane.parent === tab.id && pane.kind === "ssh" ? [pane.host.id] : [],
         ),
-        lastActive: lastActive(t.id),
+        lastActive: lastActive(tab.id),
       }))}
       onConnect={connect}
       onOpenWorkspace={openWorkspace}

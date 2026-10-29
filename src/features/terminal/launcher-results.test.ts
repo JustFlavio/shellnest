@@ -11,6 +11,10 @@ import {
 } from "./launcher-results.ts";
 import type { LauncherTab, RecentHost } from "./launcher-results.ts";
 import type { Identity } from "../../lib/types.ts";
+import { i18n } from "../../i18n/i18n.ts";
+
+// These assertions read the Italian copy.
+await i18n.changeLanguage("it");
 
 type Input = Parameters<typeof launcherResults>[0];
 

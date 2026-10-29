@@ -1,4 +1,6 @@
+import { useTranslation } from "react-i18next";
 import { useRef } from "react";
+import { describeError } from "@/lib/error-message";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { KeyForm } from "@/lib/types";
@@ -14,6 +16,7 @@ export function KeyFilePicker({
   onChange: (v: KeyForm) => void;
   onError: (message: string) => void;
 }) {
+  const { t } = useTranslation();
   const file = useRef<HTMLInputElement>(null);
   const load = async (input: HTMLInputElement) => {
     onError("");
@@ -21,7 +24,7 @@ export function KeyFilePicker({
     if (!f) return;
     try {
       if (f.size > MAX_KEY_FILE_BYTES)
-        throw new Error("File troppo grande (massimo 1 MB)");
+        throw new Error(t("hosts.keyFilePicker.fileTooLarge1"));
       const text = await f.text();
       onChange({
         ...value,
@@ -29,7 +32,7 @@ export function KeyFilePicker({
         name: value.name || f.name,
       });
     } catch (err) {
-      onError(String(err));
+      onError(describeError(err));
     }
     input.value = "";
   };
@@ -40,7 +43,7 @@ export function KeyFilePicker({
         type="file"
         tabIndex={-1}
         className="sr-only"
-        aria-label="File della chiave privata"
+        aria-label={t("hosts.keyFilePicker.privateKeyFile")}
         onChange={(e) => void load(e.target)}
       />
       <Button
@@ -49,7 +52,7 @@ export function KeyFilePicker({
         onClick={() => file.current?.click()}
       >
         <Upload size={15} />
-        Scegli file della chiave privata
+        {t("hosts.keyFilePicker.chooseThePrivateKey")}
       </Button>
     </>
   );

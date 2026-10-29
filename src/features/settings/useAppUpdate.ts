@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { createElement, useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { toast } from "sonner";
@@ -38,6 +39,7 @@ export function useAppUpdate(
   hasLiveSessions: () => boolean,
   closeGuard: ReturnType<typeof useCloseGuard>,
 ) {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<UpdateStatus>({ kind: "idle" });
   const pending = useRef<PendingUpdate | null>(null);
   const downloaded = useRef(false);
@@ -49,19 +51,19 @@ export function useAppUpdate(
     toast.error(`${title}: ${updateFailure(error)}`, {
       id: TOAST,
       duration: 8000,
-      action: action("Riprova", retry),
+      action: action(t("vault.useVaultSync.retry"), retry),
     });
   };
 
   const offerRestart = (version: string) => {
     downloaded.current = true;
     setStatus({ kind: "ready", version });
-    toast.success("Aggiornamento pronto", {
+    toast.success(t("settings.useAppUpdate.updateReady"), {
       id: TOAST,
       duration: Infinity,
       // Replaces the download progress; omitting it would keep the old one.
       description: null,
-      action: action("Riavvia ora", restart),
+      action: action(t("settings.updateSettings.restartNow"), restart),
     });
   };
 
@@ -71,7 +73,7 @@ export function useAppUpdate(
     const install = async () => {
       busy.current = true;
       setStatus({ kind: "installing", version: update.version });
-      toast.loading("Installazione in corso…", {
+      toast.loading(t("settings.useAppUpdate.installing"), {
         id: TOAST,
         duration: Infinity,
         dismissible: false,
@@ -82,7 +84,7 @@ export function useAppUpdate(
       } catch (error) {
         busy.current = false;
         offerRestart(update.version);
-        failed("Installazione non riuscita", error, restart);
+        failed(t("settings.useAppUpdate.installationFailed"), error, restart);
       }
     };
     guard.current.ask(live.current(), () => void install(), true);
@@ -94,7 +96,7 @@ export function useAppUpdate(
     busy.current = true;
     const show = (percent: number | null) => {
       setStatus({ kind: "downloading", version: update.version, percent });
-      toast.loading("Download dell’aggiornamento", {
+      toast.loading(t("settings.updateProgress.updateDownload"), {
         id: TOAST,
         duration: Infinity,
         dismissible: false,
@@ -115,7 +117,11 @@ export function useAppUpdate(
       offerRestart(update.version);
     } catch (error) {
       setStatus({ kind: "available", version: update.version });
-      failed("Download non riuscito", error, () => void download());
+      failed(
+        t("settings.useAppUpdate.downloadFailed"),
+        error,
+        () => void download(),
+      );
     } finally {
       busy.current = false;
     }
@@ -123,11 +129,14 @@ export function useAppUpdate(
 
   const announce = (update: PendingUpdate) => {
     setStatus({ kind: "available", version: update.version });
-    toast("Aggiornamento disponibile", {
+    toast(t("settings.useAppUpdate.updateAvailable"), {
       id: TOAST,
       duration: Infinity,
       description: `Shellnest ${update.version}`,
-      action: action("Scarica", () => void download()),
+      action: action(
+        t("settings.updateSettings.download"),
+        () => void download(),
+      ),
     });
   };
 
@@ -143,7 +152,10 @@ export function useAppUpdate(
     }
     busy.current = true;
     setStatus({ kind: "checking" });
-    if (manual) toast.loading("Controllo aggiornamenti…", { id: TOAST });
+    if (manual)
+      toast.loading(t("settings.useAppUpdate.checkingForUpdates"), {
+        id: TOAST,
+      });
     try {
       const update = await updater.check();
       if (update) {
@@ -152,7 +164,7 @@ export function useAppUpdate(
       } else {
         setStatus({ kind: "uptodate" });
         if (manual)
-          toast.success("Nessun aggiornamento", {
+          toast.success(t("settings.useAppUpdate.noUpdates"), {
             id: TOAST,
             duration: 4000,
           });
@@ -162,7 +174,11 @@ export function useAppUpdate(
       setStatus({ kind: "error", message });
       // At launch a failure (no network, no release yet) is not worth a toast.
       if (manual)
-        failed("Controllo non riuscito", error, () => void check(true));
+        failed(
+          t("settings.useAppUpdate.checkFailed"),
+          error,
+          () => void check(true),
+        );
     } finally {
       busy.current = false;
     }

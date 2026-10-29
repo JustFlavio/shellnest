@@ -8,10 +8,20 @@ import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import type { ComponentType, ReactElement } from "react";
 import type { Group, Host, Identity, IdentityForm, View } from "./lib/types";
+import { i18n } from "./i18n/i18n.ts";
+
+// These assertions read the Italian copy.
+await i18n.changeLanguage("it");
+
+// Components are called as plain functions here, outside a renderer: react-i18next gets a stub on the same instance.
+const I18N_STUB = "test:react-i18next";
+const i18nUrl = new URL("./i18n/i18n.ts", import.meta.url).href;
 
 // The existing Node runner can check TSX controls without another test framework.
 registerHooks({
   resolve(specifier, context, nextResolve) {
+    if (specifier === "react-i18next")
+      return { url: I18N_STUB, shortCircuit: true };
     if (specifier.startsWith("@/")) {
       const base = new URL(`./${specifier.slice(2)}`, import.meta.url);
       for (const extension of ["", ".tsx", ".ts"]) {
@@ -28,6 +38,16 @@ registerHooks({
     return nextResolve(specifier, context);
   },
   load(url, context, nextLoad) {
+    if (url === I18N_STUB)
+      return {
+        format: "module",
+        shortCircuit: true,
+        source: `import { i18n } from ${JSON.stringify(i18nUrl)};
+export const useTranslation = () => ({ t: i18n.t.bind(i18n), i18n });
+export const Trans = ({ i18nKey, values }) =>
+  String(i18n.t(i18nKey, values)).replace(/<\\/?\\w+>/g, "");
+export const I18nextProvider = ({ children }) => children;`,
+      };
     if (/\.tsx?$/.test(url)) {
       return {
         format: "module",
@@ -630,8 +650,12 @@ test("preview CRUD uses isolated snapshots, preserves references and discards se
     "token-fittizio",
   ])
     assert.ok(!JSON.stringify(view).includes(secret));
-  await assert.rejects(invoke("sync_vault"), /desktop/);
-  await assert.rejects(invoke("connect"), /desktop/);
+  await assert.rejects(invoke("sync_vault"), {
+    code: "preview.DesktopOnly",
+  });
+  await assert.rejects(invoke("connect"), {
+    code: "preview.DesktopOnly",
+  });
   await invoke("delete_host", { id: host.id });
   view = await invoke("delete_identity", { id: identity.id });
   assert.ok(!view.identities.some((i) => i.id === identity.id));
@@ -646,7 +670,9 @@ test("preview vaults switch, lock and unlock without losing or mixing data", asy
   const vaultId = view.vaultId;
   assert.equal(view.unlocked, false);
   assert.equal(view.hosts.length, 0);
-  await assert.rejects(invoke("save_key", { key: { id: "test" } }), /Sblocca/);
+  await assert.rejects(invoke("save_key", { key: { id: "test" } }), {
+    code: "app.VaultLocked",
+  });
   view = await invoke("unlock", {
     password: "password-fittizia",
     create: true,
@@ -654,7 +680,9 @@ test("preview vaults switch, lock and unlock without losing or mixing data", asy
   assert.equal(view.unlocked, true);
   view = await invoke("rename_vault", { name: "Test" });
   assert.equal(view.vaultName, "Test");
-  await assert.rejects(invoke("status", { vaultId: "personal" }), /non attivo/);
+  await assert.rejects(invoke("status", { vaultId: "personal" }), {
+    code: "app.VaultSwitched",
+  });
   view = await invoke("select_vault", { vaultId: "personal" });
   assert.equal(view.hosts.length, 34);
   view = await invoke("lock");

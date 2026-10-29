@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,10 +41,15 @@ export function IdentityEditor({
   busy: boolean;
   error: string;
 }) {
+  const { t } = useTranslation();
   const existing = view.identities.find((i) => i.id === value.id);
   return (
     <Panel
-      title={existing ? "Modifica identità" : "Nuova identità"}
+      title={
+        existing
+          ? t("hosts.identityEditor.editIdentity")
+          : t("hosts.identityEditor.newIdentity")
+      }
       {...{ onClose, busy, error }}
       dirty={identityIsDirty(value, existing)}
       footer={
@@ -51,7 +57,9 @@ export function IdentityEditor({
           <DialogClose
             render={<Button variant="ghost" type="button" disabled={busy} />}
           >
-            {returnTo ? "Torna all’host" : "Annulla"}
+            {returnTo
+              ? t("hosts.groupEditor.backToHost")
+              : t("vault.deleteVaultDialog.cancel")}
           </DialogClose>
           <Button
             variant="default"
@@ -60,7 +68,9 @@ export function IdentityEditor({
             className="primary"
             disabled={busy || (value.auth === "key" && !value.keyId)}
           >
-            {returnTo ? "Salva e torna all’host" : "Salva identità"}
+            {returnTo
+              ? t("hosts.groupEditor.saveAndBackTo")
+              : t("hosts.identityEditor.saveIdentity")}
           </Button>
         </footer>
       }
@@ -72,19 +82,19 @@ export function IdentityEditor({
           onSubmit();
         }}
       >
-        <EditorSection title="Generale">
+        <EditorSection title={t("hosts.groupEditor.general")}>
           <label>
-            Nome
+            {t("vault.vaultPanels.name")}
             <Input
               autoFocus
               required
               value={value.name}
               onChange={(e) => onChange({ ...value, name: e.target.value })}
-              placeholder="Es. Amministrazione"
+              placeholder={t("hosts.identityEditor.eGAdministration")}
             />
           </label>
           <label>
-            Utente SSH
+            {t("hosts.collectionTables.sshUser")}
             <Input
               required
               value={value.username}
