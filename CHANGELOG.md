@@ -6,8 +6,10 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ### Added
 
-- Linux (Ubuntu, x86_64): a `.deb` and an AppImage. The unlock key can live in the Secret Service (GNOME Keyring, KWallet); without a running service the app asks for the password. Only the AppImage updates itself. Not yet tried on a real desktop.
+- Linux (Ubuntu, x86_64): a `.deb` and an AppImage. The unlock key can live in the Secret Service (GNOME Keyring, KWallet); without a running service the app asks for the password. Only the AppImage updates itself; with a `.deb` the update toast opens the download page. Not yet tried on a real desktop.
 - A shortcut to open a new local terminal: `⌘L` on macOS, `Ctrl+Shift+L` elsewhere. Every press opens a new one, as many as you like in a row; it is listed in Settings → Shortcuts and can be rebound.
+
+- README download table with links that always point at the newest installers (copies without the version in the name on the `updater` release), and `install.sh` for Linux: installs the AppImage for the user with a menu entry, after checking its checksum.
 
 ### Fixed
 

@@ -762,6 +762,7 @@
       "deleteWorkspaceName": "Elimina workspace {{name}}"
     },
     "paneHeader": {
+      "reconnect": "Riconnetti",
       "connecting": "Connessione…",
       "connected": "Connessa",
       "ended": "Terminata",
@@ -867,7 +868,8 @@
       "workspaceSaved": "Workspace “{{name}}” salvato."
     },
     "localHost": "locale",
-    "sessionEnded": "Sessione terminata. Usa Riconnetti dal menu della scheda.",
+    "sessionEnded": "Sessione terminata.",
+    "sessionEndedToast": "{{name}} si è disconnesso",
     "inputTooLong": "Input troppo lungo prima della connessione. Attendi il prompt e incolla nuovamente.",
     "demoBanner": "Sessione dimostrativa: nessuna connessione reale.",
     "tab": {

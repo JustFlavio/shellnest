@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { createElement, useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { toast } from "sonner";
 import type { useCloseGuard } from "@/features/terminal/CloseGuard";
@@ -93,6 +94,8 @@ export function useAppUpdate(
   async function download() {
     const update = pending.current;
     if (!update || busy.current) return;
+    if (update.manualUrl)
+      return void invoke("open_url", { url: update.manualUrl }).catch(() => {});
     busy.current = true;
     const show = (percent: number | null) => {
       setStatus({ kind: "downloading", version: update.version, percent });

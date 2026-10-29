@@ -30,7 +30,20 @@ Not implemented yet: SFTP, port forwarding, jump hosts, agent forwarding, keyboa
 
 ## Install
 
-Download an installer from the [releases page](https://github.com/JustFlavio/shellnest/releases): `aarch64.dmg` for Apple Silicon Macs, `x64.dmg` for Intel Macs, `x64-setup.exe` or `.msi` for Windows, `amd64.AppImage` or `amd64.deb` for Ubuntu (x86_64). The builds are not code-signed (see [First launch](#first-launch)).
+| System                 | Download                                                                                                                                                                                                                |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS, Apple Silicon   | [Shellnest_aarch64.dmg](https://github.com/JustFlavio/shellnest/releases/download/updater/Shellnest_aarch64.dmg)                                                                                                        |
+| macOS, Intel           | [Shellnest_x64.dmg](https://github.com/JustFlavio/shellnest/releases/download/updater/Shellnest_x64.dmg)                                                                                                                |
+| Windows 10/11 (64 bit) | [Shellnest_x64-setup.exe](https://github.com/JustFlavio/shellnest/releases/download/updater/Shellnest_x64-setup.exe) or [.msi](https://github.com/JustFlavio/shellnest/releases/download/updater/Shellnest_x64.msi)     |
+| Linux (Ubuntu, x86_64) | [Shellnest_amd64.AppImage](https://github.com/JustFlavio/shellnest/releases/download/updater/Shellnest_amd64.AppImage) or [.deb](https://github.com/JustFlavio/shellnest/releases/download/updater/Shellnest_amd64.deb) |
+
+These links always give the newest version. Older ones and the release notes are on the [releases page](https://github.com/JustFlavio/shellnest/releases). The builds are not code-signed (see [First launch](#first-launch)).
+
+On Linux one command installs the AppImage for your user and adds Shellnest to the application menu (it keeps updating itself):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/JustFlavio/shellnest/main/install.sh | sh
+```
 
 Or build from source. You need Node.js 22.18+, Rust, and the [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/) (Xcode Command Line Tools on macOS; Visual Studio C++ Build Tools and WebView2 on Windows; on Ubuntu `libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libdbus-1-dev libxdo-dev pkg-config patchelf`).
 
@@ -54,7 +67,7 @@ The builds are not signed or notarized, so the system warns on first launch.
 
 - **Windows:** in the SmartScreen window choose "More info", then "Run anyway".
 
-- **Linux:** the AppImage needs `chmod +x` before it runs; the `.deb` installs with `sudo apt install ./file.deb`. Only the AppImage updates itself, a `.deb` is updated by installing the new one.
+- **Linux:** the easiest way is the install command above. By hand, the AppImage needs `chmod +x` before it runs and does not appear in the menu or dock; the `.deb` installs with `sudo apt install ./file.deb`. Only the AppImage updates itself: with a `.deb` the app tells you a new version exists and opens the download page.
 
 ## Updates
 

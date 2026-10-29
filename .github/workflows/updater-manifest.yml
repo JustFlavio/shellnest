@@ -48,3 +48,12 @@ jobs:
             [ "$status" -eq 0 ]
           fi
           gh release upload updater new/latest.json --clobber
+          # Copies without the version in the name, so the README and install.sh can link to releases/download/updater/<file>.
+          mkdir stable
+          gh release download "$TAG" --dir stable --pattern '*.dmg' --pattern '*.exe' --pattern '*.msi' --pattern '*.deb' --pattern '*.AppImage'
+          cd stable
+          for f in Shellnest_*; do
+            mv "$f" "$(echo "$f" | sed -E "s/^Shellnest_${TAG#v}_/Shellnest_/; s/_en-US//")"
+          done
+          sha256sum Shellnest_* > SHA256SUMS
+          gh release upload updater Shellnest_* SHA256SUMS --clobber

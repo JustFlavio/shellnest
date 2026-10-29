@@ -1,4 +1,8 @@
 import { useState } from "react";
+import { toast } from "sonner";
+import { t } from "@/i18n/i18n";
+import { useLatest } from "@/lib/useLatest";
+import type { TerminalTab } from "@/lib/types";
 import type { VaultApi } from "@/features/vault/useVault";
 import type { useCloseGuard } from "./CloseGuard";
 import type { Trust } from "./tabs-types";
@@ -28,6 +32,35 @@ export function useTabs(
     trust,
     setTrust,
   );
+  // The toast outlives this render: its buttons read the tabs as they are when clicked.
+  const latest = useLatest({
+    tabs: list.tabs,
+    reconnect: panes.duplicateTab,
+    close: closing.closePane,
+  });
+  const tabStatus = (
+    id: string,
+    status: NonNullable<TerminalTab["status"]>,
+  ) => {
+    list.tabStatus(id, status);
+    if (status !== "closed") return;
+    const name = list.tabs.find((tab) => tab.id === id)?.title ?? "";
+    toast(t("terminal.sessionEndedToast", { name }), {
+      id: `ended-${id}`,
+      duration: 15000,
+      action: {
+        label: t("terminal.paneHeader.reconnect"),
+        onClick: () => {
+          const tab = latest.current.tabs.find((x) => x.id === id);
+          if (tab) latest.current.reconnect(tab, true);
+        },
+      },
+      cancel: {
+        label: t("terminal.connectionTimeline.close"),
+        onClick: () => latest.current.close(id),
+      },
+    });
+  };
   const reset = () => {
     list.reset();
     workspaces.setSavingWs(null);
@@ -51,7 +84,7 @@ export function useTabs(
     openJump: list.openJump,
     reorder: list.reorder,
     renameTab: list.renameTab,
-    tabStatus: list.tabStatus,
+    tabStatus,
     tabTitle: list.tabTitle,
     trust,
     savingWs: workspaces.savingWs,
