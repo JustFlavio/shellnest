@@ -2,6 +2,12 @@
 
 All notable changes are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/). Versions below 1.0.0 may change in incompatible ways.
 
+## [0.1.4] - Unreleased
+
+### Fixed
+
+- A Linux `.deb` updates itself from inside the app again. 0.1.3 wrongly sent `.deb` users to the download page: the updater plugin installs a `.deb` update with `pkexec dpkg -i` (a system password prompt), which is untested on a real desktop.
+
 ## [0.1.3] - 2026-10-29
 
 ### Added

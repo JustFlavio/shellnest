@@ -67,7 +67,7 @@ The builds are not signed or notarized, so the system warns on first launch.
 
 - **Windows:** in the SmartScreen window choose "More info", then "Run anyway".
 
-- **Linux:** the easiest way is the install command above. By hand, the AppImage needs `chmod +x` before it runs and does not appear in the menu or dock; the `.deb` installs with `sudo apt install ./file.deb`. Only the AppImage updates itself: with a `.deb` the app tells you a new version exists and opens the download page.
+- **Linux:** the easiest way is the install command above. By hand, the AppImage needs `chmod +x` before it runs and does not appear in the menu or dock; the `.deb` installs with `sudo apt install ./file.deb`. Both update from inside the app; a `.deb` update asks for your password in a system prompt (`pkexec dpkg -i`).
 
 ## Updates
 

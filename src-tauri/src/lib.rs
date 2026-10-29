@@ -64,7 +64,6 @@ pub fn run() {
             commands::terminal::terminal_input,
             commands::terminal::terminal_resize,
             commands::system::open_url,
-            commands::system::can_self_update,
             commands::system::set_menu_labels,
             commands::terminal::disconnect
         ])

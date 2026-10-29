@@ -23,19 +23,6 @@ pub(crate) fn open_url(url: String) -> Result<(), Error> {
     Ok(())
 }
 
-// The updater swaps the file it runs from, which only works for an installer-less bundle: on Linux that is the AppImage
-// (it sets APPIMAGE). A .deb lives in /usr and needs root, so the UI points to the download page instead.
-#[tauri::command]
-pub(crate) fn can_self_update() -> bool {
-    self_updates(
-        cfg!(target_os = "linux"),
-        std::env::var_os("APPIMAGE").is_some(),
-    )
-}
-fn self_updates(linux: bool, appimage: bool) -> bool {
-    !linux || appimage
-}
-
 /// The texts of the macOS menu, in the language the UI shows; it sends them again when the language changes.
 // Only the macOS menu reads the fields; other platforms accept the command and drop them.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
@@ -79,12 +66,5 @@ mod tests {
         let json = r#"{"checkUpdates":"a","settings":"b","vault":"c","lockVault":"d","closeAllSessions":"e","edit":"f","window":"g"}"#;
         let labels: MenuLabels = serde_json::from_str(json).unwrap();
         assert_eq!(labels.close_all_sessions, "e");
-    }
-
-    #[test]
-    fn only_a_linux_package_install_cannot_update_itself() {
-        assert!(self_updates(false, false));
-        assert!(self_updates(true, true));
-        assert!(!self_updates(true, false));
     }
 }
