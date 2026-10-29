@@ -8,12 +8,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 - Linux (Ubuntu, x86_64): a `.deb` and an AppImage. The unlock key can live in the Secret Service (GNOME Keyring, KWallet); without a running service the app asks for the password. Only the AppImage updates itself; with a `.deb` the update toast opens the download page. Not yet tried on a real desktop.
 - A shortcut to open a new local terminal: `⌘L` on macOS, `Ctrl+Shift+L` elsewhere. Every press opens a new one, as many as you like in a row; it is listed in Settings → Shortcuts and can be rebound.
-
 - README download table with links that always point at the newest installers (copies without the version in the name, added to each release), and `install.sh` for Linux: installs the AppImage for the user with a menu entry, after checking its checksum.
-
-### Changed
-
-- Releases are normal releases instead of pre-releases, and the app reads `releases/latest/download/latest.json`: the permanent `updater` release and its workflow are gone. Apps up to 0.1.2 still read the old place (see `docs/releases.md`).
 
 ### Fixed
 
@@ -25,6 +20,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ### Changed
 
+- Releases are normal releases instead of pre-releases, and the app reads `releases/latest/download/latest.json`: the permanent `updater` release and its workflow are gone. Apps up to 0.1.2 still read the old place (see `docs/releases.md`).
 - The tab bar keeps the Vault tab and the `+` button fixed; only the session tabs scroll, with the scrollbar hidden and a fade on the edge that has hidden tabs.
 - The shortcut labels call a split area "panel" in English and "pannello" in Italian, not "pane".
 - The README explains the download and the first launch of the unsigned builds.
