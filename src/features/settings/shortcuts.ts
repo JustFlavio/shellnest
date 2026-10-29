@@ -29,6 +29,13 @@ export const SHORTCUTS: Binding[] = [
     combos: [{ key: "t", mod: true }],
   },
   {
+    id: "newLocal",
+    get label() {
+      return t("hosts.vaultToolbar.localTerminal");
+    },
+    combos: [{ key: "l", mod: true }],
+  },
+  {
     id: "jumpTab",
     get label() {
       return t("settings.shortcuts.goToTab");

@@ -660,18 +660,18 @@
     "shortcuts": {
       "goToTab": "Go to tab",
       "searchTheCollection": "Search the collection",
-      "closePaneOrTab": "Close pane or tab",
-      "closeAllPanesOf": "Close all panes of the tab",
+      "closePaneOrTab": "Close panel or tab",
+      "closeAllPanesOf": "Close all panels of the tab",
       "reopenLastClosedTab": "Reopen last closed tab",
       "goToTab1": "Go to tab 1–8, 9 = last",
       "previousTab": "Previous tab",
       "nextTab": "Next tab",
       "moveTabLeft": "Move tab left",
       "moveTabRight": "Move tab right",
-      "splitThePaneTo": "Split the pane to the right",
-      "splitThePaneDown": "Split the pane down",
-      "previousPane": "Previous pane",
-      "nextPane": "Next pane",
+      "splitThePaneTo": "Split the panel to the right",
+      "splitThePaneDown": "Split the panel down",
+      "previousPane": "Previous panel",
+      "nextPane": "Next panel",
       "clearTerminal": "Clear terminal",
       "increaseTerminalTextSize": "Increase terminal text size",
       "decreaseTerminalTextSize": "Decrease terminal text size",
@@ -766,7 +766,7 @@
       "connected": "Connected",
       "ended": "Ended",
       "failed": "Failed",
-      "closePaneName": "Close pane {{name}}"
+      "closePaneName": "Close panel {{name}}"
     },
     "passwordStep": {
       "passwordNotAccepted": "Password not accepted.",
@@ -834,7 +834,7 @@
     },
     "workspaceDialog": {
       "saveAsWorkspace": "Save as workspace",
-      "includesTheHostsAnd": "Includes the hosts and the layout of the panes.",
+      "includesTheHostsAnd": "Includes the hosts and the layout of the panels.",
       "save": "Save",
       "quickNotSaved_one": "{{count}} quick connection will not be saved: save it as a host first to include it.",
       "quickNotSaved_other": "{{count}} quick connections will not be saved: save them as hosts first to include them."

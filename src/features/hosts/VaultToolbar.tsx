@@ -100,6 +100,7 @@ export function VaultToolbar() {
           type="button"
           className="h-[30px] gap-[6px] px-[10px] text-muted-foreground max-[760px]:w-[30px] max-[760px]:text-[0px]"
           disabled={busy || preview}
+          title={hint("newLocal") || undefined}
           onClick={openLocal}
         >
           <TerminalSquare size={16} />
