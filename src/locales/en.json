@@ -763,6 +763,7 @@
       "deleteWorkspaceName": "Delete workspace {{name}}"
     },
     "paneHeader": {
+      "reconnect": "Reconnect",
       "connecting": "Connecting…",
       "connected": "Connected",
       "ended": "Ended",
@@ -870,7 +871,8 @@
       "workspaceSaved": "Workspace “{{name}}” saved."
     },
     "localHost": "local",
-    "sessionEnded": "Session ended. Use Reconnect from the tab menu.",
+    "sessionEnded": "Session ended.",
+    "sessionEndedToast": "{{name}} disconnected",
     "inputTooLong": "Input too long before the connection. Wait for the prompt and paste again.",
     "demoBanner": "Demo session: no real connection.",
     "tab": {

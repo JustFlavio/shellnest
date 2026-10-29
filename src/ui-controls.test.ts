@@ -143,9 +143,10 @@ test("fixed sheet actions remain associated with their validated forms", () => {
   ] as const) {
     const panel = callEditor(Editor, { value, view, busy: false, error: "" });
     const form = panel.props.children;
-    const submit = panel.props.footer.props.children.find(
-      (child) => child?.props?.type === "submit",
-    );
+    // A lone action is a single child, not an array.
+    const submit = [panel.props.footer.props.children]
+      .flat()
+      .find((child) => child?.props?.type === "submit");
     assert.equal(form.type, "form");
     assert.ok(form.props.id);
     assert.equal(submit?.props.form, form.props.id);

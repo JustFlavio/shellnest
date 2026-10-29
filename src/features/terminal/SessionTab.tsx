@@ -12,6 +12,7 @@ import {
   ContextMenuContent,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { Button } from "@/components/ui/button";
 import { type TerminalTab } from "@/lib/types";
 import {
   Check,
@@ -23,6 +24,7 @@ import {
   Rows2,
   Save,
   TerminalSquare,
+  RotateCw,
   X,
 } from "lucide-react";
 import type { TFunction } from "i18next";
@@ -40,6 +42,8 @@ export function SessionTab({ tab }: { tab: TerminalTab }) {
   const {
     vault: { view },
     tabs: {
+      tabs,
+      focusOf,
       active,
       setActive,
       setSavingWs,
@@ -64,6 +68,8 @@ export function SessionTab({ tab }: { tab: TerminalTab }) {
   ) : (
     <TerminalSquare size={14} />
   );
+  const pane = tabs.find((p) => p.id === focusOf(tab)) ?? tab;
+  const ended = pane.status === "closed" || pane.status === "failed";
   const items = (
     <>
       <DropdownMenuItem onClick={() => duplicateTab(tab)}>
@@ -190,6 +196,19 @@ export function SessionTab({ tab }: { tab: TerminalTab }) {
           >
             {tabLabel(tab, t)}
           </TabMain>
+        )}
+        {ended && (
+          <Button
+            variant="ghost"
+            type="button"
+            size="icon-sm"
+            className="size-[24px] text-destructive hover:text-destructive"
+            aria-label={t("terminal.paneHeader.reconnect")}
+            title={t("terminal.paneHeader.reconnect")}
+            onClick={() => duplicateTab(tab, true)}
+          >
+            <RotateCw size={13} />
+          </Button>
         )}
         <ActionMenu
           label={t("terminal.sessionTab.tabActions", { name: tab.title })}

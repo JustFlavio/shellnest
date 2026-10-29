@@ -33,7 +33,7 @@ jobs:
             -f tag_name="${{ github.ref_name }}" \
             -f name="Shellnest ${{ github.ref_name }}" \
             -f body="Alpha build, not code-signed. See CHANGELOG.md for what is in it and the README for first-launch warnings." \
-            -F draft=true -F prerelease=true -F generate_release_notes=true --jq .id)
+            -F draft=true -F generate_release_notes=true --jq .id)
           echo "id=$id" >> "$GITHUB_OUTPUT"
 
   build:
@@ -82,6 +82,6 @@ jobs:
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
-          # Each job merges its platform into latest.json on the release; updater-manifest.yml checks it is complete.
+          # Each job merges its platform into latest.json on the release; release-assets.yml checks it is complete.
           uploadUpdaterJson: true
           updaterJsonPreferNsis: true
