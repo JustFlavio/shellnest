@@ -11,6 +11,9 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ### Fixed
 
+- Dropdown menus and selects grow to fit their longest entry and its shortcut instead of the width of the button that opens them (on Linux "New host" wrapped and the folder shortcut was cut off).
+- Side panels close with an X; a panel opened on top of another form (a key from an identity) has a back arrow before its title instead of a Back button, and the action button fills the footer.
+- Right-clicking a terminal header no longer shows the webview's Reload menu.
 - The tab bar follows the active tab: a new tab, previous/next tab, `⌘1–9` or a half-hidden tab scrolls it into view.
 - The in-app update was found but its download was a 404: the download URLs in `latest.json` pointed at `releases/latest`, which skips pre-releases. They now point at the release tag.
 

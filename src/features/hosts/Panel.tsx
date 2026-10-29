@@ -6,7 +6,7 @@ import {
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { createContext, use, useEffect, useRef, useState } from "react";
-import { X, PanelRightClose } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { currentOpener } from "@/lib/opener";
 import type { ReactNode } from "react";
@@ -37,6 +37,7 @@ export function Panel({
   variant = "sheet",
   footer,
   status,
+  backLabel,
 }: {
   title: string;
   onClose: () => void;
@@ -48,6 +49,8 @@ export function Panel({
   variant?: "sheet" | "dialog" | "alert";
   footer?: ReactNode;
   status?: ReactNode;
+  // The panel sits on top of another form: an arrow before the title returns to it, instead of the X.
+  backLabel?: string;
 }) {
   const { t } = useTranslation();
   const [discarding, setDiscarding] = useState(false);
@@ -121,23 +124,33 @@ export function Panel({
             styles.header,
           )}
         >
+          {backLabel && (
+            <Button
+              variant="ghost"
+              type="button"
+              aria-label={backLabel}
+              title={backLabel}
+              onClick={requestClose}
+              disabled={busy}
+            >
+              <ArrowLeft size={18} />
+            </Button>
+          )}
           <DialogTitle className={cn("mr-auto font-semibold", styles.title)}>
             {title}
           </DialogTitle>
           {status}
-          <Button
-            variant="ghost"
-            type="button"
-            aria-label={t("hosts.panel.closePanel")}
-            onClick={requestClose}
-            disabled={busy}
-          >
-            {variant === "sheet" ? (
-              <PanelRightClose className="size-5" />
-            ) : (
+          {!backLabel && (
+            <Button
+              variant="ghost"
+              type="button"
+              aria-label={t("hosts.panel.closePanel")}
+              onClick={requestClose}
+              disabled={busy}
+            >
               <X size={18} />
-            )}
-          </Button>
+            </Button>
+          )}
         </header>
         <div className={styles.body} inert={busy ? true : undefined}>
           {error && (

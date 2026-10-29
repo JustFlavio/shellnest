@@ -45,7 +45,11 @@ export function PaneHeader({
   const { t } = useTranslation();
   const status = tab.status ?? "connecting";
   return (
-    <div className="mt-[2px] mb-[6px] flex h-[34px] shrink-0 items-center gap-[8px] text-[12px] text-muted-foreground">
+    // The webview's own menu (Reload, Inspect) has nothing to do with a pane.
+    <div
+      onContextMenu={(e) => e.preventDefault()}
+      className="mt-[2px] mb-[6px] flex h-[34px] shrink-0 items-center gap-[8px] text-[12px] text-muted-foreground"
+    >
       <div
         className={cn(
           "flex min-w-0 flex-1 items-center gap-[8px]",
