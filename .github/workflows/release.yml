@@ -33,7 +33,7 @@ jobs:
             -f tag_name="${{ github.ref_name }}" \
             -f name="Shellnest ${{ github.ref_name }}" \
             -f body="Alpha build, not code-signed. See CHANGELOG.md for what is in it and the README for first-launch warnings." \
-            -F draft=true -F prerelease=true --jq .id)
+            -F draft=true -F prerelease=true -F generate_release_notes=true --jq .id)
           echo "id=$id" >> "$GITHUB_OUTPUT"
 
   build:
