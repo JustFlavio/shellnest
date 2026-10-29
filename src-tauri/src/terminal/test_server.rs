@@ -48,10 +48,10 @@ impl server::Handler for Echo {
     async fn auth_publickey(
         &mut self,
         user: &str,
-        key: &PublicKey,
+        key: server::VerifiedPublicKey<'_>,
     ) -> Result<server::Auth, Self::Error> {
         self.attempts.fetch_add(1, Ordering::SeqCst);
-        Ok(if user == "test" && key == &self.key {
+        Ok(if user == "test" && key.public_key == &self.key {
             server::Auth::Accept
         } else {
             self.refuse()

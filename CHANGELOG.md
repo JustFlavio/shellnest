@@ -2,7 +2,16 @@
 
 All notable changes are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/). Versions below 1.0.0 may change in incompatible ways.
 
-## [0.1.0] - Unreleased
+## [0.1.1] - Unreleased
+
+First update delivered through the in-app updater.
+
+### Changed
+
+- Dependencies: `russh` 0.65, `base64` 0.23, `nix` 0.31, `tauri-plugin-updater` 2.14.1 and, through it, `zip` 9.1.3 (the 4.x line had a critical advisory).
+- CI: `actions/checkout` 7.0.1 and `actions/setup-node` 7.1.0, still pinned by SHA.
+
+## [0.1.0] - 2026-10-29
 
 First public alpha, not audited and not code-signed.
 
