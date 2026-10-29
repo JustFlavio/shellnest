@@ -2,7 +2,25 @@
 
 All notable changes are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/). Versions below 1.0.0 may change in incompatible ways.
 
-## [0.1.1] - Unreleased
+## [0.1.2] - Unreleased
+
+### Added
+
+- Linux (Ubuntu, x86_64): a `.deb` and an AppImage. The unlock key can live in the Secret Service (GNOME Keyring, KWallet); without a running service the app asks for the password. Only the AppImage updates itself. Not yet tried on a real desktop.
+- A shortcut to open a new local terminal: `⌘L` on macOS, `Ctrl+Shift+L` elsewhere. Every press opens a new one, as many as you like in a row; it is listed in Settings → Shortcuts and can be rebound.
+
+### Fixed
+
+- The tab bar follows the active tab: a new tab, previous/next tab, `⌘1–9` or a half-hidden tab scrolls it into view.
+- The in-app update was found but its download was a 404: the download URLs in `latest.json` pointed at `releases/latest`, which skips pre-releases. They now point at the release tag.
+
+### Changed
+
+- The tab bar keeps the Vault tab and the `+` button fixed; only the session tabs scroll, with the scrollbar hidden and a fade on the edge that has hidden tabs.
+- The shortcut labels call a split area "panel" in English and "pannello" in Italian, not "pane".
+- The README explains the download and the first launch of the unsigned builds.
+
+## [0.1.1] - 2026-10-29
 
 First update delivered through the in-app updater.
 
