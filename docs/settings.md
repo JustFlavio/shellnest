@@ -9,7 +9,7 @@ Le impostazioni dell'app stanno in `localStorage` (`shellnest.settings`, `shelln
 - Generale: lingua dell'interfaccia (`language`: Sistema, English, Italiano). "Sistema" segue la lingua del sistema operativo e ripiega sull'inglese; la scelta vale subito, menu nativo di macOS compreso.
 - Vault: elenco, nuovo, rinomina, elimina (solo il vault attivo, solo se vuoto, mai `personal`: il controllo è nel backend, `delete_vault`), sync per vault con "Sincronizza ora".
 - Terminale: font, dimensione, interlinea (1–1,6, default 1,15), tema colori (Shellnest, Nord, Dracula, Solarized Dark), copia alla selezione, incolla col tasto destro, bell, Option come Meta (spento di default: le tastiere italiane digitano `@ # [ ]` con Option), colori vivaci per il grassetto, scrollback.
-- Scorciatoie: rimappatura con reset e controllo dei conflitti.
+- Scorciatoie: rimappatura con reset e controllo dei conflitti. `broadcast` (Input condiviso, `⌘B` su macOS, `Ctrl+B` su Windows/Linux) è l'unica con `Ctrl` semplice senza `Shift`: agisce solo su una tab divisa in più pannelli, altrimenti il tasto va alla shell (tmux, readline). Se la si rimappa, vale la regola comune (`Ctrl+Shift+lettera`).
 - Aggiornamenti: versione installata, "Controlla ora", interruttore "Controlla all'avvio" (`checkUpdates`, acceso di default). Il controllo contatta GitHub; scarica e riavvia solo su clic (vedi `docs/releases.md`).
 
 ## Scelte di prodotto: cosa non è previsto

@@ -1,12 +1,14 @@
 import { t } from "../../i18n/i18n.ts";
 // Shortcut registry. A combo is { key, mod?, ctrl?, shift?, alt? }: `mod` is Cmd on macOS and Ctrl elsewhere, `ctrl` is the literal Control key.
-// Elsewhere letter combos also need Shift (and Alt when the combo already has Shift) so Ctrl+<letter> stays free for the shell.
+// Elsewhere letter combos also need Shift (and Alt when the combo already has Shift) so Ctrl+<letter> stays free for the shell,
+// unless the combo is `plain` (bare Ctrl+<letter>: the app takes the key only where it can use it, see useShortcuts).
 export type Combo = {
   key: string;
   mod?: boolean;
   ctrl?: boolean;
   shift?: boolean;
   alt?: boolean;
+  plain?: boolean;
 };
 // `label` is a getter on the registry: it reads the active language when it is asked for.
 export type Binding = { id: string; label: string; combos: Combo[] };
@@ -181,6 +183,13 @@ export const SHORTCUTS: Binding[] = [
     combos: [{ key: "k", mod: true }],
   },
   {
+    id: "broadcast",
+    get label() {
+      return t("settings.shortcuts.broadcastInput");
+    },
+    combos: [{ key: "b", mod: true, plain: true }],
+  },
+  {
     id: "zoomIn",
     get label() {
       return t("settings.shortcuts.increaseTerminalTextSize");
@@ -221,7 +230,7 @@ const keyMatches = (e: KeyEvent, key: string): boolean =>
     : keyOf(e).toLowerCase() === key.toLowerCase();
 
 function matches(e: KeyEvent, combo: Combo, mac: boolean): boolean {
-  const letter = /^[a-z]$/i.test(combo.key);
+  const letter = /^[a-z]$/i.test(combo.key) && !combo.plain;
   const shift = !!combo.shift || (!mac && !!combo.mod && letter);
   const alt = !!combo.alt || (!mac && !!combo.mod && letter && !!combo.shift);
   const meta = mac && !!combo.mod;
@@ -258,7 +267,7 @@ export function format(combo: Combo, mac: boolean): string {
       : combo.key.length === 1
         ? combo.key.toUpperCase()
         : combo.key);
-  const letter = /^[a-z]$/i.test(combo.key);
+  const letter = /^[a-z]$/i.test(combo.key) && !combo.plain;
   const shift = !!combo.shift || (!mac && !!combo.mod && letter);
   const alt = !!combo.alt || (!mac && !!combo.mod && letter && !!combo.shift);
   if (mac)

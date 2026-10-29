@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { TerminalSquare, X } from "lucide-react";
+import { Radio, TerminalSquare, X } from "lucide-react";
 import { OsIcon } from "@/components/OsIcon";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -33,12 +33,16 @@ export function PaneHeader({
   tab,
   endpoint,
   split,
+  broadcast,
+  onToggleBroadcast,
   onDragPane,
   onClose,
 }: {
   tab: TerminalTab;
   endpoint: string;
   split: boolean;
+  broadcast: boolean;
+  onToggleBroadcast?: () => void;
   onDragPane?: (dragging: boolean) => void;
   onClose: () => void;
 }) {
@@ -75,6 +79,24 @@ export function PaneHeader({
         <StatusDot status={status} className="ml-[2px]" />
         <span className="sr-only">{t(statusLabel[status])}</span>
       </div>
+      {split && onToggleBroadcast && (
+        <Button
+          variant="ghost"
+          type="button"
+          size="icon-sm"
+          className={cn(
+            broadcast
+              ? "bg-primary/15 text-primary"
+              : "text-muted-foreground opacity-0 transition-opacity group-focus-within/pane:opacity-100 group-hover/pane:opacity-100",
+          )}
+          aria-label={t("terminal.paneHeader.broadcastInput")}
+          aria-pressed={broadcast}
+          title={t("terminal.paneHeader.broadcastInput")}
+          onClick={onToggleBroadcast}
+        >
+          <Radio size={15} />
+        </Button>
+      )}
       {split && (
         <Button
           variant="ghost"

@@ -3,7 +3,9 @@ import { TerminalPane } from "./TerminalPane";
 import { cn } from "@/lib/utils";
 import { notifyError } from "@/lib/notify";
 import { dropEdge } from "./workbench-state.ts";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
+import { broadcastPeers } from "./broadcast.ts";
+import { broadcastTargets } from "./terminal-handles";
 import { useApp } from "@/app/app-context";
 
 const dropPreviewEdge = {
@@ -33,6 +35,7 @@ export function TerminalStage() {
       tabTitle,
       closePane,
       reconnectPane,
+      toggleBroadcast,
     },
     dnd: {
       dragPane,
@@ -52,6 +55,11 @@ export function TerminalStage() {
     vault,
   } = useApp();
   const terminals = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    broadcastTargets.clear();
+    for (const [id, peers] of broadcastPeers(tabs))
+      broadcastTargets.set(id, peers);
+  }, [tabs]);
   return (
     <div
       ref={terminals}
@@ -81,6 +89,8 @@ export function TerminalStage() {
             animate={settling}
             settings={appSettings}
             focused={geo ? focus === tab.id : undefined}
+            broadcast={!!geo && !!tabs.find((t) => t.id === leader)?.broadcast}
+            onToggleBroadcast={() => toggleBroadcast(leader)}
             onFocus={geo ? () => setFocusedPane(tab.id) : undefined}
             onDragPane={
               geo ? (on) => setDragPane(on ? tab.id : undefined) : undefined

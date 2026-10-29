@@ -6,7 +6,13 @@ import { describeError } from "@/lib/error-message";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { desktop } from "@/lib/platform";
 import type { Output, TerminalTab } from "@/lib/types";
+import { inputForPeer } from "./broadcast.ts";
 import { MAX_PASSWORD_ATTEMPTS } from "./connection-steps.ts";
+import {
+  broadcastTargets,
+  sessionInputs,
+  terminalHandles,
+} from "./terminal-handles";
 import { takeQuickPassword } from "./quick-password";
 import { RESET_MODES } from "./terminal-input.ts";
 import { terminalInputChunks } from "./workbench-state.ts";
@@ -83,6 +89,7 @@ export function startSession(
         if (!disposed) callbacks.current.onError(describeError(e));
       });
   };
+  sessionInputs.set(tab.id, send);
   const sendSize = () => {
     if (ready && !disposed)
       void invoke("terminal_resize", {
@@ -145,8 +152,16 @@ export function startSession(
     term.onData((data) => {
       // Typing or pasting is the end of a copy: like every terminal, drop the selection.
       if (term.hasSelection()) term.clearSelection();
-      if (ready) send(data);
-      else if (!pendingOverflow) {
+      if (ready) {
+        send(data);
+        for (const id of broadcastTargets.get(tab.id) ?? [])
+          sessionInputs.get(id)?.(
+            inputForPeer(
+              data,
+              !!terminalHandles.get(id)?.modes.bracketedPasteMode,
+            ),
+          );
+      } else if (!pendingOverflow) {
         if (pendingInput.length + data.length <= MAX_EARLY_INPUT)
           pendingInput += data;
         else {
@@ -160,6 +175,7 @@ export function startSession(
   ];
   const stop = () => {
     disposed = true;
+    sessionInputs.delete(tab.id);
     listeners.forEach((listener) => listener.dispose());
   };
   if (!desktop) return startPreview(tab, handle, term, prompt, stop);

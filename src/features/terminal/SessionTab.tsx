@@ -14,10 +14,12 @@ import {
 } from "@/components/ui/context-menu";
 import { type TerminalTab } from "@/lib/types";
 import {
+  Check,
   Columns2,
   Copy,
   LayoutGrid,
   Pencil,
+  Radio,
   Rows2,
   Save,
   TerminalSquare,
@@ -44,6 +46,7 @@ export function SessionTab({ tab }: { tab: TerminalTab }) {
       askCloseTab,
       duplicateTab,
       splitTab,
+      toggleBroadcast,
       reorder,
       renameTab,
     },
@@ -90,6 +93,14 @@ export function SessionTab({ tab }: { tab: TerminalTab }) {
         {t("terminal.sessionTab.splitHorizontally")}
         <DropdownMenuShortcut>{hint("splitDown")}</DropdownMenuShortcut>
       </DropdownMenuItem>
+      {tab.layout && (
+        <DropdownMenuItem onClick={() => toggleBroadcast(tab.id)}>
+          <Radio size={13} />
+          {t("terminal.sessionTab.broadcastInput")}
+          {tab.broadcast && <Check size={13} className="ml-auto" />}
+          <DropdownMenuShortcut>{hint("broadcast")}</DropdownMenuShortcut>
+        </DropdownMenuItem>
+      )}
       <DropdownMenuSeparator />
       <DropdownMenuItem onClick={() => askCloseTab(tab.id)}>
         <X size={13} />

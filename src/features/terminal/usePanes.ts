@@ -71,6 +71,12 @@ export function usePanes(
           : t,
       ),
     );
+  const toggleBroadcast = (leaderId: string) =>
+    list.setTabs((old) =>
+      old.map((t) =>
+        t.id === leaderId && t.layout ? { ...t, broadcast: !t.broadcast } : t,
+      ),
+    );
   // New session in place of `id` (same slot in the tab bar or split layout).
   const reconnectPane = (id: string) => {
     const old = tabs.find((t) => t.id === id);
@@ -100,6 +106,7 @@ export function usePanes(
     dropOnPane,
     detachPane,
     resizeActive,
+    toggleBroadcast,
     reconnectPane,
     duplicateTab,
   };

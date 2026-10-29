@@ -109,6 +109,11 @@ export function useShortcuts(app: AppState) {
         splitDown: () => leader && tabs.splitTab(leader.id, "col"),
         prevPane: () => stepPane(-1),
         nextPane: () => stepPane(1),
+        // Only on a split tab: elsewhere Ctrl+B goes to the shell (tmux, readline).
+        broadcast: () => {
+          if (!leader?.layout) return false;
+          tabs.toggleBroadcast(leader.id);
+        },
         clearTerminal: () =>
           leader && terminalHandles.get(focusOf(leader))?.clear(),
         zoomIn: () => zoom(appSettings.fontSize + 1),

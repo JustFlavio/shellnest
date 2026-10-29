@@ -42,6 +42,7 @@ function paneClass(
   focused: boolean | undefined,
   animate: boolean | undefined,
   ghost: boolean | undefined,
+  broadcast: boolean,
 ) {
   return cn(
     "group/pane absolute z-1 box-border min-h-0 flex-none flex-col bg-background px-[16px] pb-[12px]",
@@ -50,6 +51,8 @@ function paneClass(
     ghost && "pointer-events-none z-0 opacity-0",
     split &&
       "m-[4px] rounded-[12px] border border-border bg-clip-padding px-[10px] pb-[8px]",
+    // dashed on every pane of the workspace, so it is plain that typing reaches all of them
+    broadcast && "border-dashed border-primary/60",
     focused && "border-primary",
   );
 }
@@ -60,9 +63,11 @@ export function TerminalPane({
   box,
   settings,
   focused,
+  broadcast = false,
   ghost,
   animate,
   onFocus,
+  onToggleBroadcast,
   onDragPane,
   onError,
   onStatus,
@@ -79,6 +84,9 @@ export function TerminalPane({
   settings: AppSettings;
   // undefined when the tab is not split
   focused?: boolean;
+  // the workspace sends typed input to all its panes
+  broadcast?: boolean;
+  onToggleBroadcast?: () => void;
   // being dragged away: stays as a faint trace while the others take its place
   ghost?: boolean;
   // glide to a new box (set while panes rearrange, off while resizing by hand)
@@ -125,7 +133,7 @@ export function TerminalPane({
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- focus follows pointer and focus anywhere inside the pane
     <div
       role="group"
-      className={paneClass(split, focused, animate, ghost)}
+      className={paneClass(split, focused, animate, ghost, broadcast)}
       style={paneStyle(active, box, split)}
       onFocus={onFocus}
       onMouseDown={onFocus}
@@ -134,6 +142,8 @@ export function TerminalPane({
         tab={tab}
         endpoint={endpoint}
         split={split}
+        broadcast={broadcast}
+        onToggleBroadcast={onToggleBroadcast}
         onDragPane={onDragPane}
         onClose={onClose}
       />
