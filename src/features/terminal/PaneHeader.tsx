@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { TerminalSquare, X } from "lucide-react";
+import { RotateCw, TerminalSquare, X } from "lucide-react";
 import { OsIcon } from "@/components/OsIcon";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -35,12 +35,14 @@ export function PaneHeader({
   split,
   onDragPane,
   onClose,
+  onReconnect,
 }: {
   tab: TerminalTab;
   endpoint: string;
   split: boolean;
   onDragPane?: (dragging: boolean) => void;
   onClose: () => void;
+  onReconnect: () => void;
 }) {
   const { t } = useTranslation();
   const status = tab.status ?? "connecting";
@@ -79,6 +81,18 @@ export function PaneHeader({
         <StatusDot status={status} className="ml-[2px]" />
         <span className="sr-only">{t(statusLabel[status])}</span>
       </div>
+      {(status === "closed" || status === "failed") && (
+        <Button
+          variant="ghost"
+          type="button"
+          size="sm"
+          className="h-[24px] gap-[6px] px-[6px] font-mono text-[12px] text-destructive hover:text-destructive"
+          onClick={onReconnect}
+        >
+          {t("terminal.paneHeader.reconnect")}
+          <RotateCw size={12} />
+        </Button>
+      )}
       {split && (
         <Button
           variant="ghost"

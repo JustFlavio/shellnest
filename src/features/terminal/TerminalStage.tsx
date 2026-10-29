@@ -33,6 +33,7 @@ export function TerminalStage() {
       tabTitle,
       closePane,
       reconnectPane,
+      duplicateTab,
     },
     dnd: {
       dragPane,
@@ -92,6 +93,7 @@ export function TerminalStage() {
             onTitle={tabTitle}
             onMetadata={vault.refresh}
             onClose={() => askClosePane(tab.id)}
+            onReconnect={() => duplicateTab(tab, true)}
             onRetry={() => {
               if (geo) return reconnectPane(tab.id);
               closePane(tab.id);
