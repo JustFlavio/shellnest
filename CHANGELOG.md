@@ -2,7 +2,21 @@
 
 All notable changes are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/). Versions below 1.0.0 may change in incompatible ways.
 
-## [0.1.1] - Unreleased
+## [0.1.2] - Unreleased
+
+### Added
+
+- Linux (Ubuntu, x86_64): a `.deb` and an AppImage. The unlock key can live in the Secret Service (GNOME Keyring, KWallet); without a running service the app asks for the password. Only the AppImage updates itself. Not yet tried on a real desktop.
+
+### Fixed
+
+- The in-app update was found but its download was a 404: the download URLs in `latest.json` pointed at `releases/latest`, which skips pre-releases. They now point at the release tag.
+
+### Changed
+
+- The README explains the download and the first launch of the unsigned builds.
+
+## [0.1.1] - 2026-10-29
 
 First update delivered through the in-app updater.
 
