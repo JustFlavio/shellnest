@@ -2,7 +2,8 @@ import { useTranslation } from "react-i18next";
 import { TabLead, TabMain, TabShell } from "./Tab";
 import { Button } from "@/components/ui/button";
 import { Plus, Server, SquarePlus } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import { fadeMask, hiddenEdges } from "./tab-fade.ts";
 import { useApp } from "@/app/app-context";
 import { SessionTab } from "./SessionTab";
 import { SyncButton } from "@/features/vault/SyncButton";
@@ -23,22 +24,43 @@ export function TabBar() {
     },
     dnd: { dragPane, clearSpring, clearDnd },
   } = useApp();
+  const strip = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ left: false, right: false });
+  const measure = () => {
+    const el = strip.current;
+    if (el)
+      setEdges(hiddenEdges(el.scrollLeft, el.scrollWidth, el.clientWidth));
+  };
   useEffect(() => {
-    document
-      .querySelector(".tab.selected")
-      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [active, tabs.length]);
+    strip.current?.querySelector("[data-selected]")?.scrollIntoView({
+      block: "nearest",
+      inline: "nearest",
+      behavior: "instant",
+    });
+    measure();
+  }, [active, tabs.length, launcherOpen]);
+  useEffect(() => {
+    const el = strip.current;
+    if (!el) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    for (const c of el.children) ro.observe(c);
+    return () => ro.disconnect();
+  }, [bar.length, launcherOpen]);
+  const mask = fadeMask(edges);
   return (
     <nav
-      className="flex min-w-0 flex-1 items-center gap-[6px] overflow-x-auto px-[8px] py-[5px]"
+      className="flex min-w-0 flex-1 items-center gap-[6px] px-[8px] py-[5px]"
       onDragOver={(e) => {
         if (dragPane) {
           e.preventDefault();
           e.dataTransfer.dropEffect = "move";
         }
-        const r = e.currentTarget.getBoundingClientRect();
-        if (e.clientX - r.left < 48) e.currentTarget.scrollLeft -= 14;
-        else if (r.right - e.clientX < 48) e.currentTarget.scrollLeft += 14;
+        const el = strip.current;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        if (e.clientX - r.left < 48) el.scrollLeft -= 14;
+        else if (r.right - e.clientX < 48) el.scrollLeft += 14;
       }}
       onDragLeave={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node)) clearSpring();
@@ -65,24 +87,31 @@ export function TabBar() {
           {t("vault.vaultList.vault")}
         </TabMain>
       </TabShell>
-      {bar.map((tab) => (
-        <SessionTab key={tab.id} tab={tab} />
-      ))}
-      {launcherOpen && (
-        <TabShell className="w-[170px]" selected={active === "launcher"}>
-          <TabLead
-            icon={<SquarePlus size={15} />}
-            onClose={closeLauncher}
-            label="nuova scheda"
-          />
-          <TabMain
-            aria-current={active === "launcher" ? "page" : undefined}
-            onClick={() => setActive("launcher")}
-          >
-            {t("terminal.connectionLauncher.newTab")}
-          </TabMain>
-        </TabShell>
-      )}
+      <div
+        ref={strip}
+        className="flex min-w-0 items-center gap-[6px] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        style={{ maskImage: mask, WebkitMaskImage: mask }}
+        onScroll={measure}
+      >
+        {bar.map((tab) => (
+          <SessionTab key={tab.id} tab={tab} />
+        ))}
+        {launcherOpen && (
+          <TabShell className="w-[170px]" selected={active === "launcher"}>
+            <TabLead
+              icon={<SquarePlus size={15} />}
+              onClose={closeLauncher}
+              label="nuova scheda"
+            />
+            <TabMain
+              aria-current={active === "launcher" ? "page" : undefined}
+              onClick={() => setActive("launcher")}
+            >
+              {t("terminal.connectionLauncher.newTab")}
+            </TabMain>
+          </TabShell>
+        )}
+      </div>
       <Button
         variant="ghost"
         type="button"
