@@ -71,6 +71,14 @@ impl Data {
         if used > 0 {
             return Err(ModelError::KeyInUse(used));
         }
+        let hosts = self
+            .hosts
+            .iter()
+            .filter(|h| h.credentials.as_ref().is_some_and(|c| c.key_id == id))
+            .count();
+        if hosts > 0 {
+            return Err(ModelError::KeyInUseByHosts(hosts));
+        }
         self.keys.retain(|k| k.id != id);
         Ok(())
     }

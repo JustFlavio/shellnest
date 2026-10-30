@@ -11,6 +11,8 @@ export type Host = {
   port: number;
   ownPort: number | null;
   groupId: string;
+  tags?: string[];
+  keyId?: string;
   // Own identity; empty when the host uses its own credentials or inherits from its folder.
   identityId: string;
   effectiveIdentityId: string;
@@ -22,7 +24,11 @@ export type Host = {
   os?: string | null;
   lastConnectedAt?: number | null;
 };
-export type HostCredentials = { username: string; password: string };
+export type HostCredentials = {
+  username: string;
+  password: string;
+  keyId?: string;
+};
 export type HostDraft = Host & {
   credentials?: HostCredentials;
   // No identity or credentials of its own: use the folder's identity.
@@ -100,6 +106,8 @@ export type TerminalTab = {
   username: string;
   identityName: string;
   status?: "connecting" | "connected" | "closed" | "failed";
+  // This session reached the terminal, rather than only attempting a connection.
+  hasConnected?: boolean;
   error?: Message;
   // pane of another tab's split workspace; hidden from the tab bar
   // user-chosen tab name; overrides the title (or "Workspace" when split)

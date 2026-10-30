@@ -2,9 +2,10 @@ import { useTranslation } from "react-i18next";
 import { Combobox } from "@base-ui/react/combobox";
 import { UserRound, ContactRound, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { stripWhitespace } from "@/lib/input-text";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { HostDraft, Identity } from "@/lib/types";
+import type { HostDraft, Identity, SshKey } from "@/lib/types";
 import { useState } from "react";
 import {
   fieldIcon,
@@ -18,13 +19,13 @@ import {
 export function HostCredentialsField({
   value,
   identities,
+  keys = [],
   onChange,
-  onNewIdentity,
 }: {
   value: HostDraft;
   identities: Identity[];
+  keys?: SshKey[];
   onChange: (value: HostDraft) => void;
-  onNewIdentity: () => void;
 }) {
   const { t } = useTranslation();
   const selected = identities.find((i) => i.id === value.identityId) ?? null;
@@ -32,6 +33,7 @@ export function HostCredentialsField({
   const credentials = value.credentials ?? {
     username: value.username ?? "",
     password: "",
+    keyId: value.keyId,
   };
   return (
     <>
@@ -50,7 +52,10 @@ export function HostCredentialsField({
             onChange({
               ...value,
               identityId: "",
-              credentials: { ...credentials, username },
+              credentials: {
+                ...credentials,
+                username: stripWhitespace(username),
+              },
             });
           }
         }}
@@ -92,37 +97,20 @@ export function HostCredentialsField({
                         <small>
                           {identity.username} ·{" "}
                           {identity.auth === "key"
-                            ? t("hosts.hostCredentialsField.sshKey")
+                            ? (keys.find((key) => key.id === identity.keyId)
+                                ?.name ??
+                              t("hosts.hostCredentialsField.sshKey"))
                             : t("hosts.collectionTables.password")}
                         </small>
                       </span>
                     </Combobox.Item>
                   )}
                 </Combobox.List>
-                <Button
-                  variant="ghost"
-                  type="button"
-                  className="mt-[4px] w-full text-[12px] text-primary"
-                  onClick={onNewIdentity}
-                >
-                  {t("hosts.hostCredentialsField.createSharedIdentity")}
-                </Button>
               </Combobox.Popup>
             </Combobox.Positioner>
           </Combobox.Portal>
         )}
       </Combobox.Root>
-      {/* The suggestions popup only exists once there is an identity to pick. */}
-      {identities.length === 0 && (
-        <Button
-          variant="ghost"
-          type="button"
-          className="w-full text-[12px] text-primary"
-          onClick={onNewIdentity}
-        >
-          {t("hosts.hostCredentialsField.createSharedIdentity")}
-        </Button>
-      )}
       {selected && (
         <div className={selectedHostIdentity}>
           <ContactRound aria-hidden="true" />

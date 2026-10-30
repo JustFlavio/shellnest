@@ -10,6 +10,8 @@ import {
   replaceTab,
   sessionIds,
   setTermTitle,
+  canReconnect,
+  setTabStatus,
   splitPane,
   unlinkPane,
   workspaceTemplate,
@@ -25,6 +27,23 @@ function defined<V>(value: V | null | undefined): V {
 }
 
 const ids = (tabs: TabLike[]) => tabs.map((t) => t.id);
+
+test("reconnect requires this session to have connected before ending", () => {
+  const tabs = [
+    { id: "a", status: "connecting" as const },
+    { id: "b", status: "connected" as const },
+  ];
+  for (const status of ["failed", "closed"] as const) {
+    const failed = setTabStatus(tabs, "a", status);
+    assert.equal(canReconnect(failed[0]), false);
+    assert.equal(failed[1], tabs[1]);
+    const connected = setTabStatus(tabs, "a", "connected");
+    assert.equal(canReconnect(connected[0]), false);
+    const ended = setTabStatus(connected, "a", status);
+    assert.equal(canReconnect(ended[0]), true);
+    assert.equal(canReconnect(setTabStatus(tabs, "b", status)[1]), true);
+  }
+});
 const split = () => {
   const tabs: TabLike[] = [{ id: "a" }, { id: "x" }];
   return splitPane(tabs, "a", "a", { id: "b", parent: "a" }, "right");

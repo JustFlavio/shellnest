@@ -21,7 +21,6 @@ export const vaultBar =
   "flex items-center gap-[10px] rounded-[12px] bg-card px-[16px] py-[14px] text-[14px] [&_svg]:text-muted-foreground";
 export const addressIcon =
   "grid size-[36px] shrink-0 place-items-center rounded-[9px] bg-accent text-primary";
-export const divider = "my-[14px] h-px bg-border";
 export const subheading = "mb-[12px] text-[14px] font-semibold";
 export const fieldIcon =
   "pointer-events-none absolute top-1/2 left-[11px] size-[18px] -translate-y-1/2 text-muted-foreground";

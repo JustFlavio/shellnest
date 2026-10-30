@@ -76,6 +76,7 @@ mod tests {
             address: "192.0.2.20".into(),
             port: Some(22),
             group_id: String::new(),
+            tags: vec![],
             identity_id: String::new(),
             credentials: None,
             fingerprint: String::new(),
@@ -83,6 +84,7 @@ mod tests {
             last_connected_at: None,
         };
         let credentials = HostCredentials {
+            key_id: String::new(),
             username: " deploy ".into(),
             password: "synthetic-inline-secret".into(),
         };
@@ -125,6 +127,7 @@ mod tests {
                 data.upsert_host_inheriting(
                     new_host,
                     Some(HostCredentials {
+                        key_id: String::new(),
                         username: "root".into(),
                         password: String::new(),
                     }),
@@ -144,6 +147,7 @@ mod tests {
             data.upsert_host_inheriting(
                 host,
                 Some(HostCredentials {
+                    key_id: String::new(),
                     username: "admin".into(),
                     password: "another-synthetic-secret".into(),
                 }),

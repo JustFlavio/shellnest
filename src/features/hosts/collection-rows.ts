@@ -6,6 +6,7 @@ const matches = (text: string, query: string) =>
 
 type HostRow = Pick<
   Host,
+  | "tags"
   | "name"
   | "address"
   | "groupId"
@@ -42,7 +43,7 @@ export function filterHosts<T extends HostRow>({
         (!group || h.groupId === group) &&
         (!usageIds || usageIds.has(h.identityId)) &&
         matches(
-          `${h.name} ${h.address} ${groupPath(groups, h.groupId)} ${identity?.name ?? ""} ${identity?.username ?? h.username ?? ""}`,
+          `${h.name} ${(h.tags ?? []).join(" ")} ${h.address} ${groupPath(groups, h.groupId)} ${identity?.name ?? ""} ${identity?.username ?? h.username ?? ""}`,
           query,
         )
       );

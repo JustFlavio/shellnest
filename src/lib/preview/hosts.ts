@@ -29,10 +29,23 @@ export function saveHost(next: View, args: Args): void {
     !host.groupId || next.groups.some((g) => g.id === host.groupId),
     "model.GroupParentMissing",
   );
+  requireValue(
+    Array.isArray(host.tags ?? []) &&
+      (host.tags ?? []).length <= 32 &&
+      (host.tags ?? []).every(
+        (tag) =>
+          typeof tag === "string" &&
+          tag.trim() &&
+          [...tag].length <= 64 &&
+          !/[\x00-\x1f\x7f]/.test(tag),
+      ),
+    "model.HostTagsInvalid",
+  );
   const inherit = args.inherit === true;
   const previous = next.hosts.find((h) => h.id === host.id);
   let username: string | null = null;
   let hasPassword = false;
+  let keyId: string | undefined;
   if (inherit) {
     requireValue(
       !host.identityId &&
@@ -49,13 +62,17 @@ export function saveHost(next: View, args: Args): void {
       "model.HostCredentialsInvalid",
     );
     username = credentials?.username?.trim() ?? previous?.username ?? "";
+    keyId = credentials?.keyId ?? previous?.keyId;
     hasPassword =
-      !!credentials?.password ||
-      !!(!previous?.identityId && previous?.hasPassword);
+      !keyId &&
+      (!!credentials?.password ||
+        !!(!previous?.identityId && previous?.hasPassword));
     requireValue(
       username &&
         !/[\s\x00-\x1f\x7f]/.test(username) &&
-        hasPassword &&
+        (keyId
+          ? next.keys.some((key) => key.id === keyId) && !credentials?.password
+          : hasPassword) &&
         (credentials == null || typeof credentials.password === "string"),
       "model.CredentialsRequired",
     );
@@ -77,6 +94,12 @@ export function saveHost(next: View, args: Args): void {
     port: host.port ?? 22,
     ownPort: host.port,
     groupId: host.groupId,
+    tags: [
+      ...new Map(
+        (host.tags ?? []).map((tag) => [tag.trim().toLowerCase(), tag.trim()]),
+      ).values(),
+    ],
+    keyId,
     identityId: host.identityId,
     effectiveIdentityId: host.identityId,
     identitySource: "",
@@ -113,6 +136,7 @@ export function assignIdentity(next: View, args: Args): void {
           ...h,
           identityId: String(args.identityId),
           username: null,
+          keyId: undefined,
           hasPassword: false,
         }
       : h,

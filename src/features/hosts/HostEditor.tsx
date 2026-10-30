@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { stripWhitespace } from "@/lib/input-text";
 import { Server, LockKeyhole } from "lucide-react";
 import { OsIcon } from "@/components/OsIcon";
 import type { HostDraft, View } from "@/lib/types";
@@ -12,6 +13,8 @@ import type { SaveStatus } from "./HostSaveStatus";
 import { addressIcon, sheetField, vaultBar } from "@/lib/editor-ui";
 import { EditorSection } from "./EditorSection";
 import { Panel } from "./Panel";
+import { HostPortField } from "./HostPortField";
+import { HostTagsField } from "./HostTagsField";
 
 export function HostEditor({
   value,
@@ -20,6 +23,7 @@ export function HostEditor({
   onSubmit,
   onClose,
   onNewIdentity,
+  onNewKey,
   onNewGroup,
   busy,
   error,
@@ -34,6 +38,7 @@ export function HostEditor({
   onSubmit: () => void;
   onClose: () => void;
   onNewIdentity: () => void;
+  onNewKey?: () => void;
   onNewGroup: (name: string) => void;
   busy: boolean;
   error: string;
@@ -111,21 +116,25 @@ export function HostEditor({
             <label className="m-0! min-w-0 flex-1">
               <span className="sr-only">{t("hosts.hostEditor.address")}</span>
               <Input
+                autoFocus
                 required
                 value={value.address}
                 onChange={(e) =>
-                  onChange({ ...value, address: e.target.value })
+                  onChange({
+                    ...value,
+                    address: stripWhitespace(e.target.value),
+                  })
                 }
                 placeholder={t("hosts.hostEditor.ipOrHostName")}
               />
             </label>
+            <HostPortField value={value} view={view} onChange={onChange} />
           </div>
         </EditorSection>
         <EditorSection title={t("hosts.groupEditor.general")}>
           <label className={sheetField}>
             <span className="sr-only">{t("vault.vaultPanels.name")}</span>
             <Input
-              autoFocus
               required
               value={value.name}
               onChange={(e) => onChange({ ...value, name: e.target.value })}
@@ -138,12 +147,20 @@ export function HostEditor({
             onChange={onChange}
             onNewGroup={onNewGroup}
           />
+          <HostTagsField
+            value={value.tags ?? []}
+            suggestions={[
+              ...new Set(view.hosts.flatMap((host) => host.tags ?? [])),
+            ].sort()}
+            onChange={(tags) => onChange({ ...value, tags })}
+          />
         </EditorSection>
         <HostAccessSection
           value={value}
           view={view}
           onChange={onChange}
           onNewIdentity={onNewIdentity}
+          onNewKey={onNewKey}
           onRevealPassword={onRevealPassword}
         />
       </form>

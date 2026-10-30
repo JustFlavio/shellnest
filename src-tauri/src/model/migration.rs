@@ -18,6 +18,8 @@ struct StoredHost {
     group: String,
     #[serde(default)]
     group_id: String,
+    #[serde(default)]
+    tags: Vec<String>,
     fingerprint: String,
     #[serde(default)]
     os: Option<String>,
@@ -61,13 +63,13 @@ impl<'de> Deserialize<'de> for Data {
         let stored = StoredData::deserialize(deserializer)?;
         if !matches!(
             stored.schema_version,
-            None | Some(1) | Some(2) | Some(3) | Some(4) | Some(5)
+            None | Some(1) | Some(2) | Some(3) | Some(4) | Some(5) | Some(6)
         ) {
             return Err(serde::de::Error::custom("Unsupported vault data version"));
         }
         let legacy = matches!(stored.schema_version, None | Some(1));
         let mut data = Self {
-            schema_version: 5,
+            schema_version: 6,
             hosts: vec![],
             keys: stored.keys.clone(),
             groups: stored.groups.clone(),
@@ -75,7 +77,7 @@ impl<'de> Deserialize<'de> for Data {
             identities: stored.identities.clone(),
             sync_url: stored.sync_url.clone(),
             sync_token: stored.sync_token.clone(),
-            migrated: stored.schema_version != Some(5),
+            migrated: stored.schema_version != Some(6),
         };
         for h in &stored.hosts {
             let identity_id = if legacy {
@@ -179,6 +181,7 @@ impl<'de> Deserialize<'de> for Data {
                 address: h.address.clone(),
                 port: h.port,
                 group_id,
+                tags: h.tags.clone(),
                 fingerprint: h.fingerprint.clone(),
                 identity_id,
                 credentials: h.credentials.clone(),
@@ -240,6 +243,26 @@ mod tests {
         assert_eq!(data.resolve("d").unwrap().password, "different");
     }
     #[test]
+    fn schema_five_upgrades_without_changing_credentials_groups_or_ports() {
+        let old = serde_json::json!({"schema_version":5,"hosts":[{"id":"old","name":"Old","address":"192.0.2.1","port":null,"groupId":"g","identityId":"","credentials":{"username":"root","password":"secret"},"fingerprint":"SHA256:trusted"}],"groups":[{"id":"g","name":"Production","parentId":"","identityId":"","port":2222}],"identities":[],"keys":[],"sync_url":"","sync_token":""});
+        let mut data: Data = serde_json::from_value(old).unwrap();
+        assert!(data.migrated);
+        assert_eq!(data.schema_version, 6);
+        assert!(data.hosts[0].tags.is_empty());
+        let connection = data.resolve("old").unwrap();
+        assert_eq!(connection.password, "secret");
+        assert_eq!(connection.host.port, Some(2222));
+        assert_eq!(connection.host.fingerprint, "SHA256:trusted");
+        for tags in [
+            vec!["x".repeat(65)],
+            vec!["invalid\nlabel".into()],
+            vec!["x".into(); 33],
+        ] {
+            data.hosts[0].tags = tags;
+            assert!(data.validate().is_err());
+        }
+    }
+    #[test]
     fn schema_4_folder_names_become_root_groups() {
         let v4 = serde_json::json!({
             "schema_version": 4,
@@ -253,7 +276,7 @@ mod tests {
         });
         let data: Data = serde_json::from_value(v4).unwrap();
         assert!(data.migrated);
-        assert_eq!(data.schema_version, 5);
+        assert_eq!(data.schema_version, 6);
         assert_eq!(data.groups.len(), 1);
         assert_eq!(data.groups[0].name, "Prod Api");
         assert_eq!(data.hosts[0].group_id, data.groups[0].id);

@@ -11,6 +11,7 @@ export function saveHostCommand(
   const {
     credentials,
     username,
+    keyId,
     hasPassword,
     inheritIdentity,
     port: _effectivePort,
@@ -25,6 +26,6 @@ export function saveHostCommand(
     credentials:
       host.identityId || inheritIdentity
         ? null
-        : (credentials ?? { username: username ?? "", password: "" }),
+        : (credentials ?? { username: username ?? "", password: "", keyId }),
   });
 }

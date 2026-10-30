@@ -7,7 +7,14 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import type { ComponentType, ReactElement } from "react";
-import type { Group, Host, Identity, IdentityForm, View } from "./lib/types";
+import type {
+  Group,
+  Host,
+  Identity,
+  IdentityForm,
+  TerminalTab,
+  View,
+} from "./lib/types";
 import { i18n } from "./i18n/i18n.ts";
 
 // These assertions read the Italian copy.
@@ -76,6 +83,68 @@ const { HostEditor } = await import("./features/hosts/HostEditor.tsx");
 const { IdentityEditor } = await import("./features/hosts/IdentityEditor.tsx");
 const { HostPasswordInput } =
   await import("./features/hosts/HostPasswordInput.tsx");
+const { PaneHeader } = await import("./features/terminal/PaneHeader.tsx");
+const { restarted } = await import("./features/terminal/tab-factory.ts");
+
+test("restarting or duplicating starts a session without connection history", () => {
+  const tab: TerminalTab = {
+    id: "old",
+    kind: "local",
+    vaultId: "personal",
+    title: "Terminal",
+    username: "",
+    identityName: "",
+    status: "closed",
+    hasConnected: true,
+  };
+  const retry = restarted(tab, "new");
+  assert.equal(retry.hasConnected, false);
+  assert.equal(retry.status, "connecting");
+  assert.equal(tab.hasConnected, true);
+});
+
+test("reconnect is offered only after an established session ends", () => {
+  for (const status of [
+    "connecting",
+    "connected",
+    "failed",
+    "closed",
+  ] as const) {
+    for (const hasConnected of [false, true]) {
+      for (const view of ["terminal", "files"] as const) {
+        const tab = {
+          id: "session",
+          kind: "local",
+          vaultId: "personal",
+          title: "Terminal",
+          username: "",
+          identityName: "",
+          status,
+          hasConnected,
+          view,
+          filesStatus: "failed",
+        } satisfies TerminalTab & { hasConnected: boolean };
+        const html = renderToStaticMarkup(
+          createElement(PaneHeader, {
+            tab,
+            endpoint: "",
+            split: false,
+            broadcast: false,
+            onClose() {},
+            onReconnect() {},
+          }),
+        );
+        assert.equal(
+          html.includes("Riconnetti"),
+          view === "terminal" &&
+            hasConnected &&
+            (status === "failed" || status === "closed"),
+          `${view}, ${status}, connected before: ${hasConnected}`,
+        );
+      }
+    }
+  }
+});
 
 // Fixtures give only what a test reads; the rest is filled in here.
 const hostOf = (fields: Partial<Host> = {}): Host => ({
@@ -513,6 +582,41 @@ test("private credentials stay local and omitted passwords survive edits", async
 
 const { hostDraftIsDirty, hostDraftIsValid } =
   await import("./features/hosts/host-draft.ts");
+
+test("direct key selection validates after a choice and tags trigger autosave", async () => {
+  const draft = {
+    ...hostOf(),
+    credentials: { username: "deploy", password: "", keyId: "key-personal" },
+    tags: ["production"],
+  };
+  const stored = {
+    ...hostOf(),
+    username: "deploy",
+    keyId: "key-personal",
+    tags: ["production"],
+  };
+  assert.equal(hostDraftIsValid(draft, []), true);
+  assert.equal(
+    hostDraftIsValid(
+      { ...draft, credentials: { ...draft.credentials, keyId: "" } },
+      [],
+      { ...stored, hasPassword: true },
+    ),
+    false,
+  );
+  assert.equal(hostDraftIsDirty(draft, stored), false);
+  assert.equal(hostDraftIsDirty({ ...draft, tags: ["staging"] }, stored), true);
+  const invoke = previewInvoke();
+  const view = await invoke("save_host", {
+    host: { ...draft, port: draft.ownPort, credentials: undefined },
+    credentials: draft.credentials,
+  });
+  const saved = view.hosts.find((host) => host.id === draft.id)!;
+  assert.equal(saved.keyId, "key-personal");
+  assert.equal(saved.hasPassword, false);
+  assert.deepEqual(saved.tags, draft.tags);
+  await assert.rejects(invoke("delete_key", { id: saved.keyId }));
+});
 test("draft validation requires its own password or an explicit shared identity", () => {
   const host = hostOf({
     id: "a",
@@ -695,9 +799,16 @@ test("preview vaults switch, lock and unlock without losing or mixing data", asy
   assert.equal(view.vaultName, "Test");
 });
 
-const { selectionBounds, selectInRectangle } =
+const { selectionBounds, selectInRectangle, clampPoint } =
   await import("./features/hosts/CollectionSelection.tsx");
 const { HostSummary } = await import("./features/hosts/HostSummary.tsx");
+
+test("the selection rectangle stays inside the area that lists the hosts", () => {
+  const area = { left: 200, top: 250, right: 1000, bottom: 700 };
+  assert.deepEqual(clampPoint({ x: 500, y: 400 }, area), { x: 500, y: 400 });
+  assert.deepEqual(clampPoint({ x: 50, y: 100 }, area), { x: 200, y: 250 });
+  assert.deepEqual(clampPoint({ x: 1200, y: 900 }, area), { x: 1000, y: 700 });
+});
 
 test("rectangle selection works in every direction, intersects items and keeps folders out of host actions", () => {
   const bounds = selectionBounds({ x: 100, y: 100 }, { x: 10, y: 10 });

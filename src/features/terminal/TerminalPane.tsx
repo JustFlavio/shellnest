@@ -142,6 +142,7 @@ export function TerminalPane({
   };
   const endpoint = endpointOf(tab, t);
   const split = focused !== undefined;
+  const ended = tab.status === "closed" || tab.status === "failed";
   return (
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- focus follows pointer and focus anywhere inside the pane
     <div
@@ -197,15 +198,18 @@ export function TerminalPane({
       )}
       <div
         ref={container}
+        inert={ended}
         className="min-h-0 flex-1 [&_.xterm]:h-full"
         style={
-          !opened || files
+          !opened || files || ended
             ? { position: "absolute", visibility: "hidden", inset: 0 }
             : undefined
         }
       />
-      {!files && search.searching && <TerminalSearchBar search={search} />}
-      {pendingPaste !== null && (
+      {!files && !ended && search.searching && (
+        <TerminalSearchBar search={search} />
+      )}
+      {!files && !ended && pendingPaste !== null && (
         <PasteConfirmDialog
           text={pendingPaste}
           onCancel={closePasteConfirm}

@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { stripWhitespace } from "@/lib/input-text";
 import type { Identity, IdentityForm, View } from "@/lib/types";
 import { IdentityAccessSection } from "./IdentityAccessSection";
 import { EditorSection } from "./EditorSection";
@@ -91,7 +92,12 @@ export function IdentityEditor({
             <Input
               required
               value={value.username}
-              onChange={(e) => onChange({ ...value, username: e.target.value })}
+              onChange={(e) =>
+                onChange({
+                  ...value,
+                  username: stripWhitespace(e.target.value),
+                })
+              }
               placeholder="root"
               autoComplete="off"
             />

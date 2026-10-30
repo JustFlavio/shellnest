@@ -110,6 +110,7 @@ mod tests {
                     address: "127.0.0.1".into(),
                     port: Some(port),
                     group_id: String::new(),
+                    tags: vec![],
                     identity_id: "test-identity".into(),
                     credentials: None,
                     fingerprint,

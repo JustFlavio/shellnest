@@ -6,7 +6,6 @@ import { useEffect, useRef, useState } from "react";
 import { fadeMask, hiddenEdges } from "./tab-fade.ts";
 import { useApp } from "@/app/app-context";
 import { SessionTab } from "./SessionTab";
-import { SyncButton } from "@/features/vault/SyncButton";
 
 export function TabBar() {
   const { t } = useTranslation();
@@ -128,7 +127,6 @@ export function TabBar() {
         className="min-w-[28px] flex-1 self-stretch"
         data-tauri-drag-region
       />
-      <SyncButton />
     </nav>
   );
 }

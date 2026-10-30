@@ -106,7 +106,7 @@ pub(crate) fn open_selected(
             Secret::Key(key) => OpenVault::unlock_with_key(key, disk)?,
         };
         if v.data.migrated {
-            let backup = path.with_extension("pre-v4.bak");
+            let backup = path.with_extension("pre-v6.bak");
             if !backup.exists() {
                 std::fs::copy(&path, backup).map_err(VaultError::from)?;
             }

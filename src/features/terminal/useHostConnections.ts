@@ -75,7 +75,9 @@ export function useHostConnections(
     void run(async () => {
       if (
         hosts.some(
-          (host) => !identity(host) && !(host.username && host.hasPassword),
+          (host) =>
+            !identity(host) &&
+            !(host.username && (host.hasPassword || host.keyId)),
         )
       )
         throw new Error(

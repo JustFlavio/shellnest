@@ -44,7 +44,9 @@
       "KeyInUse_one": "Chiave utilizzata da {{count}} identità. Riassegna prima l’identità.",
       "KeyInUse_other": "Chiave utilizzata da {{count}} identità. Riassegna prima le identità.",
       "IdentityInUse_one": "Identità utilizzata da {{count}} host o cartella. Riassegnalo prima.",
-      "IdentityInUse_other": "Identità utilizzata da {{count}} host o cartelle. Riassegnali prima."
+      "IdentityInUse_other": "Identità utilizzata da {{count}} host o cartelle. Riassegnali prima.",
+      "HostTagsInvalid": "Usa al massimo 32 tag, ciascuno di 1–64 caratteri.",
+      "KeyInUseByHosts": "Chiave usata da {{count}} host. Riassegnali prima."
     },
     "vault": {
       "UnsupportedVersion": "Versione vault non supportata",
@@ -472,7 +474,13 @@
       "sshAccess": "Accesso SSH",
       "credentials": "Credenziali",
       "sshPassword": "Password SSH",
-      "managedByTheIdentity": "Gestita dall’identità"
+      "managedByTheIdentity": "Gestita dall’identità",
+      "add": "Identità o chiave SSH",
+      "newIdentity": "Nuova identità SSH",
+      "key": "Chiave",
+      "chooseKey": "Seleziona una chiave",
+      "password": "Usa password",
+      "importKey": "Importa una chiave"
     },
     "hostCard": {
       "credentialsMissing": "Credenziali mancanti",
@@ -553,7 +561,8 @@
       "ifTheKeyIs": "Se la chiave è protetta",
       "replacingTheKeyChanges": "Sostituire la chiave modifica le prossime connessioni di tutte le identità che la utilizzano.",
       "importedIntoTheEncrypted": "Importata nel vault cifrato; il file originale resta intatto.",
-      "usedBy": "Usata da {{identities}} e {{hosts}}."
+      "usedBy": "Usata da {{identities}} e {{hosts}}.",
+      "importAndBackToHost": "Importa e torna all’host"
     },
     "keyFilePicker": {
       "fileTooLarge1": "File troppo grande (massimo 1 MB)",
@@ -594,7 +603,7 @@
     "vaultToolbar": {
       "moreCreateActions": "Altre azioni di creazione",
       "newFolder": "Nuova cartella",
-      "localTerminal": "Terminale locale",
+      "localTerminal": "Terminale",
       "filterByFolder": "Filtra per cartella",
       "sortHosts": "Ordina host",
       "nameAZ": "Nome A–Z",
@@ -612,6 +621,12 @@
     },
     "hostPortField": {
       "portInherited": "Porta ereditata dal gruppo {{path}}."
+    },
+    "hostTagsField": {
+      "tags": "Tag",
+      "search": "Cerca o crea tag",
+      "create": "Crea tag {{name}}",
+      "remove": "Rimuovi tag {{name}}"
     }
   },
   "settings": {

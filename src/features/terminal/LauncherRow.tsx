@@ -68,7 +68,7 @@ export function LauncherRow({
         "group relative flex items-center rounded-[8px]",
         selected
           ? "bg-[color-mix(in_oklab,var(--primary)_20%,var(--accent))] ring-1 ring-primary/60 ring-inset"
-          : "odd:bg-[color-mix(in_oklab,var(--accent)_38%,transparent)]",
+          : "odd:bg-[color-mix(in_oklab,var(--accent)_38%,transparent)] hover:bg-accent",
         cursor && !selected && "ring-1 ring-border ring-inset",
       )}
     >

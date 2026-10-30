@@ -32,7 +32,7 @@ impl fmt::Debug for Data {
 impl Default for Data {
     fn default() -> Self {
         Self {
-            schema_version: 5,
+            schema_version: 6,
             hosts: vec![],
             identities: vec![],
             keys: vec![],

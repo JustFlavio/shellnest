@@ -12,6 +12,40 @@ export function selectionBounds(start: Point, end: Point) {
   };
 }
 
+type Bounds = ReturnType<typeof selectionBounds>;
+
+/** The point moved inside `area`, so the rectangle never leaves the part of the page that lists the hosts. */
+export function clampPoint(point: Point, area: Bounds): Point {
+  return {
+    x: Math.min(Math.max(point.x, area.left), area.right),
+    y: Math.min(Math.max(point.y, area.top), area.bottom),
+  };
+}
+
+// The collection as it is on screen: its own box cut by the scrolling area that holds it.
+function visibleArea(el: HTMLElement): Bounds {
+  const own = el.getBoundingClientRect();
+  let area: Bounds = {
+    left: own.left,
+    top: own.top,
+    right: own.right,
+    bottom: own.bottom,
+  };
+  for (let up = el.parentElement; up; up = up.parentElement) {
+    const { overflowY } = getComputedStyle(up);
+    if (overflowY !== "auto" && overflowY !== "scroll") continue;
+    const clip = up.getBoundingClientRect();
+    area = {
+      left: Math.max(area.left, clip.left),
+      top: Math.max(area.top, clip.top),
+      right: Math.min(area.right, clip.right),
+      bottom: Math.min(area.bottom, clip.bottom),
+    };
+    break;
+  }
+  return area;
+}
+
 export function selectInRectangle(
   bounds: ReturnType<typeof selectionBounds>,
   items: Iterable<{
@@ -94,10 +128,13 @@ export function CollectionSelection({
         )
           return;
         gesture.moved = true;
-        const bounds = selectionBounds(gesture.start, {
-          x: e.clientX,
-          y: e.clientY,
-        });
+        const bounds = selectionBounds(
+          gesture.start,
+          clampPoint(
+            { x: e.clientX, y: e.clientY },
+            visibleArea(e.currentTarget),
+          ),
+        );
         setBox(bounds);
         const items = Array.from(
           e.currentTarget.querySelectorAll<HTMLElement>("[data-selection-id]"),
