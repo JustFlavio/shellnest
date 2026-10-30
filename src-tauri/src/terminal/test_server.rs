@@ -117,8 +117,8 @@ impl server::Handler for Echo {
     }
 }
 pub(super) async fn fixture(password_ok: bool) -> (Connection, tokio::task::JoinHandle<()>) {
-    let key = PrivateKey::random(&mut rand10::rng(), Algorithm::Ed25519).unwrap();
-    let server_key = PrivateKey::random(&mut rand10::rng(), Algorithm::Ed25519).unwrap();
+    let key = PrivateKey::random(&mut rand::rng(), Algorithm::Ed25519).unwrap();
+    let server_key = PrivateKey::random(&mut rand::rng(), Algorithm::Ed25519).unwrap();
     let fingerprint = server_key
         .public_key()
         .fingerprint(HashAlg::Sha256)
@@ -172,7 +172,7 @@ pub(super) async fn fixture(password_ok: bool) -> (Connection, tokio::task::Join
         username: "test".into(),
         auth: "key".into(),
         password: String::new(),
-        private_key: PrivateKey::random(&mut rand10::rng(), Algorithm::Ed25519)
+        private_key: PrivateKey::random(&mut rand::rng(), Algorithm::Ed25519)
             .unwrap()
             .to_openssh(Default::default())
             .unwrap()

@@ -170,10 +170,11 @@ describe("Tauri desktop with an isolated real vault", () => {
     await $('[placeholder="IP o nome host"]').setValue("192.0.2.12");
     await $('[placeholder="Nome dell’host"]').setValue("E2E Direct key");
     await $('[aria-label="Utente SSH"]').setValue("deploy");
+    await browser.keys("Escape");
     await $("button*=Identità o chiave SSH").click();
     await $('[role="menuitem"]=Chiave SSH').click();
     assert.equal(await $('[aria-label="Password SSH"]').isExisting(), false);
-    await $('[aria-label="Chiave"]').click();
+    await $('[aria-label="Chiave"]').setValue("E2E");
     await $('[role="option"]=E2E key').waitForDisplayed();
     await $('[role="option"]=E2E key').click();
     await $('[role="status"][title="Salvato"]').waitForDisplayed();
