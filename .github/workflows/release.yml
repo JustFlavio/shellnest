@@ -88,21 +88,8 @@ jobs:
 
   validate-release:
     needs: [create-release, build]
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
     permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-      - name: Validate draft updater downloads before publication
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.ref_name }}
-          RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
-        run: |
-          gh release download "$TAG" --pattern latest.json --dir manifest
-          gh api --paginate "repos/${{ github.repository }}/releases/$RELEASE_ID/assets" --slurp > manifest/assets.json
-          node .github/scripts/updater-manifest.ts check manifest/latest.json "${TAG#v}" manifest/assets.json
+      contents: write
+    uses: ./.github/workflows/validate-release.yml
+    with:
+      tag: ${{ github.ref_name }}
