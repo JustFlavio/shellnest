@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Combobox } from "@base-ui/react/combobox";
 import { UserRound, ContactRound, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { stripWhitespace } from "@/lib/input-text";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { HostDraft, Identity, SshKey } from "@/lib/types";
@@ -51,7 +52,10 @@ export function HostCredentialsField({
             onChange({
               ...value,
               identityId: "",
-              credentials: { ...credentials, username },
+              credentials: {
+                ...credentials,
+                username: stripWhitespace(username),
+              },
             });
           }
         }}

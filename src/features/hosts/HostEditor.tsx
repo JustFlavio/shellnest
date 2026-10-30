@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { stripWhitespace } from "@/lib/input-text";
 import { Server, LockKeyhole } from "lucide-react";
 import { OsIcon } from "@/components/OsIcon";
 import type { HostDraft, View } from "@/lib/types";
@@ -119,7 +120,10 @@ export function HostEditor({
                 required
                 value={value.address}
                 onChange={(e) =>
-                  onChange({ ...value, address: e.target.value })
+                  onChange({
+                    ...value,
+                    address: stripWhitespace(e.target.value),
+                  })
                 }
                 placeholder={t("hosts.hostEditor.ipOrHostName")}
               />
