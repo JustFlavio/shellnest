@@ -135,3 +135,11 @@ This does **not** clear Linux's `RUSTSEC-2024-0429`: stable Tauri 2 still pulls
 cannot replace that crate across its API boundary. No compatible stable GTK/Tauri
 upgrade removes this branch. Cargo-deny's default transitive-unsound scope does
 not flag it; reachability and exploitability in Shellnest remain unproven.
+
+Rust verification on Windows: 65 tests pass, the opt-in native keychain test also
+passes, rustfmt and Clippy with all targets/features and warnings denied pass.
+The real desktop WebDriver test passes against the combined frontend/Rust build,
+including persisted vault unlock and direct key selection. Its key combobox step
+now dismisses username suggestions and types a filter before selecting the key,
+avoiding an overlapping popup/focus transition. Native keychain interoperability
+on macOS/Linux still needs an unlocked desktop session on those platforms.
