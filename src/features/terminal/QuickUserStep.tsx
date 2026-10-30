@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { stripWhitespace } from "@/lib/input-text";
 import { cn } from "@/lib/utils";
 import { help } from "@/lib/editor-ui";
 import type { Identity } from "@/lib/types";
@@ -58,7 +59,7 @@ export function QuickUserStep({
           spellCheck={false}
           value={setup.username}
           disabled={!!chosen}
-          onChange={(e) => patch({ username: e.target.value.trim() })}
+          onChange={(e) => patch({ username: stripWhitespace(e.target.value) })}
         />
       </label>
       {anyIdentity && (
