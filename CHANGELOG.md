@@ -10,6 +10,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ### Fixed
 
+- The Terminal / Files shortcut uses `Ctrl+Shift+Y` on Windows and Linux so it does not shadow split down (`Ctrl+Shift+E`). macOS keeps `Cmd+E`; custom bindings are preserved.
 - Drag-selecting hosts: the selection rectangle stays inside the list of folders and hosts instead of reaching over the toolbar, the search field and the sidebar.
 
 ## [0.1.3] - 2026-10-29

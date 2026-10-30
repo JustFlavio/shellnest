@@ -107,6 +107,27 @@ test("Windows and Linux never need more than Ctrl plus Shift or Alt plus a key",
   );
 });
 
+test("Files and split down have distinct defaults while overrides remain intact", () => {
+  assert.equal(actionFor(ev("e", { metaKey: true }), true), "toggleFiles");
+  assert.equal(
+    actionFor(ev("Y", { ctrlKey: true, shiftKey: true }), false),
+    "toggleFiles",
+  );
+  assert.equal(
+    actionFor(ev("E", { ctrlKey: true, shiftKey: true }), false),
+    "splitDown",
+  );
+  const bindings = resolve({ toggleFiles: [{ key: "u", mod: true }] }, false);
+  assert.equal(
+    actionFor(ev("U", { ctrlKey: true, shiftKey: true }), false, bindings),
+    "toggleFiles",
+  );
+  assert.equal(
+    actionFor(ev("Y", { ctrlKey: true, shiftKey: true }), false, bindings),
+    undefined,
+  );
+});
+
 test("no two actions share a binding on either platform", () => {
   for (const mac of [true, false]) {
     const seen = new Map();
