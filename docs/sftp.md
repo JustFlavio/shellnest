@@ -1,6 +1,6 @@
 # SFTP files and transfers
 
-Each SSH pane offers **Terminal / Files**. Files shows the device on the left and the server on the right. Switching views keeps the shell mounted and transfers running. **Open files (SFTP)** in a saved host's menu opens Files without starting a shell. The configurable **Switch Terminal / Files** shortcut uses Cmd+E on macOS and Ctrl+Shift+E elsewhere by default.
+Each SSH pane offers **Terminal / Files**. Files shows the device on the left and the server on the right. Switching views keeps the shell mounted and transfers running. **Open files (SFTP)** in a saved host's menu opens Files without starting a shell. The configurable **Switch Terminal / Files** shortcut uses Cmd+E on macOS and Ctrl+Shift+Y elsewhere by default.
 
 Each side has its own directory, history, editable path, breadcrumbs, hidden-file toggle, filter and selection. Use checkboxes, Ctrl/Cmd-click or Shift-click to select files. Double-click a directory or press Enter on its name to open it. Arrow keys move through names. Upload/Download buttons work without dragging. Dragging between the two panes copies the selected entries to the other pane's current directory. The divider supports both pointer dragging and arrow keys.
 

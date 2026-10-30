@@ -35,6 +35,7 @@ export const SHORTCUTS: Binding[] = [
       return t("sftp.toggleFiles");
     },
     combos: [{ key: "e", mod: true }],
+    other: [{ key: "y", mod: true }],
   },
   {
     id: "quickConnect",
