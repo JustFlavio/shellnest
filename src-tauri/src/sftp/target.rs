@@ -33,6 +33,7 @@ mod tests {
                 address: "old.example".into(),
                 port: Some(2222),
                 group_id: String::new(),
+                tags: vec![],
                 identity_id: String::new(),
                 credentials: None,
                 fingerprint: "known-key".into(),
