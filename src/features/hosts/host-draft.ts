@@ -14,6 +14,7 @@ export function hostDraftIsValid(
   const credentials = draft.credentials ?? {
     username: draft.username ?? "",
     password: "",
+    keyId: draft.keyId,
   };
   return !!(
     draft.name.trim() &&
@@ -30,10 +31,12 @@ export function hostDraftIsValid(
         ? identities.some((i) => i.id === draft.identityId)
         : credentials.username.trim() &&
           !/[\s\x00-\x1f\x7f]/.test(credentials.username.trim()) &&
-          (credentials.password ||
-            (stored?.id === draft.id &&
-              !stored.identityId &&
-              stored.hasPassword)))
+          (credentials.keyId !== undefined
+            ? !!credentials.keyId
+            : credentials.password ||
+              (stored?.id === draft.id &&
+                !stored.identityId &&
+                stored.hasPassword)))
   );
 }
 
@@ -46,9 +49,14 @@ export function hostDraftIsDirty(
   const credentials = draft.credentials ?? {
     username: draft.username ?? "",
     password: "",
+    keyId: draft.keyId,
   };
   return (
     !!credentials.password ||
+    (!draft.identityId &&
+      !draft.inheritIdentity &&
+      (credentials.keyId ?? "") !== (stored?.keyId ?? "")) ||
+    JSON.stringify(draft.tags ?? []) !== JSON.stringify(stored?.tags ?? []) ||
     (!draft.identityId &&
       !draft.inheritIdentity &&
       credentials.username !== (stored?.username ?? "")) ||

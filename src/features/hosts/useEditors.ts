@@ -215,6 +215,15 @@ export function useEditors(
       if (!keyForm) return;
       update(await invokeScoped<View>("save_key", { key: keyForm }));
       if (identityForm) setIdentityForm({ ...identityForm, keyId: keyForm.id });
+      else if (hostForm)
+        setHostForm({
+          ...hostForm,
+          credentials: {
+            username: hostForm.credentials?.username ?? hostForm.username ?? "",
+            password: "",
+            keyId: keyForm.id,
+          },
+        });
       closeKeyEditor();
     });
   // Everything tied to the vault being left.

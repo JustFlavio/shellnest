@@ -149,6 +149,7 @@ mod tests {
                 address: "192.0.2.1".into(),
                 port: Some(22),
                 group_id: String::new(),
+                tags: vec![],
                 identity_id: "admin".into(),
                 credentials: None,
                 fingerprint: String::new(),

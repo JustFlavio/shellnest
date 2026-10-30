@@ -164,7 +164,9 @@ export function createPreviewBackend(
       view.keys.forEach((k) => {
         const identities = view.identities.filter((i) => i.keyId === k.id);
         k.identityCount = identities.length;
-        k.hostCount = identities.reduce((sum, i) => sum + i.hostCount, 0);
+        k.hostCount =
+          identities.reduce((sum, i) => sum + i.hostCount, 0) +
+          view.hosts.filter((h) => h.keyId === k.id).length;
       });
       if (!view.unlocked) {
         view.hosts = [];

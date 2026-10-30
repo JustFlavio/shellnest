@@ -13,6 +13,8 @@ pub(crate) struct Host {
     pub(crate) port: Option<u16>,
     #[serde(default)]
     pub(crate) group_id: String,
+    #[serde(default)]
+    pub(crate) tags: Vec<String>,
     // Empty with no credentials: inherits the nearest group's identity.
     pub(crate) identity_id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -26,6 +28,8 @@ pub(crate) struct Host {
 #[derive(Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct HostCredentials {
+    #[serde(default)]
+    pub(crate) key_id: String,
     pub(crate) username: String,
     pub(crate) password: String,
 }
@@ -55,6 +59,9 @@ impl Data {
         }
         let port = self.effective_port(&host);
         validate_endpoint(&host.address, port)?;
+        host.tags = host.tags.iter().map(|tag| tag.trim().to_string()).collect();
+        let mut seen = std::collections::HashSet::new();
+        host.tags.retain(|tag| seen.insert(tag.to_lowercase()));
         let previous = self
             .hosts
             .iter()
@@ -105,11 +112,20 @@ impl Data {
             {
                 return Err(ModelError::UsernameInvalid);
             }
-            if credentials.password.is_empty() {
-                credentials.password = previous.map(|c| c.password.clone()).unwrap_or_default();
-            }
-            if credentials.password.is_empty() {
-                return Err(ModelError::PasswordRequired);
+            if credentials.key_id.is_empty() {
+                if credentials.password.is_empty() {
+                    credentials.password = previous
+                        .filter(|c| c.key_id.is_empty())
+                        .map(|c| c.password.clone())
+                        .unwrap_or_default();
+                }
+                if credentials.password.is_empty() {
+                    return Err(ModelError::PasswordRequired);
+                }
+            } else if !self.keys.iter().any(|k| k.id == credentials.key_id)
+                || !credentials.password.is_empty()
+            {
+                return Err(ModelError::HostCredentialsInvalid);
             }
             host.credentials = Some(credentials);
         } else {
@@ -148,12 +164,73 @@ mod tests {
     use super::*;
     use crate::model::Identity;
     #[test]
+    fn direct_keys_and_tags_persist_without_creating_shared_identities() {
+        let mut data = Data::default();
+        data.upsert_key(key("personal")).unwrap();
+        let mut draft = host("direct", "");
+        draft.tags = vec![" Production ".into(), "production".into(), "API".into()];
+        data.upsert_host_inheriting(
+            draft.clone(),
+            Some(HostCredentials {
+                username: " deploy ".into(),
+                password: String::new(),
+                key_id: "personal".into(),
+            }),
+            false,
+        )
+        .unwrap();
+        assert!(data.identities.is_empty());
+        let mut restored: Data =
+            serde_json::from_slice(&serde_json::to_vec(&data).unwrap()).unwrap();
+        assert_eq!(restored.hosts[0].tags, vec!["Production", "API"]);
+        let connection = restored.resolve("direct").unwrap();
+        assert_eq!(connection.auth, "key");
+        assert_eq!(connection.username, "deploy");
+        assert!(connection.password.is_empty());
+        assert!(!connection.private_key.is_empty());
+        assert_eq!(connection.key_name, restored.keys[0].name);
+        assert!(restored.delete_key("personal").is_err());
+        for (key_id, password) in [
+            ("missing", ""),
+            ("personal", "conflicting-password"),
+            ("", ""),
+        ] {
+            assert!(
+                restored
+                    .upsert_host_inheriting(
+                        draft.clone(),
+                        Some(HostCredentials {
+                            username: "root".into(),
+                            password: password.into(),
+                            key_id: key_id.into(),
+                        }),
+                        false
+                    )
+                    .is_err()
+            );
+        }
+        restored
+            .upsert_host_inheriting(
+                draft,
+                Some(HostCredentials {
+                    username: "root".into(),
+                    password: "new-password".into(),
+                    key_id: String::new(),
+                }),
+                false,
+            )
+            .unwrap();
+        restored.delete_key("personal").unwrap();
+        assert_eq!(restored.resolve("direct").unwrap().auth, "password");
+    }
+    #[test]
     fn private_credentials_roundtrip_and_remain_independent_of_shared_identities() {
         let mut data = Data::default();
         for (id, password) in [("a", "secret-a"), ("b", "secret-b")] {
             data.upsert_host_inheriting(
                 host(id, ""),
                 Some(HostCredentials {
+                    key_id: String::new(),
                     username: "root".into(),
                     password: password.into(),
                 }),
@@ -165,6 +242,7 @@ mod tests {
         data.upsert_host_inheriting(
             host("a", ""),
             Some(HostCredentials {
+                key_id: String::new(),
                 username: "deploy".into(),
                 password: String::new(),
             }),
@@ -175,7 +253,7 @@ mod tests {
         assert_eq!(data.resolve("b").unwrap().password, "secret-b");
         let mut data: Data = serde_json::from_slice(&serde_json::to_vec(&data).unwrap()).unwrap();
         assert!(!data.migrated);
-        assert_eq!(data.schema_version, 5);
+        assert_eq!(data.schema_version, 6);
         assert_eq!(data.resolve("a").unwrap().username, "deploy");
         data.upsert_identity(Identity {
             id: "shared".into(),

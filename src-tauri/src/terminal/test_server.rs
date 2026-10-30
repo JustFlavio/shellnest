@@ -162,6 +162,7 @@ pub(super) async fn fixture(password_ok: bool) -> (Connection, tokio::task::Join
             address: "127.0.0.1".into(),
             port: Some(port),
             group_id: String::new(),
+            tags: vec![],
             identity_id: "test-identity".into(),
             credentials: None,
             fingerprint,

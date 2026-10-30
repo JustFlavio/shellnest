@@ -67,6 +67,15 @@ impl Data {
             }
         }
         for h in &self.hosts {
+            if h.tags.len() > 32
+                || h.tags.iter().any(|tag| {
+                    tag.trim().is_empty()
+                        || tag.chars().count() > 64
+                        || tag.chars().any(char::is_control)
+                })
+            {
+                return Err(ModelError::HostTagsInvalid);
+            }
             if h.port == Some(0)
                 || (!h.group_id.is_empty() && !self.groups.iter().any(|g| g.id == h.group_id))
             {
@@ -79,7 +88,12 @@ impl Data {
                         .username
                         .chars()
                         .any(|c| c.is_control() || c.is_whitespace())
-                    || credentials.password.is_empty()
+                    || if credentials.key_id.is_empty() {
+                        credentials.password.is_empty()
+                    } else {
+                        !credentials.password.is_empty()
+                            || !self.keys.iter().any(|k| k.id == credentials.key_id)
+                    }
                 {
                     return Err(ModelError::HostCredentialsInvalid);
                 }
@@ -128,7 +142,7 @@ mod tests {
             data.assign_identity(&["missing".into()], "missing")
                 .is_err()
         );
-        let future = serde_json::json!({"schema_version":6,"hosts":[],"keys":[],"identities":[],"sync_url":"","sync_token":""});
+        let future = serde_json::json!({"schema_version":7,"hosts":[],"keys":[],"identities":[],"sync_url":"","sync_token":""});
         assert!(serde_json::from_value::<Data>(future).is_err());
     }
 }

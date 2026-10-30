@@ -77,6 +77,7 @@ mod tests {
         });
         let mut host = test_support::host("h", "");
         host.credentials = Some(HostCredentials {
+            key_id: String::new(),
             username: "deploy".into(),
             password: "SECRET-HOST-PASSWORD".into(),
         });

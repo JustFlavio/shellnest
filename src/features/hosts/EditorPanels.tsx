@@ -50,6 +50,7 @@ export function EditorPanels() {
           onClose={closeHostEditor}
           onNewGroup={newFolderFromHost}
           onNewIdentity={newIdentityForm}
+          onNewKey={newKeyForm}
           onSubmit={submitHostEditor}
         />
       )}
@@ -85,7 +86,7 @@ export function EditorPanels() {
           view={view}
           busy={busy}
           error={error}
-          returnTo={identityForm ? "identity" : undefined}
+          returnTo={identityForm ? "identity" : hostForm ? "host" : undefined}
           onClose={closeKeyEditor}
           onSubmit={saveKey}
         />

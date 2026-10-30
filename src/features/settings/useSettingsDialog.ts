@@ -40,7 +40,7 @@ export function useSettingsDialog({
       current = false;
     };
   }, [rememberedFor]);
-  const open = (next: SettingsSection = "vault") => {
+  const open = (next: SettingsSection = "general") => {
     setSyncUrl(view.syncUrl);
     setError("");
     setSection(next);
