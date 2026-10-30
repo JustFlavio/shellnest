@@ -62,7 +62,7 @@ test("plain keys and extra modifiers never match", () => {
   assert.equal(actionFor(ev("w", { ctrlKey: true }), false), undefined);
 });
 
-test("newLocal: Cmd+L on macOS, Ctrl+Shift+L elsewhere, apart from lockVault", () => {
+test("newLocal: Cmd+L on macOS, Ctrl+Shift+L elsewhere, where lockVault is Ctrl+Shift+X", () => {
   assert.equal(actionFor(ev("l", { metaKey: true }), true), "newLocal");
   assert.equal(
     actionFor(ev("L", { metaKey: true, shiftKey: true }), true),
@@ -73,7 +73,7 @@ test("newLocal: Cmd+L on macOS, Ctrl+Shift+L elsewhere, apart from lockVault", (
     "newLocal",
   );
   assert.equal(
-    actionFor(ev("L", { ctrlKey: true, shiftKey: true, altKey: true }), false),
+    actionFor(ev("X", { ctrlKey: true, shiftKey: true }), false),
     "lockVault",
   );
   assert.equal(actionFor(ev("l", { ctrlKey: true }), false), undefined);
@@ -89,15 +89,28 @@ test("other platforms keep Ctrl+letter free for the shell", () => {
     "quickConnect",
   );
   assert.equal(
-    actionFor(ev("T", { ctrlKey: true, shiftKey: true, altKey: true }), false),
+    actionFor(ev("Z", { ctrlKey: true, shiftKey: true }), false),
     "reopenTab",
+  );
+});
+
+test("Windows and Linux never need more than Ctrl plus Shift or Alt plus a key", () => {
+  for (const s of resolve({}, false))
+    for (const c of s.combos) {
+      const keys = format(c, false).split("+").length;
+      assert.ok(keys <= 3, `${s.id}: ${format(c, false)}`);
+    }
+  assert.equal(actionFor(ev("ArrowLeft", { altKey: true }), false), "prevPane");
+  assert.equal(
+    actionFor(ev("PageUp", { ctrlKey: true, shiftKey: true }), false),
+    "moveTabLeft",
   );
 });
 
 test("no two actions share a binding on either platform", () => {
   for (const mac of [true, false]) {
     const seen = new Map();
-    for (const s of SHORTCUTS)
+    for (const s of resolve({}, mac))
       for (const c of s.combos) {
         const text = format(c, mac);
         assert.ok(!seen.has(text), `${text}: ${seen.get(text)} / ${s.id}`);
@@ -126,7 +139,7 @@ await i18n.changeLanguage("it");
 
 test("comboFromEvent round-trips through matching", () => {
   for (const mac of [true, false])
-    for (const s of SHORTCUTS)
+    for (const s of resolve({}, mac))
       for (const c of s.combos) {
         if (c.key === "1-9") continue;
         // Build the event a user would press for this combo.
@@ -169,7 +182,7 @@ test("reserved combos", () => {
 });
 
 test("overrides replace defaults, bad input falls back", () => {
-  const b = resolve({ closePane: [{ key: "x", mod: true }] });
+  const b = resolve({ closePane: [{ key: "x", mod: true }] }, true);
   assert.equal(actionFor(ev("x", { metaKey: true }), true, b), "closePane");
   assert.equal(actionFor(ev("w", { metaKey: true }), true, b), undefined);
   assert.deepEqual(parseOverrides("nope"), {});
@@ -179,7 +192,8 @@ test("overrides replace defaults, bad input falls back", () => {
   );
   assert.deepEqual(parseOverrides('{"closePane":[]}'), { closePane: [] });
   assert.equal(
-    findConflict(resolve(), "closePane", { key: "t", mod: true }, true)?.id,
+    findConflict(resolve({}, true), "closePane", { key: "t", mod: true }, true)
+      ?.id,
     "quickConnect",
   );
 });

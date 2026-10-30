@@ -4,6 +4,10 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [0.1.4] - Unreleased
 
+### Changed
+
+- Windows and Linux shortcuts: eight actions no longer need `Ctrl+Alt+Shift`. New folder is `Ctrl+Shift+O`, search the collection `Ctrl+Shift+F`, lock the vault `Ctrl+Shift+X`, close all panels `Ctrl+Shift+Q`, reopen a tab `Ctrl+Shift+Z`, split down `Ctrl+Shift+E`, move a tab `Ctrl+Shift+PageUp/PageDown`, and the previous/next panel is `Alt+arrows` (`Ctrl+Alt+arrows` switch desktops on Ubuntu). A shortcut you rebound keeps your choice; macOS is unchanged.
+
 ### Fixed
 
 - Drag-selecting hosts: the selection rectangle stays inside the list of folders and hosts instead of reaching over the toolbar, the search field and the sidebar.

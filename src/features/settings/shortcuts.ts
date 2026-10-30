@@ -11,7 +11,13 @@ export type Combo = {
   plain?: boolean;
 };
 // `label` is a getter on the registry: it reads the active language when it is asked for.
-export type Binding = { id: string; label: string; combos: Combo[] };
+// `other` replaces `combos` on Windows and Linux where the Shift or Alt the derivation adds would make three or four keys.
+export type Binding = {
+  id: string;
+  label: string;
+  combos: Combo[];
+  other?: Combo[];
+};
 type KeyEvent = Pick<
   KeyboardEvent,
   "key" | "code" | "metaKey" | "ctrlKey" | "altKey" | "shiftKey"
@@ -57,6 +63,7 @@ export const SHORTCUTS: Binding[] = [
       return t("hosts.vaultToolbar.newFolder");
     },
     combos: [{ key: "n", mod: true, shift: true }],
+    other: [{ key: "o", mod: true }],
   },
   {
     id: "searchVault",
@@ -64,6 +71,7 @@ export const SHORTCUTS: Binding[] = [
       return t("settings.shortcuts.searchTheCollection");
     },
     combos: [{ key: "f", mod: true, shift: true }],
+    other: [{ key: "f", mod: true }],
   },
   {
     id: "lockVault",
@@ -71,6 +79,7 @@ export const SHORTCUTS: Binding[] = [
       return t("vault.vaultPanels.lockVault");
     },
     combos: [{ key: "l", mod: true, shift: true }],
+    other: [{ key: "x", mod: true }],
   },
   {
     id: "openSettings",
@@ -92,6 +101,7 @@ export const SHORTCUTS: Binding[] = [
       return t("settings.shortcuts.closeAllPanesOf");
     },
     combos: [{ key: "w", mod: true, shift: true }],
+    other: [{ key: "q", mod: true }],
   },
   {
     id: "reopenTab",
@@ -99,6 +109,7 @@ export const SHORTCUTS: Binding[] = [
       return t("settings.shortcuts.reopenLastClosedTab");
     },
     combos: [{ key: "t", mod: true, shift: true }],
+    other: [{ key: "z", mod: true }],
   },
   {
     id: "gotoTab",
@@ -133,6 +144,7 @@ export const SHORTCUTS: Binding[] = [
       return t("settings.shortcuts.moveTabLeft");
     },
     combos: [arrow("ArrowLeft", { shift: true, alt: true })],
+    other: [{ key: "PageUp", mod: true, shift: true }],
   },
   {
     id: "moveTabRight",
@@ -140,6 +152,7 @@ export const SHORTCUTS: Binding[] = [
       return t("settings.shortcuts.moveTabRight");
     },
     combos: [arrow("ArrowRight", { shift: true, alt: true })],
+    other: [{ key: "PageDown", mod: true, shift: true }],
   },
   {
     id: "splitRight",
@@ -154,6 +167,7 @@ export const SHORTCUTS: Binding[] = [
       return t("settings.shortcuts.splitThePaneDown");
     },
     combos: [{ key: "d", mod: true, shift: true }],
+    other: [{ key: "e", mod: true }],
   },
   {
     id: "prevPane",
@@ -164,6 +178,10 @@ export const SHORTCUTS: Binding[] = [
       arrow("ArrowLeft", { alt: true }),
       arrow("ArrowUp", { alt: true }),
     ],
+    other: [
+      { key: "ArrowLeft", alt: true },
+      { key: "ArrowUp", alt: true },
+    ],
   },
   {
     id: "nextPane",
@@ -173,6 +191,10 @@ export const SHORTCUTS: Binding[] = [
     combos: [
       arrow("ArrowRight", { alt: true }),
       arrow("ArrowDown", { alt: true }),
+    ],
+    other: [
+      { key: "ArrowRight", alt: true },
+      { key: "ArrowDown", alt: true },
     ],
   },
   {
@@ -248,7 +270,7 @@ function matches(e: KeyEvent, combo: Combo, mac: boolean): boolean {
 export function actionFor(
   e: KeyEvent,
   mac: boolean,
-  bindings: Binding[] = SHORTCUTS,
+  bindings: Binding[] = resolve({}, mac),
 ): string | undefined {
   return bindings.find((s) => s.combos.some((c) => matches(e, c, mac)))?.id;
 }
@@ -285,15 +307,24 @@ export function format(combo: Combo, mac: boolean): string {
 export const hint = (
   id: string,
   mac: boolean,
-  bindings: Binding[] = SHORTCUTS,
+  bindings: Binding[] = resolve({}, mac),
 ): string => {
   // callers pass registry ids, so the binding exists
   const combo = bindings.find((s) => s.id === id)!.combos[0];
   return combo ? format(combo, mac) : "";
 };
 
-export const resolve = (overrides: Record<string, Combo[]> = {}): Binding[] =>
-  SHORTCUTS.map((s) => ({ ...s, combos: overrides[s.id] ?? s.combos }));
+export const defaultCombos = (s: Binding, mac: boolean): Combo[] =>
+  (!mac && s.other) || s.combos;
+
+export const resolve = (
+  overrides: Record<string, Combo[]> = {},
+  mac = false,
+): Binding[] =>
+  SHORTCUTS.map((s) => ({
+    ...s,
+    combos: overrides[s.id] ?? defaultCombos(s, mac),
+  }));
 
 type RawCombo = Record<string, unknown>;
 const flags = ["mod", "ctrl", "shift", "alt"] as const;
