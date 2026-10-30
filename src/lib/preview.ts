@@ -1,3 +1,4 @@
+import { createPreviewSftp } from "./preview/sftp";
 import { emptyView } from "./types";
 import { resolveHost } from "@/features/hosts/groups.ts";
 import type { View } from "./types";
@@ -48,6 +49,7 @@ export function createPreviewBackend(
     ["personal", empty ? emptyPreviewView() : previewView()],
   ]);
   let selected = "personal";
+  const sftp = createPreviewSftp();
   return async <T>(
     command: string,
     args: Record<string, unknown> = {},
@@ -55,6 +57,7 @@ export function createPreviewBackend(
     if (command === "select_vault") {
       if (!vaults.has(String(args.vaultId)))
         throw { code: "app.VaultNotFound" };
+      sftp.closeAll();
       selected = String(args.vaultId);
     }
     if (failing.has(command))
@@ -74,6 +77,7 @@ export function createPreviewBackend(
       ].includes(command)
     )
       requireValue(next.unlocked, "app.VaultLocked");
+    if (command.startsWith("sftp_")) return sftp.invoke(command, args) as T;
     switch (command) {
       case "status":
       case "select_vault":
@@ -88,9 +92,11 @@ export function createPreviewBackend(
         next.unlocked = true;
         break;
       case "lock":
+        sftp.closeAll();
         next.unlocked = false;
         break;
       case "create_vault": {
+        sftp.closeAll();
         requireValue(
           typeof args.name === "string" &&
             args.name.trim() &&
@@ -107,6 +113,7 @@ export function createPreviewBackend(
         return snapshot() as T;
       }
       case "delete_vault":
+        sftp.closeAll();
         requireValue(selected !== "personal", "vault.DefaultNotDeletable");
         requireValue(
           !current.hosts.length &&

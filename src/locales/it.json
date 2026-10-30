@@ -145,6 +145,20 @@
     "session": {
       "metadataFailed": "Connessione attiva, ma aggiornamento metadati non riuscito: {{reason}}",
       "EndedEarly": "La sessione è terminata prima di aprire il terminale."
+    },
+    "sftp": {
+      "Io": "Operazione sui file non riuscita: {{value}}",
+      "Protocol": "Operazione SFTP non riuscita: {{value}}",
+      "InvalidPath": "Percorso o nome file non valido o non supportato",
+      "NotConnected": "SFTP non ? connesso",
+      "Cancelled": "Operazione annullata",
+      "Exists": "La destinazione esiste gi?",
+      "UnsupportedType": "Link simbolici e file speciali non vengono copiati. Trasferisci file regolari o cartelle che non li contengono.",
+      "TypeConflict": "Impossibile sostituire un file con una cartella, una cartella con un file o un link simbolico",
+      "Recovery": "La sostituzione non è terminata correttamente. Una copia recuperabile è conservata in {{value}}. Verifica entrambi i percorsi prima di riprovare.",
+      "TransferBusy": "Un altro trasferimento è già in corso",
+      "SubsystemRefused": "Il server ha rifiutato SFTP. Verifica che il sottosistema SFTP sia abilitato.",
+      "DestinationChanged": "Le impostazioni dell'host sono cambiate dopo l'apertura del pannello. Apri una nuova sessione verso l'host aggiornato."
     }
   },
   "connection": {
@@ -291,15 +305,15 @@
       "closeSessions": "Chiudi sessioni",
       "lockVault": "Blocca vault",
       "closeSessionsAndLock": "Chiudi sessioni e blocca",
-      "createClosesSessions_one": "La creazione seleziona il nuovo vault e chiude la {{count}} sessione aperta, incluse le shell locali.",
-      "createClosesSessions_other": "La creazione seleziona il nuovo vault e chiude tutte le {{count}} sessioni aperte, incluse le shell locali.",
+      "createClosesSessions_one": "La creazione seleziona il nuovo vault e chiude la {{count}} sessione aperta, incluse le shell locali. I trasferimenti attivi e in coda verranno annullati.",
+      "createClosesSessions_other": "La creazione seleziona il nuovo vault e chiude tutte le {{count}} sessioni aperte, incluse le shell locali. I trasferimenti attivi e in coda verranno annullati.",
       "switchTo": "Passare a <strong>{{name}}</strong>?",
-      "switchClosesSessions_one": "Verrà chiusa la {{count}} sessione aperta, incluse le shell locali. Il vault attuale verrà bloccato.",
-      "switchClosesSessions_other": "Verranno chiuse tutte le {{count}} sessioni aperte, incluse le shell locali. Il vault attuale verrà bloccato.",
-      "closeSessions_one": "Chiudere {{count}} sessione? Le shell locali e le connessioni SSH selezionate verranno terminate.",
-      "closeSessions_other": "Chiudere {{count}} sessioni? Le shell locali e le connessioni SSH selezionate verranno terminate.",
-      "lockAndClose_one": "Bloccare il vault e chiudere la {{count}} sessione, incluse le shell locali?",
-      "lockAndClose_other": "Bloccare il vault e chiudere tutte le {{count}} sessioni, incluse le shell locali?"
+      "switchClosesSessions_one": "Verrà chiusa la {{count}} sessione aperta, incluse le shell locali. Il vault attuale verrà bloccato. I trasferimenti attivi e in coda verranno annullati.",
+      "switchClosesSessions_other": "Verranno chiuse tutte le {{count}} sessioni aperte, incluse le shell locali. Il vault attuale verrà bloccato. I trasferimenti attivi e in coda verranno annullati.",
+      "closeSessions_one": "Chiudere {{count}} sessione? Le shell locali e le connessioni SSH selezionate verranno terminate. I trasferimenti attivi e in coda verranno annullati.",
+      "closeSessions_other": "Chiudere {{count}} sessioni? Le shell locali e le connessioni SSH selezionate verranno terminate. I trasferimenti attivi e in coda verranno annullati.",
+      "lockAndClose_one": "Bloccare il vault e chiudere la {{count}} sessione, incluse le shell locali? I trasferimenti attivi e in coda verranno annullati.",
+      "lockAndClose_other": "Bloccare il vault e chiudere tutte le {{count}} sessioni, incluse le shell locali? I trasferimenti attivi e in coda verranno annullati."
     },
     "vaultPicker": {
       "yourVaults": "I tuoi vault",
@@ -732,8 +746,8 @@
     "closeGuard": {
       "restartToUpdate": "Riavviare per aggiornare?",
       "stopTheSession": "Interrompere la sessione?",
-      "someSessionsAreStill": "Ci sono sessioni ancora connesse: riavviando verranno chiuse e i programmi in esecuzione nei terminali terminati.",
-      "theSessionIsStill": "La sessione è ancora connessa: chiudendola verranno terminati i programmi in esecuzione nel terminale.",
+      "someSessionsAreStill": "Il riavvio termina i programmi nei terminali e annulla tutti i trasferimenti attivi e in coda.",
+      "theSessionIsStill": "La chiusura termina i programmi nel terminale e annulla i trasferimenti attivi e in coda.",
       "donTAskMe": "Non chiedermelo più",
       "restart": "Riavvia",
       "stop": "Interrompi"
@@ -910,5 +924,57 @@
     "development": "Sviluppo",
     "administration": "Amministrazione",
     "defaultVault": "Personale"
+  },
+  "sftp": {
+    "openFiles": "Apri file (SFTP)",
+    "toggleFiles": "Passa tra Terminale e File",
+    "view": "Vista host",
+    "terminal": "Terminale",
+    "files": "File",
+    "local": "Questo computer",
+    "upload": "Carica",
+    "download": "Scarica",
+    "back": "Indietro",
+    "forward": "Avanti",
+    "up": "Cartella superiore",
+    "refresh": "Aggiorna",
+    "mkdir": "Nuova cartella",
+    "rename": "Rinomina",
+    "delete": "Elimina",
+    "hidden": "Mostra file nascosti",
+    "roots": "Radici",
+    "path": "Percorso cartella",
+    "breadcrumbs": "Percorso di navigazione",
+    "filter": "Filtra questa cartella",
+    "selectAll": "Seleziona tutto",
+    "selectName": "Seleziona {{name}}",
+    "name": "Nome",
+    "size": "Dimensione",
+    "modified": "Modificato",
+    "empty": "Questa cartella è vuota",
+    "noMatches": "Nessun file corrispondente",
+    "loading": "Caricamento cartella...",
+    "selection": "{{selected}} selezionati · {{count}} elementi",
+    "cancel": "Annulla",
+    "deleteConfirm": "Eliminare definitivamente {{count}} elementi selezionati e il loro contenuto? L'operazione è irreversibile.",
+    "connectingTo": "File · {{name}}",
+    "connecting": "Connessione SFTP...",
+    "retry": "Riprova",
+    "resize": "Ridimensiona i pannelli locale e remoto",
+    "transfers": "Trasferimenti",
+    "clearFinished": "Rimuovi terminati",
+    "cancelTransfer": "Annulla trasferimento",
+    "conflictHint": "La destinazione esiste. La scelta vale per questo trasferimento; Sostituisci unisce le cartelle e sostituisce i file corrispondenti.",
+    "replace": "Sostituisci",
+    "skip": "Salta esistenti",
+    "keepBoth": "Mantieni entrambi",
+    "status": {
+      "queued": "In coda",
+      "running": "Trasferimento",
+      "completed": "Completato",
+      "cancelled": "Annullato",
+      "failed": "Non riuscito",
+      "conflict": "Richiede una scelta"
+    }
   }
 }

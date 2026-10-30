@@ -25,6 +25,8 @@ export function useShortcuts(app: AppState) {
         session,
       } = latest.current;
       if (
+        document.body.classList.contains("dialog-open") ||
+        document.body.classList.contains("alert-open") ||
         !vault.view.unlocked ||
         vault.busyRef.current ||
         library.hostForm ||
@@ -75,6 +77,15 @@ export function useShortcuts(app: AppState) {
       const zoom = (to: number) =>
         saveSettings({ ...appSettings, fontSize: clampFontSize(to) });
       const handled: Record<string, () => boolean | void> = {
+        toggleFiles: () => {
+          const pane =
+            leader && tabs.tabs.find((tab) => tab.id === focusOf(leader));
+          if (!pane || pane.kind === "local") return false;
+          tabs.setPaneView(
+            pane.id,
+            pane.view === "files" ? "terminal" : "files",
+          );
+        },
         quickConnect: tabs.openLauncher,
         newLocal: tabs.openLocal,
         jumpTab: tabs.openJump,

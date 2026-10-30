@@ -2,7 +2,7 @@
 use russh::{ChannelMsg, client};
 use std::time::Duration;
 
-use super::host_key::Handler;
+use crate::ssh::host_key::Handler;
 
 pub(super) const OS_PROBE: &str = "cat /etc/os-release 2>/dev/null || uname -s";
 pub(super) async fn detect_os(session: &client::Handle<Handler>) -> Option<String> {

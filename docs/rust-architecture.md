@@ -11,7 +11,9 @@ model/      the decrypted vault contents and the rules that keep them consistent
 vault/      encryption, the on-disk envelope, atomic saves, the vault catalog
 keychain/   the vault key in the OS keychain
 sync.rs     blocking HTTP client for the optional sync server
-terminal/   SSH sessions (russh); local.rs is the local PTY
+ssh/        shared host-key verification and authentication (russh)
+terminal/   PTY/shell sessions; local.rs is the local PTY
+sftp/       SFTP sessions, local/remote filesystem operations and streaming transfers
 view.rs     the secret-free snapshot returned to the UI
 ```
 
@@ -19,7 +21,7 @@ Dependencies point down: `model` knows nothing about files or the network, `vaul
 
 ## Error model
 
-Each area owns an error enum built with `thiserror`: `ModelError`, `VaultError`, `KeychainError`, `SyncError`, `TerminalError`. `error::Error` wraps them (plus the lock and "vault locked/switched" cases) and is what commands return.
+Each area owns an error enum built with `thiserror`: `ModelError`, `VaultError`, `KeychainError`, `SyncError`, `TerminalError`, `SftpError`. `error::Error` wraps them (plus the lock and "vault locked/switched" cases) and is what commands return.
 
 `Error` serializes as `{ "code": "model.HostNotFound", "params": … }`: the area enums derive `Serialize` (adjacently tagged) and `error::coded` prefixes the code with the area. A one-field variant sends its value as `params`; a variant wrapping a library error sends its text. The UI translates `error.<code>` (`src/locales/`). `Display` texts are English and only for logs and tests. The connection log, timeline steps and stages use the same shape (`message::msg!`). A new variant needs its key in every locale. Internal code never builds an error from a `String`.
 
@@ -43,7 +45,7 @@ Production code has no `unwrap()`; the one `expect` is in `run()` and ends the a
 
 `run` has two phases:
 
-1. `connection::open` connects, checks the host key against the saved fingerprint, then authenticates: key, saved password, then asking the user (at most three typed passwords). `session::until_open` drives it under a 30 s timeout that is held while a password question is open and starts over once it is answered. A `Close` input, or a closed channel, cancels it by dropping the future.
+1. `connection::open` uses shared `ssh::authenticate` to connect, check the host key against the saved fingerprint and authenticate: key, saved password, then asking the user (at most three typed passwords). `session::until_open` drives it under a 30 s timeout that is held while a password question is open and starts over once it is answered. A `Close` input, or a closed channel, cancels it by dropping the future.
 2. The pump: one `select!` over input (data, resize, close) and channel messages, plus the one-shot OS detection.
 
 **The password prompt** (`password.rs`) is a one-slot mailbox. `open` calls `ask`, which stores a `oneshot` sender and wakes `until_open` (`Notify`); the UI shows the question and answers with `terminal_password`, which arrives as `Input::Password`; `until_open` hands it to `answer`. An answer when no question is open is dropped, and zeroized with it.

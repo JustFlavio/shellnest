@@ -1,5 +1,5 @@
 // The connection log: one entry per message the session reports, with what a reader needs to scan it.
-// Messages are codes from the Rust side (terminal/connection.rs); the kind is the second part of a `log.` code.
+// Messages are codes from the Rust side (ssh/mod.rs); the kind is the second part of a `log.` code.
 import { i18n, t } from "../../i18n/i18n.ts";
 import { translateMessage } from "../../i18n/message.ts";
 import type { Message } from "../../i18n/message.ts";

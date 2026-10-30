@@ -32,7 +32,8 @@ Check of 25 October 2026 on Windows: TypeScript/Vite build succeeded, 21 Rust te
 
 ## 3. Later operational features
 
-- SFTP, split terminals, port forwarding and saved workspaces.
+- Port forwarding and further terminal/workspace improvements.
+- SFTP real-server and cross-platform verification (see [SFTP](docs/sftp.md)).
 - Snippets; broadcast only with clearly verifiable recipients.
 - Code signing/notarization, macOS builds and tests, a security review before a stable release.
 

@@ -94,6 +94,18 @@ export function useTabs(
     deleteWorkspace: workspaces.deleteWorkspace,
     saveWorkspace: workspaces.saveWorkspace,
     connect: connections.connect,
+    openFiles: connections.openFiles,
+    setPaneView: (id: string, view: "terminal" | "files") =>
+      list.setTabs((old) =>
+        old.map((tab) => (tab.id === id ? { ...tab, view } : tab)),
+      ),
+    filesStatus: (
+      id: string,
+      filesStatus: NonNullable<TerminalTab["filesStatus"]>,
+    ) =>
+      list.setTabs((old) =>
+        old.map((tab) => (tab.id === id ? { ...tab, filesStatus } : tab)),
+      ),
     connectHosts: connections.connectHosts,
     openLocal: connections.openLocal,
     startQuick: connections.startQuick,

@@ -1,3 +1,6 @@
+import { useApp } from "@/app/app-context";
+import { SftpWorkspace } from "@/features/sftp/SftpWorkspace";
+import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -101,6 +104,14 @@ export function TerminalPane({
   onEdit?: () => void;
 } & SessionCallbacks) {
   const { t } = useTranslation();
+  const { tabs, closeGuard } = useApp();
+  const files = tab.view === "files";
+  const [filesStarted, setFilesStarted] = useState(tab.initialView === "files");
+  const [terminalStarted, setTerminalStarted] = useState(
+    tab.initialView !== "files",
+  );
+  if (files && !filesStarted) setFilesStarted(true);
+  if (!files && !terminalStarted) setTerminalStarted(true);
   const [pendingPaste, setPendingPaste] = useState<string | null>(null);
   const container = useRef<HTMLDivElement>(null);
   // No session until the host key is confirmed (and, for a quick connection, the login chosen).
@@ -117,9 +128,9 @@ export function TerminalPane({
       },
       tab,
       container,
-      enabled: !pendingTrust,
+      enabled: !pendingTrust && terminalStarted,
       settings,
-      active,
+      active: active && !files,
       focused,
       callbacks: { onError, onStatus, onTitle, onMetadata },
       onSearch: search.open,
@@ -149,20 +160,56 @@ export function TerminalPane({
         onToggleBroadcast={onToggleBroadcast}
         onDragPane={onDragPane}
         onClose={onClose}
-        onReconnect={onReconnect}
+        onReconnect={() =>
+          closeGuard.ask(tab.filesStatus === "connected", onReconnect)
+        }
       />
+      {tab.kind !== "local" && (
+        <div
+          className="mb-2 flex shrink-0 gap-1"
+          role="group"
+          aria-label={t("sftp.view")}
+        >
+          <Button
+            size="sm"
+            variant={files ? "ghost" : "secondary"}
+            aria-pressed={!files}
+            onClick={() => tabs.setPaneView(tab.id, "terminal")}
+          >
+            {t("sftp.terminal")}
+          </Button>
+          <Button
+            size="sm"
+            variant={files ? "secondary" : "ghost"}
+            aria-pressed={files}
+            onClick={() => tabs.setPaneView(tab.id, "files")}
+          >
+            {t("sftp.files")}
+          </Button>
+        </div>
+      )}
+      {filesStarted && !pendingTrust && (
+        <div
+          className="min-h-0 flex-1 flex-col"
+          style={{ display: files ? "flex" : "none" }}
+        >
+          <SftpWorkspace tab={tab} />
+        </div>
+      )}
       <div
         ref={container}
         inert={ended}
         className="min-h-0 flex-1 [&_.xterm]:h-full"
         style={
-          !opened || ended
+          !opened || files || ended
             ? { position: "absolute", visibility: "hidden", inset: 0 }
             : undefined
         }
       />
-      {!ended && search.searching && <TerminalSearchBar search={search} />}
-      {!ended && pendingPaste !== null && (
+      {!files && !ended && search.searching && (
+        <TerminalSearchBar search={search} />
+      )}
+      {!files && !ended && pendingPaste !== null && (
         <PasteConfirmDialog
           text={pendingPaste}
           onCancel={closePasteConfirm}
@@ -172,7 +219,7 @@ export function TerminalPane({
           }}
         />
       )}
-      {!opened && (
+      {!opened && (!files || pendingTrust) && (
         <ConnectionTimeline
           tab={tab}
           phase={phase}
@@ -182,7 +229,9 @@ export function TerminalPane({
           password={password}
           onPassword={submitPassword}
           onCancel={onClose}
-          onRetry={onRetry}
+          onRetry={() =>
+            closeGuard.ask(tab.filesStatus === "connected", onRetry)
+          }
           onEdit={onEdit}
         />
       )}

@@ -145,6 +145,20 @@
     "session": {
       "metadataFailed": "Connected, but updating the metadata failed: {{reason}}",
       "EndedEarly": "The session ended before the terminal opened."
+    },
+    "sftp": {
+      "Io": "File operation failed: {{value}}",
+      "Protocol": "SFTP operation failed: {{value}}",
+      "InvalidPath": "Invalid or unsupported path or file name",
+      "NotConnected": "SFTP is not connected",
+      "Cancelled": "Operation cancelled",
+      "Exists": "The destination already exists",
+      "UnsupportedType": "Symbolic links and special files are not copied. Transfer regular files or folders without these entries.",
+      "TypeConflict": "Cannot replace a file with a folder, a folder with a file, or a symbolic link",
+      "Recovery": "Replacement could not finish cleanly. A recovery copy is preserved at {{value}}. Check both paths before retrying.",
+      "TransferBusy": "Another transfer is already running",
+      "SubsystemRefused": "The server refused SFTP. Check that its SFTP subsystem is enabled.",
+      "DestinationChanged": "The host settings changed since this pane was opened. Open a new session to the updated host."
     }
   },
   "connection": {
@@ -291,15 +305,15 @@
       "closeSessions": "Close sessions",
       "lockVault": "Lock vault",
       "closeSessionsAndLock": "Close sessions and lock",
-      "createClosesSessions_one": "Creating it selects the new vault and closes the {{count}} open session, including local shells.",
-      "createClosesSessions_other": "Creating it selects the new vault and closes all {{count}} open sessions, including local shells.",
+      "createClosesSessions_one": "Creating it selects the new vault and closes the {{count}} open session, including local shells. Queued and active transfers will be cancelled.",
+      "createClosesSessions_other": "Creating it selects the new vault and closes all {{count}} open sessions, including local shells. Queued and active transfers will be cancelled.",
       "switchTo": "Switch to <strong>{{name}}</strong>?",
-      "switchClosesSessions_one": "The {{count}} open session will be closed, including local shells. The current vault will be locked.",
-      "switchClosesSessions_other": "All {{count}} open sessions will be closed, including local shells. The current vault will be locked.",
-      "closeSessions_one": "Close {{count}} session? Local shells and the selected SSH connections will be ended.",
-      "closeSessions_other": "Close {{count}} sessions? Local shells and the selected SSH connections will be ended.",
-      "lockAndClose_one": "Lock the vault and close the {{count}} session, including local shells?",
-      "lockAndClose_other": "Lock the vault and close all {{count}} sessions, including local shells?"
+      "switchClosesSessions_one": "The {{count}} open session will be closed, including local shells. The current vault will be locked. Queued and active transfers will be cancelled.",
+      "switchClosesSessions_other": "All {{count}} open sessions will be closed, including local shells. The current vault will be locked. Queued and active transfers will be cancelled.",
+      "closeSessions_one": "Close {{count}} session? Local shells and the selected SSH connections will be ended. Queued and active transfers will be cancelled.",
+      "closeSessions_other": "Close {{count}} sessions? Local shells and the selected SSH connections will be ended. Queued and active transfers will be cancelled.",
+      "lockAndClose_one": "Lock the vault and close the {{count}} session, including local shells? Queued and active transfers will be cancelled.",
+      "lockAndClose_other": "Lock the vault and close all {{count}} sessions, including local shells? Queued and active transfers will be cancelled."
     },
     "vaultPicker": {
       "yourVaults": "Your vaults",
@@ -732,8 +746,8 @@
     "closeGuard": {
       "restartToUpdate": "Restart to update?",
       "stopTheSession": "Stop the session?",
-      "someSessionsAreStill": "Some sessions are still connected: restarting will close them and end the programs running in the terminals.",
-      "theSessionIsStill": "The session is still connected: closing it will end the programs running in the terminal.",
+      "someSessionsAreStill": "Restarting ends the connected terminal programs and cancels all queued and active transfers.",
+      "theSessionIsStill": "Closing this session ends its terminal programs and cancels its queued and active transfers.",
       "donTAskMe": "Don't ask me again",
       "restart": "Restart",
       "stop": "Stop"
@@ -910,5 +924,57 @@
     "development": "Development",
     "administration": "Administration",
     "defaultVault": "Personal"
+  },
+  "sftp": {
+    "openFiles": "Open files (SFTP)",
+    "toggleFiles": "Switch Terminal / Files",
+    "view": "Host view",
+    "terminal": "Terminal",
+    "files": "Files",
+    "local": "This computer",
+    "upload": "Upload",
+    "download": "Download",
+    "back": "Back",
+    "forward": "Forward",
+    "up": "Parent folder",
+    "refresh": "Refresh",
+    "mkdir": "New folder",
+    "rename": "Rename",
+    "delete": "Delete",
+    "hidden": "Show hidden files",
+    "roots": "Roots",
+    "path": "Directory path",
+    "breadcrumbs": "Directory breadcrumbs",
+    "filter": "Filter this folder",
+    "selectAll": "Select all",
+    "selectName": "Select {{name}}",
+    "name": "Name",
+    "size": "Size",
+    "modified": "Modified",
+    "empty": "This folder is empty",
+    "noMatches": "No matching files",
+    "loading": "Loading folder...",
+    "selection": "{{selected}} selected · {{count}} items",
+    "cancel": "Cancel",
+    "deleteConfirm": "Permanently delete {{count}} selected items and their contents? This cannot be undone.",
+    "connectingTo": "Files · {{name}}",
+    "connecting": "Connecting SFTP...",
+    "retry": "Retry",
+    "resize": "Resize local and remote panes",
+    "transfers": "Transfers",
+    "clearFinished": "Clear finished",
+    "cancelTransfer": "Cancel transfer",
+    "conflictHint": "Destination exists. Apply to this transfer; Replace merges folders and replaces matching files.",
+    "replace": "Replace",
+    "skip": "Skip existing",
+    "keepBoth": "Keep both",
+    "status": {
+      "queued": "Queued",
+      "running": "Transferring",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "failed": "Failed",
+      "conflict": "Needs a decision"
+    }
   }
 }

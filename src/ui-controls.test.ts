@@ -111,31 +111,37 @@ test("reconnect is offered only after an established session ends", () => {
     "closed",
   ] as const) {
     for (const hasConnected of [false, true]) {
-      const tab = {
-        id: "session",
-        kind: "local",
-        vaultId: "personal",
-        title: "Terminal",
-        username: "",
-        identityName: "",
-        status,
-        hasConnected,
-      } satisfies TerminalTab & { hasConnected: boolean };
-      const html = renderToStaticMarkup(
-        createElement(PaneHeader, {
-          tab,
-          endpoint: "",
-          split: false,
-          broadcast: false,
-          onClose() {},
-          onReconnect() {},
-        }),
-      );
-      assert.equal(
-        html.includes("Riconnetti"),
-        hasConnected && (status === "failed" || status === "closed"),
-        `${status}, connected before: ${hasConnected}`,
-      );
+      for (const view of ["terminal", "files"] as const) {
+        const tab = {
+          id: "session",
+          kind: "local",
+          vaultId: "personal",
+          title: "Terminal",
+          username: "",
+          identityName: "",
+          status,
+          hasConnected,
+          view,
+          filesStatus: "failed",
+        } satisfies TerminalTab & { hasConnected: boolean };
+        const html = renderToStaticMarkup(
+          createElement(PaneHeader, {
+            tab,
+            endpoint: "",
+            split: false,
+            broadcast: false,
+            onClose() {},
+            onReconnect() {},
+          }),
+        );
+        assert.equal(
+          html.includes("Riconnetti"),
+          view === "terminal" &&
+            hasConnected &&
+            (status === "failed" || status === "closed"),
+          `${view}, ${status}, connected before: ${hasConnected}`,
+        );
+      }
     }
   }
 });

@@ -70,7 +70,7 @@ export function SessionTab({ tab }: { tab: TerminalTab }) {
     <TerminalSquare size={14} />
   );
   const pane = tabs.find((p) => p.id === focusOf(tab)) ?? tab;
-  const ended = canReconnect(pane);
+  const ended = pane.view !== "files" && canReconnect(pane);
   const items = (
     <>
       <DropdownMenuItem onClick={() => duplicateTab(tab)}>

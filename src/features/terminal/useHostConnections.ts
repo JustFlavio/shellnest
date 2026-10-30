@@ -25,10 +25,15 @@ export function useHostConnections(
   // Hosts still to open, and the tabs waiting for their host key to be verified.
   const queue = useRef<Host[]>([]),
     verifying = useRef(new Set<string>());
+  const queuedView = useRef<"files" | undefined>(undefined);
   const identity = (host: Host) => hostIdentity(view.identities, host);
   const openTab = (host: Host) => {
     const tab = sshTab(host, identity(host), view.vaultId);
-    list.addTab(tab);
+    list.addTab({
+      ...tab,
+      initialView: queuedView.current,
+      view: queuedView.current,
+    });
     return tab.id;
   };
   const continueConnections = async () => {
@@ -66,7 +71,7 @@ export function useHostConnections(
       throw e;
     }
   };
-  const connectHosts = (hosts: Host[]) =>
+  const connectHosts = (hosts: Host[], initialView?: "files") =>
     void run(async () => {
       if (
         hosts.some(
@@ -78,6 +83,7 @@ export function useHostConnections(
         throw new Error(
           t("terminal.useHostConnections.completeTheCredentialsOf"),
         );
+      queuedView.current = initialView;
       queue.current = [...hosts];
       await continueConnections();
     }, t("terminal.useHostConnections.connectionFailed"));
@@ -184,6 +190,7 @@ export function useHostConnections(
     continueConnections,
     connectHosts,
     connect,
+    openFiles: (host: Host) => connectHosts([host], "files"),
     openLocal,
     startQuick,
     finishQuick,

@@ -13,6 +13,8 @@ use serde_json::{Value, json};
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum Error {
     #[error(transparent)]
+    Sftp(#[from] crate::sftp::SftpError),
+    #[error(transparent)]
     Model(#[from] ModelError),
     #[error(transparent)]
     Vault(#[from] VaultError),
@@ -43,6 +45,7 @@ impl Error {
     pub(crate) fn message(&self) -> Value {
         let own = |code: &str| json!({ "code": format!("app.{code}") });
         match self {
+            Self::Sftp(e) => coded("sftp", e),
             Self::Model(e) => coded("model", e),
             Self::Vault(e) => coded("vault", e),
             Self::Keychain(e) => coded("keychain", e),
