@@ -22,7 +22,7 @@ const OPEN_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Drives `opening` to its end. Lock/close cancels transport establishment and authentication as well
 /// as live sessions, so `None` is a close. The timeout does not run while the user is typing a password.
-async fn until_open<T>(
+pub(crate) async fn until_open<T>(
     opening: impl std::future::Future<Output = Result<T, TerminalError>>,
     prompt: &PasswordPrompt,
     rx: &mut mpsc::UnboundedReceiver<Input>,

@@ -28,8 +28,11 @@ rand = "0.8"
 base64 = "0.23"
 zeroize = { version = "1", features = ["derive"] }
 russh = { version = "0.65", default-features = false, features = ["ring", "rsa"] }
-tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros"] }
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros", "fs", "io-util"] }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+russh-sftp = "3.0.1"
+renamore = "0.3.2"
+tokio-util = { version = "0.7", features = ["rt"] }
 portable-pty = "0.9"
 thiserror = "2"
 

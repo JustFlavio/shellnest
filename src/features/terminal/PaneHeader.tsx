@@ -49,7 +49,8 @@ export function PaneHeader({
   onReconnect: () => void;
 }) {
   const { t } = useTranslation();
-  const status = tab.status ?? "connecting";
+  const status =
+    (tab.view === "files" ? tab.filesStatus : tab.status) ?? "connecting";
   return (
     // The webview's own menu (Reload, Inspect) has nothing to do with a pane.
     <div
@@ -85,7 +86,7 @@ export function PaneHeader({
         <StatusDot status={status} className="ml-[2px]" />
         <span className="sr-only">{t(statusLabel[status])}</span>
       </div>
-      {(status === "closed" || status === "failed") && (
+      {tab.view !== "files" && (status === "closed" || status === "failed") && (
         <Button
           variant="ghost"
           type="button"

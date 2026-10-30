@@ -3,6 +3,7 @@
 pub(crate) mod credentials;
 pub(crate) mod groups;
 pub(crate) mod hosts;
+pub(crate) mod sftp;
 pub(crate) mod sync;
 pub(crate) mod system;
 pub(crate) mod terminal;

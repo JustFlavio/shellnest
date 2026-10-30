@@ -106,6 +106,9 @@ export type TerminalTab = {
   name?: string;
   // title the terminal set itself (OSC 0/2); a user-chosen name wins
   termTitle?: string;
+  initialView?: "files";
+  view?: "terminal" | "files";
+  filesStatus?: "connecting" | "connected" | "closed" | "failed";
   parent?: string;
   layout?: LayoutNode;
   // on a workspace leader: typing in one pane is sent to the other connected panes too

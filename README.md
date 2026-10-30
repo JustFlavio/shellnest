@@ -26,7 +26,9 @@ The screenshots come from the browser demo (`npm run dev`) with sample data.
 - Terminal themes, fonts and rebindable keyboard shortcuts.
 - Optional sync of the encrypted vault through the small Node.js server in [`sync/`](sync) ([deployment guide](sync/README.md)).
 
-Not implemented yet: SFTP, port forwarding, jump hosts, agent forwarding, keyboard-interactive/2FA. See the [roadmap](ROADMAP.md).
+SFTP is available from each SSH pane through **Terminal / Files**, or directly from a saved host menu. See [SFTP behavior and safety](docs/sftp.md).
+
+Not implemented yet: port forwarding, jump hosts, agent forwarding, keyboard-interactive/2FA. See the [roadmap](ROADMAP.md).
 
 ## Install
 

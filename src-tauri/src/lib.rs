@@ -9,6 +9,8 @@ mod locks;
 mod menu;
 mod message;
 mod model;
+mod sftp;
+mod ssh;
 mod state;
 mod sync;
 mod terminal;
@@ -54,6 +56,13 @@ pub fn run() {
             commands::sync::configure_sync,
             commands::sync::sync_vault,
             commands::sync::restore_vault,
+            commands::sftp::sftp_connect,
+            commands::sftp::sftp_password,
+            commands::sftp::sftp_list,
+            commands::sftp::sftp_mutate,
+            commands::sftp::sftp_transfer,
+            commands::sftp::sftp_cancel,
+            commands::sftp::sftp_close,
             commands::terminal::probe_host,
             commands::terminal::probe_target,
             commands::terminal::trust_host,

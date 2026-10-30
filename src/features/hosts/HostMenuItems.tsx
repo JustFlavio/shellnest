@@ -1,3 +1,5 @@
+import { useApp } from "@/app/app-context";
+import { FolderOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   DropdownMenuItem,
@@ -18,11 +20,16 @@ export function HostMenuItems({
   actions: HostActions;
 }) {
   const { t } = useTranslation();
+  const { tabs } = useApp();
   return (
     <>
       <DropdownMenuItem disabled={busy} onClick={() => actions.onConnect(h)}>
         <ChevronRight size={14} />
         {t("hosts.hostEditor.connect")}
+      </DropdownMenuItem>
+      <DropdownMenuItem disabled={busy} onClick={() => tabs.openFiles(h)}>
+        <FolderOpen size={14} />
+        {t("sftp.openFiles")}
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem

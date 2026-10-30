@@ -17,7 +17,7 @@ Le impostazioni dell'app stanno in `localStorage` (`shellnest.settings`, `shelln
 - **Autocomplete** del terminale: non previsto.
 - **Indicatori di popolarità** accanto ai temi (numero di utenti): non hanno senso senza un servizio centrale.
 - **Link esterni** nella sidebar (richiesta funzioni, segnalazione bug, programma beta): per bug e idee c'è il repository GitHub pubblico.
-- Account, SSH ID, inviti, SFTP, log a pagamento: fuori dal prodotto.
+- Account, SSH ID, inviti, log a pagamento: fuori dal prodotto.
 
 ## Idee future
 

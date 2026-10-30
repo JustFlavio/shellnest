@@ -23,6 +23,7 @@ fn select(state: &AppState, id: &str) -> Result<View, Error> {
         next.selected = id.into();
         let mut sessions = state.sessions();
         next.persist(&state.path)?;
+        crate::sftp::close_all(state);
         for (_, tx) in sessions.drain() {
             let _ = tx.send(terminal::Input::Close);
         }
@@ -55,6 +56,7 @@ fn create(state: &AppState, expected: &str, name: &str) -> Result<View, Error> {
     next.selected = id;
     let mut sessions = state.sessions();
     next.persist(&state.path)?;
+    crate::sftp::close_all(state);
     for (_, tx) in sessions.drain() {
         let _ = tx.send(terminal::Input::Close);
     }
@@ -120,6 +122,7 @@ fn delete(state: &AppState, id: &str) -> Result<View, Error> {
     next.selected = "personal".into();
     let mut sessions = state.sessions();
     next.persist(&state.path)?;
+    crate::sftp::close_all(state);
     for (_, tx) in sessions.drain() {
         let _ = tx.send(terminal::Input::Close);
     }

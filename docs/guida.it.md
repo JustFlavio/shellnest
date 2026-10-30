@@ -83,7 +83,7 @@ Il client rifiuta HTTP remoto e redirect. Host, utenti, credenziali, cartelle e 
 
 La sync conserva un intero vault: se entrambi i dispositivi hanno modifiche non sincronizzate, interrompe l'operazione e conserva la copia locale. Non è ancora presente una schermata per unire le modifiche. Per risolvere un conflitto, chiudi le app e fai una copia dei file vault di entrambi i dispositivi; scegli una versione autorevole e ricrea un ambiente di sincronizzazione pulito con una nuova directory remota vuota e un **nuovo URL**. Configura quel nuovo URL sul dispositivo autorevole, così viene azzerata la revisione del precedente servizio, quindi ricollega l'altro dispositivo dopo averne conservato e rimosso il vault locale. Non eliminare l'unica copia di un vault. Un guasto dopo l'upload e prima del salvataggio della revisione locale può produrre un conflitto prudenziale.
 
-Da completare prima di un uso stabile: risoluzione dei conflitti nell'app, esportazione/importazione guidata, recupero e pairing dispositivi, blocco automatico, protezione da rollback del server, test SSH con server reali, test macOS e revisione di sicurezza. Non sono implementati SFTP, agent forwarding, jump host, keyboard-interactive/2FA o biometria. Chiavi hardware non esportabili non sono sincronizzabili come chiavi private.
+Da completare prima di un uso stabile: risoluzione dei conflitti nell'app, esportazione/importazione guidata, recupero e pairing dispositivi, blocco automatico, protezione da rollback del server, test SSH con server reali, test macOS e revisione di sicurezza. Non sono implementati agent forwarding, jump host, keyboard-interactive/2FA o biometria. Chiavi hardware non esportabili non sono sincronizzabili come chiavi private.
 
 ## Verifiche
 

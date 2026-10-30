@@ -1,6 +1,6 @@
 //! Host key handling: the russh handler that records and checks the fingerprint, and `probe`.
-use super::TerminalError;
 use crate::locks::MutexExt;
+use crate::terminal::TerminalError;
 use russh::{
     Disconnect, Names, client,
     keys::{HashAlg, PublicKeyOrCertificate},
@@ -12,16 +12,16 @@ use std::{
 
 /// What the server announced during the key exchange, for the connection log.
 #[derive(Clone)]
-pub(super) struct ServerInfo {
-    pub(super) banner: String,
-    pub(super) kex: String,
-    pub(super) host_key: String,
-    pub(super) cipher: String,
+pub(crate) struct ServerInfo {
+    pub(crate) banner: String,
+    pub(crate) kex: String,
+    pub(crate) host_key: String,
+    pub(crate) cipher: String,
 }
-pub(super) struct Handler {
+pub(crate) struct Handler {
     expected: Option<String>,
-    pub(super) seen: Arc<Mutex<Option<String>>>,
-    pub(super) info: Arc<Mutex<Option<ServerInfo>>>,
+    pub(crate) seen: Arc<Mutex<Option<String>>>,
+    pub(crate) info: Arc<Mutex<Option<ServerInfo>>>,
 }
 // The identification string comes from the server: keep it to one printable, bounded line.
 fn printable(raw: &[u8]) -> String {
@@ -62,14 +62,14 @@ impl client::Handler for Handler {
         Ok(())
     }
 }
-pub(super) fn handler(expected: Option<String>) -> Handler {
+pub(crate) fn handler(expected: Option<String>) -> Handler {
     Handler {
         expected,
         seen: Arc::new(Mutex::new(None)),
         info: Arc::new(Mutex::new(None)),
     }
 }
-pub(super) fn config() -> Arc<client::Config> {
+pub(crate) fn config() -> Arc<client::Config> {
     Arc::new(client::Config {
         keepalive_interval: Some(Duration::from_secs(30)),
         keepalive_max: 3,

@@ -17,7 +17,10 @@ export function useAppState() {
   const tabs = useTabs(vault, closeGuard);
   const update = useAppUpdate(
     preferences.appSettings.checkUpdates,
-    () => tabs.tabs.some((t) => t.status === "connected"),
+    () =>
+      tabs.tabs.some(
+        (t) => t.status === "connected" || t.filesStatus === "connected",
+      ),
     closeGuard,
   );
   const dnd = useTabDrag(tabs);

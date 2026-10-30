@@ -16,6 +16,7 @@ pub(crate) struct AppState {
     pub(crate) path: PathBuf,
     pub(crate) catalog: Mutex<vault::VaultCatalog>,
     pub(crate) vault: Mutex<Option<OpenVault>>,
+    pub(crate) sftp: crate::sftp::Registry,
     pub(crate) sessions: Mutex<HashMap<String, UnboundedSender<terminal::Input>>>,
 }
 impl AppState {
@@ -26,6 +27,7 @@ impl AppState {
             catalog: Mutex::new(catalog),
             vault: Mutex::new(None),
             sessions: Mutex::new(HashMap::new()),
+            sftp: Mutex::new(HashMap::new()),
         })
     }
     /// The open vault. A poisoned lock is an error: after a panic its contents are not vouched for.
@@ -69,6 +71,7 @@ impl AppState {
         Ok(credentials.password.clone())
     }
     pub(crate) fn close_sessions(&self) {
+        crate::sftp::close_all(self);
         for (_, tx) in self.sessions().drain() {
             let _ = tx.send(terminal::Input::Close);
         }

@@ -24,6 +24,13 @@ const arrow = (key: string, extra?: Partial<Combo>): Combo => ({
 });
 export const SHORTCUTS: Binding[] = [
   {
+    id: "toggleFiles",
+    get label() {
+      return t("sftp.toggleFiles");
+    },
+    combos: [{ key: "e", mod: true }],
+  },
+  {
     id: "quickConnect",
     get label() {
       return t("hosts.vaultHeader.quickConnect");

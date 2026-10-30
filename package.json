@@ -18,7 +18,8 @@
     "test": "node --test \"src/**/*.test.ts\" \"sync/*.test.ts\" \".github/scripts/*.test.ts\"",
     "test:desktop": "node e2e/desktop.ts",
     "sync": "node sync/server.ts",
-    "test:visual": "playwright test -c e2e/playwright.config.ts"
+    "test:visual": "playwright test -c e2e/playwright.config.ts",
+    "test:sftp": "playwright test -c e2e/sftp.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

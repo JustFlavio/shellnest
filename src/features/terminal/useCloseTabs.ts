@@ -41,7 +41,11 @@ export function useCloseTabs(
   };
   const isLive = (ids: string[]) => {
     const wanted = new Set(ids);
-    return tabs.some((t) => wanted.has(t.id) && t.status === "connected");
+    return tabs.some(
+      (t) =>
+        wanted.has(t.id) &&
+        (t.status === "connected" || t.filesStatus === "connected"),
+    );
   };
   const askClosePane = (id: string) =>
     closeGuard.ask(isLive([id]), () => closePane(id));
