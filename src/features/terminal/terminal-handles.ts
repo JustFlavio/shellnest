@@ -1,5 +1,5 @@
 import type { Terminal } from "@xterm/xterm";
-import { desktop } from "@/lib/platform";
+import { desktop } from "../../lib/platform.ts";
 
 // Live terminals by tab id, so global shortcuts can reach the focused one.
 export const terminalHandles = new Map<string, Terminal>();

@@ -1,10 +1,10 @@
 import type { RefObject } from "react";
-import { t } from "@/i18n/i18n";
-import { toMessage, translateMessage } from "@/i18n/message";
+import { t } from "../../i18n/i18n.ts";
+import { toMessage } from "../../i18n/message.ts";
 import type { Message } from "@/i18n/message";
-import { describeError } from "@/lib/error-message";
+import { describeError } from "../../lib/error-message.ts";
 import { Channel, invoke } from "@tauri-apps/api/core";
-import { desktop } from "@/lib/platform";
+import { desktop } from "../../lib/platform.ts";
 import type { Output, TerminalTab } from "@/lib/types";
 import { inputForPeer } from "./broadcast.ts";
 import { MAX_PASSWORD_ATTEMPTS } from "./connection-steps.ts";
@@ -12,8 +12,8 @@ import {
   broadcastTargets,
   sessionInputs,
   terminalHandles,
-} from "./terminal-handles";
-import { takeQuickPassword } from "./quick-password";
+} from "./terminal-handles.ts";
+import { takeQuickPassword } from "./quick-password.ts";
 import { RESET_MODES } from "./terminal-input.ts";
 import { terminalInputChunks } from "./workbench-state.ts";
 import type { Xterm } from "./xterm";
@@ -64,6 +64,7 @@ export function startSession(
 ) {
   let disposed = false,
     ready = false,
+    ended = false,
     failed = false,
     inputQueue = Promise.resolve();
   let pendingInput = "";
@@ -71,6 +72,7 @@ export function startSession(
   const prompt = `\x1b[32m${tab.kind === "ssh" ? tab.host.username || "root" : tab.kind === "quick" ? tab.username || "root" : "demo"}@${tab.kind === "ssh" ? tab.host.name : tab.kind === "quick" ? tab.target.address : t("terminal.localHost")}\x1b[0m:\x1b[34m~\x1b[0m$ `;
   const session = { vaultId: tab.vaultId, sessionId: tab.id };
   const send = (data: string) => {
+    if (disposed || !ready) return;
     if (!desktop) {
       term.write(
         data.replace(/\r/g, "\r\n" + prompt).replace(/\x7f/g, "\b \b"),
@@ -86,7 +88,7 @@ export function startSession(
         }
       })
       .catch((e) => {
-        if (!disposed) callbacks.current.onError(describeError(e));
+        if (!disposed && !ended) callbacks.current.onError(describeError(e));
       });
   };
   sessionInputs.set(tab.id, send);
@@ -98,21 +100,29 @@ export function startSession(
         rows: term.rows,
       }).catch(() => {});
   };
-  // A dead session must not leave bracketed paste, mouse tracking or the alternate screen on.
-  const resetModes = () => {
-    term.write(RESET_MODES);
+  const end = () => {
+    ended = true;
+    ready = false;
+    pendingInput = "";
+    sessionInputs.delete(tab.id);
+    term.options.disableStdin = true;
+    term.blur();
+    // Drain queued output and leave the alternate screen before clearing both buffers.
+    term.write(RESET_MODES, () => {
+      if (!disposed) term.reset();
+    });
     callbacks.current.onTitle(tab.id, undefined);
   };
+  const disconnect = () => void invoke("disconnect", session).catch(() => {});
   const fail = (message: Message) => {
     failed = true;
+    end();
     ui.failure(message);
     callbacks.current.onStatus(tab.id, "failed");
-    resetModes();
-    term.writeln(`\r\n\x1b[31m${translateMessage(message, "error")}\x1b[0m`);
+    disconnect();
   };
-  const disconnect = () => void invoke("disconnect", session).catch(() => {});
   const handle = (event: Output) => {
-    if (disposed) return;
+    if (disposed || ended) return;
     if (event.type === "data") term.write(new Uint8Array(event.data));
     if (event.type === "status") ui.status(event.data);
     if (event.type === "log") ui.log(event.data);
@@ -140,16 +150,14 @@ export function startSession(
         ui.failure({ code: "session.EndedEarly" }, false);
         callbacks.current.onStatus(tab.id, "failed");
       }
-      ready = false;
-      pendingInput = "";
+      end();
       if (!failed) callbacks.current.onStatus(tab.id, "closed");
-      resetModes();
-      term.writeln(`\r\n\x1b[90m${t("terminal.sessionEnded")}\x1b[0m`);
       disconnect();
     }
   };
   const listeners = [
     term.onData((data) => {
+      if (disposed || ended) return;
       // Typing or pasting is the end of a copy: like every terminal, drop the selection.
       if (term.hasSelection()) term.clearSelection();
       if (ready) {
@@ -203,7 +211,7 @@ export function startSession(
     });
   } else request = invoke("connect", { ...base, id: tab.host.id });
   request.catch((e) => {
-    if (!disposed) {
+    if (!disposed && !ended) {
       ready = false;
       fail(toMessage(e));
     }

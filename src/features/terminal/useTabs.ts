@@ -47,7 +47,7 @@ export function useTabs(
     const name = list.tabs.find((tab) => tab.id === id)?.title ?? "";
     toast(t("terminal.sessionEndedToast", { name }), {
       id: `ended-${id}`,
-      duration: 15000,
+      duration: 5000,
       action: {
         label: t("terminal.paneHeader.reconnect"),
         onClick: () => {
