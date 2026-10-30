@@ -2,6 +2,12 @@
 
 All notable changes are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/). Versions below 1.0.0 may change in incompatible ways.
 
+## [0.1.4] - Unreleased
+
+### Fixed
+
+- Drag-selecting hosts: the selection rectangle stays inside the list of folders and hosts instead of reaching over the toolbar, the search field and the sidebar.
+
 ## [0.1.3] - 2026-10-29
 
 ### Added
