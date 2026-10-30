@@ -73,7 +73,7 @@ jobs:
         with:
           workspaces: src-tauri
       - run: npm ci
-      - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
+      - uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Signs the update packages; unrelated to OS code signing. See docs/releases.md.
@@ -85,3 +85,24 @@ jobs:
           # Each job merges its platform into latest.json on the release; release-assets.yml checks it is complete.
           uploadUpdaterJson: true
           updaterJsonPreferNsis: true
+
+  validate-release:
+    needs: [create-release, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Validate draft updater downloads before publication
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
+        run: |
+          gh release download "$TAG" --pattern latest.json --dir manifest
+          gh api --paginate "repos/${{ github.repository }}/releases/$RELEASE_ID/assets" --slurp > manifest/assets.json
+          node .github/scripts/updater-manifest.ts check manifest/latest.json "${TAG#v}" manifest/assets.json

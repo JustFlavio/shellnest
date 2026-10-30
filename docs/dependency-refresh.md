@@ -143,3 +143,34 @@ including persisted vault unlock and direct key selection. Its key combobox step
 now dismisses username suggestions and types a filter before selecting the key,
 avoiding an overlapping popup/focus transition. Native keychain interoperability
 on macOS/Linux still needs an unlocked desktop session on those platforms.
+
+## Release automation
+
+tauri-action moves from the pinned 0.6.2 commit to stable 1.0.0
+(`1deb371b0cd8bd54025b384f1cd735e725c4060f`). The
+[upstream changelog](https://github.com/tauri-apps/tauri-action/blob/v1.0.0/CHANGELOG.md)
+changes uploaded macOS archives to include version and architecture, and changes
+manifest download URLs to GitHub API asset endpoints. Tauri 1/prerelease removal
+does not affect this application. Existing inputs remain supported; the four jobs
+continue uploading into the single draft made by `create-release`.
+
+The existing updater plugin sends `Accept: application/octet-stream` for artifact
+downloads. An unauthenticated request with that header to an existing public
+release signature asset returned HTTP 200 and the signature bytes. The release
+validator accepts API URLs, tagged browser URLs and the historical latest aliases
+present in the actual 0.1.3 manifest. Both the existing published manifest and a
+copy using its API asset URLs pass validation against the release's own asset list.
+Unit coverage rejects missing/blank signatures and unknown download URLs.
+
+The new final release job validates the draft after all builds, before publication;
+the existing post-publication job shares that check. It checks signature presence,
+not cryptographic validity. The updater still verifies signatures at installation.
+`docs/releases.md` records archive names, pinned API asset IDs, the legacy updater
+endpoint copy procedure and the installer/update smoke-test gate. Installer aliases
+and local CLI archive names do not change.
+
+Rollback is a workflow/script revert: no published release or manifest was changed.
+Before an eventual release, all four signed artifacts must be built and a real
+old-to-new update tried on supported desktops. This session does not create tags,
+bump the app version, access signing keys or publish a draft/release. Workflow
+syntax is checked with actionlint; Node tests cover the shared manifest validator.

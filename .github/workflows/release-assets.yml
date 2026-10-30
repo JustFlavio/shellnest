@@ -25,7 +25,8 @@ jobs:
       - name: Check that latest.json has every platform
         run: |
           gh release download "$TAG" --pattern latest.json --dir manifest
-          node .github/scripts/updater-manifest.ts check manifest/latest.json "${TAG#v}"
+          gh api --paginate "repos/${{ github.repository }}/releases/${{ github.event.release.id }}/assets" --slurp > manifest/assets.json
+          node .github/scripts/updater-manifest.ts check manifest/latest.json "${TAG#v}" manifest/assets.json
       - name: Add the copies without the version in the name
         run: |
           mkdir stable
