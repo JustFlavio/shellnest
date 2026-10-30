@@ -2,14 +2,26 @@
 
 All notable changes are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/). Versions below 1.0.0 may change in incompatible ways.
 
-## [0.1.4] - Unreleased
+## [0.1.4] - 2026-10-30
+
+### Added
+
+- SFTP file browsing and recursive uploads/downloads alongside each host's terminal, with local and remote navigation, drag-and-drop, file actions, conflict choices, cancellation and transfer progress. Switching between Terminal and Files preserves the shell and active transfers; Files can also open without starting a shell. File contents stay in Rust. See `docs/sftp.md` for transfer behavior and limitations.
+- Host tags, reusable SSH key selection and streamlined host credentials and Settings panels.
 
 ### Changed
 
+- Updated terminal rendering to xterm 6, frontend tooling to Vite 8 and TypeScript 6, and icons to Lucide 1. Updated Rust crypto, HTTP and native credential-store dependencies while preserving existing encrypted vaults and saved unlock keys.
+- Updated application icons and release automation, including validation of draft updater manifests and download assets before publication.
+- Vault data upgrades to schema 6 for host tags and direct key references, retaining the encryption format and an encrypted `.pre-v6.bak` backup. Update all syncing clients before using this version; older apps cannot read schema 6 vaults.
 - Windows and Linux shortcuts: eight actions no longer need `Ctrl+Alt+Shift`. New folder is `Ctrl+Shift+O`, search the collection `Ctrl+Shift+F`, lock the vault `Ctrl+Shift+X`, close all panels `Ctrl+Shift+Q`, reopen a tab `Ctrl+Shift+Z`, split down `Ctrl+Shift+E`, move a tab `Ctrl+Shift+PageUp/PageDown`, and the previous/next panel is `Alt+arrows` (`Ctrl+Alt+arrows` switch desktops on Ubuntu). A shortcut you rebound keeps your choice; macOS is unchanged.
 
 ### Fixed
 
+- Host addresses and SSH usernames strip pasted whitespace so valid connection details do not silently disable Connect.
+- Disconnected terminals clear their output and stop accepting input. Reconnect is offered only after a session has connected successfully; first-attempt failures retain Start over.
+- Windows password fields show only Shellnest's password visibility control.
+- Quick-connect search results have clearer hover feedback.
 - The Terminal / Files shortcut uses `Ctrl+Shift+Y` on Windows and Linux so it does not shadow split down (`Ctrl+Shift+E`). macOS keeps `Cmd+E`; custom bindings are preserved.
 - Drag-selecting hosts: the selection rectangle stays inside the list of folders and hosts instead of reaching over the toolbar, the search field and the sidebar.
 
