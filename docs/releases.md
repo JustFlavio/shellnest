@@ -12,6 +12,13 @@ Linux ships a `.deb` and an AppImage. Both are updater artifacts (`linux-x86_64-
 
 Installers are not code-signed (no Apple or Windows certificate). That is separate from the update signature below.
 
+To retry validation of an existing draft without rebuilding or changing its tag,
+run `gh workflow run validate-release.yml -f tag=vX.Y.Z` from the repository.
+The validator needs `contents: write` because GitHub hides unpublished releases
+from tokens without push access; it only reads the release and its assets.
+Re-running an older failed release job uses its original workflow permissions,
+so use the standalone validator after a workflow fix.
+
 ## How the app finds updates
 
 The app asks `https://github.com/JustFlavio/shellnest/releases/latest/download/latest.json` (`plugins.updater.endpoints` in `src-tauri/tauri.conf.json`). GitHub resolves `releases/latest` to the newest release that is neither a draft nor a pre-release, so releases are published as normal releases, not pre-releases (the alpha state is said in the release text and the README). A pre-release would never be found.
