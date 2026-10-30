@@ -1,4 +1,4 @@
-import type { Host } from "../../lib/types.ts";
+import type { Host, TerminalTab } from "../../lib/types.ts";
 import {
   fromTemplate,
   insertLeaf,
@@ -16,6 +16,31 @@ export type TabLike = {
   layout?: LayoutNode;
   broadcast?: boolean;
 };
+
+export function canReconnect(
+  tab: Pick<TerminalTab, "status" | "hasConnected">,
+) {
+  return (
+    !!tab.hasConnected && (tab.status === "closed" || tab.status === "failed")
+  );
+}
+
+export function setTabStatus<
+  T extends Pick<TerminalTab, "id" | "status" | "hasConnected">,
+>(tabs: T[], id: string, status: NonNullable<TerminalTab["status"]>): T[] {
+  return tabs.map((tab) =>
+    tab.id === id
+      ? {
+          ...tab,
+          status,
+          hasConnected:
+            tab.hasConnected ||
+            tab.status === "connected" ||
+            status === "connected",
+        }
+      : tab,
+  );
+}
 
 // Tab-list transitions behind the tab bar and split workspaces. A tab with a `layout` leads a
 // workspace; its panes are tabs whose `parent` is the leader and are hidden from the bar.

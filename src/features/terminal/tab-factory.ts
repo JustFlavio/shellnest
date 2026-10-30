@@ -60,5 +60,11 @@ export function quickTab(
 }
 
 export function restarted(tab: TerminalTab, id: string): TerminalTab {
-  return { ...tab, id, error: undefined, status: "connecting" };
+  return {
+    ...tab,
+    id,
+    error: undefined,
+    status: "connecting",
+    hasConnected: false,
+  };
 }

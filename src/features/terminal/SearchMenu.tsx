@@ -73,7 +73,7 @@ export function SearchMenu({
             {n > 0 && <CommandSeparator className="mx-0 my-[6px]" />}
             <CommandGroup
               heading={t(titles[id])}
-              className="p-0 **:[[cmdk-group-heading]]:px-[8px] **:[[cmdk-group-heading]]:py-[7px] **:[[cmdk-group-heading]]:text-[12px]"
+              className="p-0 [&_[cmdk-group-items]]:grid [&_[cmdk-group-items]]:gap-[4px] **:[[cmdk-group-heading]]:mb-[4px] **:[[cmdk-group-heading]]:px-[8px] **:[[cmdk-group-heading]]:py-[7px] **:[[cmdk-group-heading]]:text-[12px]"
             >
               {items.map(({ result, index }) => (
                 <CommandItem
@@ -82,9 +82,9 @@ export function SearchMenu({
                   disabled={busy}
                   data-launch-selected={index === cursor ? "" : undefined}
                   className={cn(
-                    "h-[38px] gap-[11px] rounded-[8px] px-[8px] text-[13px]",
+                    "h-[38px] gap-[11px] rounded-[8px] px-[8px] text-[13px] data-selected:bg-transparent hover:bg-accent data-selected:hover:bg-accent",
                     index === cursor &&
-                      "bg-[color-mix(in_oklab,var(--primary)_20%,var(--accent))]",
+                      "bg-[color-mix(in_oklab,var(--primary)_20%,var(--accent))] data-selected:bg-[color-mix(in_oklab,var(--primary)_20%,var(--accent))]",
                   )}
                   onSelect={() => onActivate(result)}
                 >

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TerminalTab } from "@/lib/types";
 import { StatusDot } from "./Tab";
+import { canReconnect } from "./tabs-state.ts";
 
 const statusLabel = {
   connecting: "terminal.paneHeader.connecting",
@@ -85,7 +86,7 @@ export function PaneHeader({
         <StatusDot status={status} className="ml-[2px]" />
         <span className="sr-only">{t(statusLabel[status])}</span>
       </div>
-      {(status === "closed" || status === "failed") && (
+      {canReconnect(tab) && (
         <Button
           variant="ghost"
           type="button"

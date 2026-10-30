@@ -30,6 +30,7 @@ import {
 import type { TFunction } from "i18next";
 import { useState } from "react";
 import { useApp } from "@/app/app-context";
+import { canReconnect } from "./tabs-state.ts";
 
 const tabLabel = (tab: TerminalTab, t: TFunction) =>
   tab.name ??
@@ -69,7 +70,7 @@ export function SessionTab({ tab }: { tab: TerminalTab }) {
     <TerminalSquare size={14} />
   );
   const pane = tabs.find((p) => p.id === focusOf(tab)) ?? tab;
-  const ended = pane.status === "closed" || pane.status === "failed";
+  const ended = canReconnect(pane);
   const items = (
     <>
       <DropdownMenuItem onClick={() => duplicateTab(tab)}>
