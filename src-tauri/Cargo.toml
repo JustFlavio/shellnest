@@ -22,14 +22,14 @@ tauri-plugin-wdio-webdriver = { version = "1", optional = true }
 tauri-plugin-wdio = { version = "1", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-argon2 = "0.5"
-chacha20poly1305 = "0.10"
-rand = "0.8"
+argon2 = { version = "0.6", features = ["zeroize"] }
+chacha20poly1305 = { version = "0.11", features = ["zeroize"] }
+rand = "0.10"
 base64 = "0.23"
 zeroize = { version = "1", features = ["derive"] }
 russh = { version = "0.65", default-features = false, features = ["ring", "rsa"] }
 tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros", "fs", "io-util"] }
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "rustls"] }
 russh-sftp = "3.0.1"
 renamore = "0.3.2"
 tokio-util = { version = "0.7", features = ["rt"] }
@@ -44,22 +44,22 @@ tauri-plugin-process = "2"
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.31", default-features = false, features = ["fs", "poll"] }
 
+[target.'cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))'.dependencies]
+keyring = { package = "keyring-core", version = "1" }
+
 [target.'cfg(target_os = "macos")'.dependencies]
-keyring = { version = "3", default-features = false, features = ["apple-native"] }
+apple-native-keyring-store = { version = "1", features = ["keychain"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-keyring = { version = "3", default-features = false, features = ["windows-native"] }
+windows-native-keyring-store = "1"
 
-# Secret Service over D-Bus (GNOME Keyring, KWallet). Without a running service the calls fail and the app asks for the password.
+# Keep the synchronous Secret Service backend without the deprecated zbus 5 crates.
 [target.'cfg(target_os = "linux")'.dependencies]
-keyring = { version = "3", default-features = false, features = ["sync-secret-service", "crypto-rust"] }
+dbus-secret-service-keyring-store = { version = "1", features = ["crypto-rust"] }
 
 [profile.release]
 strip = true
 lto = true
-
-[dev-dependencies]
-rand10 = { package = "rand", version = "0.10" }
 
 [lints.rust]
 unsafe_code = "deny"

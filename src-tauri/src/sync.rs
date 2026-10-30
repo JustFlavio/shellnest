@@ -294,7 +294,7 @@ mod tests {
         first.data.sync_url = url.clone();
         first.data.sync_token = TOKEN.into();
         let secret =
-            russh::keys::PrivateKey::random(&mut rand10::rng(), russh::keys::Algorithm::Ed25519)
+            russh::keys::PrivateKey::random(&mut rand::rng(), russh::keys::Algorithm::Ed25519)
                 .unwrap();
         first
             .data

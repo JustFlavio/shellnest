@@ -13,7 +13,7 @@ use chacha20poly1305::{
     KeyInit, XChaCha20Poly1305, XNonce,
     aead::{Aead, Payload},
 };
-use rand::{RngCore, rngs::OsRng};
+use rand::{TryRng, rngs::SysRng};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};
 use zeroize::Zeroizing;
@@ -61,16 +61,14 @@ pub(crate) fn decrypt(key: &[u8; 32], env: &Envelope) -> Result<Data, VaultError
     let nonce = B64
         .decode(&env.nonce)
         .map_err(|_| VaultError::InvalidNonce)?;
-    if nonce.len() != 24 {
-        return Err(VaultError::InvalidNonce);
-    }
+    let nonce = <&XNonce>::try_from(nonce.as_slice()).map_err(|_| VaultError::InvalidNonce)?;
     let bytes = B64
         .decode(&env.ciphertext)
         .map_err(|_| VaultError::Invalid)?;
     let plain = Zeroizing::new(
         XChaCha20Poly1305::new(key.into())
             .decrypt(
-                XNonce::from_slice(&nonce),
+                nonce,
                 Payload {
                     msg: &bytes,
                     aad: AAD,
@@ -86,7 +84,9 @@ impl OpenVault {
             return Err(VaultError::PasswordTooShort);
         }
         let mut salt = [0; 16];
-        OsRng.fill_bytes(&mut salt);
+        SysRng
+            .try_fill_bytes(&mut salt)
+            .map_err(std::io::Error::other)?;
         let mut v = Self {
             key: derive(password, &salt)?,
             data: Data::default(),
@@ -126,11 +126,13 @@ impl OpenVault {
     pub(crate) fn seal(&mut self) -> Result<(), VaultError> {
         self.data.validate()?;
         let mut nonce = [0; 24];
-        OsRng.fill_bytes(&mut nonce);
+        SysRng
+            .try_fill_bytes(&mut nonce)
+            .map_err(std::io::Error::other)?;
         let plain = Zeroizing::new(serde_json::to_vec(&self.data)?);
         let bytes = XChaCha20Poly1305::new((&*self.key).into())
             .encrypt(
-                XNonce::from_slice(&nonce),
+                &XNonce::from(nonce),
                 Payload {
                     msg: &plain,
                     aad: AAD,
@@ -164,6 +166,27 @@ pub(crate) fn save<T: Serialize>(path: &Path, disk: &T) -> Result<(), VaultError
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn legacy_crypto_fixture_stays_compatible() {
+        // Produced with argon2 0.5.3 and chacha20poly1305 0.10.1, using a public test password.
+        let disk: Disk = serde_json::from_str(include_str!("fixtures/v1.json")).unwrap();
+        let vault = OpenVault::unlock("correct horse battery staple", disk.clone()).unwrap();
+        assert_eq!(vault.data.sync_token, "fixture-token");
+        assert_eq!(vault.data.schema_version, 6);
+        // Identical ciphertext proves new writes with the same inputs remain readable by old clients.
+        let nonce = B64.decode(&disk.envelope.nonce).unwrap();
+        let plain = serde_json::to_vec(&vault.data).unwrap();
+        let ciphertext = XChaCha20Poly1305::new((&*vault.key).into())
+            .encrypt(
+                nonce.as_slice().try_into().unwrap(),
+                Payload {
+                    msg: &plain,
+                    aad: AAD,
+                },
+            )
+            .unwrap();
+        assert_eq!(B64.encode(ciphertext), disk.envelope.ciphertext);
+    }
     #[test]
     fn round_trip_and_wrong_password() {
         let v = OpenVault::create("correct horse battery staple").unwrap();
@@ -205,7 +228,7 @@ mod tests {
         let nonce = B64.decode(&original.disk.envelope.nonce).unwrap();
         let cipher = XChaCha20Poly1305::new((&*original.key).into())
             .encrypt(
-                XNonce::from_slice(&nonce),
+                nonce.as_slice().try_into().unwrap(),
                 Payload {
                     msg: &plain,
                     aad: AAD,

@@ -2,8 +2,7 @@ use super::{Group, Host, Identity, SshKey};
 
 pub(super) fn key(id: &str) -> SshKey {
     let secret =
-        russh::keys::PrivateKey::random(&mut rand10::rng(), russh::keys::Algorithm::Ed25519)
-            .unwrap();
+        russh::keys::PrivateKey::random(&mut rand::rng(), russh::keys::Algorithm::Ed25519).unwrap();
     SshKey {
         id: id.into(),
         name: "Personal".into(),

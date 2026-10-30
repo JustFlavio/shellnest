@@ -71,8 +71,8 @@ mod tests {
     #[tokio::test]
     async fn ssh_password_key_echo_and_changed_identity() {
         tokio::time::timeout(Duration::from_secs(15), async {
-            let key = PrivateKey::random(&mut rand10::rng(), Algorithm::Ed25519).unwrap();
-            let server_key = PrivateKey::random(&mut rand10::rng(), Algorithm::Ed25519).unwrap();
+            let key = PrivateKey::random(&mut rand::rng(), Algorithm::Ed25519).unwrap();
+            let server_key = PrivateKey::random(&mut rand::rng(), Algorithm::Ed25519).unwrap();
             let fingerprint = server_key
                 .public_key()
                 .fingerprint(HashAlg::Sha256)

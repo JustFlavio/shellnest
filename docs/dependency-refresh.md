@@ -76,3 +76,62 @@ tooling packages: serialize-javascript, extract-zip and basic-ftp. These are not
 19 independent vulnerabilities. Their current parents cannot all be upgraded
 within the Tauri-compatible WDIO 9 graph; no incompatible overrides or advisory
 ignores were added. Revisit with WDIO 10/Tauri service compatibility.
+
+## Rust, crypto and native credential stores
+
+| Family                                  | Before                          | Selected stable version              |
+| --------------------------------------- | ------------------------------- | ------------------------------------ |
+| Verification compiler                   | Rust 1.98.1                     | Rust 1.99.1                          |
+| Tauri / build                           | 2.12.5 / 2.7.4                  | unchanged, latest stable Tauri 2     |
+| Tauri updater / process                 | 2.14.1 / 2.4.0                  | unchanged, already current           |
+| Argon2                                  | 0.5.3                           | 0.6.0                                |
+| XChaCha20Poly1305                       | 0.10.1                          | 0.11.0                               |
+| rand                                    | 0.8.8 plus a 0.10 test alias    | 0.10.3, one dependency               |
+| Reqwest                                 | 0.12.28 plus transitive 0.13.5  | 0.13.5                               |
+| Keyring                                 | 3.6.3                           | keyring-core 1.0.1 and native stores |
+| Native Windows / Apple / D-Bus stores   | bundled in Keyring 3            | 1.1.0 / 1.0.2 / 1.0.1                |
+| russh / russh-sftp / portable-pty / nix | 0.65.0 / 3.0.1 / 0.9.0 / 0.31.3 | unchanged, already current           |
+
+Tauri 3 is an alpha and is excluded. CI already installs stable Rust; the crate's
+declared minimum remains 1.90. Other direct Rust requirements were checked against
+the registry and the lockfile was refreshed within compatible stable requirements.
+
+The vault reader/writer remains `vault/mod.rs`: envelope version 1, 16-byte salt,
+24-byte nonce, Argon2id v19 defaults and `server-manager:vault:1` AAD are unchanged.
+The fixture in `vault/fixtures/v1.json` was generated with Argon2 0.5.3 and
+XChaCha20Poly1305 0.10.1. Its test both opens the old ciphertext and reproduces it
+with the new libraries, checking compatibility in both directions. Existing
+encrypted sync, conflict, schema migration and secret-free snapshot tests remain.
+Explicit crypto `zeroize` features retain cipher-key wiping and enable Argon2
+working-memory wiping. OS entropy uses fallible `SysRng` and returns the existing
+I/O error instead of panicking. No vault migration or new format is needed.
+
+[Reqwest 0.13 notes](https://github.com/seanmonstar/reqwest/releases/tag/v0.13.0)
+rename `rustls-tls` to `rustls` and use the platform certificate verifier and
+AWS-LC provider. HTTPS enforcement, redirect refusal and timeouts remain in the
+sync client; existing encrypted two-device sync tests pass.
+
+[Keyring 4's own guidance](https://docs.rs/keyring/4.2.0/keyring/)
+recommends core plus selected native stores for applications that choose their
+backends. Its all-in-one default switches Linux to zbus 5 and introduces three
+unmaintained-crate advisories. Shellnest instead keeps the synchronous D-Bus
+backend, with Rust session encryption, and selects native Apple/Windows stores.
+The service stays `Shellnest`, the username stays the vault ID and the saved
+value stays a zeroized Base64-encoded key. Windows keeps `{user}.{service}` targets
+and UTF-16 passwords; Apple keeps service/account attributes; Secret Service keeps
+service/username matching, including older records with a target attribute.
+Store initialization is synchronized and happens once, as in upstream Keyring 4.
+
+Reverting the Rust commit and restoring its lockfile restores the prior libraries.
+Mixed versions use the same vault, sync and credential representations. A real
+Windows check read a Keyring 3 credential with the new store, wrote it back and
+read it with Keyring 3; the synthetic credential was deleted afterwards. The native
+round-trip test is opt-in because CI may lack an unlocked credential store.
+
+The current updater already uses ZIP 9.1.3, so the three stale ZIP 4 advisory
+exceptions were removed. `cargo deny check` passes without new exceptions.
+This does **not** clear Linux's `RUSTSEC-2024-0429`: stable Tauri 2 still pulls
+`glib 0.18.5` through GTK 3, tao, muda and webkit2gtk. The fixed `glib >=0.20`
+cannot replace that crate across its API boundary. No compatible stable GTK/Tauri
+upgrade removes this branch. Cargo-deny's default transitive-unsound scope does
+not flag it; reachability and exploitability in Shellnest remain unproven.
