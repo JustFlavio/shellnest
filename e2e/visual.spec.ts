@@ -48,7 +48,7 @@ test("host editor and discard dialog", async ({ page }) => {
 });
 
 test("quick connect launcher", async ({ page }) => {
-  await page.getByRole("button", { name: "Connessione rapida" }).click();
+  await page.getByRole("button", { name: "Nuova connessione" }).click();
   await page.getByRole("combobox", { name: "Cerca host o schede" }).waitFor();
   await shot(page, "launcher");
 });
@@ -62,11 +62,15 @@ const openSettings = async (page: Page, section?: string) => {
   await page.getByRole("button", { name: "Menu applicazione" }).click();
   await page.getByRole("menuitem", { name: /Impostazioni/ }).click();
   await page.getByRole("heading", { name: "Impostazioni" }).waitFor();
-  if (section) await page.getByRole("button", { name: section }).click();
+  if (section)
+    await page
+      .getByRole("navigation", { name: "Sezioni delle impostazioni" })
+      .getByRole("button", { name: section })
+      .click();
 };
 
 test("settings: vault", async ({ page }) => {
-  await openSettings(page);
+  await openSettings(page, "Vault");
   await shot(page, "settings-vault");
 });
 
@@ -103,7 +107,7 @@ test("delete host confirmation", async ({ page }) => {
 });
 
 async function openFromLauncher(page: Page, name: string | RegExp) {
-  await page.getByRole("button", { name: "Connessione rapida" }).click();
+  await page.getByRole("button", { name: "Nuova connessione" }).click();
   await page.getByRole("option", { name }).dblclick();
   await page.locator(".xterm").first().waitFor();
   // Let the scripted session reach its prompt.
@@ -250,6 +254,8 @@ test("a dragged pane makes room: the others close ranks, then return", async ({
 
 test("pane close button only shows on hover", async ({ page }) => {
   await openFromLauncher(page, /Produzione.*connessioni/);
+  // a pane with focus inside keeps its buttons visible for the keyboard
+  await page.evaluate(() => (document.activeElement as HTMLElement).blur());
   await page.mouse.move(1275, 795);
   const close = page.getByRole("button", { name: /Chiudi pannello/ }).first();
   await expect(close).toHaveCSS("opacity", "0");
@@ -335,7 +341,8 @@ test("Cmd+C copies the selection, right click pastes", async ({
   await page
     .getByText("Sessione dimostrativa", { exact: false })
     .first()
-    .click({ clickCount: 3 });
+    // xterm's screen layer sits over the text rows and takes the clicks at these coordinates
+    .click({ clickCount: 3, force: true });
   await page.keyboard.press("Meta+c");
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))

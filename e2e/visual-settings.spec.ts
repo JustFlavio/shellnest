@@ -34,8 +34,12 @@ test("terminal settings persist and apply", async ({ page }) => {
 test("the default vault cannot be deleted, an empty new one can", async ({
   page,
 }) => {
+  await page
+    .getByRole("navigation", { name: "Sezioni delle impostazioni" })
+    .getByRole("button", { name: "Vault" })
+    .click();
   await expect(
-    page.getByRole("button", { name: "Elimina “Personale”" }),
+    page.getByRole("button", { name: "Elimina “Personal”" }),
   ).toBeDisabled();
   await page.getByRole("button", { name: "Nuovo vault" }).click();
   await page.getByPlaceholder(/Personale, Lavoro/).fill("Lavoro");
@@ -49,10 +53,14 @@ test("the default vault cannot be deleted, an empty new one can", async ({
   );
   await page.getByRole("button", { name: "Menu applicazione" }).click();
   await page.getByRole("menuitem", { name: /Impostazioni/ }).click();
+  await page
+    .getByRole("navigation", { name: "Sezioni delle impostazioni" })
+    .getByRole("button", { name: "Vault" })
+    .click();
   const remove = page.getByRole("button", { name: "Elimina “Lavoro”" });
   await expect(remove).toBeEnabled();
   await remove.click();
   await page.getByRole("button", { name: "Elimina", exact: true }).click();
   await page.getByRole("button", { name: "Menu applicazione" }).waitFor();
-  await expect(page.getByText("Personale").first()).toBeVisible();
+  await expect(page.getByText("Personal").first()).toBeVisible();
 });

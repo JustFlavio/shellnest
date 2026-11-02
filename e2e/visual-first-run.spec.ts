@@ -55,7 +55,8 @@ test("selection bar needs two or more hosts", async ({ page }) => {
 
 test("first host: identity created inline", async ({ page }) => {
   await newHost(page);
-  await page.getByRole("button", { name: "Crea identità condivisa" }).click();
+  await page.getByRole("button", { name: "Identità o chiave SSH" }).click();
+  await page.getByRole("menuitem", { name: "Nuova identità SSH" }).click();
   await page.getByRole("heading", { name: "Nuova identità" }).waitFor();
   await page.getByRole("textbox", { name: "Nome" }).fill("Amministrazione");
   await page.getByRole("textbox", { name: "Utente SSH" }).fill("root");
