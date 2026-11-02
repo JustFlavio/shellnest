@@ -31,7 +31,7 @@ const addHost = async (page: Page, name: string, address: string) => {
   await page.getByRole("button", { name: "Chiudi pannello" }).click();
 };
 const open = async (page: Page, name: string) => {
-  await page.getByRole("button", { name: "Connessione rapida" }).click();
+  await page.getByRole("button", { name: "Nuova connessione" }).click();
   await page.getByRole("option", { name: new RegExp(name) }).dblclick();
   await page
     .getByRole("button", { name: "Impronta verificata, connetti" })
@@ -51,7 +51,7 @@ test("saved host with a key: only the usual steps, with their outcome", async ({
 }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Esplora interfaccia" }).click();
-  await page.getByRole("button", { name: "Connessione rapida" }).click();
+  await page.getByRole("button", { name: "Nuova connessione" }).click();
   // The timeline is gone in a blink for a known host: record what it showed.
   await page.evaluate(() => {
     window.__seen = [];
@@ -135,7 +135,7 @@ test("a wrong password adds a step; three end the attempt with the log and Ricom
   await expect(log).toContainText("Server remoto: SSH-2.0-OpenSSH_9.6");
   await expect(log).toContainText("Tentativo con password 3 di 3");
   await expect(log).toContainText(
-    "Errore: Password non accettata dopo 3 tentativi.",
+    "Problema: Password non accettata dopo 3 tentativi.",
   );
   // scannable rows: an offset and an icon per line, errors and refusals as alerts of their own kind
   await expect(log.getByRole("listitem").first()).toContainText(/^\+\d+,\d s/);
@@ -176,7 +176,7 @@ test("the log toggles, copies and stays out of storage", async ({ page }) => {
   await addHost(page, "guasto", "guasto.fail.test");
   await open(page, "guasto");
   await expect(steps(page).nth(2).getByRole("alert")).toHaveText(
-    "Autenticazione fallita",
+    /^Autenticazione fallita/,
   );
   const log = page.getByLabel("Log della connessione");
   await expect(log).toHaveCount(0);
@@ -194,7 +194,7 @@ test("the log toggles, copies and stays out of storage", async ({ page }) => {
   const copied = await page.evaluate(() => window.__copied.join("\n"));
   expect(copied).toMatch(/^\+0,\d s {2}Risoluzione di guasto\.fail\.test:22$/m);
   expect(copied).not.toContain("<");
-  expect(copied).toContain("Errore: Autenticazione fallita");
+  expect(copied).toContain("  Autenticazione fallita");
   expect(copied).not.toContain("segreto");
   const stored = await page.evaluate(() =>
     JSON.stringify(

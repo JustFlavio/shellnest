@@ -10,8 +10,6 @@ export type LauncherTab = {
   subtitle?: string;
   // the saved host this tab is a session of; absent for quick and local tabs
   hostId?: string;
-  // saved hosts in the panes of this tab's split workspace
-  paneHostIds?: string[];
   // when the tab was last shown; larger is newer
   lastActive: number;
 };
@@ -30,8 +28,6 @@ export type LauncherResult = {
   workspace?: Workspace;
   tab?: LauncherTab;
   host?: RecentHost;
-  // for a host: the open tab that row switches to
-  openTab?: LauncherTab;
   // for a typed connection target: what Enter on the row connects to
   target?: ConnectionTarget;
 };
@@ -49,19 +45,6 @@ const recentFirst = (a: RecentHost, b: RecentHost): number =>
   (b.lastConnectedAt ?? 0) - (a.lastConnectedAt ?? 0) ||
   a.name.localeCompare(b.name);
 
-// The open tab of a host that was used last, among the tabs showing it (panes of a split included).
-const latestTab = (
-  tabs: LauncherTab[],
-  hostId: string,
-): LauncherTab | undefined =>
-  tabs
-    .filter((t) => t.hostId === hostId || t.paneHostIds?.includes(hostId))
-    .reduce(
-      (best: LauncherTab | undefined, t) =>
-        !best || t.lastActive > best.lastActive ? t : best,
-      undefined,
-    );
-
 // The port shows only when it is not the default one.
 const formatTarget = ({ username, address, port }: ConnectionTarget) =>
   `${username ? `${username}@` : ""}${address.includes(":") ? `[${address}]` : address}${port === 22 ? "" : `:${port}`}`;
@@ -78,86 +61,24 @@ const hostPath = (host: RecentHost, vaultName: string, groups: Group[]) =>
     ? `${vaultName} / ${groupPath(groups, host.groupId)}`
     : vaultName;
 
-// What the launcher lists for a query, in the order of its titled groups: saved workspaces,
-// then (only when searching) what is open, then the other saved hosts, most recently used
-// first, then quick connect: the typed target and the local terminal. A host with an open
-// session is one row that switches to it, never listed again with the hosts; tabs that are not
-// saved hosts keep their own row.
+// What the page under the search box lists, in its titled groups: the saved workspaces, then
+// the saved hosts, most recently used first. Typed text goes to the search menu (menuResults).
 export function launcherResults({
-  query,
   vaultName,
   groups,
   hosts,
-  identities,
   workspaces,
-  tabs,
-  target = null,
 }: {
-  query: string;
   vaultName: string;
   groups: Group[];
   hosts: RecentHost[];
-  identities: Identity[];
   workspaces: Workspace[];
-  tabs: LauncherTab[];
-  // the typed text as a quick-connect target, when it looks like one
-  target?: ConnectionTarget | null;
-}): { text: string; hasRecent: boolean; results: LauncherResult[] } {
-  const text = query.trim().toLocaleLowerCase();
-  const matches = (value: string) =>
-    !text || value.toLocaleLowerCase().includes(text);
-  const identityById = new Map(identities.map((i) => [i.id, i]));
+}): { hasRecent: boolean; results: LauncherResult[] } {
   const sorted = [...hosts].sort(recentFirst);
-  const savedIds = new Set(hosts.map((h) => h.id));
-  const searching = !!text;
-  const openTab = (host: RecentHost) =>
-    searching ? latestTab(tabs, host.id) : undefined;
-  const hostMatches = (host: RecentHost) =>
-    matches(hostText(host, groups, identityById)) ||
-    (searching &&
-      tabs.some(
-        (t) =>
-          t.hostId === host.id && matches(`${t.title} ${t.subtitle ?? ""}`),
-      ));
-  const hostRow = (host: RecentHost, tab?: LauncherTab): LauncherResult => ({
-    key: `host-${host.id}`,
-    group: tab ? "tabs" : "hosts",
-    kind: "host",
-    title: host.name,
-    path: hostPath(host, vaultName, groups),
-    os: host.os,
-    host,
-    ...(tab ? { openTab: tab } : {}),
-  });
-  const matching = text ? sorted.filter(hostMatches) : sorted;
-  const openRows: LauncherResult[] = [];
-  const restRows: LauncherResult[] = [];
-  for (const host of matching) {
-    const tab = openTab(host);
-    (tab ? openRows : restRows).push(hostRow(host, tab));
-  }
-  // Newest-used first inside the open group; tab rows (not saved hosts) slot in by the same order.
-  const tabRows = (searching ? tabs : [])
-    .filter((t) => !(t.hostId && savedIds.has(t.hostId)))
-    .filter((t) => matches(`${t.title} ${t.subtitle ?? ""}`))
-    .map((tab): LauncherResult => ({
-      key: `tab-${tab.id}`,
-      group: "tabs",
-      kind: "tab",
-      title: tab.title,
-      path: tab.subtitle ?? t("terminal.launcherResults.openTab"),
-      tab,
-    }));
-  // tab rows carry `tab`, open host rows carry `openTab`
-  const activity = (r: LauncherResult) =>
-    (r.kind === "tab" ? r.tab : r.openTab)!.lastActive;
-  const open = [...openRows, ...tabRows].sort(
-    (a, b) => activity(b) - activity(a),
-  );
-  const all: LauncherResult[] = [
-    ...workspaces
-      .filter((workspace) => matches(workspace.name))
-      .map((workspace): LauncherResult => ({
+  return {
+    hasRecent: sorted.some((h) => (h.lastConnectedAt ?? 0) > 0),
+    results: [
+      ...workspaces.map((workspace): LauncherResult => ({
         key: `workspace-${workspace.id}`,
         group: "workspace",
         kind: "workspace",
@@ -167,13 +88,16 @@ export function launcherResults({
         }),
         workspace,
       })),
-    ...open,
-    ...restRows,
-  ];
-  return {
-    text,
-    hasRecent: sorted.some((h) => (h.lastConnectedAt ?? 0) > 0),
-    results: [...all, ...quickRows(target)],
+      ...sorted.map((host): LauncherResult => ({
+        key: `host-${host.id}`,
+        group: "hosts",
+        kind: "host",
+        title: host.name,
+        path: hostPath(host, vaultName, groups),
+        os: host.os,
+        host,
+      })),
+    ],
   };
 }
 
@@ -265,19 +189,19 @@ export type ResultGroup = {
 // list, which the arrow keys walk across groups.
 export function groupResults(
   results: LauncherResult[],
-  heading: { text: string; hasRecent: boolean },
+  hasRecent: boolean,
 ): ResultGroup[] {
-  const titles: Record<LauncherGroup, string> = {
-    workspace: t("terminal.sessionTab.workspace"),
-    tabs: t("hosts.vaultToolbar.cards"),
-    hosts: listHeading(heading),
-    quick: t("hosts.vaultHeader.quickConnect"),
-  };
+  const heading = (group: LauncherGroup) =>
+    group === "workspace"
+      ? t("terminal.sessionTab.workspace")
+      : hasRecent
+        ? t("terminal.launcherResults.recentConnections")
+        : t("terminal.launcherResults.savedHosts");
   const groups: ResultGroup[] = [];
   results.forEach((result, index) => {
     let group = groups.find((g) => g.id === result.group);
     if (!group) {
-      group = { id: result.group, heading: titles[result.group], items: [] };
+      group = { id: result.group, heading: heading(result.group), items: [] };
       groups.push(group);
     }
     group.items.push({ result, index });
@@ -320,19 +244,6 @@ export function launcherKeyAction(
   if (modified) return canQuickConnect ? { type: "quick" } : null;
   if (count) return busy ? null : { type: "activate" };
   return canQuickConnect ? { type: "quick" } : null;
-}
-
-export function listHeading({
-  text,
-  hasRecent,
-}: {
-  text: string;
-  hasRecent: boolean;
-}): string {
-  if (text) return t("hosts.hostsView.hosts");
-  return hasRecent
-    ? t("terminal.launcherResults.recentConnections")
-    : t("terminal.launcherResults.savedHosts");
 }
 
 // Why the tab and host groups are empty; asked only when they are.

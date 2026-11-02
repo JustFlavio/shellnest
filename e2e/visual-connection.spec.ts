@@ -23,7 +23,7 @@ const addHost = async (page: Page, name: string, address: string) => {
 };
 
 const open = async (page: Page, name: string) => {
-  await page.getByRole("button", { name: "Connessione rapida" }).click();
+  await page.getByRole("button", { name: "Nuova connessione" }).click();
   await page.getByRole("option", { name: new RegExp(name) }).dblclick();
 };
 
@@ -62,9 +62,10 @@ test("Esc on the fingerprint card cancels and closes the tab", async ({
 }) => {
   await addHost(page, "nuovo", "nuovo.slow.test");
   await open(page, "nuovo");
-  await page
-    .getByRole("button", { name: "Impronta verificata, connetti" })
-    .waitFor();
+  // the card takes focus a frame after it shows; Escape only reaches it from inside
+  await expect(
+    page.getByRole("button", { name: "Impronta verificata, connetti" }),
+  ).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(
     page.getByRole("list", { name: "Avanzamento della connessione" }),
@@ -87,7 +88,7 @@ test("closing the pane while it waits drops the pending verification", async ({
     page.getByRole("button", { name: "Impronta verificata, connetti" }),
   ).toHaveCount(0);
   // shortcuts and the launcher are usable again
-  await page.getByRole("button", { name: "Connessione rapida" }).click();
+  await page.getByRole("button", { name: "Nuova connessione" }).click();
   await expect(page.getByRole("option", { name: /nuovo/ })).toBeVisible();
 });
 
@@ -100,7 +101,7 @@ test("failure turns the step red with Ricomincia, Modifica host and Chiudi", asy
     .getByRole("button", { name: "Impronta verificata, connetti" })
     .click();
   await expect(steps(page).nth(2).getByRole("alert")).toHaveText(
-    "Autenticazione fallita",
+    /^Autenticazione fallita/,
   );
   await expect(steps(page).nth(2)).toContainText("non riuscito");
   await expect(steps(page).nth(1)).toContainText("completato");

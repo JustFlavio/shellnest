@@ -22,16 +22,16 @@ const edit = (page: Page, label: string) =>
   page.getByRole("button", { name: `Modifica “${label}”` }).click();
 
 test("rebind, persist and reset one shortcut", async ({ page }) => {
-  await edit(page, "Chiudi pane o scheda");
+  await edit(page, "Chiudi pannello o scheda");
   await page.keyboard.press("Meta+y");
-  await expect(row(page, "Chiudi pane o scheda")).toContainText("⌘Y");
+  await expect(row(page, "Chiudi pannello o scheda")).toContainText("⌘Y");
   expect(
     await page.evaluate(() => localStorage.getItem("shellnest.shortcuts")),
   ).toContain('"y"');
   await page
-    .getByRole("button", { name: "Ripristina “Chiudi pane o scheda”" })
+    .getByRole("button", { name: "Ripristina “Chiudi pannello o scheda”" })
     .click();
-  await expect(row(page, "Chiudi pane o scheda")).toContainText("⌘W");
+  await expect(row(page, "Chiudi pannello o scheda")).toContainText("⌘W");
   expect(
     await page.evaluate(() => localStorage.getItem("shellnest.shortcuts")),
   ).toBe("{}");

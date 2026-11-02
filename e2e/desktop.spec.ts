@@ -20,6 +20,22 @@ async function screenshot(name: string) {
   );
 }
 
+// macOS keeps the app menu in the native menu bar, out of WebDriver's reach; its items have
+// the same shortcuts in the page. WebDriver key codes: Command, Shift.
+const COMMAND = "\uE03D";
+const SHIFT = "\uE008";
+async function appMenu(item: string, shortcut: string[]) {
+  const menu = $('[aria-label="Menu applicazione"]');
+  if (await menu.isExisting()) {
+    await menu.click();
+    await $(`[role="menuitem"]*=${item}`).click();
+  } else {
+    // shortcuts are ignored until the vault is open
+    await $("button=Nuovo host").waitForDisplayed();
+    await browser.keys(shortcut);
+  }
+}
+
 // The part of the app state this test reads.
 type State = {
   identities: { id: string }[];
@@ -55,8 +71,7 @@ describe("Tauri desktop with an isolated real vault", () => {
     ).click();
     await $("button=Crea vault").click();
 
-    await $('[aria-label="Menu applicazione"]').click();
-    await $('[role="menuitem"]*=Impostazioni').click();
+    await appMenu("Impostazioni", [COMMAND, ","]);
     await $(
       '[aria-label="Sezioni delle impostazioni"] button[aria-current="page"]',
     ).waitForDisplayed();
@@ -70,8 +85,7 @@ describe("Tauri desktop with an isolated real vault", () => {
       '[aria-label="Sezioni delle impostazioni"] button:nth-child(2)',
     ).click();
     await $('[aria-label="Chiudi pannello"]').click();
-    await $('[aria-label="Menu applicazione"]').click();
-    await $('[role="menuitem"]*=Impostazioni').click();
+    await appMenu("Impostazioni", [COMMAND, ","]);
     assert.equal(
       await $(
         '[aria-label="Sezioni delle impostazioni"] button[aria-current="page"]',
@@ -158,8 +172,7 @@ describe("Tauri desktop with an isolated real vault", () => {
       ({ core }, key) => core.invoke("save_key", { vaultId: "personal", key }),
       key,
     );
-    await $('[aria-label="Menu applicazione"]').click();
-    await $('[role="menuitem"]*=Blocca vault').click();
+    await appMenu("Blocca vault", [COMMAND, SHIFT, "l"]);
     await $("button=Sblocca").waitForDisplayed();
     await $("//label[contains(., 'Password principale')]//input").setValue(
       password,
@@ -216,8 +229,7 @@ describe("Tauri desktop with an isolated real vault", () => {
     );
     await $('[aria-label="Host"]').click();
 
-    await $('[aria-label="Menu applicazione"]').click();
-    await $('[role="menuitem"]*=Blocca vault').click();
+    await appMenu("Blocca vault", [COMMAND, SHIFT, "l"]);
     await $("button=Sblocca").waitForDisplayed();
     await $("//label[contains(., 'Password principale')]//input").setValue(
       password,

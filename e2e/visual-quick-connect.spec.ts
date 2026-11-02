@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Esplora interfaccia" }).click();
   await page.getByRole("heading", { name: "Host", level: 1 }).waitFor();
-  await page.getByRole("button", { name: "Connessione rapida" }).click();
+  await page.getByRole("button", { name: "Nuova connessione" }).click();
 });
 
 const search = (page: Page) =>
@@ -36,7 +36,7 @@ test("the target row and Cmd+Enter only start the timeline; the user comes from 
   page,
 }) => {
   await search(page).fill("root@192.0.2.50");
-  await page.getByRole("option", { name: /root@192\.0\.2\.50:22/ }).dblclick();
+  await page.getByRole("option", { name: /root@192\.0\.2\.50/ }).dblclick();
   await expect(page.getByLabel("Utente", { exact: true })).toHaveValue("root");
   await expect(steps(page)).toHaveText([
     /Utente/,

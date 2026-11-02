@@ -71,16 +71,12 @@ export function ConnectionLauncher({
   // Cmd/Ctrl+Enter takes any text that parses as an address, not only what looks like one.
   const forcedTarget = quickConnectTarget(query, hosts, true);
   const target = quickConnectTarget(query, hosts);
-  const { hasRecent, results: page } = launcherResults({
-    query: "",
+  const { hasRecent, results: pageResults } = launcherResults({
     vaultName,
     groups,
     hosts,
-    identities,
     workspaces,
-    tabs,
   });
-  const pageResults = page.filter((r) => r.group !== "quick");
   const menuInput = {
     query,
     vaultName,
@@ -132,21 +128,13 @@ export function ConnectionLauncher({
         ),
     );
   });
-  const activate = ({
-    kind,
-    workspace,
-    tab,
-    host,
-    openTab,
-    target,
-  }: LauncherResult) => {
+  const activate = ({ kind, workspace, tab, host, target }: LauncherResult) => {
     if (busy || (kind === "local" && preview)) return;
     setOpen(false);
     if (kind === "local") onLocalTerminal();
     else if (kind === "target") onQuickConnect(target!);
     else if (kind === "workspace") onOpenWorkspace(workspace!);
     else if (kind === "tab") onActivateTab(tab!.id);
-    else if (openTab) onActivateTab(openTab.id);
     else onConnect(host!);
   };
   // cmdk reports a clicked row as its new value right after; the click already set the cursor
@@ -171,7 +159,6 @@ export function ConnectionLauncher({
       busy={busy}
       onClick={(mode) => click(index, mode)}
       onActivate={() => activate(result)}
-      onNewSession={() => onConnect(result.host!)}
       onArmDelete={() => setArmed(result.workspace!.id)}
       onDelete={() => {
         setArmed(undefined);
@@ -193,7 +180,6 @@ export function ConnectionLauncher({
       setQuery("");
       setSelection(collapsed());
     },
-    onConnect,
     onQuickConnect,
   });
   const menuKeys = launcherKeyHandler({
@@ -207,7 +193,6 @@ export function ConnectionLauncher({
     activate,
     select: setMenuCursor,
     clear: () => setOpen(false),
-    onConnect,
     onQuickConnect,
   });
   const listed = menuRows.some((r) => r.group !== "quick");
@@ -282,17 +267,16 @@ export function ConnectionLauncher({
           <LauncherList
             label={t("terminal.connectionLauncher.availableConnections")}
             multiselectable
-            groups={groupResults(pageResults, { text: "", hasRecent })}
+            groups={groupResults(pageResults, hasRecent)}
             empty={
               pageResults.length
                 ? null
                 : t("terminal.connectionLauncher.noSavedHosts")
             }
             renderRow={row}
-            renderHeading={({ id, heading }) =>
+            renderActions={({ id }) =>
               id === "hosts" && (
                 <LauncherActions
-                  heading={heading}
                   busy={busy}
                   canCreate={hostIds.length >= 2}
                   restoring={picked.length}

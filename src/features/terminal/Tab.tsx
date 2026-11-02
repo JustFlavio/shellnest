@@ -46,8 +46,8 @@ export function TabShell({
         "group/tab relative flex h-[34px] w-[220px] max-w-[260px] min-w-[160px] shrink-0 cursor-pointer items-center gap-[4px] rounded-[10px] border border-transparent bg-sidebar pr-[6px] pl-[6px] text-[13px] whitespace-nowrap text-muted-foreground transition-colors motion-reduce:transition-none",
         "hover:bg-card hover:text-foreground focus-within:text-foreground",
         selected && "bg-foreground/15 text-foreground hover:bg-foreground/15",
-        !fixed && "max-[760px]:w-[160px] max-[760px]:min-w-[140px]",
-        fixed && "w-auto min-w-0 pr-[12px]",
+        !fixed && "max-[760px]:w-[140px] max-[760px]:min-w-[120px]",
+        fixed && "w-auto min-w-0 pr-[12px] max-[760px]:pr-[6px]",
         dragging && "opacity-45",
         drop &&
           "before:absolute before:inset-y-[4px] before:w-[2px] before:rounded-[1px] before:bg-primary before:content-['']",

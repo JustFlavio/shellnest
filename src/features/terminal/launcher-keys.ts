@@ -1,15 +1,14 @@
 import type { ConnectionTarget } from "./connection-target.ts";
 import { launcherKeyAction } from "./launcher-results.ts";
-import type { LauncherResult, RecentHost } from "./launcher-results.ts";
+import type { LauncherResult } from "./launcher-results.ts";
 
 type KeyEvent = Pick<
   React.KeyboardEvent,
-  "key" | "shiftKey" | "metaKey" | "ctrlKey" | "preventDefault"
+  "key" | "metaKey" | "ctrlKey" | "preventDefault"
 >;
 
 // Key handler of the search box: moves the selection across the groups, opens a result,
-// Shift+Enter starts a new session of an open host, Cmd/Ctrl+Enter quick-connects, Escape
-// drops a multi-selection before it clears the search.
+// Cmd/Ctrl+Enter quick-connects, Escape drops a multi-selection before it clears the search.
 export function launcherKeyHandler({
   results,
   selected,
@@ -22,7 +21,6 @@ export function launcherKeyHandler({
   select,
   clear,
   unmark,
-  onConnect,
   onQuickConnect,
 }: {
   results: LauncherResult[];
@@ -37,17 +35,11 @@ export function launcherKeyHandler({
   activate: (result: LauncherResult) => void;
   select: (index: number) => void;
   clear: () => void;
-  onConnect: (host: RecentHost) => void;
   onQuickConnect: (target: ConnectionTarget) => void;
 }) {
   return (event: KeyEvent) => {
     const current = results[selected];
     const modified = event.metaKey || event.ctrlKey;
-    if (event.key === "Enter" && event.shiftKey && current?.openTab && !busy) {
-      event.preventDefault();
-      onConnect(current.host!);
-      return;
-    }
     if (event.key === "Escape" && marked) {
       event.preventDefault();
       return unmark();

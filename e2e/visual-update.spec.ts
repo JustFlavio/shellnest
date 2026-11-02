@@ -103,7 +103,7 @@ test("the settings card shows the version and checks on demand", async ({
   await page.getByRole("menuitem", { name: /Impostazioni/ }).click();
   await page.getByRole("button", { name: "Aggiornamenti" }).click();
   const card = page.locator("section", { hasText: "Versione installata" });
-  await expect(card).toContainText("Shellnest 0.1.0");
+  await expect(card).toContainText(/Shellnest \d+\.\d+\.\d+/);
   await expect(card.getByRole("switch")).toHaveAttribute(
     "aria-checked",
     "true",
@@ -121,14 +121,16 @@ test("restarting with a connected session asks first and says it will be closed"
   page,
 }) => {
   await explore(page, "available");
-  await page.getByRole("button", { name: "Connessione rapida" }).click();
+  await page.getByRole("button", { name: "Nuova connessione" }).click();
   await page.getByRole("option", { name: /api-01/ }).dblclick();
   await checkFromMenu(page);
   await toasts(page).getByRole("button", { name: "Scarica" }).click();
   await toasts(page).getByRole("button", { name: "Riavvia ora" }).click();
   const dialog = page.getByRole("alertdialog");
   await expect(dialog).toContainText("Riavviare per aggiornare?");
-  await expect(dialog).toContainText("verranno chiuse");
+  await expect(dialog).toContainText(
+    "Il riavvio termina i programmi nei terminali",
+  );
   expect(await relaunched(page)).toBeFalsy();
   await dialog.getByRole("button", { name: "Riavvia" }).click();
   await expect.poll(() => relaunched(page)).toBe(true);

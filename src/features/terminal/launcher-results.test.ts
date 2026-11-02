@@ -5,7 +5,6 @@ import {
   groupResults,
   launcherKeyAction,
   launcherResults,
-  listHeading,
   menuResults,
   workspaceSize,
 } from "./launcher-results.ts";
@@ -16,7 +15,8 @@ import { i18n } from "../../i18n/i18n.ts";
 // These assertions read the Italian copy.
 await i18n.changeLanguage("it");
 
-type Input = Parameters<typeof launcherResults>[0];
+type Input = Parameters<typeof menuResults>[0] &
+  Parameters<typeof launcherResults>[0];
 
 const host = (id: string, name: string, extra: Partial<RecentHost> = {}) =>
   ({
@@ -55,25 +55,16 @@ const base: Input = {
 };
 const keys = (input: Partial<Input>) =>
   launcherResults({ ...base, ...input }).results.map((r) => r.key);
+const menuKeys = (input: Partial<Input>) =>
+  menuResults({ ...base, ...input }).results.map((r) => r.key);
 
-test("hosts come most recently used first, then by name", () => {
-  assert.deepEqual(keys({}), [
-    "workspace-w1",
-    "host-b",
-    "host-a",
-    "host-c",
-    "local",
-  ]);
+test("the page lists workspaces, then hosts most recently used first, then by name", () => {
+  assert.deepEqual(keys({}), ["workspace-w1", "host-b", "host-a", "host-c"]);
   assert.equal(launcherResults(base).hasRecent, true);
 });
 
-test("open tabs only show while searching", () => {
-  assert.ok(!keys({}).includes("tab-t1"));
-  assert.deepEqual(keys({ query: "web" }), ["tab-t1", "local"]);
-});
-
 test("a search matches the identity's user name", () => {
-  assert.deepEqual(keys({ query: "DEPLOY" }), ["host-c", "local"]);
+  assert.deepEqual(menuKeys({ query: "DEPLOY" }), ["host-c", "local"]);
 });
 
 test("a workspace counts its connections", () => {
@@ -109,13 +100,6 @@ test("Enter opens the selection, or quick-connects when nothing matches", () => 
   assert.equal(launcherKeyAction("a", state), null);
 });
 
-test("the list heading follows searching and history", () => {
-  const state = { text: "", hasRecent: true };
-  assert.equal(listHeading(state), "Connessioni recenti");
-  assert.equal(listHeading({ ...state, hasRecent: false }), "Host salvati");
-  assert.equal(listHeading({ ...state, text: "a" }), "Host");
-});
-
 const session = (
   id: string,
   hostId: string,
@@ -128,68 +112,6 @@ const session = (
   hostId,
   lastActive,
   ...extra,
-});
-
-test("a host with open sessions is one row that switches to the latest", () => {
-  const input = {
-    query: "alpha",
-    tabs: [session("t1", "a", 3), session("t2", "a", 7), session("t3", "a", 5)],
-  };
-  const { results } = launcherResults({ ...base, ...input });
-  assert.deepEqual(
-    results.map((r) => r.key),
-    ["host-a", "local"],
-  );
-  assert.equal(results[0].openTab?.id, "t2");
-});
-
-test("the row also matches on the tab and carries panes of a split", () => {
-  const split = {
-    id: "t9",
-    title: "Workspace",
-    lastActive: 4,
-    paneHostIds: ["c"],
-  };
-  const r = launcherResults({ ...base, query: "gamma", tabs: [split] }).results;
-  assert.deepEqual(
-    r.map((x) => x.key),
-    ["host-c", "local"],
-  );
-  assert.equal(r[0].openTab?.id, "t9");
-  assert.deepEqual(keys({ query: "workspace", tabs: [split] }), [
-    "tab-t9",
-    "local",
-  ]);
-});
-
-test("open hosts and tabs come first, newest first, then the other hosts", () => {
-  const tabs = [
-    session("t1", "a", 2),
-    { id: "t2", title: "quick", subtitle: "root@x.example", lastActive: 9 },
-    session("t3", "b", 5),
-  ];
-  assert.deepEqual(keys({ query: "e", tabs, workspaces: [] }), [
-    "tab-t2",
-    "host-b",
-    "host-a",
-    "host-c",
-    "local",
-  ]);
-});
-
-test("a tab of a deleted host keeps its own row", () => {
-  assert.deepEqual(
-    keys({ query: "ghost", tabs: [session("t1", "ghost", 1)] }),
-    ["tab-t1", "local"],
-  );
-});
-
-test("without a search nothing is marked open", () => {
-  const tabs = [session("t1", "a", 1)];
-  assert.equal(
-    launcherResults({ ...base, tabs }).results[1].openTab,
-    undefined,
-  );
 });
 
 test("Cmd/Ctrl+Enter starts the timeline for a target, and does nothing otherwise", () => {
@@ -208,61 +130,23 @@ test("Cmd/Ctrl+Enter starts the timeline for a target, and does nothing otherwis
 });
 
 const groupsOf = (input: Partial<Input>) => {
-  const { text, hasRecent, results } = launcherResults({ ...base, ...input });
-  return groupResults(results, { text, hasRecent }).map((g) => [
+  const { hasRecent, results } = launcherResults({ ...base, ...input });
+  return groupResults(results, hasRecent).map((g) => [
     g.heading,
     g.items.map((i) => i.result.key),
   ]);
 };
 
-test("an open host is listed once, under Schede, not under Host", () => {
-  const tabs = [session("t1", "a", 4)];
-  assert.deepEqual(groupsOf({ query: "a", tabs, workspaces: [] }), [
-    ["Schede", ["host-a"]],
-    ["Host", ["host-b", "host-c"]],
-    ["Connessione rapida", ["local"]],
-  ]);
-});
-
-test("groups come in order, empty ones are left out, indexes are flat", () => {
-  const tabs = [
-    { id: "q", title: "quick", subtitle: "root@x.example", lastActive: 9 },
-  ];
-  const target = { address: "web.example", port: 22, username: "root" };
-  const { results } = launcherResults({
-    ...base,
-    query: "e",
-    tabs,
-    target,
-    workspaces: [],
-  });
-  const groups = groupResults(results, {
-    text: "e",
-    hasRecent: true,
-  });
-  assert.deepEqual(
-    groups.map((g) => g.heading),
-    ["Schede", "Host", "Connessione rapida"],
-  );
-  assert.deepEqual(
-    groups.flatMap((g) => g.items.map((i) => i.index)),
-    results.map((_, i) => i),
-  );
-  assert.deepEqual(
-    groups[2].items.map((i) => i.result.key),
-    ["target", "local"],
-  );
-  assert.equal(groups[2].items[0].result.title, "root@web.example");
-});
-
-test("without a search the history and the local terminal are listed", () => {
-  assert.deepEqual(groupsOf({ workspaces: [] }), [
+test("the page groups follow the history, empty ones are left out", () => {
+  assert.deepEqual(groupsOf({}), [
+    ["Workspace", ["workspace-w1"]],
     ["Connessioni recenti", ["host-b", "host-a", "host-c"]],
-    ["Connessione rapida", ["local"]],
   ]);
-  assert.deepEqual(groupsOf({ workspaces: [], hosts: [] }), [
-    ["Connessione rapida", ["local"]],
+  const never = base.hosts.map((h) => ({ ...h, lastConnectedAt: null }));
+  assert.deepEqual(groupsOf({ workspaces: [], hosts: never }), [
+    ["Host salvati", ["host-a", "host-b", "host-c"]],
   ]);
+  assert.deepEqual(groupsOf({ workspaces: [], hosts: [] }), []);
 });
 
 test("the search menu lists hosts, open tabs and quick connect", () => {

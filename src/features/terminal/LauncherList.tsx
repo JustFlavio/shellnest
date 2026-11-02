@@ -1,4 +1,5 @@
 import { CommandGroup, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import type { LauncherResult, ResultGroup } from "./launcher-results.ts";
 
 const groupClass =
@@ -11,7 +12,7 @@ export function LauncherList({
   groups,
   empty,
   renderRow,
-  renderHeading,
+  renderActions,
 }: {
   label: string;
   // rows can be selected together (Cmd/Ctrl+click, Shift+click)
@@ -19,18 +20,29 @@ export function LauncherList({
   groups: ResultGroup[];
   empty: string | null;
   renderRow: (result: LauncherResult, index: number) => React.ReactNode;
-  // replaces a group's plain title, to carry actions
-  renderHeading?: (group: ResultGroup) => React.ReactNode;
+  // buttons on the right of a group's title; cmdk hides the title itself from assistive tech
+  renderActions?: (group: ResultGroup) => React.ReactNode;
 }) {
-  const group = ({ id, heading, items }: ResultGroup) => (
-    <CommandGroup
-      key={id}
-      heading={renderHeading?.({ id, heading, items }) || heading}
-      className={groupClass}
-    >
-      {items.map(({ result, index }) => renderRow(result, index))}
-    </CommandGroup>
-  );
+  const group = (g: ResultGroup) => {
+    const actions = renderActions?.(g);
+    return (
+      <CommandGroup
+        key={g.id}
+        heading={g.heading}
+        className={cn(
+          groupClass,
+          // the title keeps the height of the 28px buttons beside it
+          actions &&
+            "relative **:[[cmdk-group-heading]]:flex **:[[cmdk-group-heading]]:min-h-[46px] **:[[cmdk-group-heading]]:items-center",
+        )}
+      >
+        {actions && (
+          <div className="absolute top-[15px] right-[16px]">{actions}</div>
+        )}
+        {g.items.map(({ result, index }) => renderRow(result, index))}
+      </CommandGroup>
+    );
+  };
   return (
     <CommandList
       label={label}
