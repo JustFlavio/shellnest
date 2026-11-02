@@ -15,7 +15,7 @@ const stored = (page: Page) =>
   );
 
 test("terminal settings persist and apply", async ({ page }) => {
-  await page.getByRole("button", { name: "Terminale" }).click();
+  await page.getByRole("tab", { name: "Terminale" }).click();
   await page.getByRole("button", { name: "Ingrandisci testo" }).click();
   await page.getByRole("radio", { name: "Nord" }).click();
   await page.getByRole("switch", { name: "Suono del bell" }).click();
@@ -34,7 +34,7 @@ test("terminal settings persist and apply", async ({ page }) => {
 test("appearance settings persist and repaint the interface", async ({
   page,
 }) => {
-  await page.getByRole("button", { name: "Aspetto" }).click();
+  await page.getByRole("tab", { name: "Aspetto" }).click();
   await page.getByRole("radio", { name: "Chiaro" }).click();
   await page.getByRole("radio", { name: "Fjord" }).click();
   expect(await stored(page)).toMatchObject({
@@ -50,8 +50,8 @@ test("the default vault cannot be deleted, an empty new one can", async ({
   page,
 }) => {
   await page
-    .getByRole("navigation", { name: "Sezioni delle impostazioni" })
-    .getByRole("button", { name: "Vault" })
+    .getByRole("tablist", { name: "Sezioni delle impostazioni" })
+    .getByRole("tab", { name: "Vault" })
     .click();
   await expect(
     page.getByRole("button", { name: "Elimina “Personal”" }),
@@ -69,8 +69,8 @@ test("the default vault cannot be deleted, an empty new one can", async ({
   await page.getByRole("button", { name: "Menu applicazione" }).click();
   await page.getByRole("menuitem", { name: /Impostazioni/ }).click();
   await page
-    .getByRole("navigation", { name: "Sezioni delle impostazioni" })
-    .getByRole("button", { name: "Vault" })
+    .getByRole("tablist", { name: "Sezioni delle impostazioni" })
+    .getByRole("tab", { name: "Vault" })
     .click();
   const remove = page.getByRole("button", { name: "Elimina “Lavoro”" });
   await expect(remove).toBeEnabled();

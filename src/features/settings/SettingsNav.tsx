@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
+import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export type SettingsSection =
   "general" | "appearance" | "vault" | "terminal" | "shortcuts" | "updates";
@@ -12,35 +12,23 @@ const sections = [
   { id: "updates", label: "settings.settingsNav.updates" },
 ] as const satisfies readonly { id: SettingsSection; label: string }[];
 
-export function SettingsNav({
-  section,
-  onSection,
-}: {
-  section: SettingsSection;
-  onSection: (s: SettingsSection) => void;
-}) {
+// The tab list of the settings dialog; SettingsDialog holds the Tabs root and the panel.
+export function SettingsNav() {
   const { t } = useTranslation();
   return (
-    <nav
+    <TabsList
       aria-label={t("settings.settingsNav.settingsSections")}
-      className="flex w-[200px] shrink-0 flex-col gap-[2px] border-r border-border p-[10px]"
+      className="w-[200px] shrink-0 justify-start gap-[2px] rounded-none border-r border-border bg-transparent p-[10px] group-data-vertical/tabs:h-auto"
     >
       {sections.map((s) => (
-        <button
+        <TabsTrigger
           key={s.id}
-          type="button"
-          aria-current={section === s.id ? "page" : undefined}
-          onClick={() => onSection(s.id)}
-          className={cn(
-            "h-[34px] rounded-lg px-[12px] text-left text-[13px] outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-            section === s.id
-              ? "bg-accent text-foreground"
-              : "text-muted-foreground hover:bg-accent hover:text-foreground",
-          )}
+          value={s.id}
+          className="h-[34px] flex-none rounded-lg border-0 px-[12px] text-[13px] font-normal text-muted-foreground hover:bg-accent data-active:bg-accent data-active:text-foreground data-active:shadow-none dark:text-muted-foreground dark:data-active:bg-accent"
         >
           {t(s.label)}
-        </button>
+        </TabsTrigger>
       ))}
-    </nav>
+    </TabsList>
   );
 }

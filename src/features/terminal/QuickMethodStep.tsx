@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { PasswordInput } from "@/components/PasswordInput";
 import { SelectField } from "@/components/SelectField";
 import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { help } from "@/lib/editor-ui";
 import type { SshKey } from "@/lib/types";
 import { QuickActions } from "./QuickActions";
@@ -37,28 +38,30 @@ export function QuickMethodStep({
         }
       }}
     >
-      <fieldset className="m-0 flex gap-[16px] border-0 p-0">
+      <fieldset className="m-0 border-0 p-0">
         <legend className="mb-[6px] p-0 text-[12px]">
           {t("terminal.quickMethodStep.signInWith")}
         </legend>
-        {(["password", "key"] as const).map((method) => (
-          <label
-            key={method}
-            className="m-0! flex-row! items-center gap-[6px] text-[13px] text-foreground"
-          >
-            <input
-              type="radio"
-              className="m-0 accent-primary"
-              name="quick-method"
-              checked={setup.method === method}
-              disabled={method === "key" && !keys.length}
-              onChange={() => patch({ method })}
-            />
-            {method === "password"
-              ? t("hosts.collectionTables.password")
-              : t("terminal.quickMethodStep.key")}
-          </label>
-        ))}
+        <RadioGroup
+          className="flex gap-[16px]"
+          value={setup.method}
+          onValueChange={(method) => patch({ method })}
+        >
+          {(["password", "key"] as const).map((method) => (
+            <label
+              key={method}
+              className="m-0! flex-row! items-center gap-[6px] text-[13px] text-foreground"
+            >
+              <RadioGroupItem
+                value={method}
+                disabled={method === "key" && !keys.length}
+              />
+              {method === "password"
+                ? t("hosts.collectionTables.password")
+                : t("terminal.quickMethodStep.key")}
+            </label>
+          ))}
+        </RadioGroup>
       </fieldset>
       {setup.method === "password" ? (
         <label className="mt-[10px] block text-[12px]">

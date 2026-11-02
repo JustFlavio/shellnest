@@ -4,6 +4,7 @@ import { KeyRound, Pencil, Trash2, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Identity, SshKey } from "@/lib/types";
+import { IconButton } from "@/components/IconButton";
 
 type Shared = {
   busy: boolean;
@@ -66,28 +67,26 @@ function Row({
       {children}
       <td className={cn(cell, "text-right")}>
         <div className="flex justify-end gap-0.5 opacity-60 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
-          <Button
-            variant="ghost"
-            type="button"
-            size="icon-sm"
-            aria-label={t("hosts.collectionTables.editName", { name })}
+          <IconButton
+            label={t("hosts.collectionTables.editName", { name })}
             disabled={busy}
             onClick={onEdit}
           >
             <Pencil size={14} />
-          </Button>
-          <Button
-            variant="ghost"
-            type="button"
-            size="icon-sm"
+          </IconButton>
+          <IconButton
+            label={t("hosts.collectionTables.deleteName", { name })}
+            tooltip={
+              (!canDelete && deleteHint) ||
+              t("hosts.collectionTables.deleteName", { name })
+            }
             className="hover:bg-destructive/15 hover:text-destructive"
-            aria-label={t("hosts.collectionTables.deleteName", { name })}
             disabled={busy || !canDelete}
-            title={deleteHint}
+            focusableWhenDisabled
             onClick={onDelete}
           >
             <Trash2 size={14} />
-          </Button>
+          </IconButton>
         </div>
       </td>
     </tr>

@@ -44,7 +44,7 @@ export function saveGroup(next: View, args: Args): void {
   requireValue(
     g.port === null ||
       (Number.isInteger(g.port) && g.port > 0 && g.port <= 65535),
-    "model.TargetInvalid",
+    "model.PortInvalid",
   );
   next.groups = [...next.groups.filter((o) => o.id !== g.id), { ...g, name }];
 }

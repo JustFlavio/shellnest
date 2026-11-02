@@ -5,7 +5,7 @@
 pub(crate) enum ModelError {
     #[error("Missing or duplicate identifiers in the vault")]
     InvalidIds,
-    #[error("Identity without a name or user")]
+    #[error("Give the identity a name")]
     IdentityIncomplete,
     #[error("Identity with an invalid key reference")]
     IdentityKeyInvalid,
@@ -15,7 +15,7 @@ pub(crate) enum ModelError {
     GroupTooDeep(usize),
     #[error("Invalid folder name")]
     GroupNameInvalid,
-    #[error("Invalid settings for folder {0}")]
+    #[error("The identity of folder {0} does not exist")]
     GroupSettingsInvalid(String),
     #[error("A folder named {0} already exists")]
     GroupNameTaken(String),
@@ -23,7 +23,7 @@ pub(crate) enum ModelError {
     GroupInsideItself,
     #[error("The folder is not empty: move or delete its contents first.")]
     GroupNotEmpty,
-    #[error("Invalid port or folder for host {0}")]
+    #[error("The folder of host {0} does not exist")]
     HostPlacementInvalid(String),
     #[error("Host credentials are invalid or conflict with an identity")]
     HostCredentialsInvalid,
@@ -53,7 +53,7 @@ pub(crate) enum ModelError {
     AssignInvalid,
     #[error("One of the selected hosts no longer exists")]
     AssignHostMissing,
-    #[error("Name, address and a valid port are required")]
+    #[error("Give the host a name")]
     HostFieldsRequired,
     #[error("Inherit the identity from the folder or choose one, not both")]
     InheritConflict,
@@ -61,7 +61,7 @@ pub(crate) enum ModelError {
     CredentialsRequired,
     #[error("Invalid SSH user")]
     UsernameInvalid,
-    #[error("Enter a password for this host")]
+    #[error("Enter a password")]
     PasswordRequired,
     #[error("Choose host credentials or an identity, not both")]
     CredentialsAndIdentity,
@@ -69,8 +69,10 @@ pub(crate) enum ModelError {
     HostNotFound,
     #[error("Invalid operating system")]
     OsInvalid,
-    #[error("Invalid IP address or host name and port")]
+    #[error("Invalid IP address or host name")]
     EndpointInvalid,
+    #[error("Enter a port from 1 to 65535")]
+    PortInvalid,
     #[error("Identity not found")]
     IdentityNotFound,
     #[error("Key not found")]
@@ -81,4 +83,34 @@ pub(crate) enum ModelError {
     FingerprintUnverified,
     #[error("Enter the SSH user")]
     UsernameMissing,
+}
+impl ModelError {
+    /// The form field the error belongs to, so the UI can show it under that field.
+    pub(crate) fn field(&self) -> Option<&'static str> {
+        Some(match self {
+            Self::HostFieldsRequired
+            | Self::IdentityIncomplete
+            | Self::KeyNameMissing
+            | Self::GroupNameInvalid
+            | Self::GroupNameTaken(_) => "name",
+            Self::EndpointInvalid => "address",
+            Self::PortInvalid => "port",
+            Self::HostTagsInvalid => "tags",
+            Self::UsernameInvalid | Self::UsernameMissing => "username",
+            Self::PasswordRequired => "password",
+            Self::IdentityKeyInvalid | Self::HostCredentialsInvalid => "key",
+            Self::KeyImportRequired | Self::KeyUnreadable | Self::KeyDuplicate => "privateKey",
+            Self::CredentialsRequired
+            | Self::CredentialsAndIdentity
+            | Self::InheritConflict
+            | Self::HostWithoutIdentity(_)
+            | Self::HostIdentityMissing(_)
+            | Self::GroupSettingsInvalid(_) => "identity",
+            Self::HostPlacementInvalid(_)
+            | Self::GroupParentMissing
+            | Self::GroupTooDeep(_)
+            | Self::GroupInsideItself => "group",
+            _ => return None,
+        })
+    }
 }

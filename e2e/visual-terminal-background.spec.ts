@@ -18,7 +18,7 @@ test("terminal viewport fills partial rows with its theme", async ({
   }
   await page.getByRole("button", { name: "Menu applicazione" }).click();
   await page.getByRole("menuitem", { name: /Impostazioni/ }).click();
-  await page.getByRole("button", { name: "Terminale", exact: true }).click();
+  await page.getByRole("tab", { name: "Terminale", exact: true }).click();
   await page.getByRole("radio", { name: "Nord" }).click();
   await expect(viewport).toHaveCSS("background-color", "rgb(46, 52, 64)");
 });

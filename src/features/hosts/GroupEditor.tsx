@@ -13,6 +13,10 @@ import {
 } from "./groups.ts";
 import type { GroupForm, View } from "@/lib/types";
 import { portInline, sectionHelp, sheetField } from "@/lib/editor-ui";
+import { FieldErrors, FieldSlot } from "@/components/FieldErrors";
+import { TextField } from "@/components/TextField";
+import { useFormErrors } from "@/lib/useFormErrors";
+import { groupFormErrors } from "./form-checks.ts";
 
 const ROOT = "__root";
 const NONE = "__none";
@@ -26,6 +30,7 @@ export function GroupEditor({
   returnTo,
   busy,
   error,
+  errorField,
 }: {
   value: GroupForm;
   onChange: (v: GroupForm) => void;
@@ -35,6 +40,7 @@ export function GroupEditor({
   returnTo?: string;
   busy: boolean;
   error: string;
+  errorField: string;
 }) {
   const { t } = useTranslation();
   const existing = view.groups.find((g) => g.id === value.id);
@@ -48,7 +54,13 @@ export function GroupEditor({
     "",
     new Set(existing ? subtreeIds(view.groups, existing.id) : []),
   ).filter((o) => depthOf(view.groups, o.group.id) < MAX_GROUP_DEPTH);
-  const invalidName = /[/\x00-\x1f\x7f]/.test(value.name);
+  const form = useFormErrors(
+    value.id,
+    groupFormErrors(value),
+    ["name", "group", "identity", "port"],
+    error,
+    errorField,
+  );
   return (
     <Panel
       title={
@@ -57,7 +69,8 @@ export function GroupEditor({
           : t("hosts.groupEditor.newGroup")
       }
       backLabel={returnTo ? t("hosts.groupEditor.backToHost") : undefined}
-      {...{ onClose, busy, error }}
+      {...{ onClose, busy }}
+      error={form.banner}
       dirty={dirty}
       footer={
         <footer>
@@ -66,7 +79,7 @@ export function GroupEditor({
             type="submit"
             form="group-editor-form"
             className="primary"
-            disabled={busy || !value.name.trim() || invalidName}
+            disabled={busy}
           >
             {returnTo
               ? t("hosts.groupEditor.saveAndBackTo")
@@ -77,78 +90,103 @@ export function GroupEditor({
     >
       <form
         id="group-editor-form"
+        noValidate
+        onBlur={form.onBlur}
         onSubmit={(e) => {
           e.preventDefault();
-          onSubmit();
+          if (form.check(e.currentTarget)) onSubmit();
         }}
       >
-        <EditorSection title={t("hosts.groupEditor.general")}>
-          <label className={sheetField}>
-            <span className="sr-only">{t("vault.vaultPanels.name")}</span>
-            <Input
+        <FieldErrors errors={form.errors}>
+          <EditorSection title={t("hosts.groupEditor.general")}>
+            <TextField
+              name="name"
+              label={t("vault.vaultPanels.name")}
+              hideLabel
+              className={sheetField}
               autoFocus
               required
               maxLength={80}
               value={value.name}
-              aria-invalid={invalidName || undefined}
               onChange={(e) => onChange({ ...value, name: e.target.value })}
               placeholder={t("hosts.groupEditor.groupName")}
             />
-          </label>
-          <div className={sheetField}>
-            <SelectField
-              aria-label={t("hosts.groupEditor.parentGroup")}
-              value={value.parentId || ROOT}
-              onValueChange={(next) =>
-                onChange({ ...value, parentId: next === ROOT ? "" : next })
-              }
-              options={[
-                { value: ROOT, label: t("hosts.groupEditor.noParentGroup") },
-                ...parents.map((o) => ({ value: o.group.id, label: o.path })),
-              ]}
-            />
-          </div>
-        </EditorSection>
-        <EditorSection title={t("hosts.groupEditor.hostDefaults")}>
-          <p className={sectionHelp}>
-            {t("hosts.groupEditor.inheritedByHostsAnd")}
-          </p>
-          <div className={sheetField}>
-            <SelectField
-              aria-label={t("hosts.groupEditor.defaultIdentity")}
-              value={value.identityId || NONE}
-              onValueChange={(next) =>
-                onChange({ ...value, identityId: next === NONE ? "" : next })
-              }
-              options={[
-                {
-                  value: NONE,
-                  label: t("hosts.groupEditor.noDefaultIdentity"),
-                },
-                ...view.identities.map((i) => ({
-                  value: i.id,
-                  label: `${i.name} — ${i.username}`,
-                })),
-              ]}
-            />
-          </div>
-          <label className={cn(portInline, "mt-[10px] text-[12px]")}>
-            {t("hosts.groupEditor.sshPort")}
-            <Input
-              type="number"
-              min={1}
-              max={65535}
-              value={value.port ?? ""}
-              placeholder="22"
-              onChange={(e) =>
-                onChange({
-                  ...value,
-                  port: e.target.value === "" ? null : Number(e.target.value),
-                })
-              }
-            />
-          </label>
-        </EditorSection>
+            <FieldSlot name="group" className={sheetField}>
+              {(control) => (
+                <SelectField
+                  {...control}
+                  aria-label={t("hosts.groupEditor.parentGroup")}
+                  value={value.parentId || ROOT}
+                  onValueChange={(next) =>
+                    onChange({ ...value, parentId: next === ROOT ? "" : next })
+                  }
+                  options={[
+                    {
+                      value: ROOT,
+                      label: t("hosts.groupEditor.noParentGroup"),
+                    },
+                    ...parents.map((o) => ({
+                      value: o.group.id,
+                      label: o.path,
+                    })),
+                  ]}
+                />
+              )}
+            </FieldSlot>
+          </EditorSection>
+          <EditorSection title={t("hosts.groupEditor.hostDefaults")}>
+            <p className={sectionHelp}>
+              {t("hosts.groupEditor.inheritedByHostsAnd")}
+            </p>
+            <FieldSlot name="identity" className={sheetField}>
+              {(control) => (
+                <SelectField
+                  {...control}
+                  aria-label={t("hosts.groupEditor.defaultIdentity")}
+                  value={value.identityId || NONE}
+                  onValueChange={(next) =>
+                    onChange({
+                      ...value,
+                      identityId: next === NONE ? "" : next,
+                    })
+                  }
+                  options={[
+                    {
+                      value: NONE,
+                      label: t("hosts.groupEditor.noDefaultIdentity"),
+                    },
+                    ...view.identities.map((i) => ({
+                      value: i.id,
+                      label: `${i.name} — ${i.username}`,
+                    })),
+                  ]}
+                />
+              )}
+            </FieldSlot>
+            <FieldSlot name="port">
+              {(control) => (
+                <label className={cn(portInline, "mt-[10px] text-[12px]")}>
+                  {t("hosts.groupEditor.sshPort")}
+                  <Input
+                    {...control}
+                    type="number"
+                    min={1}
+                    max={65535}
+                    value={value.port ?? ""}
+                    placeholder="22"
+                    onChange={(e) =>
+                      onChange({
+                        ...value,
+                        port:
+                          e.target.value === "" ? null : Number(e.target.value),
+                      })
+                    }
+                  />
+                </label>
+              )}
+            </FieldSlot>
+          </EditorSection>
+        </FieldErrors>
       </form>
     </Panel>
   );

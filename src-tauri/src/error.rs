@@ -46,7 +46,7 @@ impl Error {
         let own = |code: &str| json!({ "code": format!("app.{code}") });
         match self {
             Self::Sftp(e) => coded("sftp", e),
-            Self::Model(e) => coded("model", e),
+            Self::Model(e) => model_message(e),
             Self::Vault(e) => coded("vault", e),
             Self::Keychain(e) => coded("keychain", e),
             Self::Sync(e) => coded("sync", e),
@@ -88,7 +88,15 @@ pub(crate) fn model_error<S: Serializer>(
     error: &ModelError,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
-    coded("model", error).serialize(serializer)
+    model_message(error).serialize(serializer)
+}
+/// A model error also names the form field it belongs to, when there is one.
+fn model_message(error: &ModelError) -> Value {
+    let mut value = coded("model", error);
+    if let Some(field) = error.field() {
+        value["field"] = field.into();
+    }
+    value
 }
 // Tauri sends a command error to the UI as its JSON form.
 impl Serialize for Error {
@@ -110,13 +118,27 @@ mod tests {
     #[test]
     fn a_value_travels_as_params() {
         let json = serde_json::to_string(&Error::from(ModelError::GroupTooDeep(3))).unwrap();
-        assert_eq!(json, r#"{"code":"model.GroupTooDeep","params":3}"#);
+        assert_eq!(
+            json,
+            r#"{"code":"model.GroupTooDeep","field":"group","params":3}"#
+        );
     }
     #[test]
     fn a_wrapped_model_error_keeps_its_own_area() {
         let error = Error::from(VaultError::from(ModelError::KeyInUse(2)));
         let json = serde_json::to_string(&error).unwrap();
         assert_eq!(json, r#"{"code":"model.KeyInUse","params":2}"#);
+    }
+    #[test]
+    fn a_model_error_names_its_field() {
+        let json = serde_json::to_string(&Error::from(ModelError::PortInvalid)).unwrap();
+        assert_eq!(json, r#"{"code":"model.PortInvalid","field":"port"}"#);
+        let error = Error::from(VaultError::from(ModelError::GroupNameTaken("Web".into())));
+        let json = serde_json::to_string(&error).unwrap();
+        assert_eq!(
+            json,
+            r#"{"code":"model.GroupNameTaken","field":"name","params":"Web"}"#
+        );
     }
     #[test]
     fn a_library_error_travels_as_its_text() {

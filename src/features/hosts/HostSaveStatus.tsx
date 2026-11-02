@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Check, Pencil, LoaderCircle, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { WithTooltip } from "@/components/WithTooltip";
 
 export type SaveStatus = "idle" | "editing" | "saving" | "saved" | "error";
 
@@ -16,17 +17,24 @@ export function HostSaveStatus({ status }: { status: SaveStatus }) {
   const { t } = useTranslation();
   const { Icon, label } = statuses[status];
   return (
-    <span
-      role="status"
-      className={cn(
-        "ml-auto inline-flex items-center text-muted-foreground",
-        (status === "saving" || status === "saved") && "text-primary",
-        status === "error" && "text-destructive",
-      )}
-      title={t(label)}
-    >
-      <Icon className={`size-4 ${status === "saving" ? "animate-spin" : ""}`} />
-      <span className="sr-only">{t(label)}</span>
-    </span>
+    <WithTooltip label={t(label)} side="bottom">
+      <span
+        role="status"
+        data-status={status}
+        className={cn(
+          "ml-auto inline-flex items-center text-muted-foreground",
+          (status === "saving" || status === "saved") && "text-primary",
+          status === "error" && "text-destructive",
+        )}
+      >
+        <Icon
+          className={cn(
+            "size-4",
+            status === "saving" && "motion-safe:animate-spin",
+          )}
+        />
+        <span className="sr-only">{t(label)}</span>
+      </span>
+    </WithTooltip>
   );
 }

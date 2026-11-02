@@ -50,4 +50,7 @@ npm run test:desktop   # WebDriver tests on the real app (e2e/), also in CI on m
 - Add a test for new logic: Rust tests next to the code, JS tests beside the module (`*.test.ts`).
 - Everything is TypeScript. No `any` and no blanket `eslint-disable`; a single-line disable needs a one-line reason after `--`.
 - Run `npm run format` before committing; Prettier defaults, no options.
+- UI primitives come from shadcn (`npx shadcn@latest add <name>`, base-nova on Base UI) into `src/components/ui`, restyled to the app's tokens. The CLI may import `cn` from an npm package named `cn`: point it to `../../lib/utils` and do not keep that dependency.
+- Icon-only buttons use `IconButton` (its label is both the `aria-label` and the tooltip); other controls that need a hint use `WithTooltip`. Native `title` is only for truncated text.
+- Forms validate inline: `noValidate` on the form, instant checks as pure functions returning field → i18n key with the backend's own messages (`host-draft.ts`, `form-checks.ts`), shown through `useFormErrors` with `FieldErrors`, `TextField` or `FieldSlot`. The backend stays authoritative: a `ModelError` names its field (`ModelError::field`) and the editor shows it under that field. Keep the map in `src/lib/preview/require.ts` in step.
 - UI text never lives in the code: add it to every file in `src/locales/` and call `t()`. Rust never writes UI text: it sends `{ code, params }` (see `docs/rust-architecture.md`). Code, commits and docs outside `docs/guida.it.md` are in English.

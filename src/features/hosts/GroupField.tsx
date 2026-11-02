@@ -15,6 +15,7 @@ import {
   suggestions,
   suggestionsPositioner,
 } from "@/lib/editor-ui";
+import { useFieldError } from "@/components/FieldErrors";
 
 type Item = {
   key: string;
@@ -38,6 +39,7 @@ export function GroupField({
   onNewGroup: (name: string) => void;
 }) {
   const { t } = useTranslation();
+  const error = useFieldError("group");
   const [query, setQuery] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const selectedPath = value.groupId ? groupPath(groups, value.groupId) : "";
@@ -132,15 +134,18 @@ export function GroupField({
     >
       <div
         className={cn("relative [&_[data-slot=input]]:pl-[38px]", sheetField)}
+        {...error.field}
       >
         <Folder className={fieldIcon} aria-hidden="true" />
         <Combobox.Input
           render={<Input />}
           aria-label={t("hosts.groupField.folder")}
           autoComplete="off"
+          {...error.control}
           placeholder={t("hosts.groupField.folderOptional")}
         />
       </div>
+      {error.message}
       <Combobox.Portal>
         <Combobox.Positioner
           sideOffset={6}

@@ -47,6 +47,29 @@ test("host editor and discard dialog", async ({ page }) => {
   await shot(page, "discard-dialog");
 });
 
+test("host editor shows each error under its field", async ({ page }) => {
+  await page.getByRole("button", { name: "Nuovo host", exact: true }).click();
+  const form = page.locator("#host-editor-form");
+  const address = page.getByPlaceholder("IP o nome host");
+  // Nothing is flagged before the user leaves a field.
+  await expect(form.locator('[aria-invalid="true"]')).toHaveCount(0);
+  await address.fill("root@192.0.2.10");
+  await address.blur();
+  await expect(address).toHaveAttribute("aria-invalid", "true");
+  await expect(form.getByRole("alert")).toHaveText(
+    "Indirizzo IP o nome host non valido",
+  );
+  // Connect shows every remaining error and moves focus to the first one.
+  await page.getByRole("button", { name: "Connetti", exact: true }).click();
+  await expect(address).toBeFocused();
+  await expect(
+    form.getByRole("alert").filter({ hasText: "Dai un nome all’host" }),
+  ).toBeVisible();
+  await address.fill("192.0.2.10");
+  await expect(address).not.toHaveAttribute("aria-invalid", "true");
+  await shot(page, "host-editor-errors");
+});
+
 test("quick connect launcher", async ({ page }) => {
   await page.getByRole("button", { name: "Nuova connessione" }).click();
   await page.getByRole("combobox", { name: "Cerca host o schede" }).waitFor();
@@ -64,8 +87,8 @@ const openSettings = async (page: Page, section?: string) => {
   await page.getByRole("heading", { name: "Impostazioni" }).waitFor();
   if (section)
     await page
-      .getByRole("navigation", { name: "Sezioni delle impostazioni" })
-      .getByRole("button", { name: section })
+      .getByRole("tablist", { name: "Sezioni delle impostazioni" })
+      .getByRole("tab", { name: section })
       .click();
 };
 

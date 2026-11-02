@@ -82,7 +82,7 @@ test("the launch check can be turned off in the settings", async ({ page }) => {
   await explore(page, "available");
   await page.getByRole("button", { name: "Menu applicazione" }).click();
   await page.getByRole("menuitem", { name: /Impostazioni/ }).click();
-  await page.getByRole("button", { name: "Aggiornamenti" }).click();
+  await page.getByRole("tab", { name: "Aggiornamenti" }).click();
   await page.getByRole("switch", { name: "Controlla all’avvio" }).click();
   expect(
     await page.evaluate(
@@ -101,7 +101,7 @@ test("the settings card shows the version and checks on demand", async ({
   await explore(page, "available");
   await page.getByRole("button", { name: "Menu applicazione" }).click();
   await page.getByRole("menuitem", { name: /Impostazioni/ }).click();
-  await page.getByRole("button", { name: "Aggiornamenti" }).click();
+  await page.getByRole("tab", { name: "Aggiornamenti" }).click();
   const card = page.locator("section", { hasText: "Versione installata" });
   await expect(card).toContainText(/Shellnest \d+\.\d+\.\d+/);
   await expect(card.getByRole("switch")).toHaveAttribute(

@@ -1,6 +1,6 @@
 import { useApp } from "@/app/app-context";
 import { SftpWorkspace } from "@/features/sftp/SftpWorkspace";
-import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useTranslation } from "react-i18next";
 import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -165,28 +165,20 @@ export function TerminalPane({
         }
       />
       {tab.kind !== "local" && (
-        <div
-          className="mb-2 flex shrink-0 gap-1"
-          role="group"
+        <ToggleGroup
+          size="sm"
+          className="mb-2 shrink-0 gap-1"
           aria-label={t("sftp.view")}
+          value={[files ? "files" : "terminal"]}
+          onValueChange={([view]: ("terminal" | "files")[]) => {
+            if (view) tabs.setPaneView(tab.id, view);
+          }}
         >
-          <Button
-            size="sm"
-            variant={files ? "ghost" : "secondary"}
-            aria-pressed={!files}
-            onClick={() => tabs.setPaneView(tab.id, "terminal")}
-          >
+          <ToggleGroupItem value="terminal">
             {t("sftp.terminal")}
-          </Button>
-          <Button
-            size="sm"
-            variant={files ? "secondary" : "ghost"}
-            aria-pressed={files}
-            onClick={() => tabs.setPaneView(tab.id, "files")}
-          >
-            {t("sftp.files")}
-          </Button>
-        </div>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="files">{t("sftp.files")}</ToggleGroupItem>
+        </ToggleGroup>
       )}
       {filesStarted && !pendingTrust && (
         <div

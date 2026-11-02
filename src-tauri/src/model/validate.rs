@@ -21,8 +21,11 @@ impl Data {
             }
         }
         for i in &self.identities {
-            if i.username.trim().is_empty() || i.name.trim().is_empty() {
+            if i.name.trim().is_empty() {
                 return Err(ModelError::IdentityIncomplete);
+            }
+            if i.username.trim().is_empty() {
+                return Err(ModelError::UsernameMissing);
             }
             match i.auth.as_str() {
                 "key" if self.keys.iter().any(|k| k.id == i.key_id) && i.password.is_empty() => {}
@@ -52,10 +55,10 @@ impl Data {
             {
                 return Err(ModelError::GroupNameInvalid);
             }
-            if g.port == Some(0)
-                || (!g.identity_id.is_empty()
-                    && !self.identities.iter().any(|i| i.id == g.identity_id))
-            {
+            if g.port == Some(0) {
+                return Err(ModelError::PortInvalid);
+            }
+            if !g.identity_id.is_empty() && !self.identities.iter().any(|i| i.id == g.identity_id) {
                 return Err(ModelError::GroupSettingsInvalid(g.name.clone()));
             }
             if self.groups.iter().any(|o| {
@@ -76,9 +79,10 @@ impl Data {
             {
                 return Err(ModelError::HostTagsInvalid);
             }
-            if h.port == Some(0)
-                || (!h.group_id.is_empty() && !self.groups.iter().any(|g| g.id == h.group_id))
-            {
+            if h.port == Some(0) {
+                return Err(ModelError::PortInvalid);
+            }
+            if !h.group_id.is_empty() && !self.groups.iter().any(|g| g.id == h.group_id) {
                 return Err(ModelError::HostPlacementInvalid(h.name.clone()));
             }
             if let Some(credentials) = &h.credentials {
@@ -144,5 +148,56 @@ mod tests {
         );
         let future = serde_json::json!({"schema_version":7,"hosts":[],"keys":[],"identities":[],"sync_url":"","sync_token":""});
         assert!(serde_json::from_value::<Data>(future).is_err());
+    }
+    #[test]
+    fn each_refusal_points_at_one_field() {
+        let mut data = Data::default();
+        data.upsert_key(key("k")).unwrap();
+        let mut nameless = identity("i", "k", "root");
+        nameless.name = " ".into();
+        let error = data.upsert_identity(nameless).unwrap_err();
+        assert!(matches!(error, ModelError::IdentityIncomplete));
+        assert_eq!(error.field(), Some("name"));
+        let mut userless = identity("i", "k", "root");
+        userless.username = String::new();
+        let error = data.upsert_identity(userless).unwrap_err();
+        assert!(matches!(error, ModelError::UsernameMissing));
+        assert_eq!(error.field(), Some("username"));
+        data.upsert_identity(identity("i", "k", "root")).unwrap();
+        let mut portless = host("h", "i");
+        portless.port = Some(0);
+        let error = data.upsert_host(portless).unwrap_err();
+        assert!(matches!(error, ModelError::PortInvalid));
+        assert_eq!(error.field(), Some("port"));
+        let mut misplaced = host("h", "i");
+        misplaced.group_id = "missing".into();
+        let error = data.upsert_host(misplaced).unwrap_err();
+        assert!(matches!(error, ModelError::HostPlacementInvalid(_)));
+        assert_eq!(error.field(), Some("group"));
+        let mut zero = group("g", "Web", "");
+        zero.port = Some(0);
+        let error = data.upsert_group(zero).unwrap_err();
+        assert!(matches!(error, ModelError::PortInvalid));
+    }
+    #[test]
+    fn a_password_identity_needs_a_password_only_when_none_is_saved() {
+        let mut data = Data::default();
+        let mut by_password = identity("p", "", "root");
+        by_password.auth = "password".into();
+        let error = data.upsert_identity(by_password.clone()).unwrap_err();
+        assert!(matches!(error, ModelError::PasswordRequired));
+        assert_eq!(error.field(), Some("password"));
+        assert!(data.identities.is_empty());
+        by_password.password = "secret".into();
+        data.upsert_identity(by_password.clone()).unwrap();
+        // An empty password on edit keeps the saved one.
+        by_password.password = String::new();
+        by_password.name = "Ops".into();
+        data.upsert_identity(by_password).unwrap();
+        assert_eq!(data.identities[0].password, "secret");
+        // A key identity never asks for a password.
+        data.upsert_key(key("k")).unwrap();
+        data.upsert_identity(identity("k-id", "k", "deploy"))
+            .unwrap();
     }
 }

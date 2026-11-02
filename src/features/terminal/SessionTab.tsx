@@ -12,7 +12,6 @@ import {
   ContextMenuContent,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Button } from "@/components/ui/button";
 import { type TerminalTab } from "@/lib/types";
 import {
   Check,
@@ -31,6 +30,7 @@ import type { TFunction } from "i18next";
 import { useState } from "react";
 import { useApp } from "@/app/app-context";
 import { canReconnect } from "./tabs-state.ts";
+import { IconButton } from "@/components/IconButton";
 
 const tabLabel = (tab: TerminalTab, t: TFunction) =>
   tab.name ??
@@ -199,17 +199,13 @@ export function SessionTab({ tab }: { tab: TerminalTab }) {
           </TabMain>
         )}
         {ended && (
-          <Button
-            variant="ghost"
-            type="button"
-            size="icon-sm"
+          <IconButton
+            label={t("terminal.paneHeader.reconnect")}
             className="size-[24px] text-destructive hover:text-destructive"
-            aria-label={t("terminal.paneHeader.reconnect")}
-            title={t("terminal.paneHeader.reconnect")}
             onClick={() => duplicateTab(tab, true)}
           >
             <RotateCw size={13} />
-          </Button>
+          </IconButton>
         )}
         <ActionMenu
           label={t("terminal.sessionTab.tabActions", { name: tab.title })}

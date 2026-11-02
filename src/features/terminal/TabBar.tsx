@@ -1,11 +1,11 @@
 import { useTranslation } from "react-i18next";
 import { TabLead, TabMain, TabShell } from "./Tab";
-import { Button } from "@/components/ui/button";
 import { Plus, Server, SquarePlus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { fadeMask, hiddenEdges } from "./tab-fade.ts";
 import { useApp } from "@/app/app-context";
 import { SessionTab } from "./SessionTab";
+import { IconButton } from "@/components/IconButton";
 
 export function TabBar() {
   const { t } = useTranslation();
@@ -91,7 +91,7 @@ export function TabBar() {
       </TabShell>
       <div
         ref={strip}
-        className="flex min-w-0 items-center gap-[6px] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex min-w-0 items-center gap-[6px] no-scrollbar overflow-x-auto"
         style={{ maskImage: mask, WebkitMaskImage: mask }}
         onScroll={measure}
       >
@@ -103,7 +103,7 @@ export function TabBar() {
             <TabLead
               icon={<SquarePlus size={15} />}
               onClose={closeLauncher}
-              label="nuova scheda"
+              label={t("terminal.connectionLauncher.newTab")}
             />
             <TabMain
               aria-current={active === "launcher" ? "page" : undefined}
@@ -114,18 +114,15 @@ export function TabBar() {
           </TabShell>
         )}
       </div>
-      <Button
-        variant="ghost"
-        type="button"
+      <IconButton
+        label={t("terminal.tabBar.newConnection")}
+        shortcut={hint("quickConnect")}
+        side="bottom"
         className="size-[30px] shrink-0 rounded-[9px] p-0 text-muted-foreground"
-        aria-label={t("terminal.tabBar.newConnection")}
-        title={[t("terminal.tabBar.newConnection"), hint("quickConnect")]
-          .filter(Boolean)
-          .join(" · ")}
         onClick={openLauncher}
       >
         <Plus size={18} />
-      </Button>
+      </IconButton>
       <span
         className="min-w-[28px] flex-1 self-stretch"
         data-tauri-drag-region

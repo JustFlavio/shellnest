@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
   await page.getByRole("heading", { name: "Host", level: 1 }).waitFor();
   await page.getByRole("button", { name: "Menu applicazione" }).click();
   await page.getByRole("menuitem", { name: /Impostazioni/ }).click();
-  await page.getByRole("button", { name: "Scorciatoie" }).click();
+  await page.getByRole("tab", { name: "Scorciatoie" }).click();
 });
 
 const row = (page: Page, label: string) =>

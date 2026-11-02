@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { i18n } from "../i18n/i18n.ts";
-import { describeError, errorToastId } from "./error-message.ts";
+import { describeError, errorToastId, formError } from "./error-message.ts";
+import { requireValue } from "./preview/require.ts";
 
 test("describeError unwraps Error objects and plain strings", () => {
   assert.equal(describeError(new Error("network down")), "network down");
@@ -63,4 +64,24 @@ test("the refusal sentence follows its context", async () => {
 
 test("an unknown code falls back to the code itself", () => {
   assert.equal(describeError({ code: "model.Nope" }), "model.Nope");
+});
+
+test("a form error keeps the field the backend names, and the preview names the same one", async () => {
+  await i18n.changeLanguage("en");
+  assert.deepEqual(formError({ code: "model.PortInvalid", field: "port" }), {
+    text: "Enter a port from 1 to 65535",
+    field: "port",
+  });
+  assert.deepEqual(formError(new Error("offline")), {
+    text: "offline",
+    field: "",
+  });
+  assert.throws(() => requireValue(false, "model.PortInvalid"), {
+    code: "model.PortInvalid",
+    field: "port",
+  });
+  assert.throws(
+    () => requireValue(false, "model.HostNotFound"),
+    (e: object) => !("field" in e),
+  );
 });

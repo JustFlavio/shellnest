@@ -15,15 +15,17 @@ export function revealHostPassword(next: View, args: Args): string {
 
 export function saveHost(next: View, args: Args): void {
   const host = args.host as Host;
+  requireValue(host?.id && host.name?.trim(), "model.HostFieldsRequired");
   requireValue(
-    host?.id &&
-      host.name?.trim() &&
-      host.address?.trim() &&
+    host.port === null ||
+      (Number.isInteger(host.port) && host.port > 0 && host.port <= 65535),
+    "model.PortInvalid",
+  );
+  requireValue(
+    host.address?.trim() &&
       host.address.length <= 253 &&
-      !/[\s\x00-\x1f\x7f/@\\[\]]/.test(host.address) &&
-      (host.port === null ||
-        (Number.isInteger(host.port) && host.port > 0 && host.port <= 65535)),
-    "model.HostFieldsRequired",
+      !/[\s\x00-\x1f\x7f/@\\[\]]/.test(host.address),
+    "model.EndpointInvalid",
   );
   requireValue(
     !host.groupId || next.groups.some((g) => g.id === host.groupId),

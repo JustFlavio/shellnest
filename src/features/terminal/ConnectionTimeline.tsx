@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { translateMessage } from "@/i18n/message";
 import type { Message } from "@/i18n/message";
-import { Check, LoaderCircle, TriangleAlert, X } from "lucide-react";
+import { Check, TriangleAlert, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { help } from "@/lib/editor-ui";
@@ -19,6 +19,7 @@ import { phaseText, targetLabel, timelineSteps } from "./connection-steps.ts";
 import { needsMethod } from "./quick-setup.ts";
 import { useQuickSetup } from "./useQuickSetup";
 import type { StepNote, StepState } from "./connection-steps.ts";
+import { Spinner } from "@/components/ui/spinner";
 
 const dot: Record<StepState, string> = {
   done: "border-primary bg-primary text-primary-foreground",
@@ -167,10 +168,7 @@ export function ConnectionTimeline({
                   )}
                   {step.state === "failed" && <X size={12} strokeWidth={3} />}
                   {step.state === "current" && (
-                    <LoaderCircle
-                      size={14}
-                      className="motion-safe:animate-spin"
-                    />
+                    <Spinner className="size-[14px]" />
                   )}
                 </span>
                 <div

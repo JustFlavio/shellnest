@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { BrandIcon } from "@/app/BrandIcon";
 import { Button } from "@/components/ui/button";
-import { errorBox, help, muted } from "@/lib/editor-ui";
+import { help, muted } from "@/lib/editor-ui";
 import { desktop } from "@/lib/platform";
 import { useApp } from "@/app/app-context";
 import { TitleBar } from "@/app/TitleBar";
@@ -10,6 +10,7 @@ import { UnlockForm } from "./UnlockForm";
 import { VaultPanels } from "./VaultPanels";
 import { VaultSwitcher } from "./VaultSwitcher";
 import { lockLead, lockTitle } from "./vault-copy.ts";
+import { Alert } from "@/components/ui/alert";
 
 export function LockScreen() {
   const { t } = useTranslation();
@@ -36,9 +37,9 @@ export function LockScreen() {
         <h1 className="mb-[12px] text-[22px]">{lockTitle(state)}</h1>
         {lead && <p className={muted}>{lead}</p>}
         {error && (
-          <p className={errorBox} role="alert">
+          <Alert variant="destructive" className="mb-[12px]">
             {error}
-          </p>
+          </Alert>
         )}
         {interactive ? <UnlockForm /> : <BrowserGate />}
         {desktop && !view.exists && (

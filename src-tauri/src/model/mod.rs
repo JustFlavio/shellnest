@@ -35,9 +35,11 @@ pub(crate) fn new_id() -> String {
     format!("{:032x}", rand::random::<u128>())
 }
 pub(crate) fn validate_endpoint(address: &str, port: u16) -> Result<(), ModelError> {
+    if port == 0 {
+        return Err(ModelError::PortInvalid);
+    }
     if address.trim().is_empty()
         || address.len() > 253
-        || port == 0
         || address.chars().any(|c| {
             c.is_whitespace() || c.is_control() || matches!(c, '/' | '\\' | '@' | '[' | ']')
         })

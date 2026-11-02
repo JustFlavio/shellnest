@@ -94,8 +94,8 @@ test("an empty vault says nothing is saved", async ({ page }) => {
   await page.getByRole("button", { name: "Menu applicazione" }).click();
   await page.getByRole("menuitem", { name: /Impostazioni/ }).click();
   await page
-    .getByRole("navigation", { name: "Sezioni delle impostazioni" })
-    .getByRole("button", { name: "Vault" })
+    .getByRole("tablist", { name: "Sezioni delle impostazioni" })
+    .getByRole("tab", { name: "Vault" })
     .click();
   await page.getByRole("button", { name: "Nuovo vault" }).click();
   await page.getByPlaceholder(/Personale, Lavoro/).fill("Vuoto");

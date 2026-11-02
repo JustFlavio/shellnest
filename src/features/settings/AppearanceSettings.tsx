@@ -1,13 +1,11 @@
 import { useTranslation } from "react-i18next";
+import { RadioGroup, RadioGroupCard } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/use-theme";
 import { card, cardTitle } from "./settings-ui";
 import { APP_THEMES, COLOR_SCHEMES, appTheme } from "./app-themes.ts";
 import type { Palette } from "./app-themes.ts";
 import type { AppSettings } from "./settings.ts";
-
-const choice =
-  "rounded-[10px] border p-[8px] text-[13px] outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
 function MiniWindow({ palette }: { palette: Palette }) {
   return (
@@ -79,25 +77,19 @@ export function AppearanceSettings({
         <p className="mb-[12px] text-[12px] text-muted-foreground">
           {t("settings.appearance.colorSchemeHint")}
         </p>
-        <div
-          className="grid grid-cols-3 gap-[8px]"
-          role="radiogroup"
+        <RadioGroup
+          className="grid-cols-3 gap-[8px]"
           aria-label={t("settings.appearance.colorScheme")}
+          value={settings.colorScheme}
+          onValueChange={(colorScheme) =>
+            onChange({ ...settings, colorScheme })
+          }
         >
           {COLOR_SCHEMES.map((value) => (
-            <button
+            <RadioGroupCard
               key={value}
-              type="button"
-              role="radio"
-              aria-checked={settings.colorScheme === value}
-              onClick={() => onChange({ ...settings, colorScheme: value })}
-              className={cn(
-                choice,
-                "grid gap-[8px] text-center",
-                settings.colorScheme === value
-                  ? "border-primary bg-accent"
-                  : "border-border hover:bg-accent",
-              )}
+              value={value}
+              className="grid gap-[8px] text-center"
             >
               {value === "system" ? (
                 <span className="relative block" aria-hidden>
@@ -112,34 +104,26 @@ export function AppearanceSettings({
                 </span>
               )}
               {t(`settings.appearance.${value}`)}
-            </button>
+            </RadioGroupCard>
           ))}
-        </div>
+        </RadioGroup>
       </section>
       <section className={card}>
         <h3 className={cardTitle}>{t("settings.appearance.theme")}</h3>
         <p className="mb-[12px] text-[12px] text-muted-foreground">
           {t("settings.appearance.themeHint")}
         </p>
-        <div
-          className="grid grid-cols-3 gap-[8px]"
-          role="radiogroup"
+        <RadioGroup
+          className="grid-cols-3 gap-[8px]"
           aria-label={t("settings.appearance.theme")}
+          value={settings.appTheme}
+          onValueChange={(appTheme) => onChange({ ...settings, appTheme })}
         >
           {APP_THEMES.map((def) => (
-            <button
+            <RadioGroupCard
               key={def.id}
-              type="button"
-              role="radio"
-              aria-checked={settings.appTheme === def.id}
-              onClick={() => onChange({ ...settings, appTheme: def.id })}
-              className={cn(
-                choice,
-                "grid justify-items-center gap-[10px] pt-[14px]",
-                settings.appTheme === def.id
-                  ? "border-primary bg-accent"
-                  : "border-border hover:bg-accent",
-              )}
+              value={def.id}
+              className="grid justify-items-center gap-[10px] pt-[14px]"
             >
               <span className="flex gap-[10px]" aria-hidden>
                 <Swatch
@@ -152,9 +136,9 @@ export function AppearanceSettings({
                 />
               </span>
               {def.name}
-            </button>
+            </RadioGroupCard>
           ))}
-        </div>
+        </RadioGroup>
       </section>
     </div>
   );

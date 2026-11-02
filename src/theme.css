@@ -5,6 +5,9 @@
 @import "./style.css" layer(components);
 
 @custom-variant dark (&:is(.dark *));
+/* Base UI marks orientation with data-orientation; the shadcn components style it as data-horizontal/data-vertical. */
+@custom-variant data-horizontal (&[data-orientation="horizontal"]);
+@custom-variant data-vertical (&[data-orientation="vertical"]);
 
 :root {
   /* Colors: set from src/features/settings/app-themes.ts by applyAppearance. */
@@ -44,6 +47,13 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @keyframes rise {

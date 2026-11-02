@@ -37,6 +37,10 @@ impl Data {
             {
                 identity.password = old.password.clone();
             }
+            // Checked here, not in `validate`: an identity saved before this rule must not block other edits.
+            if identity.password.is_empty() {
+                return Err(ModelError::PasswordRequired);
+            }
         } else {
             identity.password.clear();
         }

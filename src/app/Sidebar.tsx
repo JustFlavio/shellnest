@@ -43,7 +43,6 @@ export function Sidebar() {
               }
               active={page === p && active === "vault"}
               aria-label={t(pageLabels[p])}
-              title={t(pageLabels[p])}
               onClick={() => navigate(p)}
             />
           );
@@ -70,7 +69,6 @@ export function Sidebar() {
                 count={groupHostCount(g.id)}
                 active={current}
                 aria-label={t("app.sidebar.folderName", { name: g.name })}
-                title={g.name}
                 onClick={() => showFolder(g.id)}
               />
             );

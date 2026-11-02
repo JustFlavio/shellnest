@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { SelectField } from "@/components/SelectField";
+import { WithTooltip } from "@/components/WithTooltip";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -8,6 +9,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { groupOptions } from "./groups.ts";
 import { cn } from "@/lib/utils";
 import {
@@ -24,6 +26,9 @@ import { useApp } from "@/app/app-context";
 
 const filterTrigger =
   "h-[30px] gap-[7px] border-input bg-card pr-[8px] pl-[10px] text-[12px] hover:border-[color-mix(in_srgb,var(--primary)_40%,var(--input))] hover:bg-accent [&>svg:first-child]:text-muted-foreground";
+
+const layoutItem =
+  "h-[26px] w-[27px] min-w-0 rounded-[4px] p-0 text-muted-foreground hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground";
 
 export function VaultToolbar() {
   const { t } = useTranslation();
@@ -46,24 +51,33 @@ export function VaultToolbar() {
   return (
     <div className="mt-[14px] flex shrink-0 items-center gap-[8px] border-b border-border px-[22px] pb-[14px] max-[1100px]:px-[18px] max-[760px]:flex-wrap">
       <div className="inline-flex items-stretch">
-        <Button
-          variant="default"
-          type="button"
-          className={cn(
-            "h-[30px] bg-clip-border focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-foreground/60",
-            page === "hosts" && "rounded-r-none",
-          )}
-          disabled={busy}
-          onClick={createNew}
-          title={page === "hosts" ? hint("newHost") || undefined : undefined}
+        <WithTooltip
+          label={
+            page === "hosts" && hint("newHost")
+              ? t("hosts.hostEditor.newHost")
+              : ""
+          }
+          shortcut={hint("newHost")}
+          side="bottom"
         >
-          <Plus size={15} />
-          {page === "hosts"
-            ? t("hosts.hostEditor.newHost")
-            : page === "identities"
-              ? t("hosts.identityEditor.newIdentity")
-              : t("hosts.emptyState.importKey")}
-        </Button>
+          <Button
+            variant="default"
+            type="button"
+            className={cn(
+              "h-[30px] bg-clip-border focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-foreground/60",
+              page === "hosts" && "rounded-r-none",
+            )}
+            disabled={busy}
+            onClick={createNew}
+          >
+            <Plus size={15} />
+            {page === "hosts"
+              ? t("hosts.hostEditor.newHost")
+              : page === "identities"
+                ? t("hosts.identityEditor.newIdentity")
+                : t("hosts.emptyState.importKey")}
+          </Button>
+        </WithTooltip>
         {page === "hosts" && (
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -95,17 +109,22 @@ export function VaultToolbar() {
         )}
       </div>
       {page === "hosts" && (
-        <Button
-          variant="ghost"
-          type="button"
-          className="h-[30px] gap-[6px] px-[10px] text-muted-foreground max-[760px]:w-[30px] max-[760px]:text-[0px]"
-          disabled={busy || preview}
-          title={hint("newLocal") || undefined}
-          onClick={openLocal}
+        <WithTooltip
+          label={t("hosts.vaultToolbar.localTerminal")}
+          shortcut={hint("newLocal")}
+          side="bottom"
         >
-          <TerminalSquare size={16} />
-          {t("hosts.vaultToolbar.localTerminal")}
-        </Button>
+          <Button
+            variant="ghost"
+            type="button"
+            className="h-[30px] gap-[6px] px-[10px] text-muted-foreground max-[760px]:w-[30px] max-[760px]:text-[0px]"
+            disabled={busy || preview}
+            onClick={openLocal}
+          >
+            <TerminalSquare size={16} />
+            {t("hosts.vaultToolbar.localTerminal")}
+          </Button>
+        </WithTooltip>
       )}
       <span className="flex-1 max-[760px]:min-w-[20px]" />
       {page === "hosts" && (
@@ -136,34 +155,34 @@ export function VaultToolbar() {
               { value: "recent", label: t("hosts.vaultToolbar.lastAccess") },
             ]}
           />
-          <div
-            className="flex items-center gap-[2px] rounded-[6px] border border-border p-[2px]"
-            role="group"
+          <ToggleGroup
+            spacing={0.5}
+            className="rounded-[6px] border border-border p-[2px]"
             aria-label={t("hosts.vaultToolbar.hostView")}
+            value={[layout]}
+            onValueChange={([next]) => {
+              if (next) changeLayout(next);
+            }}
           >
-            <Button
-              variant="ghost"
-              type="button"
-              className="h-[26px] w-[27px] rounded-[4px] p-0 text-muted-foreground aria-pressed:bg-accent aria-pressed:text-foreground"
-              title={t("hosts.vaultToolbar.cards")}
-              aria-label={t("hosts.vaultToolbar.cards")}
-              aria-pressed={layout === "cards"}
-              onClick={() => changeLayout("cards")}
-            >
-              <LayoutGrid size={16} />
-            </Button>
-            <Button
-              variant="ghost"
-              type="button"
-              className="h-[26px] w-[27px] rounded-[4px] p-0 text-muted-foreground aria-pressed:bg-accent aria-pressed:text-foreground"
-              title={t("hosts.vaultToolbar.list")}
-              aria-label={t("hosts.vaultToolbar.list")}
-              aria-pressed={layout === "list"}
-              onClick={() => changeLayout("list")}
-            >
-              <List size={17} />
-            </Button>
-          </div>
+            <WithTooltip label={t("hosts.vaultToolbar.cards")}>
+              <ToggleGroupItem
+                value="cards"
+                className={layoutItem}
+                aria-label={t("hosts.vaultToolbar.cards")}
+              >
+                <LayoutGrid size={16} />
+              </ToggleGroupItem>
+            </WithTooltip>
+            <WithTooltip label={t("hosts.vaultToolbar.list")}>
+              <ToggleGroupItem
+                value="list"
+                className={layoutItem}
+                aria-label={t("hosts.vaultToolbar.list")}
+              >
+                <List size={17} />
+              </ToggleGroupItem>
+            </WithTooltip>
+          </ToggleGroup>
         </>
       )}
     </div>

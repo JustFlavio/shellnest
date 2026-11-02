@@ -11,6 +11,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Toggle } from "@/components/ui/toggle";
+import { SelectField } from "@/components/SelectField";
+import { IconButton } from "@/components/IconButton";
+import { WithTooltip } from "@/components/WithTooltip";
 import { breadcrumbs } from "./file-state.ts";
 import type { FileBrowser } from "./useFileBrowser";
 import type { FileAction } from "./FileActionsDialog";
@@ -27,7 +32,7 @@ export function FileToolbar({
   browser: FileBrowser;
   ready: boolean;
   hidden: boolean;
-  setHidden: (value: boolean | ((old: boolean) => boolean)) => void;
+  setHidden: (value: boolean) => void;
   query: string;
   setQuery: (value: string) => void;
   selectedCount: number;
@@ -39,25 +44,14 @@ export function FileToolbar({
     label: string,
     icon: React.ReactNode,
     run: (() => void) | undefined,
-    pressed?: boolean,
   ) => (
-    <Button
-      type="button"
-      size="icon-sm"
-      variant="ghost"
-      title={label}
-      aria-label={label}
-      aria-pressed={pressed}
-      disabled={disabled || !run}
-      onClick={run}
-    >
+    <IconButton label={label} disabled={disabled || !run} onClick={run}>
       {icon}
-    </Button>
+    </IconButton>
   );
 
   return (
     <>
-      {" "}
       <div className="flex flex-wrap items-center gap-1 border-b border-border px-2 py-1">
         {iconButton(t("sftp.back"), <ArrowLeft size={14} />, browser.back)}
         {iconButton(
@@ -80,7 +74,10 @@ export function FileToolbar({
           />,
           () => void browser.refresh(),
         )}
-        <span className="mx-1 h-4 border-l border-border" />
+        <Separator
+          orientation="vertical"
+          className="mx-1 my-auto h-4 self-auto"
+        />
         {iconButton(t("sftp.mkdir"), <FolderPlus size={14} />, () =>
           setAction("mkdir"),
         )}
@@ -94,26 +91,30 @@ export function FileToolbar({
           <Trash2 size={14} />,
           selectedCount ? () => setAction("delete") : undefined,
         )}
-        {iconButton(
-          t("sftp.hidden"),
-          <Eye size={14} />,
-          () => setHidden((v) => !v),
-          hidden,
-        )}
-        <select
-          className="ml-auto max-w-24 rounded border border-border bg-background p-1 text-xs"
+        <WithTooltip label={t("sftp.hidden")}>
+          <Toggle
+            size="sm"
+            className="min-w-7 px-0 text-muted-foreground aria-pressed:text-foreground"
+            aria-label={t("sftp.hidden")}
+            pressed={hidden}
+            disabled={disabled}
+            onPressedChange={setHidden}
+          >
+            <Eye size={14} />
+          </Toggle>
+        </WithTooltip>
+        <SelectField
+          className="ml-auto h-7 max-w-32 text-xs"
           aria-label={t("sftp.roots")}
+          placeholder={t("sftp.roots")}
           value=""
           disabled={disabled}
-          onChange={(e) => void browser.navigate(e.target.value)}
-        >
-          <option value="">{t("sftp.roots")}</option>
-          {browser.directory?.roots.map((root) => (
-            <option key={root} value={root}>
-              {root}
-            </option>
-          ))}
-        </select>
+          onValueChange={(root) => void browser.navigate(root)}
+          options={(browser.directory?.roots ?? []).map((root) => ({
+            value: root,
+            label: root,
+          }))}
+        />
       </div>
       <form
         key={browser.directory?.path ?? ""}
@@ -139,14 +140,16 @@ export function FileToolbar({
         {breadcrumbs(browser.directory?.path ?? "").map((part, i) => (
           <span key={part.path} className="flex shrink-0 items-center gap-1">
             {i > 0 && part.path !== `/${part.label}` && <span>/</span>}
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="xs"
               disabled={disabled}
-              className="rounded px-1 py-1 hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
+              className="px-1 font-normal text-inherit"
               onClick={() => void browser.navigate(part.path)}
             >
               {part.label}
-            </button>
+            </Button>
           </span>
         ))}
       </nav>

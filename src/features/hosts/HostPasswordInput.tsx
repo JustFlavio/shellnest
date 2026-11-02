@@ -1,11 +1,13 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useRef, useState } from "react";
 import { describeError } from "@/lib/error-message";
-import { Eye, EyeOff, KeyRound, LoaderCircle } from "lucide-react";
+import { Eye, EyeOff, KeyRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import type { ComponentProps } from "react";
-import { errorBox, fieldIcon } from "@/lib/editor-ui";
+import { fieldIcon } from "@/lib/editor-ui";
+import { IconButton } from "@/components/IconButton";
+import { Spinner } from "@/components/ui/spinner";
+import { Alert } from "@/components/ui/alert";
 
 export function HostPasswordInput({
   hasSavedPassword,
@@ -69,16 +71,13 @@ export function HostPasswordInput({
             props.onChange?.(event);
           }}
         />
-        <Button
-          variant="ghost"
-          type="button"
-          size="icon-sm"
-          className="absolute inset-y-0 right-[5px] my-auto text-muted-foreground"
-          aria-label={
+        <IconButton
+          label={
             visible
               ? t("components.passwordInput.hidePassword")
               : t("components.passwordInput.showPassword")
           }
+          className="absolute inset-y-0 right-[5px] my-auto text-muted-foreground"
           aria-pressed={visible}
           aria-busy={loading}
           disabled={
@@ -89,18 +88,18 @@ export function HostPasswordInput({
           onClick={() => void toggle()}
         >
           {loading ? (
-            <LoaderCircle className="size-4 animate-spin" />
+            <Spinner />
           ) : visible ? (
             <EyeOff className="size-4" />
           ) : (
             <Eye className="size-4" />
           )}
-        </Button>
+        </IconButton>
       </div>
       {error && (
-        <p className={errorBox} role="alert">
+        <Alert variant="destructive" className="mb-[12px]">
           {error}
-        </p>
+        </Alert>
       )}
     </>
   );

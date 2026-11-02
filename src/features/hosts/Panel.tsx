@@ -10,8 +10,9 @@ import { ArrowLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { currentOpener } from "@/lib/opener";
 import type { ReactNode } from "react";
-import { errorBox } from "@/lib/editor-ui";
 import { panelStyles } from "./panel-styles";
+import { IconButton } from "@/components/IconButton";
+import { Alert } from "@/components/ui/alert";
 
 // Open panels are tracked through body classes (`sheet-open`, `dialog-open`,
 // `alert-open`): WebKit does not reliably re-evaluate a `body:has(...)` rule once
@@ -125,38 +126,33 @@ export function Panel({
           )}
         >
           {backLabel && (
-            <Button
-              variant="ghost"
-              type="button"
-              aria-label={backLabel}
-              title={backLabel}
+            <IconButton
+              label={backLabel}
               onClick={requestClose}
               disabled={busy}
             >
               <ArrowLeft size={18} />
-            </Button>
+            </IconButton>
           )}
           <DialogTitle className={cn("mr-auto font-semibold", styles.title)}>
             {title}
           </DialogTitle>
           {status}
           {!backLabel && (
-            <Button
-              variant="ghost"
-              type="button"
-              aria-label={t("hosts.panel.closePanel")}
+            <IconButton
+              label={t("hosts.panel.closePanel")}
               onClick={requestClose}
               disabled={busy}
             >
               <X size={18} />
-            </Button>
+            </IconButton>
           )}
         </header>
         <div className={styles.body} inert={busy ? true : undefined}>
           {error && (
-            <p className={errorBox} role="alert">
+            <Alert variant="destructive" className="mb-[12px]">
               {error}
-            </p>
+            </Alert>
           )}
           {children}
         </div>
