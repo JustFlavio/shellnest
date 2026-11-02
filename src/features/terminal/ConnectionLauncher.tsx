@@ -289,10 +289,9 @@ export function ConnectionLauncher({
                 : t("terminal.connectionLauncher.noSavedHosts")
             }
             renderRow={row}
-            renderHeading={({ id, heading }) =>
+            renderActions={({ id }) =>
               id === "hosts" && (
                 <LauncherActions
-                  heading={heading}
                   busy={busy}
                   canCreate={hostIds.length >= 2}
                   restoring={picked.length}
