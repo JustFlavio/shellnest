@@ -17,7 +17,7 @@ const source = readFileSync(join(root, "src-tauri", "app-icon.png"));
 const sizes = [16, 20, 24, 30, 32, 36, 40, 48, 60, 64, 72, 80, 96, 128, 256];
 mkdirSync(generated, { recursive: true });
 // The 1254px source's opaque artwork spans x=116..1137, y=132..1122.
-// Windows/Linux use 96% of the canvas. macOS retains an inset for its dock grid.
+// Windows/Linux use 96% of the canvas. macOS uses the native Icon Composer export.
 function generate(platform: string, viewport: string, args: string[]) {
   const svg = join(generated, `${platform}.svg`);
   writeFileSync(
@@ -38,9 +38,46 @@ for (const file of readdirSync(desktop)) {
   if (/\.(png|ico)$/.test(file))
     copyFileSync(join(desktop, file), join(output, file));
 }
-const mac = join(generated, "mac");
-generate("mac", "7 7 1240 1240", ["--output", mac]);
-copyFileSync(join(mac, "icon.icns"), join(output, "icon.icns"));
+// Other platforms preserve the checked-in macOS exports; actool requires Xcode.
+if (process.platform === "darwin") {
+  const mac = join(generated, "mac");
+  mkdirSync(mac, { recursive: true });
+  copyFileSync(
+    join(root, "src-tauri", "app-icon.png"),
+    join(output, "Shellnest.icon", "Assets", "Shellnest.png"),
+  );
+  const result = spawnSync(
+    "xcrun",
+    [
+      "actool",
+      join(output, "Shellnest.icon"),
+      "--compile",
+      mac,
+      "--platform",
+      "macosx",
+      "--minimum-deployment-target",
+      "11.0",
+      "--app-icon",
+      "Shellnest",
+      "--include-all-app-icons",
+      "--output-partial-info-plist",
+      join(mac, "partial.plist"),
+    ],
+    { cwd: root, stdio: "inherit" },
+  );
+  if (result.error) throw result.error;
+  assert.equal(result.status, 0, "Native macOS icon compilation failed");
+  for (const [from, to] of [
+    ["Assets.car", "Assets.car"],
+    ["Shellnest.icns", "icon.icns"],
+  ]) {
+    assert.ok(
+      readFileSync(join(mac, from)).length > 0,
+      `Empty icon export: ${from}`,
+    );
+    copyFileSync(join(mac, from), join(output, to));
+  }
+}
 const windows = join(generated, "windows");
 generate("windows", "94.5 94.5 1065 1065", [
   "--output",
