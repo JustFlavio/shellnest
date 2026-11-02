@@ -51,6 +51,13 @@ const terminalOptions = (settings: AppSettings) => ({
   theme: { ...terminalTheme(settings.terminalTheme).colors },
 });
 
+// xterm 6 themes the scrollable rows but leaves the outer viewport black.
+function applyViewportBackground(term: Terminal) {
+  const viewport = term.element?.querySelector<HTMLElement>(".xterm-viewport");
+  if (viewport)
+    viewport.style.backgroundColor = term.options.theme?.background ?? "";
+}
+
 export function applySettings(xterm: Xterm, settings: AppSettings) {
   const next = terminalOptions(settings);
   const options = xterm.term.options;
@@ -59,6 +66,7 @@ export function applySettings(xterm: Xterm, settings: AppSettings) {
     options.lineHeight !== next.lineHeight ||
     options.fontFamily !== next.fontFamily;
   Object.assign(options, next);
+  applyViewportBackground(xterm.term);
   if (resized) xterm.refit();
 }
 
@@ -96,6 +104,7 @@ export function openXterm(
   term.unicode.activeVersion = "11";
   term.loadAddon(search);
   term.open(container);
+  applyViewportBackground(term);
   fit.fit();
   let disposed = false;
   // Untrusted clipboard text: strip control characters (ESC could end bracketed paste
