@@ -22,7 +22,11 @@ export default defineConfig({
     {
       name: "webkit",
       use: { browserName: "webkit" },
-      testMatch: ["visual-overlay.spec.ts", "visual-first-run.spec.ts"],
+      testMatch: [
+        "visual-overlay.spec.ts",
+        "visual-first-run.spec.ts",
+        "visual-terminal-background.spec.ts",
+      ],
     },
   ],
   expect: {
