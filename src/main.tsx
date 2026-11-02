@@ -14,6 +14,15 @@ if (import.meta.env.MODE === "desktop-e2e") {
 
 if (desktop && /Mac/.test(navigator.userAgent))
   document.documentElement.classList.add("mac");
+// Cancel the webview menu after app menus and terminal paste handle the event;
+// text fields keep it for cut, copy and paste.
+document.addEventListener("contextmenu", (event) => {
+  if (
+    !(event.target instanceof Element) ||
+    !event.target.closest("input, textarea, [contenteditable='true']")
+  )
+    event.preventDefault();
+});
 trackOpener();
 // The first render waits for the language, so the interface never flashes in the wrong one.
 void applyLanguage(readSettings().language).then(() =>
