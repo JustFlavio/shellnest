@@ -62,9 +62,10 @@ test("Esc on the fingerprint card cancels and closes the tab", async ({
 }) => {
   await addHost(page, "nuovo", "nuovo.slow.test");
   await open(page, "nuovo");
-  await page
-    .getByRole("button", { name: "Impronta verificata, connetti" })
-    .waitFor();
+  // the card takes focus a frame after it shows; Escape only reaches it from inside
+  await expect(
+    page.getByRole("button", { name: "Impronta verificata, connetti" }),
+  ).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(
     page.getByRole("list", { name: "Avanzamento della connessione" }),
