@@ -83,7 +83,10 @@ export function TabBar() {
           aria-current={active === "vault" ? "page" : undefined}
           onClick={() => setActive("vault")}
         >
-          {t("vault.vaultList.vault")}
+          {/* narrow windows keep the icon only, so the session tabs keep their room */}
+          <span className="max-[760px]:sr-only">
+            {t("vault.vaultList.vault")}
+          </span>
         </TabMain>
       </TabShell>
       <div
