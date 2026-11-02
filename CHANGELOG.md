@@ -2,6 +2,26 @@
 
 All notable changes are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/). Versions below 1.0.0 may change in incompatible ways.
 
+## [0.1.5] - 2026-11-02
+
+### Added
+
+- Settings → Appearance with six app palettes (Shellnest, Fjord, Moss, Iris, Rosé and Graphite), each in light and dark variants. The default System color scheme follows the operating system live. The default terminal theme follows the app; Nord, Dracula and Solarized Dark remain independent choices.
+- Inline validation in host, identity, SSH key and folder editors, with field-specific messages, checks on blur or submit, and focus on the first invalid field. Password identities require a password; leaving it empty while editing preserves the saved password.
+
+### Changed
+
+- Shared UI controls use shadcn/Base UI primitives for consistent keyboard interaction and accessibility. Icon buttons show themed tooltips on hover and keyboard focus, including shortcuts and explanations for disabled actions. macOS uses native overlay scrollbars.
+- Visual and desktop end-to-end suites are updated and run in macOS CI; expensive CI jobs run only when their inputs change.
+
+### Fixed
+
+- The macOS app icon uses a native Icon Composer catalog on macOS 26 and later, with an ICNS fallback for older versions.
+- The selected terminal background fills the entire viewport, removing the black band below partial terminal rows.
+- Right-clicking outside editable fields no longer opens the webview's native menu. App menus and terminal right-click paste remain available; text fields retain their editing menu.
+- Launcher workspace creation and restore actions are exposed to screen readers. Session tabs keep their actions visible at the minimum window width.
+- Draft release validation has permission to read unpublished assets and can be retried independently without rebuilding.
+
 ## [0.1.4] - 2026-10-30
 
 ### Added
