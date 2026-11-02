@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Folder, File, Link } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { bytes, selectEntry } from "./file-state.ts";
 import type { FileBrowser } from "./useFileBrowser";
@@ -25,6 +26,7 @@ export function FileList({
   const disabled = !ready || browser.loading;
   const anchor = useRef<string | null>(null);
   const selected = entries.filter((e) => browser.selected.has(e.path));
+  const all = entries.length > 0 && selected.length === entries.length;
   const select = (
     entry: FileEntry,
     e: { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean },
@@ -47,18 +49,15 @@ export function FileList({
       <table className="w-full text-left text-xs">
         <thead className="sticky top-0 bg-card text-muted-foreground">
           <tr>
-            <th className="w-8 px-2 py-2">
-              <input
-                type="checkbox"
+            <th className="w-8 px-2 py-2 align-middle">
+              <Checkbox
                 aria-label={t("sftp.selectAll")}
-                checked={
-                  entries.length > 0 &&
-                  entries.every((e) => browser.selected.has(e.path))
-                }
+                checked={all}
+                indeterminate={selected.length > 0 && !all}
                 disabled={disabled || !entries.length}
-                onChange={(e) =>
+                onCheckedChange={(checked) =>
                   browser.setSelected(
-                    new Set(e.target.checked ? entries.map((x) => x.path) : []),
+                    new Set(checked && !all ? entries.map((x) => x.path) : []),
                   )
                 }
               />
@@ -81,12 +80,11 @@ export function FileList({
               )}
             >
               <td className="px-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={browser.selected.has(entry.path)}
                   aria-label={t("sftp.selectName", { name: entry.name })}
                   disabled={disabled}
-                  onChange={() =>
+                  onCheckedChange={() =>
                     browser.setSelected(
                       selectEntry(
                         entries,

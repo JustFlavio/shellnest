@@ -3,10 +3,6 @@
 export const help =
   "mt-[10px] text-[12px]! leading-[1.7] text-muted-foreground";
 export const sectionHelp = `${help} mt-[12px]`;
-export const callout =
-  "mt-[12px] rounded-[7px] border border-input bg-accent px-[12px] py-[11px] text-[12px] leading-[1.7] text-muted-foreground";
-export const errorBox =
-  "mb-[12px] rounded-[7px] border border-destructive/25 bg-destructive/5 p-[11px] text-destructive";
 export const muted = "text-[13px] leading-[1.7] text-muted-foreground";
 export const fingerprint =
   "block rounded-[6px] border border-input bg-field p-[11px] font-mono text-[12px] break-all whitespace-normal text-muted-foreground";

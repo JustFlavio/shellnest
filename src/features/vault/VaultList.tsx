@@ -6,6 +6,7 @@ import { card, cardTitle } from "@/features/settings/settings-ui";
 import type { View } from "@/lib/types";
 import { DeleteVaultDialog } from "./DeleteVaultDialog";
 import { deleteBlock } from "./vault-copy.ts";
+import { IconButton } from "@/components/IconButton";
 
 const badge =
   "rounded-[6px] border border-input px-[6px] py-[1px] text-[11px] text-muted-foreground";
@@ -28,27 +29,22 @@ function VaultActions({
   return (
     <>
       <span className={badge}>{t("vault.vaultList.active")}</span>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        type="button"
-        aria-label={t("vault.vaultList.renameName", { name })}
+      <IconButton
+        label={t("vault.vaultList.renameName", { name })}
         disabled={busy}
         onClick={onRename}
       >
         <Pencil size={14} />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        type="button"
-        aria-label={t("vault.vaultList.deleteName", { name })}
-        title={block || undefined}
+      </IconButton>
+      <IconButton
+        label={t("vault.vaultList.deleteName", { name })}
+        tooltip={block || t("vault.vaultList.deleteName", { name })}
         disabled={busy || !!block}
+        focusableWhenDisabled
         onClick={onDelete}
       >
         <Trash2 size={14} />
-      </Button>
+      </IconButton>
     </>
   );
 }

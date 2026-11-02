@@ -3,7 +3,6 @@ import { Combobox } from "@base-ui/react/combobox";
 import { UserRound, ContactRound, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { stripWhitespace } from "@/lib/input-text";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { HostDraft, Identity, SshKey } from "@/lib/types";
 import { useState } from "react";
@@ -15,6 +14,8 @@ import {
   suggestions,
   suggestionsPositioner,
 } from "@/lib/editor-ui";
+import { IconButton } from "@/components/IconButton";
+import { useFieldError } from "@/components/FieldErrors";
 
 export function HostCredentialsField({
   value,
@@ -28,6 +29,7 @@ export function HostCredentialsField({
   onChange: (value: HostDraft) => void;
 }) {
   const { t } = useTranslation();
+  const error = useFieldError("username");
   const selected = identities.find((i) => i.id === value.identityId) ?? null;
   const [open, setOpen] = useState(false);
   const credentials = value.credentials ?? {
@@ -66,6 +68,7 @@ export function HostCredentialsField({
       >
         <div
           className={cn("relative [&_[data-slot=input]]:pl-[38px]", sheetField)}
+          {...error.field}
         >
           <UserRound className={fieldIcon} aria-hidden="true" />
           <Combobox.Input
@@ -74,8 +77,10 @@ export function HostCredentialsField({
             autoComplete="off"
             placeholder={t("hosts.collectionTables.sshUser")}
             required
+            {...error.control}
           />
         </div>
+        {error.message}
         {identities.length > 0 && (
           <Combobox.Portal>
             <Combobox.Positioner
@@ -118,15 +123,13 @@ export function HostCredentialsField({
             {t("hosts.hostCredentialsField.identity")}{" "}
             <strong>{selected.name}</strong>
           </span>
-          <Button
-            variant="ghost"
-            type="button"
+          <IconButton
+            label={t("hosts.hostCredentialsField.useTheHostS")}
             size="icon-xs"
-            aria-label={t("hosts.hostCredentialsField.useTheHostS")}
             onClick={() => onChange({ ...value, identityId: "" })}
           >
             <X />
-          </Button>
+          </IconButton>
         </div>
       )}
     </>

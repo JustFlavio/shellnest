@@ -13,6 +13,8 @@ import {
   type Binding,
   type Combo,
 } from "./shortcuts.ts";
+import { IconButton } from "@/components/IconButton";
+import { Kbd } from "@/components/ui/kbd";
 
 type Overrides = Record<string, Combo[]>;
 
@@ -149,19 +151,22 @@ export function ShortcutsEditor({
               <dt>{s.label}</dt>
               <dd className="flex items-center gap-[6px]">
                 {capturing === s.id ? (
-                  <kbd>{t("settings.shortcutsEditor.pressTheCombination")}</kbd>
+                  <span className="text-primary">
+                    {t("settings.shortcutsEditor.pressTheCombination")}
+                  </span>
                 ) : s.combos.length ? (
-                  <kbd>{s.combos.map((c) => format(c, mac)).join(" / ")}</kbd>
+                  <span className="flex items-center gap-[4px]">
+                    {s.combos.map((c) => (
+                      <Kbd key={format(c, mac)}>{format(c, mac)}</Kbd>
+                    ))}
+                  </span>
                 ) : (
                   <span className="text-muted-foreground">
                     {t("settings.shortcutsEditor.none")}
                   </span>
                 )}
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  type="button"
-                  aria-label={t("settings.shortcutsEditor.editLabel", {
+                <IconButton
+                  label={t("settings.shortcutsEditor.editLabel", {
                     label: s.label,
                   })}
                   onClick={() => {
@@ -171,14 +176,17 @@ export function ShortcutsEditor({
                   }}
                 >
                   <Pencil size={14} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  type="button"
-                  aria-label={t("settings.shortcutsEditor.restoreLabel", {
+                </IconButton>
+                <IconButton
+                  label={t("settings.shortcutsEditor.restoreLabel", {
                     label: s.label,
                   })}
+                  tooltip={
+                    changed &&
+                    t("settings.shortcutsEditor.restoreLabel", {
+                      label: s.label,
+                    })
+                  }
                   disabled={!changed}
                   className={changed ? "" : "invisible"}
                   onClick={() => {
@@ -187,7 +195,7 @@ export function ShortcutsEditor({
                   }}
                 >
                   <RotateCcw size={14} />
-                </Button>
+                </IconButton>
               </dd>
             </div>
           );

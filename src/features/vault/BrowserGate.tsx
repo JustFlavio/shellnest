@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { callout } from "@/lib/editor-ui";
 import { useApp } from "@/app/app-context";
+import { Alert } from "@/components/ui/alert";
 
 export function BrowserGate() {
   const { t } = useTranslation();
@@ -10,7 +10,9 @@ export function BrowserGate() {
   } = useApp();
   return (
     <>
-      <div className={callout}>{t("vault.browserGate.inMemorySampleData")}</div>
+      <Alert className="mt-[12px]">
+        {t("vault.browserGate.inMemorySampleData")}
+      </Alert>
       <Button
         variant="default"
         type="button"

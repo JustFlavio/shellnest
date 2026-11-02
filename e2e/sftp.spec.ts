@@ -35,7 +35,7 @@ test("Files opens without a shell; transfers and the terminal survive view switc
   });
   await splitter.focus();
   await page.keyboard.press("ArrowRight");
-  await expect(splitter).toHaveAttribute("aria-valuenow", "52");
+  await expect(splitter).toHaveAttribute("aria-valuenow", "55");
   await page.getByRole("button", { name: "Terminal", exact: true }).click();
   await expect(page.locator(".xterm-helper-textarea")).toBeVisible();
   await page.evaluate(() =>

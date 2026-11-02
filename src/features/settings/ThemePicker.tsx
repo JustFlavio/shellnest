@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
+import { RadioGroup, RadioGroupCard } from "@/components/ui/radio-group";
 import { useTheme } from "@/lib/use-theme";
 import {
   MATCH_APP_THEME,
@@ -32,24 +32,17 @@ export function ThemePicker({
   return (
     <div className="border-t border-border pt-[11px] text-[13px]">
       <div className="mb-[10px]">{t("settings.themePicker.colorTheme")}</div>
-      <div
-        className="grid grid-cols-2 gap-[8px]"
-        role="radiogroup"
+      <RadioGroup
+        className="grid-cols-2 gap-[8px]"
         aria-label={t("settings.themePicker.colorTheme")}
+        value={value}
+        onValueChange={onChange}
       >
         {options.map((t) => (
-          <button
+          <RadioGroupCard
             key={t.id}
-            type="button"
-            role="radio"
-            aria-checked={value === t.id}
-            onClick={() => onChange(t.id)}
-            className={cn(
-              "flex items-center gap-[10px] rounded-[10px] border p-[8px] text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-              value === t.id
-                ? "border-primary bg-accent"
-                : "border-border hover:bg-accent",
-            )}
+            value={t.id}
+            className="flex items-center gap-[10px] text-left"
           >
             <span
               className="grid h-[34px] w-[52px] shrink-0 content-center gap-[3px] rounded-[6px] border border-border px-[6px]"
@@ -70,9 +63,9 @@ export function ThemePicker({
               />
             </span>
             {t.name}
-          </button>
+          </RadioGroupCard>
         ))}
-      </div>
+      </RadioGroup>
     </div>
   );
 }

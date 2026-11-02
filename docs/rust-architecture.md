@@ -23,7 +23,7 @@ Dependencies point down: `model` knows nothing about files or the network, `vaul
 
 Each area owns an error enum built with `thiserror`: `ModelError`, `VaultError`, `KeychainError`, `SyncError`, `TerminalError`, `SftpError`. `error::Error` wraps them (plus the lock and "vault locked/switched" cases) and is what commands return.
 
-`Error` serializes as `{ "code": "model.HostNotFound", "params": … }`: the area enums derive `Serialize` (adjacently tagged) and `error::coded` prefixes the code with the area. A one-field variant sends its value as `params`; a variant wrapping a library error sends its text. The UI translates `error.<code>` (`src/locales/`). `Display` texts are English and only for logs and tests. The connection log, timeline steps and stages use the same shape (`message::msg!`). A new variant needs its key in every locale. Internal code never builds an error from a `String`.
+`Error` serializes as `{ "code": "model.HostNotFound", "params": … }`; a model error that belongs to one form field adds `"field"` (`ModelError::field`), and the editors show it under that field: the area enums derive `Serialize` (adjacently tagged) and `error::coded` prefixes the code with the area. A one-field variant sends its value as `params`; a variant wrapping a library error sends its text. The UI translates `error.<code>` (`src/locales/`). `Display` texts are English and only for logs and tests. The connection log, timeline steps and stages use the same shape (`message::msg!`). A new variant needs its key in every locale. Internal code never builds an error from a `String`.
 
 Poisoned mutexes have one policy (`locks.rs`):
 

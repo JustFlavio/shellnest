@@ -8,6 +8,8 @@ import {
 import { cn } from "@/lib/utils";
 import { LauncherIcon } from "./LauncherIcon";
 import type { LauncherResult } from "./launcher-results.ts";
+import { Kbd } from "@/components/ui/kbd";
+import { Toggle } from "@/components/ui/toggle";
 
 const titles = {
   hosts: "hosts.hostsView.hosts",
@@ -52,18 +54,16 @@ export function SearchMenu({
       className="absolute inset-x-0 top-[46px] z-20 max-h-[min(440px,calc(100dvh-160px))] overflow-auto rounded-[12px] border border-border bg-sidebar p-[8px] shadow-[0_16px_40px_#0006]"
       onMouseDown={(event) => event.preventDefault()}
     >
-      <button
-        type="button"
-        aria-pressed={jump}
-        className={cn(
-          "mb-[6px] inline-flex h-[28px] items-center gap-[8px] rounded-full border border-border px-[12px] text-[12px] text-muted-foreground hover:text-foreground",
-          jump && "border-primary/60 text-foreground",
-        )}
-        onClick={onJump}
+      <Toggle
+        variant="outline"
+        size="sm"
+        pressed={jump}
+        className="mb-[6px] h-[28px] gap-[8px] rounded-full px-[12px] text-[12px] font-normal text-muted-foreground aria-pressed:border-primary/60 aria-pressed:bg-transparent aria-pressed:text-foreground"
+        onPressedChange={onJump}
       >
         {t("settings.shortcuts.goToTab")}
-        {jumpShortcut && <kbd className="font-normal">{jumpShortcut}</kbd>}
-      </button>
+        {jumpShortcut && <Kbd>{jumpShortcut}</Kbd>}
+      </Toggle>
       <CommandList
         label={t("terminal.searchMenu.searchResults")}
         className="max-h-none"

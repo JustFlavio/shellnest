@@ -1,5 +1,5 @@
 import { Minus, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/IconButton";
 
 export function Stepper({
   value,
@@ -25,29 +25,25 @@ export function Stepper({
     );
   return (
     <div className="flex items-center gap-[6px]">
-      <Button
+      <IconButton
+        label={decrease}
         variant="outline"
-        size="icon-sm"
-        type="button"
-        aria-label={decrease}
         disabled={value <= min}
         onClick={() => move(-step)}
       >
         <Minus size={14} />
-      </Button>
+      </IconButton>
       <span className="w-[36px] text-center tabular-nums" aria-live="polite">
         {value}
       </span>
-      <Button
+      <IconButton
+        label={increase}
         variant="outline"
-        size="icon-sm"
-        type="button"
-        aria-label={increase}
         disabled={value >= max}
         onClick={() => move(step)}
       >
         <Plus size={14} />
-      </Button>
+      </IconButton>
     </div>
   );
 }

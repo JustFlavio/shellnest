@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { translateMessage } from "@/i18n/message";
 import { bytes } from "./file-state.ts";
 import type { useSftpSession } from "./useSftpSession";
+import { IconButton } from "@/components/IconButton";
 
 export function TransferQueue({
   session,
@@ -42,14 +43,12 @@ export function TransferQueue({
                 {bytes(item.bytes)} · {t(`sftp.status.${item.status}`)}
               </span>
               {["running", "queued", "conflict"].includes(item.status) && (
-                <Button
-                  size="icon-sm"
-                  variant="ghost"
-                  aria-label={t("sftp.cancelTransfer")}
+                <IconButton
+                  label={t("sftp.cancelTransfer")}
                   onClick={() => session.cancel(item.id)}
                 >
                   <X size={14} />
-                </Button>
+                </IconButton>
               )}
             </div>
             {item.error && (

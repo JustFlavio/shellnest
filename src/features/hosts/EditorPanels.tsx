@@ -7,7 +7,7 @@ import { BackgroundPanels } from "./Panel";
 
 export function EditorPanels() {
   const {
-    vault: { view, busy, error, invokeScoped },
+    vault: { view, busy, error, errorField, invokeScoped },
     tabs: { active },
     library: {
       hostForm,
@@ -41,6 +41,7 @@ export function EditorPanels() {
           view={view}
           busy={busy}
           error={hostAutosave.error || error}
+          errorField={hostAutosave.error ? hostAutosave.errorField : errorField}
           saveStatus={hostAutosave.status}
           hasUnsavedChanges={hostAutosave.dirty}
           onRetrySave={() => void hostAutosave.flush().catch(() => {})}
@@ -61,6 +62,7 @@ export function EditorPanels() {
           view={view}
           busy={busy}
           error={error}
+          errorField={errorField}
           returnTo={groupForm.returnTo}
           onClose={closeGroupEditor}
           onSubmit={saveGroup}
@@ -73,6 +75,7 @@ export function EditorPanels() {
           view={view}
           busy={busy}
           error={error}
+          errorField={errorField}
           returnTo={hostForm ? "host" : undefined}
           onClose={closeIdentityEditor}
           onNewKey={newKeyForm}
@@ -86,6 +89,7 @@ export function EditorPanels() {
           view={view}
           busy={busy}
           error={error}
+          errorField={errorField}
           returnTo={identityForm ? "identity" : hostForm ? "host" : undefined}
           onClose={closeKeyEditor}
           onSubmit={saveKey}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { describeError } from "@/lib/error-message";
+import { formError, noFormError } from "@/lib/error-message";
+import type { FormError } from "@/lib/error-message";
 import { useLatest } from "@/lib/useLatest";
 import type { Group, Host, HostDraft, Identity } from "@/lib/types";
 import { hostDraftIsDirty, hostDraftIsValid } from "./host-draft";
@@ -29,12 +30,12 @@ export function useHostAutosave(
   const [initial, setInitial] = useState(draft);
   if (draft && draft.id !== initial?.id) setInitial(draft);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<FormError>(noFormError);
   useEffect(() => {
     acknowledged.current = null;
     saved.current = null;
     failed.current = null;
-    setError("");
+    setError(noFormError);
   }, [draft?.id, vaultId]);
 
   const flush = useCallback(
@@ -51,7 +52,7 @@ export function useHostAutosave(
       if (draft === acknowledged.current) return saved.current;
       if (!hostDraftIsDirty(draft, stored)) return stored ?? null;
       setSaving(true);
-      setError("");
+      setError(noFormError);
       const request = Promise.resolve().then(() => persist(draft));
       pending.current = request;
       try {
@@ -71,7 +72,7 @@ export function useHostAutosave(
           latest.current.vaultId === vaultId
         ) {
           failed.current = draft;
-          setError(describeError(e));
+          setError(formError(e));
         }
         throw e;
       } finally {
@@ -113,10 +114,11 @@ export function useHostAutosave(
   return {
     flush,
     dirty,
-    error,
+    error: error.text,
+    errorField: error.field,
     status: saving
       ? "saving"
-      : error && failed.current === draft
+      : error.text && failed.current === draft
         ? "error"
         : dirty
           ? "editing"

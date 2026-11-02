@@ -2,10 +2,13 @@ import { useTranslation } from "react-i18next";
 import { Radio, RotateCw, TerminalSquare, X } from "lucide-react";
 import { OsIcon } from "@/components/OsIcon";
 import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
 import type { TerminalTab } from "@/lib/types";
 import { StatusDot } from "./Tab";
 import { canReconnect } from "./tabs-state.ts";
+import { IconButton } from "@/components/IconButton";
+import { WithTooltip } from "@/components/WithTooltip";
 
 const statusLabel = {
   connecting: "terminal.paneHeader.connecting",
@@ -100,36 +103,33 @@ export function PaneHeader({
         </Button>
       )}
       {split && onToggleBroadcast && (
-        <Button
-          variant="ghost"
-          type="button"
-          size="icon-sm"
-          className={cn(
-            broadcast
-              ? "bg-primary/15 text-primary"
-              : "text-muted-foreground opacity-0 transition-opacity group-focus-within/pane:opacity-100 group-hover/pane:opacity-100",
-          )}
-          aria-label={t("terminal.paneHeader.broadcastInput")}
-          aria-pressed={broadcast}
-          title={t("terminal.paneHeader.broadcastInput")}
-          onClick={onToggleBroadcast}
-        >
-          <Radio size={15} />
-        </Button>
+        <WithTooltip label={t("terminal.paneHeader.broadcastInput")}>
+          <Toggle
+            size="sm"
+            className={cn(
+              "min-w-7 px-0 aria-pressed:bg-primary/15 aria-pressed:text-primary",
+              !broadcast &&
+                "text-muted-foreground opacity-0 transition-opacity group-focus-within/pane:opacity-100 group-hover/pane:opacity-100",
+            )}
+            aria-label={t("terminal.paneHeader.broadcastInput")}
+            pressed={broadcast}
+            onPressedChange={onToggleBroadcast}
+          >
+            <Radio size={15} />
+          </Toggle>
+        </WithTooltip>
       )}
       {split && (
-        <Button
-          variant="ghost"
-          type="button"
-          size="icon-sm"
-          className="text-muted-foreground opacity-0 transition-opacity group-focus-within/pane:opacity-100 group-hover/pane:opacity-100"
-          aria-label={t("terminal.paneHeader.closePaneName", {
+        <IconButton
+          label={t("terminal.paneHeader.closePaneName", {
             name: tab.title,
           })}
+          tooltip={t("terminal.paneHeader.closePaneName", { name: tab.title })}
+          className="text-muted-foreground opacity-0 transition-opacity group-focus-within/pane:opacity-100 group-hover/pane:opacity-100"
           onClick={onClose}
         >
           <X size={15} />
-        </Button>
+        </IconButton>
       )}
     </div>
   );

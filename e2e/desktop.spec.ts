@@ -73,22 +73,22 @@ describe("Tauri desktop with an isolated real vault", () => {
 
     await appMenu("Impostazioni", [COMMAND, ","]);
     await $(
-      '[aria-label="Sezioni delle impostazioni"] button[aria-current="page"]',
+      '[aria-label="Sezioni delle impostazioni"] [role="tab"][aria-selected="true"]',
     ).waitForDisplayed();
     assert.equal(
       await $(
-        '[aria-label="Sezioni delle impostazioni"] button[aria-current="page"]',
+        '[aria-label="Sezioni delle impostazioni"] [role="tab"][aria-selected="true"]',
       ).getText(),
       "Generale",
     );
     await $(
-      '[aria-label="Sezioni delle impostazioni"] button:nth-child(2)',
+      '[aria-label="Sezioni delle impostazioni"] [role="tab"]:nth-child(2)',
     ).click();
     await $('[aria-label="Chiudi pannello"]').click();
     await appMenu("Impostazioni", [COMMAND, ","]);
     assert.equal(
       await $(
-        '[aria-label="Sezioni delle impostazioni"] button[aria-current="page"]',
+        '[aria-label="Sezioni delle impostazioni"] [role="tab"][aria-selected="true"]',
       ).getText(),
       "Generale",
     );
@@ -133,7 +133,7 @@ describe("Tauri desktop with an isolated real vault", () => {
     await $('[role="combobox"][aria-label="Utente SSH"]').setValue("root");
     await $('[role="option"]*=E2E Login').waitForDisplayed();
     await $('[role="option"]*=E2E Login').click();
-    await $('[role="status"][title="Salvato"]').waitForDisplayed();
+    await $('[role="status"][data-status="saved"]').waitForDisplayed();
     assert.equal(await $("button=Crea identità condivisa").isExisting(), false);
     await screenshot("host-editor");
     await $('[aria-label="Chiudi pannello"]').click();
@@ -153,7 +153,7 @@ describe("Tauri desktop with an isolated real vault", () => {
     await $('[role="combobox"][aria-label="Utente SSH"]').setValue("root");
     await $('[role="option"]*=E2E Login').waitForDisplayed();
     await $('[role="option"]*=E2E Login').click();
-    await $('[role="status"][title="Salvato"]').waitForDisplayed();
+    await $('[role="status"][data-status="saved"]').waitForDisplayed();
     await $('[aria-label="Chiudi pannello"]').click();
     await $('[aria-label="Seleziona E2E Beta"]').waitForDisplayed();
 
@@ -190,7 +190,7 @@ describe("Tauri desktop with an isolated real vault", () => {
     await $('[aria-label="Chiave"]').setValue("E2E");
     await $('[role="option"]=E2E key').waitForDisplayed();
     await $('[role="option"]=E2E key').click();
-    await $('[role="status"][title="Salvato"]').waitForDisplayed();
+    await $('[role="status"][data-status="saved"]').waitForDisplayed();
     await screenshot("host-key");
     await $('[aria-label="Chiudi pannello"]').click();
 

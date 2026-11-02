@@ -1,20 +1,32 @@
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { stripWhitespace } from "@/lib/input-text";
-import { Server, LockKeyhole } from "lucide-react";
-import { OsIcon } from "@/components/OsIcon";
+import { LockKeyhole } from "lucide-react";
+import { FieldErrors } from "@/components/FieldErrors";
+import { TextField } from "@/components/TextField";
 import type { HostDraft, View } from "@/lib/types";
-import { hostDraftIsDirty, hostDraftIsValid } from "./host-draft";
+import { hostDraftErrors, hostDraftIsDirty } from "./host-draft";
+import { HostAddressField } from "./HostAddressField";
+import { useFormErrors } from "@/lib/useFormErrors";
 import { GroupField } from "./GroupField";
 import { HostAccessSection } from "./HostAccessSection";
 import { HostSaveStatus } from "./HostSaveStatus";
 import type { SaveStatus } from "./HostSaveStatus";
-import { addressIcon, sheetField, vaultBar } from "@/lib/editor-ui";
+import { sheetField, vaultBar } from "@/lib/editor-ui";
 import { EditorSection } from "./EditorSection";
 import { Panel } from "./Panel";
-import { HostPortField } from "./HostPortField";
 import { HostTagsField } from "./HostTagsField";
+
+const HOST_FIELDS = [
+  "name",
+  "address",
+  "port",
+  "group",
+  "tags",
+  "identity",
+  "username",
+  "password",
+  "key",
+];
 
 export function HostEditor({
   value,
@@ -27,6 +39,7 @@ export function HostEditor({
   onNewGroup,
   busy,
   error,
+  errorField,
   saveStatus,
   hasUnsavedChanges,
   onRetrySave,
@@ -42,6 +55,7 @@ export function HostEditor({
   onNewGroup: (name: string) => void;
   busy: boolean;
   error: string;
+  errorField: string;
   saveStatus?: SaveStatus;
   hasUnsavedChanges?: boolean;
   onRetrySave?: () => void;
@@ -50,7 +64,14 @@ export function HostEditor({
   const { t } = useTranslation();
   const existing = view.hosts.find((h) => h.id === value.id);
   const dirty = hasUnsavedChanges ?? hostDraftIsDirty(value, existing);
-  const valid = hostDraftIsValid(value, view.identities, existing, view.groups);
+  const form = useFormErrors(
+    value.id,
+    hostDraftErrors(value, view.identities, existing, view.groups),
+    HOST_FIELDS,
+    error,
+    errorField,
+  );
+  const valid = form.valid;
   return (
     <Panel
       className="host-editor"
@@ -59,7 +80,8 @@ export function HostEditor({
           ? t("hosts.hostEditor.editHost")
           : t("hosts.hostEditor.newHost")
       }
-      {...{ onClose, busy, error }}
+      {...{ onClose, busy }}
+      error={form.banner}
       dirty={dirty && (!saveStatus || !valid)}
       status={
         saveStatus && saveStatus !== "idle" ? (
@@ -83,7 +105,7 @@ export function HostEditor({
             type="submit"
             form="host-editor-form"
             className="primary"
-            disabled={busy || !valid}
+            disabled={busy}
           >
             {t("hosts.hostEditor.connect")}
           </Button>
@@ -92,77 +114,58 @@ export function HostEditor({
     >
       <form
         id="host-editor-form"
+        noValidate
+        onBlur={form.onBlur}
         onSubmit={(e) => {
           e.preventDefault();
-          onSubmit();
+          if (form.check(e.currentTarget)) onSubmit();
         }}
       >
-        <div
-          className={vaultBar}
-          aria-label={t("hosts.hostEditor.currentVault")}
-        >
-          <LockKeyhole className="size-5" aria-hidden="true" />
-          <strong>{view.vaultName}</strong>
-        </div>
-        <EditorSection title={t("hosts.hostEditor.address")}>
-          <div className="flex items-center gap-[10px]">
-            {value.os ? (
-              <OsIcon os={value.os} size="field" />
-            ) : (
-              <span className={addressIcon}>
-                <Server className="size-5" aria-hidden="true" />
-              </span>
-            )}
-            <label className="m-0! min-w-0 flex-1">
-              <span className="sr-only">{t("hosts.hostEditor.address")}</span>
-              <Input
-                autoFocus
-                required
-                value={value.address}
-                onChange={(e) =>
-                  onChange({
-                    ...value,
-                    address: stripWhitespace(e.target.value),
-                  })
-                }
-                placeholder={t("hosts.hostEditor.ipOrHostName")}
-              />
-            </label>
-            <HostPortField value={value} view={view} onChange={onChange} />
+        <FieldErrors errors={form.errors}>
+          <div
+            className={vaultBar}
+            aria-label={t("hosts.hostEditor.currentVault")}
+          >
+            <LockKeyhole className="size-5" aria-hidden="true" />
+            <strong>{view.vaultName}</strong>
           </div>
-        </EditorSection>
-        <EditorSection title={t("hosts.groupEditor.general")}>
-          <label className={sheetField}>
-            <span className="sr-only">{t("vault.vaultPanels.name")}</span>
-            <Input
+          <EditorSection title={t("hosts.hostEditor.address")}>
+            <HostAddressField value={value} view={view} onChange={onChange} />
+          </EditorSection>
+          <EditorSection title={t("hosts.groupEditor.general")}>
+            <TextField
+              name="name"
+              label={t("vault.vaultPanels.name")}
+              hideLabel
+              className={sheetField}
               required
               value={value.name}
               onChange={(e) => onChange({ ...value, name: e.target.value })}
               placeholder={t("hosts.hostEditor.hostName")}
             />
-          </label>
-          <GroupField
+            <GroupField
+              value={value}
+              groups={view.groups}
+              onChange={onChange}
+              onNewGroup={onNewGroup}
+            />
+            <HostTagsField
+              value={value.tags ?? []}
+              suggestions={[
+                ...new Set(view.hosts.flatMap((host) => host.tags ?? [])),
+              ].sort()}
+              onChange={(tags) => onChange({ ...value, tags })}
+            />
+          </EditorSection>
+          <HostAccessSection
             value={value}
-            groups={view.groups}
+            view={view}
             onChange={onChange}
-            onNewGroup={onNewGroup}
+            onNewIdentity={onNewIdentity}
+            onNewKey={onNewKey}
+            onRevealPassword={onRevealPassword}
           />
-          <HostTagsField
-            value={value.tags ?? []}
-            suggestions={[
-              ...new Set(view.hosts.flatMap((host) => host.tags ?? [])),
-            ].sort()}
-            onChange={(tags) => onChange({ ...value, tags })}
-          />
-        </EditorSection>
-        <HostAccessSection
-          value={value}
-          view={view}
-          onChange={onChange}
-          onNewIdentity={onNewIdentity}
-          onNewKey={onNewKey}
-          onRevealPassword={onRevealPassword}
-        />
+        </FieldErrors>
       </form>
     </Panel>
   );

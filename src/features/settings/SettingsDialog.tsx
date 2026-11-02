@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Panel } from "@/features/hosts/Panel";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { GeneralSettings } from "./GeneralSettings";
@@ -9,6 +10,7 @@ import type { SettingsSection } from "./SettingsNav";
 import { TerminalSettings } from "./TerminalSettings";
 import type { AppSettings } from "./settings.ts";
 import type { Binding, Combo } from "./shortcuts.ts";
+import { Alert } from "@/components/ui/alert";
 
 export function SettingsDialog({
   section,
@@ -49,16 +51,22 @@ export function SettingsDialog({
       error=""
       onClose={onClose}
     >
-      <div className="-m-[16px] flex h-[min(620px,calc(100dvh-140px))] min-h-0">
-        <SettingsNav section={section} onSection={onSection} />
-        <div
-          className="min-w-0 flex-1 overflow-auto p-[16px]"
+      <Tabs
+        orientation="vertical"
+        value={section}
+        onValueChange={(next: SettingsSection) => onSection(next)}
+        className="-m-[16px] h-[min(620px,calc(100dvh-140px))] min-h-0 flex-row gap-0"
+      >
+        <SettingsNav />
+        <TabsContent
+          value={section}
+          className="min-w-0 overflow-auto p-[16px] text-[14px]"
           inert={busy ? true : undefined}
         >
           {error && (
-            <p role="alert" className="mb-[12px] text-destructive">
+            <Alert variant="destructive" className="mb-[12px]">
               {error}
-            </p>
+            </Alert>
           )}
           {section === "general" && (
             <GeneralSettings settings={settings} onChange={onSettings} />
@@ -84,8 +92,8 @@ export function SettingsDialog({
               onResetAll={() => onOverrides({})}
             />
           )}
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     </Panel>
   );
 }

@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Plus } from "lucide-react";
 import type { Identity, IdentityForm, SshKey } from "@/lib/types";
-import { callout } from "@/lib/editor-ui";
 import { EditorSection } from "./EditorSection";
+import { Alert } from "@/components/ui/alert";
+import { useFieldError } from "@/components/FieldErrors";
 
 export function IdentityAccessSection({
   value,
@@ -21,6 +22,8 @@ export function IdentityAccessSection({
   onNewKey: () => void;
 }) {
   const { t } = useTranslation();
+  const keyError = useFieldError("key");
+  const passwordError = useFieldError("password");
   return (
     <EditorSection title={t("hosts.hostAccessSection.sshAccess")}>
       <label>
@@ -44,9 +47,10 @@ export function IdentityAccessSection({
       </label>
       {value.auth === "key" ? (
         <>
-          <label>
+          <label {...keyError.field}>
             {t("hosts.identityAccessSection.keyFromTheKey")}
             <SelectField
+              {...keyError.control}
               aria-label={t("hosts.identityAccessSection.keyFromTheKey")}
               required
               value={value.keyId}
@@ -57,6 +61,7 @@ export function IdentityAccessSection({
                 label: k.name,
               }))}
             />
+            {keyError.message}
           </label>
           <Button
             variant="link"
@@ -69,9 +74,11 @@ export function IdentityAccessSection({
           </Button>
         </>
       ) : (
-        <label>
+        <label {...passwordError.field}>
           {t("hosts.collectionTables.password")}
           <PasswordInput
+            aria-label={t("hosts.collectionTables.password")}
+            {...passwordError.control}
             autoComplete="new-password"
             required={!existing?.hasPassword}
             value={value.password}
@@ -82,14 +89,15 @@ export function IdentityAccessSection({
                 : ""
             }
           />
+          {passwordError.message}
         </label>
       )}
       {existing && existing.hostCount > 0 && (
-        <div className={callout}>
+        <Alert className="mt-[12px]">
           {t("hosts.identityAccessSection.changeAffects", {
             count: existing.hostCount,
           })}
-        </div>
+        </Alert>
       )}
     </EditorSection>
   );

@@ -3,12 +3,12 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { stripWhitespace } from "@/lib/input-text";
-import { cn } from "@/lib/utils";
 import { help } from "@/lib/editor-ui";
 import type { Identity } from "@/lib/types";
 import { QuickActions } from "./QuickActions";
 import { pickableIdentities, quickLogin } from "./quick-setup.ts";
 import type { QuickSetupState } from "./useQuickSetup";
+import { Toggle } from "@/components/ui/toggle";
 
 /** First question of a quick connection: the user, or a saved identity that brings its own. */
 export function QuickUserStep({
@@ -80,15 +80,10 @@ export function QuickUserStep({
           >
             {offered.map((identity) => (
               <li key={identity.id}>
-                <button
-                  type="button"
-                  aria-pressed={identity.id === setup.identityId}
-                  className={cn(
-                    "flex w-full items-center justify-between rounded-[8px] border-0 bg-transparent px-[10px] py-[6px] text-left text-[13px] text-foreground hover:bg-muted",
-                    identity.id === setup.identityId &&
-                      "bg-muted outline-1 outline-primary",
-                  )}
-                  onClick={() =>
+                <Toggle
+                  pressed={identity.id === setup.identityId}
+                  className="h-auto w-full justify-between rounded-[8px] px-[10px] py-[6px] text-left text-[13px] font-normal text-foreground aria-pressed:outline-1 aria-pressed:outline-primary"
+                  onPressedChange={() =>
                     patch(
                       identity.id === setup.identityId
                         ? { identityId: "" }
@@ -103,7 +98,7 @@ export function QuickUserStep({
                   <span className="text-muted-foreground">
                     {identity.username}
                   </span>
-                </button>
+                </Toggle>
               </li>
             ))}
             {!offered.length && (

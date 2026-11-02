@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialogDescription } from "@/components/ui/alert-dialog";
 import { Panel } from "@/features/hosts/Panel";
 
@@ -53,18 +54,10 @@ export function useCloseGuard() {
             : t("terminal.closeGuard.theSessionIsStill")}
         </AlertDialogDescription>
         {!restart && (
-          <div className="mt-[12px] flex items-center gap-[8px] text-[13px] text-muted-foreground">
-            <input
-              id="close-guard-never"
-              type="checkbox"
-              className="size-[16px] accent-primary"
-              checked={never}
-              onChange={(e) => setNever(e.target.checked)}
-            />
-            <label htmlFor="close-guard-never" className="cursor-pointer">
-              {t("terminal.closeGuard.donTAskMe")}
-            </label>
-          </div>
+          <label className="mt-[12px]! mb-0! flex-row! items-center gap-[8px] text-[13px]">
+            <Checkbox checked={never} onCheckedChange={setNever} />
+            {t("terminal.closeGuard.donTAskMe")}
+          </label>
         )}
         <footer>
           <Button

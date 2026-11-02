@@ -81,32 +81,21 @@ label {
   color: var(--muted-foreground);
   font-size: 13px;
 }
-input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
-  accent-color: var(--primary);
-  margin: 0;
-  cursor: pointer;
-}
-kbd {
-  font-family: inherit;
-  font-size: 12px;
-  color: var(--muted-foreground);
-}
 ::selection {
   background: var(--primary);
   color: var(--primary-foreground);
 }
-::-webkit-scrollbar {
+/* Windows only: styling the scrollbar turns off the native overlay scrollbars of macOS. */
+:root:not(.mac) ::-webkit-scrollbar {
   width: 8px;
   height: 7px;
 }
-::-webkit-scrollbar-thumb {
+:root:not(.mac) ::-webkit-scrollbar-thumb {
   background: var(--input);
   border: 2px solid var(--background);
   border-radius: 6px;
 }
-::-webkit-scrollbar-corner {
+:root:not(.mac) ::-webkit-scrollbar-corner {
   background: transparent;
 }
 @media (prefers-reduced-motion: reduce) {

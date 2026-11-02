@@ -5,9 +5,10 @@ import type { Args } from "./require";
 export function saveIdentity(next: View, args: Args): void {
   const identity = args.identity as IdentityForm;
   requireValue(
-    identity?.id && identity.name?.trim() && identity.username?.trim(),
+    identity?.id && identity.name?.trim(),
     "model.IdentityIncomplete",
   );
+  requireValue(identity.username?.trim(), "model.UsernameMissing");
   requireValue(
     identity.auth === "key" || identity.auth === "password",
     "model.IdentityKeyInvalid",
@@ -19,7 +20,9 @@ export function saveIdentity(next: View, args: Args): void {
     identity.auth === "password"
       ? hasPassword
       : next.keys.some((k) => k.id === identity.keyId),
-    "model.CredentialsRequired",
+    identity.auth === "password"
+      ? "model.PasswordRequired"
+      : "model.IdentityKeyInvalid",
   );
   next.identities = [
     ...next.identities.filter((i) => i.id !== identity.id),

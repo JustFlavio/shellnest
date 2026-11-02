@@ -164,7 +164,7 @@ const viewOf = (fields: Partial<View> = {}): View => ({
   ...emptyView,
   ...fields,
 });
-// Components called as plain functions to inspect the element tree they return.
+// Components called inside a probe component (so their hooks run) to inspect the element tree they return.
 type Panel = ReactElement<{
   children: ReactElement<{ id: string; onSubmit: unknown }>;
   footer: ReactElement<{
@@ -172,8 +172,16 @@ type Panel = ReactElement<{
   }>;
   dirty: boolean;
 }>;
-const callEditor = (Editor: unknown, props: object) =>
-  (Editor as (props: object) => Panel)(props);
+const callEditor = (Editor: unknown, props: object) => {
+  let panel: Panel | undefined;
+  renderToStaticMarkup(
+    createElement(() => {
+      panel = (Editor as (props: object) => Panel)(props);
+      return null;
+    }),
+  );
+  return panel!;
+};
 
 test("saved host password stays masked without requesting the secret during render", () => {
   let reads = 0;

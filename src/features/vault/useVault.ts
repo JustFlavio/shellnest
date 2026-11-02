@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
-import { useEffect, useRef, useState } from "react";
-import { describeError } from "@/lib/error-message";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { formError, noFormError } from "@/lib/error-message";
+import type { FormError } from "@/lib/error-message";
 import { invoke } from "@tauri-apps/api/core";
 import { desktop } from "@/lib/platform";
 import { createPreviewBackend } from "@/lib/preview";
@@ -14,7 +15,7 @@ export function useVault() {
   const { t } = useTranslation();
   const [view, setView] = useState<View>(emptyView),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
+    [failure, setFailure] = useState<FormError>(noFormError),
     [notice, setNotice] = useState(""),
     [preview, setPreview] = useState(false);
   const busyRef = useRef(false),
@@ -24,6 +25,10 @@ export function useVault() {
       null,
     );
   const currentVault = useLatest(view.vaultId);
+  const setError = useCallback(
+    (text: string) => setFailure({ text, field: "" }),
+    [],
+  );
   const invokeCommand = <T>(
     command: string,
     args: Record<string, unknown> = {},
@@ -57,7 +62,7 @@ export function useVault() {
       await operation();
     } catch (e) {
       if (toastTitle) notifyError(toastTitle, e);
-      else setError(describeError(e));
+      else setFailure(formError(e));
     } finally {
       busyRef.current = false;
       setBusy(false);
@@ -95,7 +100,8 @@ export function useVault() {
     busy,
     setBusy,
     busyRef,
-    error,
+    error: failure.text,
+    errorField: failure.field,
     setError,
     notice,
     setNotice,

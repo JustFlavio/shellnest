@@ -15,6 +15,7 @@ import { InheritedIdentityNotice } from "./InheritedIdentityNotice";
 import { OfferedIdentityNotice } from "./OfferedIdentityNotice";
 import { inheritedIdentity } from "./groups.ts";
 import { section, sheetField, subheading } from "@/lib/editor-ui";
+import { useFieldError } from "@/components/FieldErrors";
 
 export function HostAccessSection({
   value,
@@ -32,6 +33,8 @@ export function HostAccessSection({
   onRevealPassword?: () => Promise<string>;
 }) {
   const { t } = useTranslation();
+  const identityError = useFieldError("identity");
+  const passwordError = useFieldError("password");
   const existing = view.hosts.find((h) => h.id === value.id);
   const credentials = value.credentials ?? {
     username: value.username ?? "",
@@ -47,11 +50,12 @@ export function HostAccessSection({
     (i) => i.id === folderIdentity?.identityId,
   );
   return (
-    <fieldset className={section}>
+    <fieldset className={section} {...identityError.field}>
       <legend className="sr-only">
         {t("hosts.hostAccessSection.sshAccess")}
       </legend>
       <h3 className={subheading}>{t("hosts.hostAccessSection.credentials")}</h3>
+      {identityError.message}
       {value.inheritIdentity && folderIdentity ? (
         <InheritedIdentityNotice
           value={value}
@@ -80,7 +84,7 @@ export function HostAccessSection({
         </>
       )}
       {!inheriting && (selectedIdentity || credentials.keyId === undefined) && (
-        <div className={sheetField}>
+        <div className={sheetField} {...passwordError.field}>
           <HostPasswordInput
             key={`${view.vaultId}:${value.id}:${value.identityId}`}
             hasSavedPassword={!!existing?.hasPassword && !value.identityId}
@@ -101,7 +105,9 @@ export function HostAccessSection({
                 credentials: { ...credentials, password: e.target.value },
               })
             }
+            {...passwordError.control}
           />
+          {passwordError.message}
         </div>
       )}
       {!inheriting && !selectedIdentity && credentials.keyId !== undefined && (

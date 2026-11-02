@@ -114,7 +114,7 @@ test("a key from the vault, saved as a host with a new identity", async ({
   await start(page, "192.0.2.53");
   await page.getByLabel("Utente", { exact: true }).fill("admin");
   await page.getByRole("button", { name: "Avanti" }).click();
-  await page.getByLabel("Chiave", { exact: true }).check();
+  await page.getByRole("radio", { name: "Chiave", exact: true }).click();
   await page.getByRole("combobox", { name: "Chiave dal portachiavi" }).click();
   await page.getByRole("option", { name: "Personale" }).click();
   await page.getByRole("button", { name: "Continua e salva" }).click();

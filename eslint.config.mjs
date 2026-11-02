@@ -16,6 +16,7 @@ const controlComponents = [
 export default tseslint.config(
   {
     ignores: [
+      ".agents/",
       ".claude/",
       "dist/",
       "node_modules/",

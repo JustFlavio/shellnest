@@ -1,5 +1,6 @@
 import { AppContext } from "./app-context";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { LockScreen } from "@/features/vault/LockScreen";
 import { OpeningScreen } from "./OpeningScreen";
 import { useAppState } from "./useAppState";
@@ -14,13 +15,15 @@ export function App() {
   const { opening, view } = app.vault;
   return (
     <AppContext value={app}>
-      {opening ? (
-        <OpeningScreen />
-      ) : view.unlocked ? (
-        <Workbench />
-      ) : (
-        <LockScreen />
-      )}
+      <TooltipProvider>
+        {opening ? (
+          <OpeningScreen />
+        ) : view.unlocked ? (
+          <Workbench />
+        ) : (
+          <LockScreen />
+        )}
+      </TooltipProvider>
       <Toaster />
     </AppContext>
   );

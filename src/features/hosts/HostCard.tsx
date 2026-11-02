@@ -63,14 +63,16 @@ export function HostCard({
           onKeyDown={(e) =>
             hostKeyDown(h, e, busy, actions.onConnect, onSelect)
           }
-          title={endpoint(h)}
         >
           <OsIcon os={h.os} />
           <span className="min-w-0">
             <strong className="block truncate text-[13px] leading-normal font-semibold">
               {h.name}
             </strong>
-            <small className="mt-[3px] block truncate font-mono text-xs text-muted-foreground">
+            <small
+              className="mt-[3px] block truncate font-mono text-xs text-muted-foreground"
+              title={endpoint(h)}
+            >
               {i?.username || h.username
                 ? (i?.username ?? h.username) + "@"
                 : ""}

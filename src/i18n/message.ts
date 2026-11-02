@@ -1,7 +1,8 @@
 // What the Rust side sends in place of text: a code and its parameters, translated here.
 import { i18n } from "./i18n.ts";
 
-export type Message = { code: string; params?: unknown };
+// `field` names the form field a validation error belongs to.
+export type Message = { code: string; params?: unknown; field?: string };
 
 const isMessage = (value: unknown): value is Message =>
   typeof value === "object" &&

@@ -1,11 +1,14 @@
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { stripWhitespace } from "@/lib/input-text";
 import type { Identity, IdentityForm, View } from "@/lib/types";
 import { IdentityAccessSection } from "./IdentityAccessSection";
 import { EditorSection } from "./EditorSection";
 import { Panel } from "./Panel";
+import { FieldErrors } from "@/components/FieldErrors";
+import { TextField } from "@/components/TextField";
+import { useFormErrors } from "@/lib/useFormErrors";
+import { identityFormErrors } from "./form-checks.ts";
 
 const identityIsDirty = (value: IdentityForm, existing: Identity | undefined) =>
   !!value.password ||
@@ -30,6 +33,7 @@ export function IdentityEditor({
   returnTo,
   busy,
   error,
+  errorField,
 }: {
   value: IdentityForm;
   onChange: (v: IdentityForm) => void;
@@ -40,9 +44,17 @@ export function IdentityEditor({
   returnTo?: string;
   busy: boolean;
   error: string;
+  errorField: string;
 }) {
   const { t } = useTranslation();
   const existing = view.identities.find((i) => i.id === value.id);
+  const form = useFormErrors(
+    value.id,
+    identityFormErrors(value, !!existing?.hasPassword),
+    ["name", "username", "key", "password"],
+    error,
+    errorField,
+  );
   return (
     <Panel
       title={
@@ -51,7 +63,8 @@ export function IdentityEditor({
           : t("hosts.identityEditor.newIdentity")
       }
       backLabel={returnTo ? t("hosts.groupEditor.backToHost") : undefined}
-      {...{ onClose, busy, error }}
+      {...{ onClose, busy }}
+      error={form.banner}
       dirty={identityIsDirty(value, existing)}
       footer={
         <footer>
@@ -60,7 +73,7 @@ export function IdentityEditor({
             type="submit"
             form="identity-editor-form"
             className="primary"
-            disabled={busy || (value.auth === "key" && !value.keyId)}
+            disabled={busy}
           >
             {returnTo
               ? t("hosts.groupEditor.saveAndBackTo")
@@ -71,25 +84,27 @@ export function IdentityEditor({
     >
       <form
         id="identity-editor-form"
+        noValidate
+        onBlur={form.onBlur}
         onSubmit={(e) => {
           e.preventDefault();
-          onSubmit();
+          if (form.check(e.currentTarget)) onSubmit();
         }}
       >
-        <EditorSection title={t("hosts.groupEditor.general")}>
-          <label>
-            {t("vault.vaultPanels.name")}
-            <Input
+        <FieldErrors errors={form.errors}>
+          <EditorSection title={t("hosts.groupEditor.general")}>
+            <TextField
+              name="name"
+              label={t("vault.vaultPanels.name")}
               autoFocus
               required
               value={value.name}
               onChange={(e) => onChange({ ...value, name: e.target.value })}
               placeholder={t("hosts.identityEditor.eGAdministration")}
             />
-          </label>
-          <label>
-            {t("hosts.collectionTables.sshUser")}
-            <Input
+            <TextField
+              name="username"
+              label={t("hosts.collectionTables.sshUser")}
               required
               value={value.username}
               onChange={(e) =>
@@ -101,15 +116,15 @@ export function IdentityEditor({
               placeholder="root"
               autoComplete="off"
             />
-          </label>
-        </EditorSection>
-        <IdentityAccessSection
-          value={value}
-          onChange={onChange}
-          keys={view.keys}
-          existing={existing}
-          onNewKey={onNewKey}
-        />
+          </EditorSection>
+          <IdentityAccessSection
+            value={value}
+            onChange={onChange}
+            keys={view.keys}
+            existing={existing}
+            onNewKey={onNewKey}
+          />
+        </FieldErrors>
       </form>
     </Panel>
   );

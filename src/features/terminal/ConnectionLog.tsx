@@ -7,6 +7,7 @@ import type { LogEntry } from "./connection-log.ts";
 import { ConnectionLogRow } from "./ConnectionLogRow";
 import { useCopied } from "./useCopied";
 import { useStickToBottom } from "./useStickToBottom";
+import { IconButton } from "@/components/IconButton";
 
 /** The connection log, folded away until asked for. It lives in memory only, never in storage. */
 export function ConnectionLog({ lines }: { lines: LogEntry[] }) {
@@ -30,16 +31,13 @@ export function ConnectionLog({ lines }: { lines: LogEntry[] }) {
       </Button>
       {shown && (
         <div className="relative mt-[8px]">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t("terminal.connectionLog.copyLog")}
-            title={t("terminal.connectionLog.copyLog")}
+          <IconButton
+            label={t("terminal.connectionLog.copyLog")}
             onClick={() => void copy(logText(lines))}
             className="absolute top-[6px] right-[6px]"
           >
             {copied ? <Check /> : <Copy />}
-          </Button>
+          </IconButton>
           <span role="status" className="sr-only">
             {copied ? t("terminal.connectionLog.logCopied") : ""}
           </span>

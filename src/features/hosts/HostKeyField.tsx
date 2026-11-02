@@ -12,6 +12,7 @@ import {
   suggestions,
   suggestionsPositioner,
 } from "@/lib/editor-ui";
+import { useFieldError } from "@/components/FieldErrors";
 
 export function HostKeyField({
   value,
@@ -25,6 +26,7 @@ export function HostKeyField({
   onNewKey?: () => void;
 }) {
   const { t } = useTranslation();
+  const error = useFieldError("key");
   const [query, setQuery] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const selected = keys.find((key) => key.id === value) ?? null;
@@ -32,7 +34,7 @@ export function HostKeyField({
     key.name.toLocaleLowerCase().includes((query ?? "").toLocaleLowerCase()),
   );
   return (
-    <div className={sheetField}>
+    <div className={sheetField} {...error.field}>
       <Combobox.Root<SshKey>
         items={items}
         open={open}
@@ -67,6 +69,7 @@ export function HostKeyField({
             aria-label={t("hosts.hostAccessSection.key")}
             placeholder={t("hosts.hostAccessSection.chooseKey")}
             autoComplete="off"
+            {...error.control}
             onFocus={() => setOpen(true)}
           />
         </div>
@@ -103,6 +106,7 @@ export function HostKeyField({
           </Combobox.Positioner>
         </Combobox.Portal>
       </Combobox.Root>
+      {error.message}
     </div>
   );
 }

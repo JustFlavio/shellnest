@@ -1,5 +1,6 @@
 import { CommandInput } from "@/components/ui/command";
 import { InputGroupAddon } from "@/components/ui/input-group";
+import { Kbd } from "@/components/ui/kbd";
 
 export function LauncherSearch({
   value,
@@ -31,9 +32,7 @@ export function LauncherSearch({
     >
       {shortcut && (
         <InputGroupAddon align="inline-end">
-          <kbd className="text-[12px] font-normal whitespace-nowrap">
-            {shortcut}
-          </kbd>
+          <Kbd>{shortcut}</Kbd>
         </InputGroupAddon>
       )}
     </CommandInput>

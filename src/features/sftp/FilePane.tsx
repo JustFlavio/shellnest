@@ -10,6 +10,7 @@ import { FileToolbar } from "./FileToolbar";
 import { FileList, FILE_DRAG_TYPE } from "./FileList";
 import type { FileBrowser } from "./useFileBrowser";
 import type { FileEntry, Side } from "./types";
+import { Alert } from "@/components/ui/alert";
 export function FilePane({
   side,
   title,
@@ -99,9 +100,12 @@ export function FilePane({
         setAction={setAction}
       />
       {browser.error && (
-        <p role="alert" className="px-3 py-2 text-xs text-destructive">
+        <Alert
+          variant="destructive"
+          className="rounded-none border-x-0 border-t-0 px-3 py-2 text-xs"
+        >
           {browser.error}
-        </p>
+        </Alert>
       )}
       <FileList
         browser={browser}

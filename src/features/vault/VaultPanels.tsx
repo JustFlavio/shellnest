@@ -4,8 +4,9 @@ import { Panel } from "@/features/hosts/Panel";
 import { AlertDialogDescription } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { callout, help } from "@/lib/editor-ui";
+import { help } from "@/lib/editor-ui";
 import { useApp } from "@/app/app-context";
+import { Alert } from "@/components/ui/alert";
 
 export function VaultPanels() {
   const { t } = useTranslation();
@@ -67,11 +68,11 @@ export function VaultPanels() {
                   {t("vault.vaultPanels.afterCreatingItChoose")}
                 </p>
                 {tabs.length > 0 && (
-                  <div className={callout}>
+                  <Alert className="mt-[12px]">
                     {t("vault.vaultPanels.createClosesSessions", {
                       count: tabs.length,
                     })}
-                  </div>
+                  </Alert>
                 )}
               </>
             )}
@@ -115,11 +116,11 @@ export function VaultPanels() {
               components={{ strong: <strong /> }}
             />
           </AlertDialogDescription>
-          <div className={callout}>
+          <Alert className="mt-[12px]">
             {t("vault.vaultPanels.switchClosesSessions", {
               count: tabs.length,
             })}
-          </div>
+          </Alert>
           <footer>
             <Button
               variant="default"
