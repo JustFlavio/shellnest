@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Plus, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,6 @@ export function LauncherRow({
   onActivate,
   onArmDelete,
   onDelete,
-  onNewSession,
 }: {
   result: LauncherResult;
   // the row Enter opens
@@ -36,10 +35,8 @@ export function LauncherRow({
   onActivate: () => void;
   onArmDelete: () => void;
   onDelete: () => void;
-  onNewSession: () => void;
 }) {
   const { t } = useTranslation();
-  const open = !!result.openTab;
   return (
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- cmdk owns the row's own element and keyboard use goes through the search box; this only adds pointer selection
     <div
@@ -81,35 +78,10 @@ export function LauncherRow({
         <span className="min-w-0 flex-1 truncate text-[13px]">
           {result.title}
         </span>
-        {open && (
-          <span className="flex shrink-0 items-center gap-[6px] text-[12px] font-normal text-muted-foreground">
-            <span
-              className="inline-block size-[5px] rounded-full bg-[#76c5a0]"
-              aria-hidden
-            />
-            aperta
-          </span>
-        )}
         <span className="shrink-0 text-[12px] font-normal text-muted-foreground">
           {result.path}
         </span>
       </CommandItem>
-      {open && (
-        <Button
-          variant="ghost"
-          type="button"
-          className="mr-[6px] h-[28px] px-[8px] text-[12px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-          aria-label={t("terminal.launcherRow.newSessionName", {
-            name: result.title,
-          })}
-          title={t("terminal.launcherRow.newSessionShiftEnter")}
-          disabled={busy}
-          onKeyDown={stopKey}
-          onClick={onNewSession}
-        >
-          <Plus size={14} />
-        </Button>
-      )}
       {result.workspace && (
         <Button
           variant="ghost"

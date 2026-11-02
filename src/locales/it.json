@@ -786,9 +786,7 @@
       "restore": "Ripristina"
     },
     "launcherRow": {
-      "newSessionShiftEnter": "Nuova sessione (Maiusc+Invio)",
       "confirm": "Conferma",
-      "newSessionName": "Nuova sessione {{name}}",
       "deleteWorkspaceName": "Elimina workspace {{name}}"
     },
     "paneHeader": {

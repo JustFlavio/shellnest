@@ -8,7 +8,6 @@ export function LauncherPage() {
     vault: { view, busy, preview },
     preferences: { hint },
     tabs: {
-      tabs,
       bar,
       lastActive,
       launcherKey,
@@ -44,9 +43,6 @@ export function LauncherPage() {
               ? `${tab.username}@${tab.host.address}`
               : `${tab.username ? `${tab.username}@` : ""}${tab.target.address}`,
         hostId: tab.kind === "ssh" ? tab.host.id : undefined,
-        paneHostIds: tabs.flatMap((pane) =>
-          pane.parent === tab.id && pane.kind === "ssh" ? [pane.host.id] : [],
-        ),
         lastActive: lastActive(tab.id),
       }))}
       onConnect={connect}
