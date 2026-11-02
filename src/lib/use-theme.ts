@@ -1,6 +1,37 @@
-export type Theme = "light" | "dark" | "system";
+import { useSyncExternalStore } from "react";
+import type { Scheme } from "@/features/settings/app-themes.ts";
 
-// The app is dark-only for now; the owner will implement the real light/dark/system switch here and the toasts follow it.
-export function useTheme(): Theme {
-  return "dark";
+// The resolved light or dark scheme, set by applyAppearance; read where CSS variables cannot reach (toasts, xterm).
+let current: Scheme = "dark";
+const listeners = new Set<() => void>();
+
+export function setScheme(next: Scheme) {
+  if (next === current) return;
+  current = next;
+  for (const listener of listeners) listener();
+}
+
+export const currentScheme = (): Scheme => current;
+
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
+
+export function useTheme(): Scheme {
+  return useSyncExternalStore(subscribe, currentScheme);
+}
+
+const darkQuery = () => window.matchMedia("(prefers-color-scheme: dark)");
+
+export const systemDark = (): boolean => darkQuery().matches;
+
+const subscribeSystem = (listener: () => void) => {
+  const query = darkQuery();
+  query.addEventListener("change", listener);
+  return () => query.removeEventListener("change", listener);
+};
+
+export function useSystemDark(): boolean {
+  return useSyncExternalStore(subscribeSystem, systemDark);
 }

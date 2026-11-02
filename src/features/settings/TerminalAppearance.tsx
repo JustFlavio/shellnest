@@ -78,7 +78,7 @@ export function TerminalAppearance({
         />
       </Row>
       <ThemePicker
-        value={settings.terminalTheme}
+        settings={settings}
         onChange={(theme) => set("terminalTheme", theme)}
       />
     </section>

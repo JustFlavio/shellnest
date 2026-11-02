@@ -1,15 +1,34 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { TERMINAL_THEMES, type AppSettings } from "./settings.ts";
+import { useTheme } from "@/lib/use-theme";
+import {
+  MATCH_APP_THEME,
+  TERMINAL_THEMES,
+  terminalColors,
+  type AppSettings,
+} from "./settings.ts";
 
 export function ThemePicker({
-  value,
+  settings,
   onChange,
 }: {
-  value: AppSettings["terminalTheme"];
+  settings: AppSettings;
   onChange: (theme: AppSettings["terminalTheme"]) => void;
 }) {
   const { t } = useTranslation();
+  const scheme = useTheme();
+  const options = [
+    {
+      id: MATCH_APP_THEME,
+      name: t("settings.themePicker.matchApp"),
+      colors: terminalColors(
+        { appTheme: settings.appTheme, terminalTheme: MATCH_APP_THEME },
+        scheme,
+      ),
+    },
+    ...TERMINAL_THEMES,
+  ];
+  const value = settings.terminalTheme;
   return (
     <div className="border-t border-border pt-[11px] text-[13px]">
       <div className="mb-[10px]">{t("settings.themePicker.colorTheme")}</div>
@@ -18,7 +37,7 @@ export function ThemePicker({
         role="radiogroup"
         aria-label={t("settings.themePicker.colorTheme")}
       >
-        {TERMINAL_THEMES.map((t) => (
+        {options.map((t) => (
           <button
             key={t.id}
             type="button"

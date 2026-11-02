@@ -2,9 +2,10 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 export type SettingsSection =
-  "general" | "vault" | "terminal" | "shortcuts" | "updates";
+  "general" | "appearance" | "vault" | "terminal" | "shortcuts" | "updates";
 const sections = [
   { id: "general", label: "settings.settingsNav.general" },
+  { id: "appearance", label: "settings.settingsNav.appearance" },
   { id: "vault", label: "vault.vaultList.vault" },
   { id: "terminal", label: "settings.settingsNav.terminal" },
   { id: "shortcuts", label: "settings.settingsNav.shortcuts" },

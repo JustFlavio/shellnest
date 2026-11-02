@@ -7,27 +7,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #17140f;
-  --foreground: #f4efe6;
-  --header: #0f0d0a;
-  --sidebar: #1e1a14;
-  --field: #1e1a14;
-  --card: #27221a;
-  --card-foreground: #f4efe6;
-  --popover: #27221a;
-  --popover-foreground: #f4efe6;
-  --primary: #f5a524;
-  --primary-foreground: #1a1204;
-  --secondary: #27221a;
-  --secondary-foreground: #f4efe6;
-  --muted: #27221a;
-  --muted-foreground: #a89f90;
-  --accent: #3a2f1c;
-  --accent-foreground: #f4efe6;
-  --destructive: #ff6b61;
-  --border: #38322a;
-  --input: #443d33;
-  --ring: #f5a524;
+  /* Colors: set from src/features/settings/app-themes.ts by applyAppearance. */
   --radius: 0.5rem;
   --font-ui: "Geist Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono:
@@ -55,6 +35,8 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
