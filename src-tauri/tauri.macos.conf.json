@@ -1,4 +1,7 @@
 {
+  "bundle": {
+    "resources": { "icons/Assets.car": "Assets.car" }
+  },
   "app": {
     "windows": [
       {
