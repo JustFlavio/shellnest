@@ -31,6 +31,21 @@ test("terminal settings persist and apply", async ({ page }) => {
   ).toHaveAttribute("aria-checked", "true");
 });
 
+test("appearance settings persist and repaint the interface", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: "Aspetto" }).click();
+  await page.getByRole("radio", { name: "Chiaro" }).click();
+  await page.getByRole("radio", { name: "Fjord" }).click();
+  expect(await stored(page)).toMatchObject({
+    colorScheme: "light",
+    appTheme: "fjord",
+  });
+  const root = page.locator("html");
+  await expect(root).toHaveCSS("color-scheme", "light");
+  await expect(root).toHaveCSS("background-color", "rgb(246, 248, 251)");
+});
+
 test("the default vault cannot be deleted, an empty new one can", async ({
   page,
 }) => {

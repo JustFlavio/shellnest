@@ -9,7 +9,7 @@ export function NoticeBanner() {
   if (!notice) return null;
   return (
     <div
-      className="flex shrink-0 items-center gap-[10px] px-[22px] py-[10px] text-[13px] border-b border-[#76c5a025] bg-[#76c5a012] text-[#9dd5b9]"
+      className="flex shrink-0 items-center gap-[10px] px-[22px] py-[10px] text-[13px] border-b border-success/15 bg-success/7 text-success"
       role="status"
     >
       <Check size={14} />
@@ -21,7 +21,7 @@ export function NoticeBanner() {
 export function PreviewBanner() {
   const { t } = useTranslation();
   return (
-    <div className="border-b border-[#c99b4920] bg-[#c99b4910] px-[22px] py-[6px] text-[12px] text-[#c4af83]">
+    <div className="border-b border-warning/12 bg-warning/6 px-[22px] py-[6px] text-[12px] text-warning">
       {t("app.banners.interactivePreviewUsesSample")}
     </div>
   );

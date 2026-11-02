@@ -635,7 +635,8 @@
       "shortcuts": "Shortcuts",
       "updates": "Updates",
       "settingsSections": "Settings sections",
-      "general": "General"
+      "general": "General",
+      "appearance": "Appearance"
     },
     "shortcutsEditor": {
       "atLeastOneModifier": "At least one modifier (⌘, ⌃ or ⌥) is needed along with the key.",
@@ -673,7 +674,8 @@
       "from500To100000": "From 500 to 100000."
     },
     "themePicker": {
-      "colorTheme": "Color theme"
+      "colorTheme": "Color theme",
+      "matchApp": "Match the app"
     },
     "updateProgress": {
       "updateDownload": "Update download"
@@ -740,6 +742,15 @@
       "language": "Language",
       "languageHint": "“System” follows the language of the operating system.",
       "languageLabel": "Interface language"
+    },
+    "appearance": {
+      "colorScheme": "Color scheme",
+      "colorSchemeHint": "“System” follows the light or dark setting of the operating system.",
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark",
+      "theme": "Theme",
+      "themeHint": "The colors of the whole interface. Each theme has a light and a dark version."
     }
   },
   "terminal": {

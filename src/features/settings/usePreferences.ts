@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { applyLanguage } from "@/i18n/language";
 import { DEFAULT_SETTINGS, clampFontSize, parseSettings } from "./settings.ts";
 import type { AppSettings } from "./settings.ts";
 import { hint as shortcutHint, parseOverrides, resolve } from "./shortcuts.ts";
 import type { Combo } from "./shortcuts.ts";
 import { mac } from "@/lib/platform";
+import { useSystemDark } from "@/lib/use-theme";
+import { applyAppearance } from "./appearance.ts";
 
 const SETTINGS_KEY = "shellnest.settings";
 const SHORTCUTS_KEY = "shellnest.shortcuts";
@@ -35,6 +37,12 @@ export function usePreferences() {
   useEffect(() => {
     void applyLanguage(appSettings.language);
   }, [appSettings.language]);
+  const systemDark = useSystemDark();
+  const { appTheme, colorScheme } = appSettings;
+  useLayoutEffect(
+    () => applyAppearance({ appTheme, colorScheme }, systemDark),
+    [appTheme, colorScheme, systemDark],
+  );
   const [overrides, setOverrides] = useState<Record<string, Combo[]>>(() => {
     try {
       return parseOverrides(localStorage.getItem(SHORTCUTS_KEY) ?? "");

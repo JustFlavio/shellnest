@@ -16,8 +16,8 @@ export function StatusDot({
   return (
     <span
       className={cn(
-        "inline-block size-[5px] shrink-0 rounded-full bg-[#d9ad58]",
-        status === "connected" && "bg-[#76c5a0]",
+        "inline-block size-[5px] shrink-0 rounded-full bg-warning",
+        status === "connected" && "bg-success",
         status === "closed" && "bg-muted-foreground",
         className,
       )}

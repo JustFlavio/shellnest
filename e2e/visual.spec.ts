@@ -74,6 +74,14 @@ test("settings: vault", async ({ page }) => {
   await shot(page, "settings-vault");
 });
 
+test("settings: appearance, dark and light", async ({ page }) => {
+  await openSettings(page, "Aspetto");
+  await shot(page, "settings-appearance");
+  await page.getByRole("radio", { name: "Chiaro" }).click();
+  await page.mouse.move(1275, 795);
+  await shot(page, "settings-appearance-light");
+});
+
 test("settings: terminal", async ({ page }) => {
   await openSettings(page, "Terminale");
   await shot(page, "settings-terminal");

@@ -6,7 +6,7 @@ import {
   clampLineHeight,
   fontStack,
   parseSettings,
-  terminalTheme,
+  terminalColors,
 } from "./settings.ts";
 
 test("missing or corrupt storage gives the defaults", () => {
@@ -42,7 +42,6 @@ test("font stack and size helpers", () => {
   assert.equal(fontStack("Fira Code"), '"Fira Code", monospace');
   assert.equal(fontStack('"A", serif'), '"A", serif');
   assert.equal(clampFontSize(3), 8);
-  assert.equal(terminalTheme("zzz").id, "shellnest");
 });
 
 test("update checks are on by default and only a boolean turns them off", () => {
@@ -66,4 +65,33 @@ test("the language is kept when it is supported, otherwise it follows the system
   assert.equal(parseSettings('{"language":"system"}').language, "system");
   assert.equal(parseSettings('{"language":"xx"}').language, "system");
   assert.equal(parseSettings("{}").language, "system");
+});
+
+test("color scheme follows the system and the app theme falls back to Shellnest", () => {
+  assert.equal(parseSettings(null).colorScheme, "system");
+  assert.equal(parseSettings('{"colorScheme":"light"}').colorScheme, "light");
+  assert.equal(parseSettings('{"colorScheme":"sepia"}').colorScheme, "system");
+  assert.equal(parseSettings('{"appTheme":"fjord"}').appTheme, "fjord");
+  assert.equal(parseSettings('{"appTheme":"ghost"}').appTheme, "shellnest");
+});
+
+test("the match-app terminal theme takes the interface colors", () => {
+  const dark = terminalColors(
+    { terminalTheme: "shellnest", appTheme: "fjord" },
+    "dark",
+  );
+  assert.equal(dark.background, "#10151c");
+  assert.equal(dark.cursor, "#5aa9ff");
+  assert.equal(dark.red, undefined);
+  const light = terminalColors(
+    { terminalTheme: "shellnest", appTheme: "fjord" },
+    "light",
+  );
+  assert.equal(light.background, "#f6f8fb");
+  assert.ok(light.brightWhite);
+  assert.equal(
+    terminalColors({ terminalTheme: "nord", appTheme: "fjord" }, "light")
+      .background,
+    "#2e3440",
+  );
 });

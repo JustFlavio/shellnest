@@ -3,6 +3,7 @@ import { describeError } from "@/lib/error-message";
 import type { Message } from "@/i18n/message";
 import type { RefObject } from "react";
 import { useLatest } from "@/lib/useLatest";
+import { useTheme } from "@/lib/use-theme";
 import type { TerminalTab } from "@/lib/types";
 import type { AppSettings } from "@/features/settings/settings.ts";
 import type { LogEntry } from "./connection-log.ts";
@@ -65,9 +66,11 @@ export function useTerminalSession({
     search: onSearch,
     title: (title?: string) => callbacks.onTitle(tab.id, title),
   });
+  // The scheme is read inside applySettings; it is a dependency so a light/dark switch repaints.
+  const scheme = useTheme();
   useEffect(() => {
     if (xterm.current) applySettings(xterm.current, settings);
-  }, [xterm, settings]);
+  }, [xterm, settings, scheme]);
   useEffect(() => {
     if (!enabled || !container.current) return;
     const element = container.current;

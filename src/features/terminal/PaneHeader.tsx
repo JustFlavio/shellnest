@@ -23,7 +23,7 @@ function startPaneDrag(event: React.DragEvent, tab: TerminalTab) {
   chip.textContent = tab.title;
   chip.style.cssText =
     "position:fixed;top:-200px;left:-200px;padding:7px 14px;border-radius:10px;" +
-    "background:#27221a;border:1px solid #f5a524;color:#f4efe6;font:13px sans-serif;" +
+    "background:var(--card);border:1px solid var(--primary);color:var(--foreground);font:13px sans-serif;" +
     "box-shadow:0 8px 24px #0008;white-space:nowrap";
   document.body.appendChild(chip);
   event.dataTransfer.setDragImage(chip, 16, 14);

@@ -7,7 +7,8 @@ import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import "@xterm/xterm/css/xterm.css";
 import { mac } from "@/lib/platform";
-import { fontStack, terminalTheme } from "@/features/settings/settings.ts";
+import { fontStack, terminalColors } from "@/features/settings/settings.ts";
+import { currentScheme } from "@/lib/use-theme";
 import type { AppSettings } from "@/features/settings/settings.ts";
 import {
   LINE_KILL,
@@ -48,7 +49,7 @@ const terminalOptions = (settings: AppSettings) => ({
   scrollback: settings.scrollback,
   macOptionIsMeta: settings.optionAsMeta,
   drawBoldTextInBrightColors: settings.brightBold,
-  theme: { ...terminalTheme(settings.terminalTheme).colors },
+  theme: terminalColors(settings, currentScheme()),
 });
 
 // xterm 6 themes the scrollable rows but leaves the outer viewport black.

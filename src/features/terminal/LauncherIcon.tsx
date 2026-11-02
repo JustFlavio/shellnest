@@ -5,7 +5,7 @@ import type { LauncherResult } from "./launcher-results.ts";
 export function LauncherIcon({ result }: { result: LauncherResult }) {
   if (result.kind === "workspace")
     return (
-      <span className="grid size-[24px] shrink-0 place-items-center rounded-[6px] bg-[color-mix(in_oklab,#76c5a0_16%,transparent)] text-[#76c5a0]">
+      <span className="grid size-[24px] shrink-0 place-items-center rounded-[6px] bg-success/16 text-success">
         <LayoutGrid size={14} />
       </span>
     );

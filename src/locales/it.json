@@ -635,7 +635,8 @@
       "shortcuts": "Scorciatoie",
       "updates": "Aggiornamenti",
       "settingsSections": "Sezioni delle impostazioni",
-      "general": "Generale"
+      "general": "Generale",
+      "appearance": "Aspetto"
     },
     "shortcutsEditor": {
       "atLeastOneModifier": "Serve almeno un modificatore (⌘, ⌃ o ⌥) insieme al tasto.",
@@ -673,7 +674,8 @@
       "from500To100000": "Da 500 a 100000."
     },
     "themePicker": {
-      "colorTheme": "Tema colori"
+      "colorTheme": "Tema colori",
+      "matchApp": "Segui l’app"
     },
     "updateProgress": {
       "updateDownload": "Download dell’aggiornamento"
@@ -740,6 +742,15 @@
       "language": "Lingua",
       "languageHint": "“Sistema” segue la lingua del sistema operativo.",
       "languageLabel": "Lingua dell’interfaccia"
+    },
+    "appearance": {
+      "colorScheme": "Schema colori",
+      "colorSchemeHint": "“Sistema” segue l’impostazione chiara o scura del sistema operativo.",
+      "system": "Sistema",
+      "light": "Chiaro",
+      "dark": "Scuro",
+      "theme": "Tema",
+      "themeHint": "I colori di tutta l’interfaccia. Ogni tema ha una versione chiara e una scura."
     }
   },
   "terminal": {

@@ -1,14 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import type { Xterm } from "./xterm";
+import { mixHex } from "@/features/settings/app-themes.ts";
 
-// Search highlights (the addon only accepts #RRGGBB).
-const searchDecorations = {
-  matchBackground: "#5a4311",
-  matchOverviewRuler: "#f5a524",
-  activeMatchBackground: "#f5a524",
-  activeMatchColorOverviewRuler: "#f5a524",
-};
+// Search highlights in the theme's primary color (the addon only accepts #RRGGBB).
+function searchDecorations(terminalBackground = "#000000") {
+  const primary = getComputedStyle(document.documentElement)
+    .getPropertyValue("--primary")
+    .trim();
+  return {
+    matchBackground: mixHex(primary, terminalBackground, 0.35),
+    matchOverviewRuler: primary,
+    activeMatchBackground: primary,
+    activeMatchColorOverviewRuler: primary,
+  };
+}
 
 export function useTerminalSearch(xterm: RefObject<Xterm | null>) {
   const [searching, setSearching] = useState(false);
@@ -22,7 +28,12 @@ export function useTerminalSearch(xterm: RefObject<Xterm | null>) {
       setNoMatch(false);
       return;
     }
-    const options = { incremental, decorations: searchDecorations };
+    const options = {
+      incremental,
+      decorations: searchDecorations(
+        xterm.current?.term.options.theme?.background,
+      ),
+    };
     setNoMatch(
       !(forward
         ? addon?.findNext(text, options)

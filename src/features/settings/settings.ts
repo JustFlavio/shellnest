@@ -1,6 +1,8 @@
 // App settings: one flat object in localStorage. Parsing never throws; every bad field falls back to its default.
 import { LANGUAGES } from "../../i18n/i18n.ts";
 import type { LanguagePreference } from "../../i18n/i18n.ts";
+import { APP_THEMES, COLOR_SCHEMES, appTheme } from "./app-themes.ts";
+import type { ColorScheme, Scheme } from "./app-themes.ts";
 
 type TerminalColors = Record<string, string>;
 export type TerminalThemeDef = {
@@ -10,6 +12,8 @@ export type TerminalThemeDef = {
 };
 export type AppSettings = {
   language: LanguagePreference;
+  colorScheme: ColorScheme;
+  appTheme: string;
   fontFamily: string;
   fontSize: number;
   lineHeight: number;
@@ -51,17 +55,30 @@ const ansi = (c: string[]): TerminalColors => ({
   brightWhite: c[15],
 });
 
+// The terminal theme that takes its colors from the interface theme (the id predates app themes).
+export const MATCH_APP_THEME = "shellnest";
+
+// xterm's default ANSI colors are made for dark backgrounds.
+const LIGHT_ANSI = ansi([
+  "#24292f",
+  "#cf222e",
+  "#116329",
+  "#8a5a00",
+  "#0969da",
+  "#8250df",
+  "#1b7c83",
+  "#6e7781",
+  "#57606a",
+  "#a40e26",
+  "#1a7f37",
+  "#9a6700",
+  "#218bff",
+  "#a475f9",
+  "#3192aa",
+  "#8c959f",
+]);
+
 export const TERMINAL_THEMES: TerminalThemeDef[] = [
-  {
-    id: "shellnest",
-    name: "Shellnest",
-    colors: {
-      background: "#17140f",
-      foreground: "#f4efe6",
-      cursor: "#f5a524",
-      selectionBackground: "#f5a52433",
-    },
-  },
   {
     id: "nord",
     name: "Nord",
@@ -150,11 +167,13 @@ export const TERMINAL_THEMES: TerminalThemeDef[] = [
 
 export const DEFAULT_SETTINGS: AppSettings = {
   language: "system",
+  colorScheme: "system",
+  appTheme: "shellnest",
   // "" = the default stack
   fontFamily: "",
   fontSize: DEFAULT_FONT_SIZE,
   lineHeight: DEFAULT_LINE_HEIGHT,
-  terminalTheme: "shellnest",
+  terminalTheme: MATCH_APP_THEME,
   copyOnSelect: false,
   rightClickPaste: true,
   bell: false,
@@ -180,8 +199,21 @@ export const fontStack = (family: string): string => {
   return f.includes('"') || f.includes(",") ? f : `"${f}", monospace`;
 };
 
-export const terminalTheme = (id: string): TerminalThemeDef =>
-  TERMINAL_THEMES.find((t) => t.id === id) ?? TERMINAL_THEMES[0];
+export function terminalColors(
+  settings: Pick<AppSettings, "terminalTheme" | "appTheme">,
+  scheme: Scheme,
+): TerminalColors {
+  const fixed = TERMINAL_THEMES.find((t) => t.id === settings.terminalTheme);
+  if (fixed) return fixed.colors;
+  const p = appTheme(settings.appTheme)[scheme];
+  return {
+    background: p.background,
+    foreground: p.foreground,
+    cursor: p.primary,
+    selectionBackground: `${p.primary}40`,
+    ...(scheme === "light" ? LIGHT_ANSI : {}),
+  };
+}
 
 type BoolKey = {
   [K in keyof AppSettings]: AppSettings[K] extends boolean ? K : never;
@@ -212,6 +244,9 @@ export function parseSettings(text: string | null): AppSettings {
       raw.language === "system" || LANGUAGES.some((l) => l === raw.language)
         ? (raw.language as LanguagePreference)
         : d.language,
+    colorScheme:
+      COLOR_SCHEMES.find((c) => c === raw.colorScheme) ?? d.colorScheme,
+    appTheme: APP_THEMES.find((t) => t.id === raw.appTheme)?.id ?? d.appTheme,
     fontFamily:
       typeof raw.fontFamily === "string" &&
       raw.fontFamily.length <= 200 &&
@@ -224,8 +259,10 @@ export function parseSettings(text: string | null): AppSettings {
         ? clampLineHeight(raw.lineHeight)
         : d.lineHeight,
     terminalTheme:
-      TERMINAL_THEMES.find((t) => t.id === raw.terminalTheme)?.id ??
-      d.terminalTheme,
+      raw.terminalTheme === MATCH_APP_THEME
+        ? MATCH_APP_THEME
+        : (TERMINAL_THEMES.find((t) => t.id === raw.terminalTheme)?.id ??
+          d.terminalTheme),
     copyOnSelect: bool("copyOnSelect"),
     rightClickPaste: bool("rightClickPaste"),
     bell: bool("bell"),

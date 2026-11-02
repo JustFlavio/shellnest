@@ -4,8 +4,10 @@ import { App } from "@/app/App";
 import { i18n } from "@/i18n/i18n";
 import { applyLanguage } from "@/i18n/language";
 import { readSettings } from "@/features/settings/usePreferences";
+import { applyAppearance } from "@/features/settings/appearance.ts";
 import { trackOpener } from "@/lib/opener";
 import { desktop } from "@/lib/platform";
+import { systemDark } from "@/lib/use-theme";
 import "./theme.css";
 
 if (import.meta.env.MODE === "desktop-e2e") {
@@ -24,6 +26,8 @@ document.addEventListener("contextmenu", (event) => {
     event.preventDefault();
 });
 trackOpener();
+// Before the first render, so the interface never flashes in the default theme.
+applyAppearance(readSettings(), systemDark());
 // The first render waits for the language, so the interface never flashes in the wrong one.
 void applyLanguage(readSettings().language).then(() =>
   createRoot(document.getElementById("root")!).render(

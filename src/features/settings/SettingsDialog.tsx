@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
 import { Panel } from "@/features/hosts/Panel";
+import { AppearanceSettings } from "./AppearanceSettings";
 import { GeneralSettings } from "./GeneralSettings";
 import { ShortcutsEditor } from "./ShortcutsEditor";
 import { SettingsNav } from "./SettingsNav";
@@ -61,6 +62,9 @@ export function SettingsDialog({
           )}
           {section === "general" && (
             <GeneralSettings settings={settings} onChange={onSettings} />
+          )}
+          {section === "appearance" && (
+            <AppearanceSettings settings={settings} onChange={onSettings} />
           )}
           {section === "vault" && vault}
           {section === "updates" && updates}
