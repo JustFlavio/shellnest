@@ -79,6 +79,26 @@ test("the limiter blocks after repeated failures and forgets them in time", () =
   assert.equal(limiter.blocked("mario"), false);
 });
 
+test("the limiter keeps recent failures when it drops stale keys", () => {
+  let now = 0;
+  const limiter = createLimiter({
+    attempts: 3,
+    windowMs: 1000,
+    now: () => now,
+  });
+  for (let i = 0; i < 10_000; i++) limiter.fail(`stale ${i}`);
+  now = 600;
+  limiter.fail("mario");
+  limiter.fail("mario");
+  now = 1200;
+  // The map is over the threshold: this failure sweeps the stale keys.
+  limiter.fail("anna");
+  limiter.fail("mario");
+  assert.ok(limiter.blocked("mario"));
+  assert.equal(limiter.blocked("anna"), false);
+  assert.equal(limiter.blocked("stale 0"), false);
+});
+
 test("config defaults to loopback and validates the port", () => {
   assert.deepEqual(readConfig({}), {
     host: "127.0.0.1",
