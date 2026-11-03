@@ -277,3 +277,16 @@ fn sync_private(
     disk.private_dirty = false;
     Ok(private)
 }
+impl SyncError {
+    /// The field of the account forms the error belongs to, so the UI can show it there.
+    pub(crate) fn field(&self) -> Option<&'static str> {
+        Some(match self {
+            Self::UrlInvalid | Self::InsecureUrl | Self::UrlParts => "server",
+            Self::UsernameTaken | Self::UserNotFound => "username",
+            Self::WrongLogin | Self::WrongPassword | Self::PasswordTooShort => "password",
+            Self::InviteInvalid => "invite",
+            Self::RecoveryInvalid => "recoveryKey",
+            _ => return None,
+        })
+    }
+}

@@ -12,6 +12,26 @@ import { HISTORY } from "./src/store.ts";
 
 type Server = Awaited<ReturnType<typeof createSyncServer>>;
 type Json = Record<string, unknown>;
+type Reply = { status: number; json: Json & Json[] };
+type User = {
+  id: string;
+  token: string;
+  authKey: string;
+  recoveryAuth: string;
+  username: string;
+};
+type Api = {
+  base: string;
+  call: (
+    method: string,
+    path: string,
+    body?: unknown,
+    token?: string,
+  ) => Promise<Reply>;
+  register: (username: string, admin?: boolean) => Promise<User>;
+  directory: string;
+  restart: () => Promise<Api>;
+};
 
 const b64 = (n: number) => randomBytes(n).toString("base64");
 const box = () => ({ nonce: b64(24), ciphertext: b64(48) });
@@ -23,12 +43,10 @@ const sealed = () => ({
 const vaultId = () => randomBytes(16).toString("hex");
 
 // Stands in for the desktop client: random bytes in the shapes it sends.
-async function withServer(
-  fn: (api: Awaited<ReturnType<typeof start>>) => Promise<void>,
-) {
+async function withServer(fn: (api: Api) => Promise<void>) {
   const directory = await mkdtemp(join(tmpdir(), "shellnest-sync-"));
   let server: Server | undefined;
-  const start = async () => {
+  const start = async (): Promise<Api> => {
     server = await createSyncServer({ directory });
     server.listen(0, "127.0.0.1");
     await once(server, "listening");
@@ -47,7 +65,7 @@ async function withServer(
         },
         body: body === undefined ? undefined : JSON.stringify(body),
       });
-      return { status: res.status, json: (await res.json()) as Json & Json[] };
+      return { status: res.status, json: (await res.json()) as Reply["json"] };
     };
     const register = async (username: string, admin = false) => {
       const authKey = b64(32);

@@ -5,6 +5,7 @@ import { useAppUpdate } from "@/features/settings/useAppUpdate";
 import { useSettingsDialog } from "@/features/settings/useSettingsDialog";
 import { useTabDrag } from "@/features/terminal/useTabDrag";
 import { useTabs } from "@/features/terminal/useTabs";
+import { useAccount } from "@/features/vault/useAccount";
 import { useUnlock } from "@/features/vault/useUnlock";
 import { useVault } from "@/features/vault/useVault";
 import { useVaultSession } from "@/features/vault/useVaultSession";
@@ -39,9 +40,9 @@ export function useAppState() {
     onReset: () => {
       library.reset();
       unlock.reset();
-      settings.clearToken();
     },
   });
+  const account = useAccount(vault, session.leave);
   const anyPanel = !!(
     library.hostForm ||
     library.groupForm ||
@@ -54,7 +55,9 @@ export function useAppState() {
     tabs.pendingClose ||
     session.vaultDialog ||
     session.pendingSwitch ||
-    session.pendingLock
+    session.pendingLock ||
+    account.form ||
+    account.recoveryKey
   );
   return {
     vault,
@@ -68,6 +71,7 @@ export function useAppState() {
     unlock,
     sync,
     session,
+    account,
     anyPanel,
   };
 }

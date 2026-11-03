@@ -55,7 +55,13 @@ impl Error {
             Self::Model(e) => model_message(e),
             Self::Vault(e) => coded("vault", e),
             Self::Keychain(e) => coded("keychain", e),
-            Self::Sync(e) => coded("sync", e),
+            Self::Sync(e) => {
+                let mut value = coded("sync", e);
+                if let Some(field) = e.field() {
+                    value["field"] = field.into();
+                }
+                value
+            }
             Self::Terminal(e) => coded("terminal", e),
             Self::StatePoisoned => own("StatePoisoned"),
             Self::CatalogPoisoned => own("CatalogPoisoned"),

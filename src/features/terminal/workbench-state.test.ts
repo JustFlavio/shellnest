@@ -13,7 +13,6 @@ import {
   layoutRects,
   setRatio,
   terminalInputChunks,
-  syncUrlForVault,
 } from "./workbench-state.ts";
 import type { LayoutNode, SavedNode } from "./workbench-state.ts";
 
@@ -50,24 +49,6 @@ test("terminal paste chunks preserve Unicode and fit backend limit", () => {
     ),
   );
   assert.deepEqual(terminalInputChunks(""), []);
-});
-test("sync endpoints isolate newly created vaults and preserve explicit remote id", () => {
-  assert.equal(
-    syncUrlForVault("https://sync.example.com", "personal"),
-    "https://sync.example.com",
-  );
-  assert.equal(
-    syncUrlForVault("https://sync.example.com", "work"),
-    "https://sync.example.com/vaults/work",
-  );
-  assert.equal(
-    syncUrlForVault("https://sync.example.com/vault", "work"),
-    "https://sync.example.com/vaults/work",
-  );
-  assert.equal(
-    syncUrlForVault("https://sync.example.com/vaults/other", "work"),
-    "https://sync.example.com/vaults/other",
-  );
 });
 test("split layout: split, rects, resize and remove", () => {
   let l = insertLeaf({ id: "a" }, "a", { id: "b" }, "right");

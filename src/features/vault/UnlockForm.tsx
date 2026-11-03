@@ -1,41 +1,11 @@
 import { useTranslation } from "react-i18next";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { help } from "@/lib/editor-ui";
 import { desktop } from "@/lib/platform";
 import { useApp } from "@/app/app-context";
 import { unlockLabel } from "./vault-copy.ts";
-
-function RemoteVaultFields() {
-  const { t } = useTranslation();
-  const { unlock } = useApp();
-  return (
-    <>
-      <label>
-        {t("vault.unlockForm.fullUrlOfThe")}
-        <Input
-          required
-          type="url"
-          value={unlock.url}
-          onChange={(e) => unlock.setUrl(e.target.value)}
-          placeholder="https://sync.example.com"
-        />
-      </label>
-      <label>
-        {t("vault.syncSettings.token")}
-        <PasswordInput
-          autoComplete="off"
-          required
-          value={unlock.token}
-          onChange={(e) => unlock.setToken(e.target.value)}
-        />
-      </label>
-      <p className={help}>{t("vault.unlockForm.copyTheFullUrl")}</p>
-    </>
-  );
-}
 
 export function UnlockForm() {
   const { t } = useTranslation();
@@ -43,7 +13,8 @@ export function UnlockForm() {
     vault: { view, busy },
     unlock,
   } = useApp();
-  const creating = !view.exists && !unlock.restore;
+  // A vault on the server opens with the account password, the same for all its vaults.
+  const server = view.vaults.find((v) => v.id === view.vaultId)?.remote;
   return (
     <form
       onSubmit={(e) => {
@@ -51,19 +22,28 @@ export function UnlockForm() {
         unlock.submit();
       }}
     >
-      {unlock.restore && <RemoteVaultFields />}
       <label>
-        {t("vault.unlockForm.mainPassword")}
+        {server
+          ? t("vault.unlockForm.accountPassword")
+          : t("vault.unlockForm.mainPassword")}
         <PasswordInput
           autoFocus
           autoComplete={view.exists ? "current-password" : "new-password"}
-          minLength={view.exists || unlock.restore ? 1 : 12}
+          minLength={view.exists ? 1 : 12}
           required
           value={unlock.password}
           onChange={(e) => unlock.setPassword(e.target.value)}
         />
       </label>
-      {creating && (
+      {server && view.account && (
+        <p className={help}>
+          {t("vault.serverSettings.signedInAs", {
+            username: view.account.username,
+            server: view.account.server,
+          })}
+        </p>
+      )}
+      {!view.exists && (
         <label>
           {t("vault.unlockForm.confirmPassword")}
           <PasswordInput
@@ -74,7 +54,7 @@ export function UnlockForm() {
           />
         </label>
       )}
-      {desktop && !unlock.restore && (
+      {desktop && (
         <div className="mt-[16px] flex items-center justify-between gap-[12px] text-[13px]">
           {t("vault.rememberSetting.rememberOnThisDevice")}
           <Switch
@@ -90,7 +70,7 @@ export function UnlockForm() {
         className="mt-[8px] h-[40px] w-full"
         disabled={busy}
       >
-        {unlockLabel({ busy, exists: view.exists, restore: unlock.restore })}
+        {unlockLabel({ busy, exists: view.exists })}
       </Button>
     </form>
   );

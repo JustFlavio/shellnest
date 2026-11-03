@@ -30,6 +30,20 @@ const fields: Record<string, string> = {
   GroupInsideItself: "group",
 };
 
+// The form field of a sync error, as `SyncError::field` names it.
+const syncFields: Record<string, string> = {
+  UrlInvalid: "server",
+  InsecureUrl: "server",
+  UrlParts: "server",
+  UsernameTaken: "username",
+  UserNotFound: "username",
+  WrongLogin: "password",
+  WrongPassword: "password",
+  PasswordTooShort: "password",
+  InviteInvalid: "invite",
+  RecoveryInvalid: "recoveryKey",
+};
+
 /** Refuses like the Rust side does: with the `{ code, params, field }` the UI translates. */
 export function requireValue(
   condition: unknown,
@@ -37,9 +51,13 @@ export function requireValue(
   params?: unknown,
 ): void {
   if (!condition) {
-    const field = code.startsWith("model.")
-      ? fields[code.slice("model.".length)]
-      : undefined;
+    const [area, name] = code.split(".");
+    const field =
+      area === "model"
+        ? fields[name]
+        : area === "sync"
+          ? syncFields[name]
+          : undefined;
     throw field ? { code, params, field } : { code, params };
   }
 }

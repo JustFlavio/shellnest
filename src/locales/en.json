@@ -47,7 +47,8 @@
       "IdentityInUse_one": "Identity used by {{count}} host or folder. Reassign it first.",
       "IdentityInUse_other": "Identity used by {{count}} hosts or folders. Reassign them first.",
       "HostTagsInvalid": "Use up to 32 tags, each with 1–64 characters.",
-      "KeyInUseByHosts": "Key used by {{count}} hosts. Reassign them first."
+      "KeyInUseByHosts": "Key used by {{count}} hosts. Reassign them first.",
+      "ReadOnly": "You can only view this shared vault: ask an editor to make the change"
     },
     "vault": {
       "UnsupportedVersion": "Unsupported vault version",
@@ -109,19 +110,35 @@
       "UrlInvalid": "Invalid URL",
       "InsecureUrl": "Use HTTPS; HTTP is only allowed on localhost",
       "UrlParts": "URLs with credentials, a query or a fragment are not allowed",
-      "RemoteIdInvalid": "Invalid remote vault identifier",
-      "VaultUrlRequired": "For this vault use a full /vaults/<id> URL, the same on every device.",
-      "Unauthorized": "Invalid sync token",
-      "RemoteChanged": "Conflict: the remote vault has changed. Local data is kept; resolve the conflict before syncing.",
+      "Http": "{{value}}",
+      "Io": "{{value}}",
+      "Crypto": "{{value}}",
+      "Unauthorized": "The session has expired: sign in again",
+      "WrongLogin": "Wrong username or password",
+      "WrongPassword": "Wrong password",
+      "TooManyAttempts": "Too many attempts: try again in a few minutes",
+      "InviteInvalid": "The invite is invalid, used or expired",
+      "UsernameTaken": "This username is taken",
+      "RecoveryInvalid": "Wrong username or recovery key",
+      "PasswordTooShort": "Use at least 12 characters for the password",
+      "NotAllowed": "You are not allowed to do this in the vault",
+      "NotFound": "Not found on the server",
+      "UserNotFound": "No user with this name",
+      "Conflict": "The vault changed on the server meanwhile: try again",
+      "TooLarge": "The vault is too large for the server",
       "Status": "Sync failed (HTTP {{value}})",
-      "RevisionMissing": "Remote revision missing",
-      "RemoteInvalid": "Invalid remote vault",
-      "LocalChanges": "Conflict: there are local changes and a different remote revision. No data was overwritten.",
-      "RemoteRemoved": "Remote vault removed: local data kept",
-      "DifferentVault": "The server holds a different vault",
-      "RestoreUnavailable": "Restore is only available on a device with no local vault",
-      "TokenTooShort": "The token must be at least 32 characters long",
-      "Http": "{{value}}"
+      "RemoteInvalid": "The server sent an invalid answer",
+      "AccessRevoked": "Your access to this vault was removed: the local copy is kept",
+      "NotSignedIn": "Sign in to the sync server first",
+      "AlreadySignedIn": "This device is already signed in to another account: sign out first",
+      "AccountInvalid": "The account file is damaged",
+      "AccountNotSaved": "The account could not be saved",
+      "NotOnServer": "This vault is not on the server",
+      "AlreadyOnServer": "The vault is already on the server",
+      "MergeFailed": "The local and remote changes cannot be combined: the local copy is kept",
+      "LastOwner": "A vault needs at least one owner",
+      "PublicKeyChanged": "This person’s key has changed since you last shared with them: check their safety code",
+      "UnsyncedChanges": "Sync the vaults with unsent changes first"
     },
     "keychain": {
       "InvalidKey": "Invalid saved key",
@@ -251,37 +268,27 @@
       "deleteTheVault": "Delete the vault?",
       "cancel": "Cancel",
       "delete": "Delete",
-      "emptyAndRemoved": "“{{name}}” is empty and will be removed. You will return to the default vault and the open sessions will be closed."
+      "emptyAndRemoved": "“{{name}}” is empty and will be removed. You will return to the default vault and the open sessions will be closed.",
+      "leaveTheVault": "Leave the vault?",
+      "leave": "Leave",
+      "leaveAndRemoved": "“{{name}}” stays on the server for its other members; the copy on this device is removed and the open sessions are closed. To come back, an owner adds you again.",
+      "emptyAndRemovedFromServer": "“{{name}}” is empty and will be deleted, from the server too. You will return to the default vault and the open sessions will be closed."
     },
     "lockScreen": {
-      "createALocalVault": "Create a local vault",
-      "connectAnExistingVault": "Connect an existing vault",
-      "atLeast12Characters": "At least 12 characters. The main password cannot be recovered."
+      "atLeast12Characters": "At least 12 characters. The main password cannot be recovered.",
+      "back": "Back",
+      "signInToServer": "Sign in to a sync server"
     },
     "rememberSetting": {
       "rememberOnThisDevice": "Remember on this device",
       "theKeyStaysIn": "The key stays in the system keychain. “Lock vault” still asks for the password.",
-      "unlockTitle": "Unlock · {{name}}"
-    },
-    "syncSettings": {
-      "hostsIdentitiesAndKeys": "Hosts, identities and keys, encrypted.",
-      "serviceUrl": "Service URL",
-      "pathVault": "Path: /vault",
-      "token": "Token",
-      "leaveEmptyToKeep": "Leave empty to keep the existing token",
-      "atLeast32Characters": "At least 32 characters",
-      "every30SWhile": "Every 30 s while the vault is unlocked. With concurrent changes sync stops and keeps the local data.",
-      "syncNow": "Sync now",
-      "saveConfiguration": "Save configuration",
-      "title": "Sync · {{name}}",
-      "lastSyncOk": " Last successful sync: {{time}}.",
-      "pathWillBe": "/vaults/{{id}} will be used. For another device, copy the full URL after saving."
+      "unlockTitle": "Unlock · {{name}}",
+      "accountKeyStaysIn": "The account key stays in the system keychain and opens all the account’s vaults. “Lock vault” still asks for the password."
     },
     "unlockForm": {
-      "fullUrlOfThe": "Full URL of the remote vault",
-      "copyTheFullUrl": "Copy the full URL from the other device's settings, including /vaults/… when present.",
       "mainPassword": "Main password",
-      "confirmPassword": "Confirm password"
+      "confirmPassword": "Confirm password",
+      "accountPassword": "Account password"
     },
     "vaultList": {
       "active": "Active",
@@ -291,13 +298,15 @@
       "switchToThis": "Switch to this",
       "newVault": "New vault",
       "renameName": "Rename “{{name}}”",
-      "deleteName": "Delete “{{name}}”"
+      "deleteName": "Delete “{{name}}”",
+      "leaveName": "Leave “{{name}}”",
+      "onServer": "Server"
     },
     "vaultPanels": {
       "renameVault": "Rename vault",
       "name": "Name",
       "personalWorkClient": "Personal, Work, Client…",
-      "afterCreatingItChoose": "After creating it, choose the password or connect a remote vault.",
+      "afterCreatingItChoose": "After creating it, choose its password.",
       "createVault": "Create vault",
       "saveName": "Save name",
       "switchVault": "Switch vault",
@@ -314,7 +323,9 @@
       "closeSessions_one": "Close {{count}} session? Local shells and the selected SSH connections will be ended. Queued and active transfers will be cancelled.",
       "closeSessions_other": "Close {{count}} sessions? Local shells and the selected SSH connections will be ended. Queued and active transfers will be cancelled.",
       "lockAndClose_one": "Lock the vault and close the {{count}} session, including local shells? Queued and active transfers will be cancelled.",
-      "lockAndClose_other": "Lock the vault and close all {{count}} sessions, including local shells? Queued and active transfers will be cancelled."
+      "lockAndClose_other": "Lock the vault and close all {{count}} sessions, including local shells? Queued and active transfers will be cancelled.",
+      "onServer": "On the sync server",
+      "onServerHelp": "It opens with your account password and can be shared with colleagues."
     },
     "vaultPicker": {
       "yourVaults": "Your vaults",
@@ -339,13 +350,7 @@
       "retry": "Retry"
     },
     "vaultCopy": {
-      "setUpSync": "Set up sync",
-      "syncing": "Syncing…",
-      "syncFailedRetry": "Sync failed · Retry",
-      "toSync": "To sync",
-      "syncSetUp": "Sync set up",
       "unlockVault": "Unlock vault",
-      "connectDevice": "Connect device",
       "createLocalVault": "Create local vault",
       "exploreShellnest": "Explore Shellnest",
       "openSourceSshClient": "Open source SSH client for Windows, macOS and Linux, with optional self-hosted sync.",
@@ -355,7 +360,96 @@
       "theDefaultVaultCannot": "The default vault cannot be deleted",
       "emptyTheVaultFirst": "Empty the vault first: hosts, identities, keys and folders",
       "lastSyncOk": "Last successful sync: {{time}}",
-      "syncTime": "Sync {{time}}"
+      "signIn": "Sign in to the server",
+      "createAccount": "Create account",
+      "recoverAccount": "Recover account",
+      "signInLead": "Your vaults on every device, encrypted end to end.",
+      "registerLead": "With the invite from whoever runs the server.",
+      "recoverLead": "With the recovery key you set a new password. Your other devices are signed out."
+    },
+    "accountForm": {
+      "server": "Server",
+      "username": "Username",
+      "password": "Password",
+      "newPassword": "New password",
+      "invite": "Invite code",
+      "recoveryKey": "Recovery key",
+      "passwordHelp": "At least 12 characters. It opens all your vaults on the server; if you forget it, only the recovery key gets you back in.",
+      "haveAccount": "I have an account",
+      "haveInvite": "I have an invite",
+      "forgotPassword": "Forgot the password?",
+      "serverInvalid": "Enter the server address, starting with https://",
+      "usernameInvalid": "2–32 lowercase letters, digits, dots, dashes or underscores",
+      "passwordMissing": "Enter the password",
+      "passwordShort": "Use at least 12 characters",
+      "inviteMissing": "Paste the invite code you received",
+      "recoveryInvalid": "The recovery key has 8 groups of letters and digits",
+      "submit": {
+        "signIn": "Sign in",
+        "register": "Create account",
+        "recover": "Set the new password"
+      }
+    },
+    "accountDialogs": {
+      "copy": "Copy",
+      "copyFailed": "Copy failed",
+      "recoveryTitle": "Save your recovery key",
+      "recoveryLead": "If you forget the password, this key is the only way to get your vaults back. Nobody else has it, not even whoever runs the server. Keep it in a password manager or print it.",
+      "recoverySaved": "I have saved it",
+      "done": "Done",
+      "devicesTitle": "Devices",
+      "devicesLead": "Signed in to your account. A removed device is signed out at its next sync.",
+      "thisDevice": "this device",
+      "lastSeen": "Last seen {{date}}",
+      "revoke": "Sign out {{name}}",
+      "passwordTitle": "Change password",
+      "currentPassword": "Current password",
+      "passwordHelp": "Your other devices switch to the new password at their next sync.",
+      "changePassword": "Change password",
+      "inviteTitle": "Invite",
+      "inviteLead": "Send this code with the server address ({{server}}). It works once, for 7 days.",
+      "removedTitle": "Member removed",
+      "removedExposed": "The vault key has been replaced. They could read these shared identities and keys: change them on the servers too.",
+      "removedNothing": "The vault key has been replaced. The vault had no shared identities or keys."
+    },
+    "serverSettings": {
+      "account": "Sync account",
+      "signedInAs": "{{username}} on {{server}}",
+      "safetyCode": "Your safety code: {{code}}. Colleagues can compare it with the one they see for you.",
+      "devices": "Devices",
+      "invite": "Invite",
+      "signOut": "Sign out",
+      "signOutHelp": "Signing out removes the server vaults from this device; they stay on the server.",
+      "noAccount": "Sign in to a Shellnest Sync server to use your vaults on every device and share them with colleagues. The server only stores encrypted data.",
+      "addMember": "Add",
+      "role": "Role",
+      "roleOf": "Role of {{name}}",
+      "remove": "Remove {{name}}",
+      "members": "Members",
+      "you": "you",
+      "membersHelp": "Editors change hosts and folders; viewers connect with their own credentials. Compare the safety code with the person before sharing.",
+      "vaultTitle": "Server · {{name}}",
+      "membersCount_one": "{{count}} member",
+      "membersCount_other": "{{count}} members",
+      "viewerHelp": "You can view this vault. Choose your own credentials for its hosts; everything else is changed by its editors.",
+      "syncNow": "Sync now",
+      "syncHelp": "Every 30 s while the vault is open, and after each change. Changes to different fields are combined; on the same field the last one wins, and the server keeps the previous versions.",
+      "localVault": "This vault is only on this device.",
+      "upload": "Put on the server",
+      "uploadHelp": "Hosts and folders become shareable; identities, keys and credentials stay yours until you share them. A copy of the local file is kept.",
+      "uploadNeedsAccount": "Sign in to a server first.",
+      "roles": {
+        "owner": "Owner",
+        "editor": "Editor",
+        "viewer": "Viewer"
+      }
+    },
+    "sharing": {
+      "newIsPrivate": "In a server vault a new identity is yours only; you can share it after saving.",
+      "shared": "Shared: every member of the vault can connect with it.",
+      "private": "Only you can use it, on your devices.",
+      "share": "Share with the vault members",
+      "readOnly": "You can only view this shared vault. Choose your own credentials for the host; other changes are made by its editors."
     }
   },
   "app": {

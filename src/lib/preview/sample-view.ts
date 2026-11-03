@@ -18,7 +18,14 @@ export function previewView(): View {
     ...emptyView,
     exists: true,
     unlocked: true,
-    vaults: [{ id: "personal", name: t("preview.defaultVault"), exists: true }],
+    vaults: [
+      {
+        id: "personal",
+        name: t("preview.defaultVault"),
+        exists: true,
+        remote: false,
+      },
+    ],
     keys: [
       {
         id: "key-personal",
@@ -86,6 +93,13 @@ export function emptyPreviewView(): View {
     ...emptyView,
     exists: true,
     unlocked: true,
-    vaults: [{ id: "personal", name: t("preview.defaultVault"), exists: true }],
+    vaults: [
+      {
+        id: "personal",
+        name: t("preview.defaultVault"),
+        exists: true,
+        remote: false,
+      },
+    ],
   };
 }

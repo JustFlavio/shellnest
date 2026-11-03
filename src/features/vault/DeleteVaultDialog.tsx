@@ -5,11 +5,16 @@ import { Panel } from "@/features/hosts/Panel";
 
 export function DeleteVaultDialog({
   vaultName,
+  leaving,
+  onServer,
   busy,
   onCancel,
   onConfirm,
 }: {
   vaultName: string;
+  // A member leaves a server vault; otherwise the vault is deleted, from the server too when there.
+  leaving: boolean;
+  onServer: boolean;
   busy: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -18,13 +23,23 @@ export function DeleteVaultDialog({
   return (
     <Panel
       variant="alert"
-      title={t("vault.deleteVaultDialog.deleteTheVault")}
+      title={
+        leaving
+          ? t("vault.deleteVaultDialog.leaveTheVault")
+          : t("vault.deleteVaultDialog.deleteTheVault")
+      }
       busy={busy}
       error=""
       onClose={onCancel}
     >
       <AlertDialogDescription>
-        {t("vault.deleteVaultDialog.emptyAndRemoved", { name: vaultName })}
+        {leaving
+          ? t("vault.deleteVaultDialog.leaveAndRemoved", { name: vaultName })
+          : onServer
+            ? t("vault.deleteVaultDialog.emptyAndRemovedFromServer", {
+                name: vaultName,
+              })
+            : t("vault.deleteVaultDialog.emptyAndRemoved", { name: vaultName })}
       </AlertDialogDescription>
       <footer>
         <Button
@@ -42,7 +57,9 @@ export function DeleteVaultDialog({
           disabled={busy}
           onClick={onConfirm}
         >
-          {t("vault.deleteVaultDialog.delete")}
+          {leaving
+            ? t("vault.deleteVaultDialog.leave")
+            : t("vault.deleteVaultDialog.delete")}
         </Button>
       </footer>
     </Panel>

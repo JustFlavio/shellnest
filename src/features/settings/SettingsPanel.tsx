@@ -15,7 +15,6 @@ export function SettingsPanel() {
       bindings,
     },
     session: { requestSwitch, openCreateDialog, openRenameDialog, deleteVault },
-    sync: { synchronize, syncState, lastSync },
     update,
     settings,
   } = useApp();
@@ -44,16 +43,8 @@ export function SettingsPanel() {
         <VaultSettings
           view={view}
           busy={busy}
-          syncUrl={settings.syncUrl}
-          syncToken={settings.syncToken}
-          syncing={syncState === "syncing"}
-          lastSync={lastSync}
-          onSyncUrl={settings.setSyncUrl}
-          onSyncToken={settings.setSyncToken}
-          onSaveSync={settings.saveSync}
           remembered={settings.remembered}
           onRemember={settings.remember}
-          onSyncNow={() => void synchronize(true)}
           onSwitch={requestSwitch}
           onCreate={openCreateDialog}
           onRename={openRenameDialog}

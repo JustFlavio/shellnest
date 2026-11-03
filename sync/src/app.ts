@@ -28,6 +28,7 @@ import {
   isUsername,
 } from "./shapes.ts";
 import { openStore } from "./store.ts";
+import type { Role } from "./shapes.ts";
 import type { Device, Store, User, Vault } from "./store.ts";
 
 export const INVITE_DAYS = 7;
@@ -568,7 +569,7 @@ function createRoutes(
       `/vaults/${VAULT}/members/([0-9a-f]{32})`,
       async ({ res, body, user, params }) => {
         const b = await body();
-        const role = check(isRole(b.role), b.role, "role");
+        const role = check(isRole(b.role), b.role as Role, "role");
         await store.serialized(async () => {
           const vault = memberOf(user, params[0]);
           allowed(vault, user, ["owner"]);

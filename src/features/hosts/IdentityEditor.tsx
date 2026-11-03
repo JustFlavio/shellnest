@@ -5,6 +5,7 @@ import type { Identity, IdentityForm, View } from "@/lib/types";
 import { IdentityAccessSection } from "./IdentityAccessSection";
 import { EditorSection } from "./EditorSection";
 import { Panel } from "./Panel";
+import { IdentitySharing } from "@/features/vault/SharingNotices";
 import { FieldErrors } from "@/components/FieldErrors";
 import { TextField } from "@/components/TextField";
 import { useFormErrors } from "@/lib/useFormErrors";
@@ -124,6 +125,7 @@ export function IdentityEditor({
             existing={existing}
             onNewKey={onNewKey}
           />
+          <IdentitySharing identityId={value.id} />
         </FieldErrors>
       </form>
     </Panel>

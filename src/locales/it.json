@@ -47,7 +47,8 @@
       "IdentityInUse_one": "Identità utilizzata da {{count}} host o cartella. Riassegnalo prima.",
       "IdentityInUse_other": "Identità utilizzata da {{count}} host o cartelle. Riassegnali prima.",
       "HostTagsInvalid": "Usa al massimo 32 tag, ciascuno di 1–64 caratteri.",
-      "KeyInUseByHosts": "Chiave usata da {{count}} host. Riassegnali prima."
+      "KeyInUseByHosts": "Chiave usata da {{count}} host. Riassegnali prima.",
+      "ReadOnly": "Puoi solo vedere questo vault condiviso: chiedi la modifica a chi può modificare"
     },
     "vault": {
       "UnsupportedVersion": "Versione vault non supportata",
@@ -109,19 +110,35 @@
       "UrlInvalid": "URL non valido",
       "InsecureUrl": "Usa HTTPS; HTTP è consentito solo su localhost",
       "UrlParts": "URL con credenziali, query o frammenti non consentito",
-      "RemoteIdInvalid": "Identificativo vault remoto non valido",
-      "VaultUrlRequired": "Per questo vault usa un URL completo /vaults/<id>, uguale su tutti i dispositivi.",
-      "Unauthorized": "Token di sincronizzazione non valido",
-      "RemoteChanged": "Conflitto: il vault remoto è cambiato. I dati locali sono conservati; risolvi il conflitto prima di sincronizzare.",
+      "Http": "{{value}}",
+      "Io": "{{value}}",
+      "Crypto": "{{value}}",
+      "Unauthorized": "La sessione è scaduta: accedi di nuovo",
+      "WrongLogin": "Nome utente o password errati",
+      "WrongPassword": "Password errata",
+      "TooManyAttempts": "Troppi tentativi: riprova tra qualche minuto",
+      "InviteInvalid": "L’invito non è valido, è già stato usato o è scaduto",
+      "UsernameTaken": "Questo nome utente è già in uso",
+      "RecoveryInvalid": "Nome utente o chiave di recupero errati",
+      "PasswordTooShort": "Usa almeno 12 caratteri per la password",
+      "NotAllowed": "Non hai i permessi per farlo in questo vault",
+      "NotFound": "Non trovato sul server",
+      "UserNotFound": "Nessun utente con questo nome",
+      "Conflict": "Nel frattempo il vault è cambiato sul server: riprova",
+      "TooLarge": "Il vault è troppo grande per il server",
       "Status": "Sync non riuscita (HTTP {{value}})",
-      "RevisionMissing": "Revisione remota assente",
-      "RemoteInvalid": "Vault remoto non valido",
-      "LocalChanges": "Conflitto: esistono modifiche locali e una revisione remota diversa. Nessun dato è stato sovrascritto.",
-      "RemoteRemoved": "Vault remoto rimosso: dati locali conservati",
-      "DifferentVault": "Il server contiene un vault differente",
-      "RestoreUnavailable": "Il ripristino è disponibile solo su un dispositivo senza vault locale",
-      "TokenTooShort": "Il token deve avere almeno 32 caratteri",
-      "Http": "{{value}}"
+      "RemoteInvalid": "Il server ha inviato una risposta non valida",
+      "AccessRevoked": "Il tuo accesso a questo vault è stato rimosso: la copia locale resta",
+      "NotSignedIn": "Prima accedi al server di sincronizzazione",
+      "AlreadySignedIn": "Questo dispositivo è già collegato a un altro account: prima esci",
+      "AccountInvalid": "Il file dell’account è danneggiato",
+      "AccountNotSaved": "Impossibile salvare l’account",
+      "NotOnServer": "Questo vault non è sul server",
+      "AlreadyOnServer": "Il vault è già sul server",
+      "MergeFailed": "Le modifiche locali e remote non si possono unire: la copia locale resta",
+      "LastOwner": "Un vault deve avere almeno un proprietario",
+      "PublicKeyChanged": "La chiave di questa persona è cambiata dall’ultima condivisione: verifica il suo codice di sicurezza",
+      "UnsyncedChanges": "Prima sincronizza i vault con modifiche non inviate"
     },
     "keychain": {
       "InvalidKey": "Chiave salvata non valida",
@@ -251,37 +268,27 @@
       "deleteTheVault": "Eliminare il vault?",
       "cancel": "Annulla",
       "delete": "Elimina",
-      "emptyAndRemoved": "«{{name}}» è vuoto e verrà rimosso. Tornerai al vault predefinito e le sessioni aperte verranno chiuse."
+      "emptyAndRemoved": "«{{name}}» è vuoto e verrà rimosso. Tornerai al vault predefinito e le sessioni aperte verranno chiuse.",
+      "leaveTheVault": "Uscire dal vault?",
+      "leave": "Esci",
+      "leaveAndRemoved": "«{{name}}» resta sul server per gli altri membri; la copia su questo dispositivo viene rimossa e le sessioni aperte vengono chiuse. Per rientrare, un proprietario deve aggiungerti di nuovo.",
+      "emptyAndRemovedFromServer": "«{{name}}» è vuoto e verrà eliminato, anche dal server. Tornerai al vault predefinito e le sessioni aperte verranno chiuse."
     },
     "lockScreen": {
-      "createALocalVault": "Crea un vault locale",
-      "connectAnExistingVault": "Collega un vault esistente",
-      "atLeast12Characters": "Minimo 12 caratteri. La password principale non è recuperabile."
+      "atLeast12Characters": "Minimo 12 caratteri. La password principale non è recuperabile.",
+      "back": "Indietro",
+      "signInToServer": "Accedi a un server di sincronizzazione"
     },
     "rememberSetting": {
       "rememberOnThisDevice": "Ricorda su questo dispositivo",
       "theKeyStaysIn": "La chiave resta nel portachiavi di sistema. “Blocca vault” chiede comunque la password.",
-      "unlockTitle": "Sblocco · {{name}}"
-    },
-    "syncSettings": {
-      "hostsIdentitiesAndKeys": "Host, identità e chiavi, cifrati.",
-      "serviceUrl": "URL servizio",
-      "pathVault": "Percorso: /vault",
-      "token": "Token",
-      "leaveEmptyToKeep": "Vuoto per mantenere il token esistente",
-      "atLeast32Characters": "Almeno 32 caratteri",
-      "every30SWhile": "Ogni 30 s a vault sbloccato. Con modifiche concorrenti la sync si ferma e conserva i dati locali.",
-      "syncNow": "Sincronizza ora",
-      "saveConfiguration": "Salva configurazione",
-      "title": "Sincronizzazione · {{name}}",
-      "lastSyncOk": " Ultima sincronizzazione riuscita: {{time}}.",
-      "pathWillBe": "Verrà usato /vaults/{{id}}. Per un altro dispositivo copia l’URL completo dopo il salvataggio."
+      "unlockTitle": "Sblocco · {{name}}",
+      "accountKeyStaysIn": "La chiave dell’account resta nel portachiavi di sistema e apre tutti i vault dell’account. “Blocca vault” chiede comunque la password."
     },
     "unlockForm": {
-      "fullUrlOfThe": "URL completo del vault remoto",
-      "copyTheFullUrl": "Copia l’URL completo dalle impostazioni dell’altro dispositivo, incluso /vaults/… quando presente.",
       "mainPassword": "Password principale",
-      "confirmPassword": "Conferma password"
+      "confirmPassword": "Conferma password",
+      "accountPassword": "Password dell’account"
     },
     "vaultList": {
       "active": "Attivo",
@@ -291,13 +298,15 @@
       "switchToThis": "Passa a questo",
       "newVault": "Nuovo vault",
       "renameName": "Rinomina “{{name}}”",
-      "deleteName": "Elimina “{{name}}”"
+      "deleteName": "Elimina “{{name}}”",
+      "leaveName": "Esci da “{{name}}”",
+      "onServer": "Server"
     },
     "vaultPanels": {
       "renameVault": "Rinomina vault",
       "name": "Nome",
       "personalWorkClient": "Personale, Lavoro, Cliente…",
-      "afterCreatingItChoose": "Dopo la creazione scegli la password o collega un vault remoto.",
+      "afterCreatingItChoose": "Dopo la creazione scegli la sua password.",
       "createVault": "Crea vault",
       "saveName": "Salva nome",
       "switchVault": "Cambia vault",
@@ -314,7 +323,9 @@
       "closeSessions_one": "Chiudere {{count}} sessione? Le shell locali e le connessioni SSH selezionate verranno terminate. I trasferimenti attivi e in coda verranno annullati.",
       "closeSessions_other": "Chiudere {{count}} sessioni? Le shell locali e le connessioni SSH selezionate verranno terminate. I trasferimenti attivi e in coda verranno annullati.",
       "lockAndClose_one": "Bloccare il vault e chiudere la {{count}} sessione, incluse le shell locali? I trasferimenti attivi e in coda verranno annullati.",
-      "lockAndClose_other": "Bloccare il vault e chiudere tutte le {{count}} sessioni, incluse le shell locali? I trasferimenti attivi e in coda verranno annullati."
+      "lockAndClose_other": "Bloccare il vault e chiudere tutte le {{count}} sessioni, incluse le shell locali? I trasferimenti attivi e in coda verranno annullati.",
+      "onServer": "Sul server di sincronizzazione",
+      "onServerHelp": "Si apre con la password dell’account e si può condividere con i colleghi."
     },
     "vaultPicker": {
       "yourVaults": "I tuoi vault",
@@ -339,13 +350,7 @@
       "retry": "Riprova"
     },
     "vaultCopy": {
-      "setUpSync": "Configura sync",
-      "syncing": "Sincronizzazione…",
-      "syncFailedRetry": "Sync non riuscita · Riprova",
-      "toSync": "Da sincronizzare",
-      "syncSetUp": "Sync configurata",
       "unlockVault": "Sblocca vault",
-      "connectDevice": "Collega dispositivo",
       "createLocalVault": "Crea vault locale",
       "exploreShellnest": "Esplora Shellnest",
       "openSourceSshClient": "Client SSH open source per Windows, macOS e Linux, con sincronizzazione self-hosted opzionale.",
@@ -355,7 +360,96 @@
       "theDefaultVaultCannot": "Il vault predefinito non si può eliminare",
       "emptyTheVaultFirst": "Svuota prima il vault: host, identità, chiavi e cartelle",
       "lastSyncOk": "Ultima sincronizzazione riuscita: {{time}}",
-      "syncTime": "Sync {{time}}"
+      "signIn": "Accedi al server",
+      "createAccount": "Crea account",
+      "recoverAccount": "Recupera account",
+      "signInLead": "I tuoi vault su ogni dispositivo, cifrati end-to-end.",
+      "registerLead": "Con l’invito di chi gestisce il server.",
+      "recoverLead": "Con la chiave di recupero imposti una nuova password. Gli altri dispositivi vengono scollegati."
+    },
+    "accountForm": {
+      "server": "Server",
+      "username": "Nome utente",
+      "password": "Password",
+      "newPassword": "Nuova password",
+      "invite": "Codice di invito",
+      "recoveryKey": "Chiave di recupero",
+      "passwordHelp": "Almeno 12 caratteri. Apre tutti i tuoi vault sul server; se la dimentichi, solo la chiave di recupero ti fa rientrare.",
+      "haveAccount": "Ho già un account",
+      "haveInvite": "Ho un invito",
+      "forgotPassword": "Password dimenticata?",
+      "serverInvalid": "Inserisci l’indirizzo del server, che inizia con https://",
+      "usernameInvalid": "2–32 tra lettere minuscole, cifre, punti, trattini e trattini bassi",
+      "passwordMissing": "Inserisci la password",
+      "passwordShort": "Usa almeno 12 caratteri",
+      "inviteMissing": "Incolla il codice di invito che hai ricevuto",
+      "recoveryInvalid": "La chiave di recupero ha 8 gruppi di lettere e cifre",
+      "submit": {
+        "signIn": "Accedi",
+        "register": "Crea account",
+        "recover": "Imposta la nuova password"
+      }
+    },
+    "accountDialogs": {
+      "copy": "Copia",
+      "copyFailed": "Copia non riuscita",
+      "recoveryTitle": "Salva la chiave di recupero",
+      "recoveryLead": "Se dimentichi la password, questa chiave è l’unico modo per riavere i tuoi vault. Non ce l’ha nessun altro, nemmeno chi gestisce il server. Conservala in un gestore di password o stampala.",
+      "recoverySaved": "L’ho salvata",
+      "done": "Fatto",
+      "devicesTitle": "Dispositivi",
+      "devicesLead": "Collegati al tuo account. Un dispositivo rimosso viene scollegato alla sua prossima sincronizzazione.",
+      "thisDevice": "questo dispositivo",
+      "lastSeen": "Ultimo accesso {{date}}",
+      "revoke": "Scollega {{name}}",
+      "passwordTitle": "Cambia password",
+      "currentPassword": "Password attuale",
+      "passwordHelp": "Gli altri dispositivi passano alla nuova password alla prossima sincronizzazione.",
+      "changePassword": "Cambia password",
+      "inviteTitle": "Invito",
+      "inviteLead": "Invia questo codice insieme all’indirizzo del server ({{server}}). Vale una volta, per 7 giorni.",
+      "removedTitle": "Membro rimosso",
+      "removedExposed": "La chiave del vault è stata sostituita. Poteva leggere queste identità e chiavi condivise: cambiale anche sui server.",
+      "removedNothing": "La chiave del vault è stata sostituita. Nel vault non c’erano identità o chiavi condivise."
+    },
+    "serverSettings": {
+      "account": "Account di sincronizzazione",
+      "signedInAs": "{{username}} su {{server}}",
+      "safetyCode": "Il tuo codice di sicurezza: {{code}}. I colleghi possono confrontarlo con quello che vedono per te.",
+      "devices": "Dispositivi",
+      "invite": "Invita",
+      "signOut": "Esci",
+      "signOutHelp": "Uscendo, i vault del server vengono tolti da questo dispositivo; restano sul server.",
+      "noAccount": "Accedi a un server Shellnest Sync per usare i tuoi vault su ogni dispositivo e condividerli con i colleghi. Il server conserva solo dati cifrati.",
+      "addMember": "Aggiungi",
+      "role": "Ruolo",
+      "roleOf": "Ruolo di {{name}}",
+      "remove": "Rimuovi {{name}}",
+      "members": "Membri",
+      "you": "tu",
+      "membersHelp": "Chi può modificare cambia host e cartelle; chi ha la sola lettura si collega con le proprie credenziali. Prima di condividere, confronta il codice di sicurezza con la persona.",
+      "vaultTitle": "Server · {{name}}",
+      "membersCount_one": "{{count}} membro",
+      "membersCount_other": "{{count}} membri",
+      "viewerHelp": "Puoi vedere questo vault. Scegli le tue credenziali per i suoi host; il resto lo cambia chi può modificare.",
+      "syncNow": "Sincronizza ora",
+      "syncHelp": "Ogni 30 s mentre il vault è aperto e dopo ogni modifica. Le modifiche a campi diversi si uniscono; sullo stesso campo vince l’ultima, e il server conserva le versioni precedenti.",
+      "localVault": "Questo vault è solo su questo dispositivo.",
+      "upload": "Carica sul server",
+      "uploadHelp": "Host e cartelle diventano condivisibili; identità, chiavi e credenziali restano tue finché non le condividi. Viene conservata una copia del file locale.",
+      "uploadNeedsAccount": "Prima accedi a un server.",
+      "roles": {
+        "owner": "Proprietario",
+        "editor": "Può modificare",
+        "viewer": "Sola lettura"
+      }
+    },
+    "sharing": {
+      "newIsPrivate": "In un vault sul server una nuova identità è solo tua; puoi condividerla dopo averla salvata.",
+      "shared": "Condivisa: ogni membro del vault può collegarsi con questa identità.",
+      "private": "La usi solo tu, sui tuoi dispositivi.",
+      "share": "Condividi con i membri del vault",
+      "readOnly": "Puoi solo vedere questo vault condiviso. Scegli le tue credenziali per l’host; le altre modifiche le fa chi può modificare."
     }
   },
   "app": {
