@@ -24,7 +24,7 @@ The screenshots come from the browser demo (`npm run dev`) with sample data.
 - Tabbed terminals with split panels, reconnect, duplicate and reorder; local terminal with a native PTY.
 - Host key fingerprint check before authenticating, and a hard stop if it changes.
 - Terminal themes, fonts and rebindable keyboard shortcuts.
-- Optional sync of the encrypted vault through the small Node.js server in [`sync/`](sync) ([deployment guide](sync/README.md)).
+- Optional self-hosted sync server in [`sync/`](sync) ([deployment guide](sync/README.md)): an account opens your vaults on every device, and vaults can be shared with colleagues by role. Everything is encrypted on the devices.
 
 SFTP is available from each SSH pane through **Terminal / Files**, or directly from a saved host menu. See [SFTP behavior and safety](docs/sftp.md).
 
