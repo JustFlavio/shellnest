@@ -85,7 +85,7 @@ Plain Node with no dependencies, TypeScript run directly (`sync/`). Storage is J
 
 - **Invites only**: `node server.ts invite --admin` for the first account; admins invite from the app.
 - **Devices**: each login is a device session with a random token, stored as a hash. The app lists and revokes them.
-- **Rate limit**: failed logins per username, 10 in 15 minutes.
+- **Rate limit**: failed logins per username (10 in 15 minutes) and per client address (30, across usernames). Behind Caddy the address is the last `X-Forwarded-For` entry, which the proxy appends; earlier entries come from the client and are ignored.
 - **Deployment**: `sync/compose.yaml` with Caddy for HTTPS.
 
 ### Why plain Node
@@ -95,6 +95,5 @@ The server routes about twenty requests and checks shapes and roles; the cryptog
 ## Not done
 
 - Push instead of polling: not needed at this size.
-- Failed logins limited per address too: needs the client address from Caddy (`X-Forwarded-For`, trusted only from the proxy).
 - A viewer accepting a changed fingerprint for themselves only.
 - Hiding sizes and timing from the server (padding).

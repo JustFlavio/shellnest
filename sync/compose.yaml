@@ -6,6 +6,9 @@ services:
   sync:
     build: .
     restart: unless-stopped
+    environment:
+      # Caddy sets X-Forwarded-For; the server is not reachable without it.
+      SYNC_TRUST_PROXY: "1"
     volumes:
       - sync-data:/data
     # Reachable only from Caddy, on the compose network.

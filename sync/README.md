@@ -44,7 +44,7 @@ There is no open sign-up. Every account starts from a one-time invite, valid 7 d
 - At sign-up the app shows a **recovery key**, once. With it you set a new password if you forget yours, and every other device is signed out. Without the password and the recovery key the account cannot be opened, not even by the admin.
 - Changing the password keeps your devices signed in. An unlocked device takes the new password at its next sync; a device that was off opens with the new password as soon as it reaches the server.
 - **Dispositivi** lists the devices signed in to the account; removing one signs it out at its next request. An account keeps at most 20 devices: a new sign-in drops the oldest.
-- Failed sign-ins are limited per username: 10 in 15 minutes, then the username is blocked for the rest of the window. Devices already signed in keep working meanwhile.
+- Failed sign-ins are limited per username (10 in 15 minutes) and per client address (30 in 15 minutes, across all usernames). Past a limit, sign-ins from that username or address are refused for the rest of the window. Devices already signed in keep working meanwhile.
 
 ## Vaults, roles and sharing
 
@@ -67,11 +67,12 @@ Concurrent changes merge field by field. A field changed on two devices keeps th
 
 All settings are environment variables. The Docker image sets the host and data directory already.
 
-| Variable        | Default                         | Meaning                                                   |
-| --------------- | ------------------------------- | --------------------------------------------------------- |
-| `SYNC_HOST`     | `127.0.0.1`                     | Address to listen on. Loopback only unless you change it. |
-| `SYNC_PORT`     | `8787`                          | TCP port.                                                 |
-| `SYNC_DATA_DIR` | `sync/data` (`/data` in Docker) | Where accounts and encrypted vaults are stored.           |
+| Variable           | Default                         | Meaning                                                                                                     |
+| ------------------ | ------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `SYNC_HOST`        | `127.0.0.1`                     | Address to listen on. Loopback only unless you change it.                                                   |
+| `SYNC_PORT`        | `8787`                          | TCP port.                                                                                                   |
+| `SYNC_DATA_DIR`    | `sync/data` (`/data` in Docker) | Where accounts and encrypted vaults are stored.                                                             |
+| `SYNC_TRUST_PROXY` | unset                           | `1` behind a reverse proxy: the client address is the last `X-Forwarded-For` entry. `compose.yaml` sets it. |
 
 ## Run without Compose
 
@@ -173,7 +174,8 @@ Writes carry the revision and key epoch they started from; a stale one gets `409
 
 ## Limits
 
-- Failed sign-ins are limited per username, not per address: someone who knows a username can keep its sign-in blocked. Devices already signed in are not affected.
+- Someone who knows a username can keep its sign-in blocked by failing on purpose, from many addresses. Devices already signed in are not affected.
+- Set `SYNC_TRUST_PROXY=1` only when the server is reachable through the proxy alone. Exposed directly, a client could send its own `X-Forwarded-For` and pick a new address for each attempt. Without the variable the address is the TCP peer, which behind a proxy is the proxy itself: then the per-address limit counts every client together.
 - Accounts and vault records are kept in memory and in JSON files: meant for a person or a small team, not thousands of users.
 - One server process; no clustering.
 - Polling every 30 seconds per open vault, no push.

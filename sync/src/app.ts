@@ -33,6 +33,11 @@ import type { Device, Store, User, Vault } from "./store.ts";
 
 export const INVITE_DAYS = 7;
 const MAX_DEVICES = 20;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+// Per account, few: a password is guessed one try at a time. Per address, more: an office behind
+// one NAT shares it, while spraying guesses over many accounts still stops.
+const LOGINS_PER_USER = 10;
+const LOGINS_PER_ADDRESS = 30;
 // Persisting "last seen" on every request would rewrite the account file each time.
 const LAST_SEEN_STEP_MS = 60 * 60 * 1000;
 
@@ -89,14 +94,29 @@ export async function createSyncServer({
   directory,
   onError = () => {},
   now = Date.now,
+  trustProxy = false,
 }: {
   directory: string;
   onError?: (error: unknown) => void;
   now?: () => number;
+  /** Behind a reverse proxy: the client address is the last X-Forwarded-For entry. */
+  trustProxy?: boolean;
 }) {
   const store = await openStore(directory);
-  const logins = createLimiter({ attempts: 10, windowMs: 15 * 60 * 1000, now });
-  const routes = createRoutes(store, logins, now);
+  const limits = {
+    users: createLimiter({
+      attempts: LOGINS_PER_USER,
+      windowMs: LOGIN_WINDOW_MS,
+      now,
+    }),
+    addresses: createLimiter({
+      attempts: LOGINS_PER_ADDRESS,
+      windowMs: LOGIN_WINDOW_MS,
+      now,
+    }),
+    address: (req: IncomingMessage) => clientAddress(req, trustProxy),
+  };
+  const routes = createRoutes(store, limits, now);
 
   const server = http.createServer(async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
@@ -139,6 +159,19 @@ export async function createSyncServer({
   return server;
 }
 
+/**
+ * The proxy appends the address it saw last, so only the last entry is
+ * trustworthy; anything before it came from the client.
+ */
+export function clientAddress(req: IncomingMessage, trustProxy: boolean) {
+  const forwarded = req.headers["x-forwarded-for"];
+  const last = (Array.isArray(forwarded) ? forwarded.join(",") : forwarded)
+    ?.split(",")
+    .at(-1)
+    ?.trim();
+  return (trustProxy && last) || req.socket.remoteAddress || "";
+}
+
 function authenticate(store: Store, req: IncomingMessage, now: () => number) {
   const header = req.headers.authorization ?? "";
   if (!header.startsWith("Bearer ")) return undefined;
@@ -160,7 +193,11 @@ type Route = {
 
 function createRoutes(
   store: Store,
-  logins: ReturnType<typeof createLimiter>,
+  limits: {
+    users: ReturnType<typeof createLimiter>;
+    addresses: ReturnType<typeof createLimiter>;
+    address: (req: IncomingMessage) => string;
+  },
   now: () => number,
 ): Route[] {
   const VAULT = "([0-9a-f]{32})";
@@ -190,20 +227,25 @@ function createRoutes(
     return { token, deviceId: device.id };
   };
 
-  // A wrong password and an unknown user look the same, and both count against the limit.
+  // A wrong password and an unknown user look the same, and both count against the limits.
+  // A success clears the account's count only: one's own account must not reset an address.
   const checkLogin = async (
+    req: IncomingMessage,
     username: unknown,
     secret: Buffer,
     field: "auth" | "recoveryAuth",
   ) => {
     if (!isUsername(username)) throw httpError(400, "Invalid username");
-    if (logins.blocked(username)) throw httpError(429, "Too many attempts");
+    const address = limits.address(req);
+    if (limits.users.blocked(username) || limits.addresses.blocked(address))
+      throw httpError(429, "Too many attempts");
     const user = store.userByName(username);
     if (!user || !(await verify(secret, user[field]))) {
-      logins.fail(username);
+      limits.users.fail(username);
+      limits.addresses.fail(address);
       throw httpError(401, "Wrong username or password");
     }
-    logins.clear(username);
+    limits.users.clear(username);
     return user;
   };
 
@@ -234,10 +276,10 @@ function createRoutes(
     route(
       "POST",
       "/login",
-      async ({ res, body }) => {
+      async ({ req, res, body }) => {
         const { username, authKey, device } = await body();
         const secret = key32(authKey, "authKey");
-        const user = await checkLogin(username, secret, "auth");
+        const user = await checkLogin(req, username, secret, "auth");
         await store.serialized(async () => {
           const session = newDevice(user, device);
           await store.saveUser(user);
@@ -250,9 +292,10 @@ function createRoutes(
     route(
       "POST",
       "/login/keys",
-      async ({ res, body }) => {
+      async ({ req, res, body }) => {
         const { username, authKey } = await body();
         const user = await checkLogin(
+          req,
           username,
           key32(authKey, "authKey"),
           "auth",
@@ -311,9 +354,10 @@ function createRoutes(
     route(
       "POST",
       "/recover/start",
-      async ({ res, body }) => {
+      async ({ req, res, body }) => {
         const { username, recoveryAuth } = await body();
         const user = await checkLogin(
+          req,
           username,
           key32(recoveryAuth, "recoveryAuth"),
           "recoveryAuth",
@@ -325,9 +369,10 @@ function createRoutes(
     route(
       "POST",
       "/recover/finish",
-      async ({ res, body }) => {
+      async ({ req, res, body }) => {
         const b = await body();
         const user = await checkLogin(
+          req,
           b.username,
           key32(b.recoveryAuth, "recoveryAuth"),
           "recoveryAuth",
@@ -357,9 +402,10 @@ function createRoutes(
     route("GET", "/account", async ({ res, user }) =>
       reply(res, 200, account(user)),
     ),
-    route("POST", "/account/password", async ({ res, body, user }) => {
+    route("POST", "/account/password", async ({ req, res, body, user }) => {
       const b = await body();
       await checkLogin(
+        req,
         user.username,
         key32(b.currentAuthKey, "authKey"),
         "auth",

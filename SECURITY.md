@@ -13,6 +13,6 @@ Include what you found, how to reproduce it, and the version or commit. You will
 ## Scope
 
 In scope: the desktop app (vault, SSH, terminal) and the sync server in `sync/`.
-Out of scope: weaknesses that need the attacker to already control your unlocked machine, and the design limits listed in [the guide](docs/guida.it.md) (for example, failed sign-ins on the sync server are limited per username, not per address).
+Out of scope: weaknesses that need the attacker to already control your unlocked machine, and the design limits listed in [the guide](docs/guida.it.md) (for example, anyone who knows a username can keep its sign-in on the sync server blocked for a while).
 
 Only the latest release is supported.

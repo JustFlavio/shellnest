@@ -58,10 +58,7 @@ export const decoySalt = (secret: Buffer, username: string) =>
     .subarray(0, 16)
     .toString("base64");
 
-/**
- * Counts failed attempts per key (a username) in a sliding window. The proxy
- * hides client addresses, so the limit is per account, not per address.
- */
+/** Counts failed attempts per key (a username or an address) in a sliding window. */
 export function createLimiter({
   attempts,
   windowMs,

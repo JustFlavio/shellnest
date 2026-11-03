@@ -85,7 +85,7 @@ Dal riquadro dell’account:
 - **Esci** scollega il dispositivo e toglie da qui i vault del server, che restano sul server. È rifiutato se ci sono modifiche non ancora inviate.
 - **Password dimenticata?** nella schermata di accesso imposta una nuova password con la chiave di recupero e scollega tutti gli altri dispositivi.
 
-Dopo 10 accessi falliti in 15 minuti il nome utente è bloccato per il resto dei 15 minuti; i dispositivi già collegati continuano a funzionare.
+Dopo 10 accessi falliti in 15 minuti il nome utente è bloccato per il resto dei 15 minuti, e lo stesso vale per un indirizzo IP dopo 30 accessi falliti, su qualunque nome utente. I dispositivi già collegati continuano a funzionare.
 
 ### Vault sul server
 
@@ -114,7 +114,7 @@ Le tue identità restano private finché non scegli di condividerle dall’edito
 
 ### Limiti
 
-Polling ogni 30 secondi, nessuna notifica in tempo reale. Il server è pensato per una persona o un piccolo gruppo: account e vault stanno in file JSON e in memoria. Il blocco degli accessi falliti è per nome utente, non per indirizzo. Restano da fare: esportazione/importazione guidata, blocco automatico, protezione da rollback del server, test SSH con server reali e revisione di sicurezza. Non sono implementati agent forwarding, jump host, keyboard-interactive/2FA o biometria. Chiavi hardware non esportabili non sono sincronizzabili come chiavi private.
+Polling ogni 30 secondi, nessuna notifica in tempo reale. Il server è pensato per una persona o un piccolo gruppo: account e vault stanno in file JSON e in memoria. Restano da fare: esportazione/importazione guidata, blocco automatico, protezione da rollback del server, test SSH con server reali e revisione di sicurezza. Non sono implementati agent forwarding, jump host, keyboard-interactive/2FA o biometria. Chiavi hardware non esportabili non sono sincronizzabili come chiavi private.
 
 ## Verifiche
 

@@ -27,6 +27,7 @@ type Api = {
     path: string,
     body?: unknown,
     token?: string,
+    headers?: Record<string, string>,
   ) => Promise<Reply>;
   register: (username: string, admin?: boolean) => Promise<User>;
   directory: string;
@@ -43,11 +44,14 @@ const sealed = () => ({
 const vaultId = () => randomBytes(16).toString("hex");
 
 // Stands in for the desktop client: random bytes in the shapes it sends.
-async function withServer(fn: (api: Api) => Promise<void>) {
+async function withServer(
+  fn: (api: Api) => Promise<void>,
+  options: { trustProxy?: boolean } = {},
+) {
   const directory = await mkdtemp(join(tmpdir(), "shellnest-sync-"));
   let server: Server | undefined;
   const start = async (): Promise<Api> => {
-    server = await createSyncServer({ directory });
+    server = await createSyncServer({ directory, ...options });
     server.listen(0, "127.0.0.1");
     await once(server, "listening");
     const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -56,12 +60,14 @@ async function withServer(fn: (api: Api) => Promise<void>) {
       path: string,
       body?: unknown,
       token?: string,
+      headers: Record<string, string> = {},
     ) => {
       const res = await fetch(`${base}/api${path}`, {
         method,
         headers: {
           "Content-Type": "application/json",
           ...(token && { Authorization: `Bearer ${token}` }),
+          ...headers,
         },
         body: body === undefined ? undefined : JSON.stringify(body),
       });
@@ -185,6 +191,44 @@ test("accounts: invites work once, logins are checked, limited and revocable", a
     const plain = await register("anna");
     assert.equal((await call("POST", "/invites", {}, plain.token)).status, 403);
   });
+});
+
+test("failed logins are limited per address too, behind a trusted proxy", async () => {
+  await withServer(
+    async ({ call, register }) => {
+      const mario = await register("mario");
+      const from = (address: string) => ({ "X-Forwarded-For": address });
+      const login = (username: string, authKey: string, address: string) =>
+        call(
+          "POST",
+          "/login",
+          { username, authKey, device: "Desktop" },
+          undefined,
+          from(address),
+        );
+      // Spraying guesses over many usernames: each stays under its own limit.
+      for (let i = 0; i < 30; i++)
+        assert.equal(
+          (await login(`user${i}`, b64(32), "203.0.113.9")).status,
+          401,
+        );
+      assert.equal(
+        (await login("mario", mario.authKey, "203.0.113.9")).status,
+        429,
+      );
+      // Another address, and a client faking the header in front of the proxy's entry, are not blocked.
+      assert.equal(
+        (await login("mario", mario.authKey, "198.51.100.1")).status,
+        200,
+      );
+      assert.equal(
+        (await login("mario", mario.authKey, "203.0.113.9, 198.51.100.2"))
+          .status,
+        200,
+      );
+    },
+    { trustProxy: true },
+  );
 });
 
 test("recovery and password change replace the login and sign every device out", async () => {

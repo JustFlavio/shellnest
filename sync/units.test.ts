@@ -2,6 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { createLimiter, makeVerifier, verify } from "./src/auth.ts";
+import type { IncomingMessage } from "node:http";
+import { clientAddress } from "./src/app.ts";
 import { readConfig } from "./src/config.ts";
 import { isBase64, isBox, isId, isSealed, isUsername } from "./src/shapes.ts";
 
@@ -82,7 +84,29 @@ test("config defaults to loopback and validates the port", () => {
     host: "127.0.0.1",
     port: 8787,
     directory: resolve("sync/data"),
+    trustProxy: false,
   });
+  assert.equal(readConfig({ SYNC_TRUST_PROXY: "1" }).trustProxy, true);
   assert.throws(() => readConfig({ SYNC_PORT: "70000" }));
   assert.throws(() => readConfig({ SYNC_PORT: "abc" }));
+});
+
+test("the client address comes from the proxy only when it is trusted", () => {
+  const req = (forwarded?: string | string[]) =>
+    ({
+      headers: forwarded === undefined ? {} : { "x-forwarded-for": forwarded },
+      socket: { remoteAddress: "172.18.0.3" },
+    }) as unknown as IncomingMessage;
+  assert.equal(clientAddress(req("203.0.113.9"), false), "172.18.0.3");
+  assert.equal(clientAddress(req("203.0.113.9"), true), "203.0.113.9");
+  // A client can send its own header; the proxy appends the real address last.
+  assert.equal(
+    clientAddress(req("198.51.100.1, 203.0.113.9"), true),
+    "203.0.113.9",
+  );
+  assert.equal(
+    clientAddress(req(["198.51.100.1", "203.0.113.9"]), true),
+    "203.0.113.9",
+  );
+  assert.equal(clientAddress(req(), true), "172.18.0.3");
 });

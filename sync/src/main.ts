@@ -34,6 +34,7 @@ export async function run(env: NodeJS.ProcessEnv, args: string[]) {
   try {
     server = await createSyncServer({
       directory: config.directory,
+      trustProxy: config.trustProxy,
       onError: (error) =>
         console.error(
           `Storage error: ${(error as NodeJS.ErrnoException).code ?? messageOf(error)}`,

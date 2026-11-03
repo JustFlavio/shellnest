@@ -12,5 +12,7 @@ export function readConfig(env: NodeJS.ProcessEnv) {
     host: env.SYNC_HOST || "127.0.0.1",
     port,
     directory: resolve(env.SYNC_DATA_DIR || "sync/data"),
+    // Only behind a proxy that sets X-Forwarded-For: otherwise a client could pick its own address.
+    trustProxy: env.SYNC_TRUST_PROXY === "1",
   };
 }
