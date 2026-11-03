@@ -232,21 +232,31 @@ test("recovery and password change replace the login and sign every device out",
     );
     assert.equal(changed.status, 401);
     const next = b64(32);
+    const salt = b64(16);
+    const password = box();
     assert.equal(
       (
         await call(
           "POST",
           "/account/password",
-          {
-            currentAuthKey: authKey,
-            authKey: next,
-            salt: b64(16),
-            password: box(),
-          },
+          { currentAuthKey: authKey, authKey: next, salt, password },
           token,
         )
       ).status,
       200,
+    );
+    // A device that missed the change gets the new wrapping, without a new session.
+    const keys = (key: string) =>
+      call("POST", "/login/keys", { username: "mario", authKey: key });
+    assert.equal((await keys(authKey)).status, 401);
+    const fetched = await keys(next);
+    assert.equal(fetched.status, 200);
+    assert.equal(fetched.json.salt, salt);
+    assert.deepEqual((fetched.json.keys as Json).password, password);
+    assert.equal(fetched.json.token, undefined);
+    assert.equal(
+      (await call("GET", "/devices", undefined, token)).json.length,
+      1,
     );
     assert.equal(
       (

@@ -275,6 +275,37 @@ fn two_devices_and_a_colleague_share_a_vault_end_to_end() {
     synchronize(&pc, &shared_id).unwrap();
     assert_eq!(synchronize(&mac, "personal").unwrap().hosts.len(), 3);
 
+    // Mario changes the password on the Mac while the PC is locked: the new one opens the PC.
+    const NEW_PASSWORD: &str = "test-only new password, after the change";
+    const NEWER_PASSWORD: &str = "test-only newer password, changed again";
+    mac.account()
+        .unwrap()
+        .as_mut()
+        .unwrap()
+        .change_password(PASSWORD, NEW_PASSWORD)
+        .unwrap();
+    let lock = |state: &AppState| {
+        *state.vault.lock().unwrap() = None;
+        *state.account().unwrap() = None;
+    };
+    lock(&pc);
+    open_selected(&pc, &shared_id, Secret::Password(NEW_PASSWORD), false).unwrap();
+    lock(&pc);
+    assert!(open_selected(&pc, &shared_id, Secret::Password(PASSWORD), false).is_err());
+    open_selected(&pc, &shared_id, Secret::Password(NEW_PASSWORD), false).unwrap();
+
+    // Changed again on the PC: the Mac, unlocked, takes it at its next sync.
+    pc.account()
+        .unwrap()
+        .as_mut()
+        .unwrap()
+        .change_password(NEW_PASSWORD, NEWER_PASSWORD)
+        .unwrap();
+    synchronize(&mac, "personal").unwrap();
+    let file = crate::account::load(&mac.path).unwrap().unwrap();
+    assert!(OpenAccount::unlock(file.clone(), NEW_PASSWORD).is_err());
+    assert!(OpenAccount::unlock(file, NEWER_PASSWORD).is_ok());
+
     // The server never saw a secret, an address or a name in clear.
     for entry in walk(&server.root.join("server")) {
         let text = String::from_utf8_lossy(&std::fs::read(&entry).unwrap()).into_owned();

@@ -182,7 +182,14 @@ fn open_account(s: &AppState, secret: Secret) -> Result<zeroize::Zeroizing<[u8; 
     }
     let file = account::load(&s.path)?.ok_or(SyncError::NotSignedIn)?;
     let opened = match secret {
-        Secret::Password(password) => OpenAccount::unlock(file, password)?,
+        Secret::Password(password) => match OpenAccount::unlock(file.clone(), password) {
+            Err(SyncError::WrongPassword) => {
+                let opened = OpenAccount::unlock_changed(file, password)?;
+                account::save(&s.path, &opened.file)?;
+                opened
+            }
+            opened => opened?,
+        },
         Secret::Key(key) => OpenAccount::unlock_with_key(file, key)?,
         Secret::Account => return Err(Error::VaultLocked),
     };

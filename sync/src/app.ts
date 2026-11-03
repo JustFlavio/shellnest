@@ -246,6 +246,21 @@ function createRoutes(
       },
       { public: true },
     ),
+    // A device that missed a password change opens its account with the new password: the keys, no new session.
+    route(
+      "POST",
+      "/login/keys",
+      async ({ res, body }) => {
+        const { username, authKey } = await body();
+        const user = await checkLogin(
+          username,
+          key32(authKey, "authKey"),
+          "auth",
+        );
+        reply(res, 200, account(user));
+      },
+      { public: true },
+    ),
     route(
       "POST",
       "/register",

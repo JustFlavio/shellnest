@@ -146,6 +146,48 @@ impl OpenAccount {
             .map_err(|_| SyncError::WrongPassword)?;
         Self::unlock_with_key(file, key)
     }
+    /// The password changed on another device while this one was away: the server's salt and
+    /// wrapping open the account with the new password. Out of reach of the server, the password
+    /// is just wrong.
+    pub(crate) fn unlock_changed(mut file: AccountFile, password: &str) -> Result<Self, SyncError> {
+        let api = Api::new(&file.server, None)?;
+        let salt = api
+            .prelogin(&file.username)
+            .map_err(|_| SyncError::WrongPassword)?;
+        if salt == file.salt {
+            return Err(SyncError::WrongPassword);
+        }
+        let raw = B64.decode(&salt).map_err(|_| SyncError::RemoteInvalid)?;
+        let (auth, wrap) = login_keys(password, &raw)?;
+        let reply = api
+            .login_keys(&file.username, &B64.encode(*auth))
+            .map_err(|e| match e {
+                SyncError::TooManyAttempts => e,
+                _ => SyncError::WrongPassword,
+            })?;
+        if reply.id != file.user_id {
+            return Err(SyncError::RemoteInvalid);
+        }
+        let key = unwrap_key(&wrap, &reply.keys.password, ACCOUNT_KEY)
+            .map_err(|_| SyncError::WrongPassword)?;
+        file.salt = reply.salt;
+        file.account_key = reply.keys.password;
+        Self::unlock_with_key(file, key)
+    }
+    /// Takes the server's password wrapping after a change on another device. The account key is
+    /// the same, so only the password that opens this file changes. Returns whether it did.
+    pub(crate) fn adopt(&mut self, reply: api::AccountReply) -> Result<bool, SyncError> {
+        if reply.id != self.file.user_id {
+            return Err(SyncError::RemoteInvalid);
+        }
+        // Every password change picks a new salt.
+        if reply.salt == self.file.salt {
+            return Ok(false);
+        }
+        self.file.salt = reply.salt;
+        self.file.account_key = reply.keys.password;
+        Ok(true)
+    }
     pub(crate) fn unlock_with_key(file: AccountFile, key: Key) -> Result<Self, SyncError> {
         let secret = unwrap_key(&key, &file.private_key, PRIVATE_KEY)
             .map_err(|_| SyncError::WrongPassword)?;

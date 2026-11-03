@@ -8,6 +8,7 @@ pub(crate) mod vaults;
 
 use crate::{
     account::{
+        self,
         api::{Api, Role},
         crypto::{CryptoError, Key, open_sealed, wrap_key},
     },
@@ -150,6 +151,15 @@ pub(crate) fn synchronize(state: &AppState, vault_id: &str) -> Result<View, Erro
     if let Some(name) = name {
         vaults::rename_entry(state, vault_id, &name)?;
     }
+    // A password changed on another device opens this one too from now on.
+    let reply = session.api.account()?;
+    let mut account = state.account()?;
+    if let Some(open) = account.as_mut()
+        && open.adopt(reply)?
+    {
+        account::save(&state.path, &open.file)?;
+    }
+    drop(account);
     view(state)
 }
 

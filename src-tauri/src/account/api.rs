@@ -226,6 +226,25 @@ impl Api {
             e => e,
         })
     }
+    /// The account's keys for the password, without starting a session.
+    pub(crate) fn login_keys(
+        &self,
+        username: &str,
+        auth_key: &str,
+    ) -> Result<AccountReply, SyncError> {
+        self.send(
+            Method::POST,
+            "login/keys",
+            &serde_json::json!({ "username": username, "authKey": auth_key }),
+        )
+        .map_err(|e| match e {
+            SyncError::Unauthorized => SyncError::WrongPassword,
+            e => e,
+        })
+    }
+    pub(crate) fn account(&self) -> Result<AccountReply, SyncError> {
+        self.get("account")
+    }
     pub(crate) fn register(&self, body: &Register) -> Result<Session, SyncError> {
         self.send(Method::POST, "register", body)
             .map_err(|e| match e {
