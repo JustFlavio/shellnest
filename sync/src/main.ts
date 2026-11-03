@@ -1,21 +1,39 @@
 import { once } from "node:events";
 import type { AddressInfo } from "node:net";
-import { createSyncServer } from "./app.ts";
+import { INVITE_DAYS, createSyncServer } from "./app.ts";
 import { readConfig } from "./config.ts";
+import { createInvite } from "./invite.ts";
 
 const SHUTDOWN_GRACE_MS = 10_000;
 
 const messageOf = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
 
-/** Starts the server from environment variables and stops it on SIGTERM/SIGINT. */
-export async function run(env: NodeJS.ProcessEnv) {
-  let server: Awaited<ReturnType<typeof createSyncServer>>;
+/** `server.ts invite [--admin]` prints an invite; with no arguments the server starts. */
+export async function run(env: NodeJS.ProcessEnv, args: string[]) {
   let config: ReturnType<typeof readConfig>;
   try {
     config = readConfig(env);
+  } catch (error) {
+    console.error(`Shellnest Sync cannot start: ${messageOf(error)}`);
+    process.exit(1);
+  }
+  if (args[0] === "invite") {
+    const admin = args.includes("--admin");
+    const code = await createInvite(config.directory, admin);
+    console.log(
+      `${admin ? "Admin invite" : "Invite"} (single use, valid ${INVITE_DAYS} days):\n${code}`,
+    );
+    return;
+  }
+  if (args.length) {
+    console.error("Usage: node server.ts [invite [--admin]]");
+    process.exit(1);
+  }
+  let server: Awaited<ReturnType<typeof createSyncServer>>;
+  try {
     server = await createSyncServer({
-      ...config,
+      directory: config.directory,
       onError: (error) =>
         console.error(
           `Storage error: ${(error as NodeJS.ErrnoException).code ?? messageOf(error)}`,

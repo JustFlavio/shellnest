@@ -66,6 +66,10 @@ impl Data {
                 key_name: key.map(|k| k.name.clone()).unwrap_or_default(),
             });
         }
+        // A shared host the member has not bound credentials to yet.
+        if host.identity_id.is_empty() {
+            return Err(ModelError::HostWithoutIdentity(host.name.clone()));
+        }
         let identity = self
             .identities
             .iter()

@@ -1,4 +1,5 @@
 //! Shellnest: a desktop SSH client with encrypted local vaults and optional self-hosted sync.
+mod account;
 mod app;
 mod commands;
 mod error;
@@ -53,9 +54,22 @@ pub fn run() {
             commands::groups::delete_group,
             commands::workspaces::save_workspace,
             commands::workspaces::delete_workspace,
-            commands::sync::configure_sync,
+            commands::account::sign_in,
+            commands::account::register,
+            commands::account::recover_account,
+            commands::account::change_password,
+            commands::account::sign_out,
+            commands::account::devices,
+            commands::account::revoke_device,
+            commands::account::create_invite,
             commands::sync::sync_vault,
-            commands::sync::restore_vault,
+            commands::sync::upload_vault,
+            commands::sync::leave_vault,
+            commands::sync::vault_members,
+            commands::sync::add_member,
+            commands::sync::set_member_role,
+            commands::sync::remove_member,
+            commands::sync::share_identity,
             commands::sftp::sftp_connect,
             commands::sftp::sftp_password,
             commands::sftp::sftp_list,

@@ -78,6 +78,7 @@ impl<'de> Deserialize<'de> for Data {
             sync_url: stored.sync_url.clone(),
             sync_token: stored.sync_token.clone(),
             migrated: stored.schema_version != Some(6),
+            credentials_optional: false,
         };
         for h in &stored.hosts {
             let identity_id = if legacy {

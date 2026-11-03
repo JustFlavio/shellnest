@@ -1,92 +1,88 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
-import { createAuthenticator } from "./src/auth.ts";
+import { createLimiter, makeVerifier, verify } from "./src/auth.ts";
 import { readConfig } from "./src/config.ts";
-import { isEnvelope } from "./src/envelope.ts";
-import { vaultIdFromPath } from "./src/vault-id.ts";
+import { isBase64, isBox, isId, isSealed, isUsername } from "./src/shapes.ts";
 
 const b64 = (n: number, fill = 1) => Buffer.alloc(n, fill).toString("base64");
-const envelope = () => ({
-  version: 1,
-  salt: b64(16),
-  nonce: b64(24),
-  ciphertext: b64(48),
-});
 
-test("vault ids follow the client rule and cannot escape the data directory", () => {
-  assert.equal(vaultIdFromPath("/vault"), "personal");
-  assert.equal(vaultIdFromPath("/vaults/personal"), "personal");
-  assert.equal(vaultIdFromPath("/vaults/work-2"), "work-2");
-  assert.equal(vaultIdFromPath(`/vaults/${"a".repeat(64)}`), `a`.repeat(64));
-  for (const path of [
-    `/vaults/${"a".repeat(65)}`,
-    "/vaults/",
-    "/vaults",
-    "/vaults/Work",
-    "/vaults/a_b",
-    "/vaults/con",
-    "/vaults/com1",
-    "/vaults/lpt9",
-    "/vaults/..",
-    "/vaults/../vault",
-    "/vaults/a/b",
-    "/vaults/%2e%2e%2fsecret",
-    "/vaults/a%00",
-    "/vaults/a.json",
-    "/vaults/a?x=1",
-    "/vault/",
-    "/vault?x=1",
-    "//vaults/work",
-    "/",
-  ])
-    assert.equal(vaultIdFromPath(path), null, path);
-});
-
-test("envelope accepts only the exact encrypted container shape", () => {
-  assert.ok(isEnvelope(envelope()));
+test("boxes and sealed keys accept only the exact encrypted shapes", () => {
+  assert.ok(isBox({ nonce: b64(24), ciphertext: b64(48) }));
   for (const bad of [
     null,
     "text",
     [],
-    { ...envelope(), version: 2 },
-    { ...envelope(), extra: 1 },
-    { ...envelope(), salt: b64(15) },
-    { ...envelope(), nonce: b64(16) },
-    { ...envelope(), ciphertext: b64(8) },
-    { ...envelope(), ciphertext: "not base64!" },
-    { ...envelope(), ciphertext: 5 },
-    { version: 1, salt: b64(16), nonce: b64(24) },
+    { nonce: b64(24) },
+    { nonce: b64(23), ciphertext: b64(48) },
+    { nonce: b64(24), ciphertext: b64(15) },
+    { nonce: b64(24), ciphertext: b64(48), extra: 1 },
+    { nonce: b64(24), ciphertext: "not base64!" },
+    { nonce: b64(24), ciphertext: `${b64(48)}\n` },
   ])
-    assert.equal(isEnvelope(bad), false, JSON.stringify(bad));
-});
-
-test("token must be long enough and is compared against the Bearer header", () => {
-  assert.throws(() => createAuthenticator(undefined), /SYNC_TOKEN/);
-  assert.throws(() => createAuthenticator("short"), /at least 32/);
-  const token = "x".repeat(32);
-  const authorized = createAuthenticator(token);
-  assert.equal(authorized(`Bearer ${token}`), true);
-  assert.equal(authorized(token), false);
-  assert.equal(authorized(`bearer ${token}`), false);
-  assert.equal(authorized(`Bearer ${token}y`), false);
-  assert.equal(authorized(undefined), false);
-});
-
-test("config defaults to loopback and rejects a bad port", () => {
-  const config = readConfig({});
-  assert.equal(config.host, "127.0.0.1");
-  assert.equal(config.port, 8787);
-  assert.match(config.directory, /sync[\\/]data$/);
-  const custom = readConfig({
-    SYNC_HOST: "0.0.0.0",
-    SYNC_PORT: "9000",
-    SYNC_DATA_DIR: "/srv/x",
-  });
-  assert.deepEqual(
-    [custom.host, custom.port, custom.directory],
-    ["0.0.0.0", 9000, resolve("/srv/x")],
+    assert.equal(isBox(bad), false, JSON.stringify(bad));
+  assert.ok(
+    isSealed({ ephemeral: b64(32), nonce: b64(24), ciphertext: b64(48) }),
   );
-  for (const SYNC_PORT of ["abc", "70000", "-1", "1.5"])
-    assert.throws(() => readConfig({ SYNC_PORT }), /SYNC_PORT/);
+  assert.equal(
+    isSealed({ ephemeral: b64(32), nonce: b64(24), ciphertext: b64(64) }),
+    false,
+  );
+  assert.equal(isBase64("QQ"), false, "non-canonical padding");
+});
+
+test("usernames and ids cannot carry path separators or odd characters", () => {
+  for (const ok of ["mario", "m.rossi", "ops-team_2", "a1"])
+    assert.ok(isUsername(ok), ok);
+  for (const bad of [
+    "a",
+    "Mario",
+    "../x",
+    "a/b",
+    ".hidden",
+    "x".repeat(33),
+    "mario rossi",
+  ])
+    assert.equal(isUsername(bad), false, bad);
+  assert.ok(isId("0123456789abcdef0123456789abcdef"));
+  assert.equal(isId("../../etc/passwd"), false);
+  assert.equal(isId("0123456789ABCDEF0123456789ABCDEF"), false);
+});
+
+test("verifiers check the secret without storing it", async () => {
+  const secret = Buffer.alloc(32, 7);
+  const verifier = await makeVerifier(secret);
+  assert.equal(
+    JSON.stringify(verifier).includes(secret.toString("base64")),
+    false,
+  );
+  assert.ok(await verify(secret, verifier));
+  assert.equal(await verify(Buffer.alloc(32, 8), verifier), false);
+});
+
+test("the limiter blocks after repeated failures and forgets them in time", () => {
+  let now = 0;
+  const limiter = createLimiter({
+    attempts: 3,
+    windowMs: 1000,
+    now: () => now,
+  });
+  for (let i = 0; i < 3; i++) limiter.fail("mario");
+  assert.ok(limiter.blocked("mario"));
+  assert.equal(limiter.blocked("anna"), false);
+  now = 1001;
+  assert.equal(limiter.blocked("mario"), false);
+  limiter.fail("mario");
+  limiter.clear("mario");
+  assert.equal(limiter.blocked("mario"), false);
+});
+
+test("config defaults to loopback and validates the port", () => {
+  assert.deepEqual(readConfig({}), {
+    host: "127.0.0.1",
+    port: 8787,
+    directory: resolve("sync/data"),
+  });
+  assert.throws(() => readConfig({ SYNC_PORT: "70000" }));
+  assert.throws(() => readConfig({ SYNC_PORT: "abc" }));
 });

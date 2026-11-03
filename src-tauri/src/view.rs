@@ -1,5 +1,6 @@
 //! The secret-free snapshot of the vault that is sent to the UI after every change.
 use crate::{
+    account::api::Role,
     error::Error,
     model::{self, Host},
     state::AppState,
@@ -12,6 +13,23 @@ pub(crate) struct VaultView {
     pub(crate) id: String,
     pub(crate) name: String,
     pub(crate) exists: bool,
+    pub(crate) remote: bool,
+}
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AccountView {
+    pub(crate) server: String,
+    pub(crate) username: String,
+    pub(crate) admin: bool,
+    // Open in this session: the account's vaults open without the password.
+    pub(crate) unlocked: bool,
+    pub(crate) safety_code: String,
+}
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct RemoteView {
+    pub(crate) role: Role,
+    pub(crate) members: u32,
 }
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -78,6 +96,8 @@ pub(crate) struct IdentityView {
     pub(crate) key_id: String,
     pub(crate) has_password: bool,
     pub(crate) host_count: usize,
+    // In the team part of a server vault, so every member can use it.
+    pub(crate) shared: bool,
 }
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -87,6 +107,7 @@ pub(crate) struct KeyView {
     pub(crate) fingerprint: String,
     pub(crate) identity_count: usize,
     pub(crate) host_count: usize,
+    pub(crate) shared: bool,
 }
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -101,8 +122,8 @@ pub(crate) struct View {
     pub(crate) keys: Vec<KeyView>,
     pub(crate) groups: Vec<model::Group>,
     pub(crate) workspaces: Vec<model::Workspace>,
-    pub(crate) sync_url: String,
-    pub(crate) sync_configured: bool,
+    pub(crate) account: Option<AccountView>,
+    pub(crate) remote: Option<RemoteView>,
     pub(crate) dirty: bool,
 }
 pub(crate) fn view(s: &AppState) -> Result<View, Error> {
@@ -121,9 +142,33 @@ pub(crate) fn view(s: &AppState) -> Result<View, Error> {
                 id: entry.id.clone(),
                 name: entry.name.clone(),
                 exists: vault::VaultCatalog::path_for(&s.path, &entry.id).is_ok_and(|p| p.exists()),
+                remote: entry.remote.is_some(),
             })
             .collect()
     };
+    // From the open account, or else from its file: a locked device still shows who it belongs to.
+    let account = || -> Option<AccountView> {
+        let open = s.account().ok()?;
+        let (file, unlocked) = match open.as_ref() {
+            Some(a) => (a.file.clone(), true),
+            None => (crate::account::load(&s.path).ok()??, false),
+        };
+        Some(AccountView {
+            safety_code: crate::account::crypto::decode32(&file.public_key)
+                .map(|k| crate::account::crypto::safety_code(&k))
+                .unwrap_or_default(),
+            server: file.server,
+            username: file.username,
+            admin: file.admin,
+            unlocked,
+        })
+    };
+    let team = guard
+        .as_ref()
+        .and_then(|v| v.remote.as_ref())
+        .map(|r| &r.team);
+    let shared_identity = |id: &str| team.is_some_and(|t| t.identities.iter().any(|i| i.id == id));
+    let shared_key = |id: &str| team.is_some_and(|t| t.keys.iter().any(|k| k.id == id));
     Ok(match guard.as_ref() {
         Some(v) => View {
             vault_id: selected.id.clone(),
@@ -155,6 +200,7 @@ pub(crate) fn view(s: &AppState) -> Result<View, Error> {
                         .iter()
                         .filter(|h| h.identity_id == i.id)
                         .count(),
+                    shared: shared_identity(&i.id),
                 })
                 .collect(),
             keys: v
@@ -164,6 +210,7 @@ pub(crate) fn view(s: &AppState) -> Result<View, Error> {
                 .map(|k| KeyView {
                     id: k.id.clone(),
                     name: k.name.clone(),
+                    shared: shared_key(&k.id),
                     fingerprint: k.fingerprint.clone(),
                     identity_count: v
                         .data
@@ -186,9 +233,12 @@ pub(crate) fn view(s: &AppState) -> Result<View, Error> {
                 })
                 .collect(),
             workspaces: v.data.workspaces.clone(),
-            sync_url: v.data.sync_url.clone(),
-            sync_configured: !v.data.sync_token.is_empty(),
-            dirty: v.disk.dirty,
+            account: account(),
+            remote: v.disk.remote.as_ref().map(|r| RemoteView {
+                role: r.role,
+                members: r.members,
+            }),
+            dirty: v.disk.dirty || v.disk.remote.as_ref().is_some_and(|r| r.private_dirty),
         },
         None => View {
             vault_id: selected.id.clone(),
@@ -201,8 +251,8 @@ pub(crate) fn view(s: &AppState) -> Result<View, Error> {
             keys: vec![],
             groups: vec![],
             workspaces: vec![],
-            sync_url: String::new(),
-            sync_configured: false,
+            account: account(),
+            remote: None,
             dirty: false,
         },
     })

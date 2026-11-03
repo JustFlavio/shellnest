@@ -40,6 +40,12 @@ pub(crate) enum Error {
     #[error("{0}")]
     Task(#[from] tauri::Error),
 }
+// Key operations fail inside a sync or account operation.
+impl From<crate::account::crypto::CryptoError> for Error {
+    fn from(error: crate::account::crypto::CryptoError) -> Self {
+        Self::Sync(SyncError::Crypto(error))
+    }
+}
 impl Error {
     /// The error as the UI receives it.
     pub(crate) fn message(&self) -> Value {

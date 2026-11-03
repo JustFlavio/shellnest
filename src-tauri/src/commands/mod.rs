@@ -1,5 +1,6 @@
 //! Tauri commands, one file per area. Every command that changes the vault returns the fresh
 //! `View`, so the UI never holds state of its own.
+pub(crate) mod account;
 pub(crate) mod credentials;
 pub(crate) mod groups;
 pub(crate) mod hosts;

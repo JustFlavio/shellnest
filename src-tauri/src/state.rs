@@ -1,9 +1,11 @@
 //! The shared app state (open vault, catalog, sessions) and the one way to persist a change.
 use crate::{
+    account::OpenAccount,
     error::Error,
     locks::MutexExt,
-    model, terminal,
-    vault::{self, OpenVault, VaultError},
+    model::{self, shared},
+    terminal,
+    vault::{self, OpenVault, VaultError, remote::Remote},
 };
 use std::{
     collections::HashMap,
@@ -16,6 +18,8 @@ pub(crate) struct AppState {
     pub(crate) path: PathBuf,
     pub(crate) catalog: Mutex<vault::VaultCatalog>,
     pub(crate) vault: Mutex<Option<OpenVault>>,
+    // The sync account, open while one of its vaults is. Lock order: vault, then account.
+    pub(crate) account: Mutex<Option<OpenAccount>>,
     pub(crate) sftp: crate::sftp::Registry,
     pub(crate) sessions: Mutex<HashMap<String, UnboundedSender<terminal::Input>>>,
 }
@@ -26,6 +30,7 @@ impl AppState {
             path,
             catalog: Mutex::new(catalog),
             vault: Mutex::new(None),
+            account: Mutex::new(None),
             sessions: Mutex::new(HashMap::new()),
             sftp: Mutex::new(HashMap::new()),
         })
@@ -33,6 +38,9 @@ impl AppState {
     /// The open vault. A poisoned lock is an error: after a panic its contents are not vouched for.
     pub(crate) fn vault(&self) -> Result<MutexGuard<'_, Option<OpenVault>>, Error> {
         self.vault.lock().map_err(|_| Error::StatePoisoned)
+    }
+    pub(crate) fn account(&self) -> Result<MutexGuard<'_, Option<OpenAccount>>, Error> {
+        self.account.lock().map_err(|_| Error::StatePoisoned)
     }
     pub(crate) fn catalog(&self) -> Result<MutexGuard<'_, vault::VaultCatalog>, Error> {
         self.catalog.lock().map_err(|_| Error::CatalogPoisoned)
@@ -80,12 +88,37 @@ impl AppState {
 // Persist a candidate before replacing the in-memory data, so write failures do not lose edits.
 pub(crate) fn commit(s: &AppState, v: &mut OpenVault, data: model::Data) -> Result<(), Error> {
     data.validate()?;
-    let mut candidate = OpenVault {
-        key: v.key.clone(),
-        data,
-        disk: v.disk.clone(),
+    let mut candidate = match &v.remote {
+        None => {
+            let mut disk = v.disk.clone();
+            disk.dirty = true;
+            OpenVault {
+                key: v.key.clone(),
+                data,
+                disk,
+                remote: None,
+            }
+        }
+        Some(remote) => {
+            let (team, private) =
+                shared::split(&v.data, &data, &remote.team, &remote.private, v.access())?;
+            let mut disk = v.disk.clone();
+            disk.dirty |= team != remote.team;
+            if let Some(r) = disk.remote.as_mut() {
+                r.private_dirty |= private != remote.private;
+            }
+            OpenVault {
+                key: v.key.clone(),
+                data: shared::effective(&team, &private),
+                disk,
+                remote: Some(Remote {
+                    team,
+                    private,
+                    private_key: remote.private_key.clone(),
+                }),
+            }
+        }
     };
-    candidate.disk.dirty = true;
     candidate.seal()?;
     vault::save(&s.active_path()?, &candidate.disk)?;
     *v = candidate;
