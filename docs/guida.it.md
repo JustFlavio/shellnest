@@ -26,7 +26,7 @@ Gli editor usano sezioni di form e azioni fisse nel footer. Gli host validi si s
 Il menu applicazione nell’header raccoglie navigazione, nuove connessioni, visualizzazione, impostazioni, scorciatoie, blocco del vault e comandi della finestra. **Scorciatoie da tastiera** elenca i comandi disponibili: `Ctrl/Cmd T` o `Ctrl/Cmd K` per una nuova connessione, `Ctrl/Cmd J` per passare a una scheda aperta, `Ctrl/Cmd N` per un nuovo host, `Ctrl/Cmd Maiusc F` per la ricerca nella raccolta e `Ctrl/Cmd Maiusc L` per bloccare il vault, con conferma se ci sono sessioni aperte. Chiudere la sessione attiva seleziona una sessione adiacente quando disponibile.
 
 - Vault locale cifrato con Argon2id e XChaCha20-Poly1305, nonce casuali a ogni salvataggio.
-- Più vault indipendenti, ciascuno con password, host, identità e configurazione sync propri; creazione, selezione e rinomina.
+- Più vault indipendenti, ciascuno con host e identità propri; creazione, selezione e rinomina. Un vault locale ha la sua password; un vault sul server si apre con la password dell’account.
 - Elenco e cards compatte degli host, cartelle, ricerca, modifica, menu azioni e selezione multipla.
 - Nuova scheda `+`, `Ctrl/Cmd T` e `Ctrl/Cmd K`: ricerca di host e schede in gruppi con titolo («Schede», «Host», «Connessione rapida»), accessi recenti agli host salvati, terminale locale e connessione rapida con identità esistente. Un host con una scheda aperta compare solo sotto «Schede». `Ctrl/Cmd J` apre lo stesso riquadro in modalità «Vai alla scheda»: elenca soltanto le schede aperte, le più recenti per prime.
 - Terminale locale del dispositivo con PTY nativo (ConPTY su Windows), input e ridimensionamento.
@@ -38,8 +38,7 @@ Il menu applicazione nell’header raccoglie navigazione, nuove connessioni, vis
 
 La connessione rapida (indirizzo digitato nella ricerca, anche con Ctrl/Cmd+Invio) avvia lo stesso riquadro e vi pone le domande: «Utente» (precompilato da `utente@host`, oppure un’identità salvata che porta con sé le credenziali) e, senza identità, «Metodo di accesso» (password o chiave del portachiavi). «Continua» si collega senza salvare nulla; «Continua e salva» crea anche l’host nel vault (nome predefinito: l’indirizzo; con una chiave viene creata, o riusata, un’identità). L’impronta di una connessione rapida non viene mai salvata.
 
-- Sincronizzazione del vault cifrato tramite il servizio incluso; controllo ogni 30 secondi mentre il vault è aperto e pulsante manuale.
-- Collegamento di un dispositivo nuovo scaricando il vault esistente; protezione dalle sovrascritture concorrenti tramite ETag e scritture condizionali.
+- Account sul server di sincronizzazione incluso: i tuoi vault su tutti i dispositivi e vault condivisi con i colleghi, con ruoli. Sync ogni 30 secondi mentre il vault è aperto, dopo ogni modifica e con il pulsante manuale; le modifiche concorrenti si uniscono.
 - Blocco manuale e cambio vault chiudono tutte le sessioni, comprese quelle locali, con conferma quando sono aperte.
 
 I file sono nella directory dati applicazione Tauri: il vault personale esistente resta `vault.json`, gli altri sono in `vault-vaults/<id>.json`. Il catalogo `vault.catalog.json` contiene nomi e identificativi locali non cifrati; i contenuti dei vault sono cifrati, con una copia precedente `.bak`. Il blocco di istanza impedisce a due processi della nuova versione di scrivere contemporaneamente. Gli elenchi degli host non contengono password o chiavi SSH. Il campo password mostra pallini per una password esistente: soltanto il clic sull’occhiello recupera quella del singolo host dal vault sbloccato. La visualizzazione non modifica l’host; nasconderla rimuove il valore recuperato dallo stato del campo. La UI gestisce in memoria i segreti appena digitati fino alla chiusura dell’editor; localStorage conserva solo preferenze di visualizzazione. Il backend usa zeroizzazione per chiave e dati decifrati, senza promettere l'eliminazione di ogni copia creata da librerie o runtime.
@@ -58,32 +57,64 @@ Al primo sblocco, i vault precedenti vengono migrati allo schema dati 6. Lo sche
 
 Nel browser l'anteprima usa gli stessi componenti dell'app desktop con dati dimostrativi modificabili in memoria: host, identità, chiavi, assegnazioni e vault. Tutto torna ai dati iniziali ricaricando la pagina. Usa solo credenziali e chiavi fittizie: password, chiavi private e token non vengono conservati dal backend dimostrativo, che non esegue cifratura, verifiche crittografiche, SSH o sincronizzazione di rete. Il recupero con l’occhiello mostra solo una password dimostrativa, non quella digitata. Il vault locale dell'app desktop non viene modificato.
 
-## Sincronizzazione personale
+## Sincronizzazione e condivisione
 
-Il servizio incluso nella stessa codebase è un server Node.js senza framework; conserva più vault cifrati separati. **È un servizio personale: un solo token autorizza tutti i vault del deployment, senza permessi multiutente.** Genera un token casuale (ad esempio 32 byte con `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`) e conservalo nel gestore dei segreti del deployment. Non inserirlo in Git o nella riga di comando.
+Il server incluso (`sync/`) è un servizio Node.js senza dipendenze da ospitare in proprio. Conserva account e vault **cifrati sui dispositivi**: il server non vede host, indirizzi, utenti, password, chiavi, cartelle né i nomi dei vault. Vede i nomi utente, i nomi dei dispositivi, chi appartiene a quale vault con quale ruolo, dimensioni e orari delle modifiche. Installazione con Docker Compose e HTTPS automatico (Caddy), backup e API in inglese: [`sync/README.md`](../sync/README.md). Come funziona la cifratura: [`docs/sync-design.md`](sync-design.md).
 
-In PowerShell, per una prova locale:
+### Primo avvio del server
 
-```powershell
-$env:SYNC_TOKEN = '<token casuale di almeno 32 caratteri>'
-npm run sync
+```sh
+cd sync
+SYNC_DOMAIN=sync.example.com docker compose up -d
+docker compose exec sync node server.ts invite --admin
 ```
 
-Il servizio ascolta su `127.0.0.1:8787`, salva solo i contenitori cifrati in `sync/data`, e richiede il token per GET/PUT `/vaults/<id>`. `/vault` e `/vaults/personal` mantengono compatibilità con il vault personale originale. Per ospitarlo su una VPS, mettilo dietro un reverse proxy HTTPS; resta in ascolto locale per impostazione predefinita. `SYNC_HOST`, `SYNC_PORT` e `SYNC_DATA_DIR` permettono di personalizzare il deployment. È incluso un Dockerfile: `docker build -t shellnest-sync sync`. Persisti `/data` in un volume e fornisci `SYNC_TOKEN` tramite l'ambiente protetto del deployment. Il servizio non parte senza un token di almeno 32 caratteri. `/health` non richiede autenticazione. Guida completa al deployment (Docker, systemd, Caddy/nginx, backup) in inglese: [`sync/README.md`](../sync/README.md).
+Il secondo comando stampa un invito da amministratore, valido una volta per 7 giorni. Per una prova sul proprio computer basta `npm run sync` e poi `node sync/server.ts invite --admin`: l’app accetta HTTP solo per `localhost`, per tutto il resto serve HTTPS.
 
-1. Sul primo dispositivo crea un vault, aggiungi gli host e configura URL e token nelle impostazioni. Esegui una sync.
-2. Su un dispositivo senza vault scegli **Collega questo dispositivo**. Inserisci URL, token e la stessa password principale.
-3. Le modifiche vengono sincronizzate mentre il vault è sbloccato. Non occorrono applicazioni di sincronizzazione esterne sui client.
+### Account
 
-Ogni vault si configura separatamente. Per un nuovo vault diverso da quello personale, l'app completa un URL base con `/vaults/<id>`. **Sul secondo dispositivo copia l'URL completo mostrato dal primo**, ad esempio `https://sync.example.com/vaults/abc123`: il nome del vault e l'identificativo locale del secondo dispositivo possono essere diversi. Crea/seleziona un vault locale vuoto e usa il collegamento al vault remoto con quell'URL e la stessa password. Il servizio web è opzionale per l'uso locale, obbligatorio soltanto per la sync tra dispositivi.
+1. In **Impostazioni → Vault** scegli **Ho un invito** e inserisci indirizzo del server, codice di invito, nome utente e una password di almeno 12 caratteri.
+2. L’app mostra la **chiave di recupero** una sola volta. Conservala in un gestore di password o stampala: se dimentichi la password, è l’unico modo per rientrare. Nemmeno chi gestisce il server può recuperare l’account.
+3. Su un altro dispositivo scegli **Accedi al server** (anche dalla schermata di sblocco) con indirizzo, nome utente e password: i vault dell’account arrivano da soli.
 
-Il client rifiuta HTTP remoto e redirect. Host, utenti, credenziali, cartelle e token sono dentro il contenitore cifrato. Il servizio può osservare dimensione, tempi e indirizzi IP; chi possiede il token può scaricare, sostituire o cancellare i file sul server se possiede anche accesso amministrativo, ma il solo token non decifra il vault. Una password principale robusta resta necessaria contro tentativi offline. Non esiste recupero della password: conservarla e fare backup del vault.
+Dal riquadro dell’account:
 
-### Conflitti e limiti della preview
+- **Dispositivi** elenca i dispositivi collegati; rimuoverne uno lo scollega alla sua richiesta successiva.
+- **Cambia password** cambia la password dell’account. Gli altri dispositivi restano collegati: uno sbloccato passa alla nuova password alla prossima sincronizzazione; uno spento si apre con la nuova password appena raggiunge il server, e finché resta offline si apre ancora con quella vecchia.
+- **Invita** (solo amministratori) crea un invito per un collega.
+- **Esci** scollega il dispositivo e toglie da qui i vault del server, che restano sul server. È rifiutato se ci sono modifiche non ancora inviate.
+- **Password dimenticata?** nella schermata di accesso imposta una nuova password con la chiave di recupero e scollega tutti gli altri dispositivi.
 
-La sync conserva un intero vault: se entrambi i dispositivi hanno modifiche non sincronizzate, interrompe l'operazione e conserva la copia locale. Non è ancora presente una schermata per unire le modifiche. Per risolvere un conflitto, chiudi le app e fai una copia dei file vault di entrambi i dispositivi; scegli una versione autorevole e ricrea un ambiente di sincronizzazione pulito con una nuova directory remota vuota e un **nuovo URL**. Configura quel nuovo URL sul dispositivo autorevole, così viene azzerata la revisione del precedente servizio, quindi ricollega l'altro dispositivo dopo averne conservato e rimosso il vault locale. Non eliminare l'unica copia di un vault. Un guasto dopo l'upload e prima del salvataggio della revisione locale può produrre un conflitto prudenziale.
+Dopo 10 accessi falliti in 15 minuti con lo stesso nome utente dallo stesso indirizzo IP, quell’indirizzo non può più accedere a quel nome utente per il resto dei 15 minuti; dopo 200 accessi falliti da un indirizzo, su qualunque nome utente, si ferma l’indirizzo. Chi prova a indovinare la tua password da un altro posto blocca solo se stesso, e un ufficio dietro una VPN resta lontano dal limite. I dispositivi già collegati continuano a funzionare.
 
-Da completare prima di un uso stabile: risoluzione dei conflitti nell'app, esportazione/importazione guidata, recupero e pairing dispositivi, blocco automatico, protezione da rollback del server, test SSH con server reali, test macOS e revisione di sicurezza. Non sono implementati agent forwarding, jump host, keyboard-interactive/2FA o biometria. Chiavi hardware non esportabili non sono sincronizzabili come chiavi private.
+### Vault sul server
+
+Un vault locale resta locale finché non scegli **Carica sul server** nel riquadro **Server** del vault. Da quel momento si apre con la password dell’account invece della sua; resta una copia del file locale con estensione `.pre-server.bak`.
+
+Il vault caricato ha due parti:
+
+- la parte **condivisa**, che vedono tutti i membri: host, cartelle, impronte dei server e le identità o chiavi che qualcuno ha scelto di condividere;
+- la tua parte **privata**, sincronizzata solo tra i tuoi dispositivi: le tue identità, chiavi e credenziali, quali credenziali usi per quale host o cartella, gli spazi di lavoro e la cronologia delle connessioni.
+
+Le modifiche fatte su due dispositivi si uniscono campo per campo; se lo stesso campo è cambiato su entrambi vince l’ultima scrittura. Il server conserva le ultime 20 versioni della parte condivisa per un recupero manuale.
+
+### Condividere con i colleghi
+
+Il proprietario aggiunge un collega per nome utente nel riquadro **Membri**, con un ruolo:
+
+| Ruolo          | Può                                                            |
+| -------------- | -------------------------------------------------------------- |
+| Proprietario   | tutto, compresi membri, ruoli e nome del vault                 |
+| Può modificare | cambiare host, cartelle e impronte                             |
+| Sola lettura   | vedere host e cartelle e collegarsi con le proprie credenziali |
+
+Prima di condividere, confronta di persona o in chiamata il **codice di sicurezza** che il collega vede nel suo account con quello che vedi tu: esclude che il server abbia sostituito la sua chiave. L’app ricorda la chiave del collega e rifiuta una chiave diversa in seguito.
+
+Le tue identità restano private finché non scegli di condividerle dall’editor; chi ha la sola lettura imposta le proprie credenziali per gli host del vault. Rimuovere un membro sostituisce la chiave del vault: chi è stato rimosso tiene la copia che aveva, ma non riceve più nulla. L’app elenca le identità e le chiavi condivise che poteva leggere: cambiale anche sui server.
+
+### Limiti
+
+Polling ogni 30 secondi, nessuna notifica in tempo reale. Il server è pensato per una persona o un piccolo gruppo: account e vault stanno in file JSON e in memoria. Restano da fare: esportazione/importazione guidata, blocco automatico, protezione da rollback del server, test SSH con server reali e revisione di sicurezza. Non sono implementati agent forwarding, jump host, keyboard-interactive/2FA o biometria. Chiavi hardware non esportabili non sono sincronizzabili come chiavi private.
 
 ## Verifiche
 
@@ -99,13 +130,13 @@ cargo test --manifest-path src-tauri/Cargo.toml
 npm run test:desktop
 ```
 
-Compila una build debug dedicata e usa WebdriverIO con il driver incorporato nella WebView Tauri: non usa il browser personale o un'estensione. Il percorso verifica creazione del vault, selezione di un'identità condivisa per due host, salvataggio automatico, cambio schede/lista e blocco/sblocco con rilettura dei dati salvati. Non apre connessioni SSH.
+Compila una build debug dedicata e usa WebdriverIO con il driver incorporato nella WebView Tauri: non usa il browser personale o un'estensione. Il percorso verifica creazione del vault, selezione di un'identità condivisa per due host, salvataggio automatico, cambio schede/lista e blocco/sblocco con rilettura dei dati salvati. Poi avvia un server di sync locale e, dall’interfaccia, crea l’account con un invito, carica il vault, controlla che sul server non ci siano dati in chiaro, apre i dispositivi, cambia la password, crea un invito e riapre il vault solo con la nuova password. Non apre connessioni SSH.
 
 Ogni esecuzione crea una directory temporanea per il vault e, su Windows, per il profilo WebView2; la directory viene rimossa al termine. L'identificativo Tauri di test è distinto da quello dell'app normale. La feature Cargo `desktop-e2e` abilita i plugin di automazione solo su richiesta e rifiuta le build release; la build ordinaria non li include. Usare il comando completo sopra, che prepara l'ambiente isolato.
 
 L'app di test può mostrare una finestra propria. Il risultato è testuale; i log di build e driver sono in `artifacts/desktop-e2e/`, con `failure.png` in caso di test fallito. Gli artefatti contengono soltanto i dati sintetici usati dal test. Per verifiche UI funzionali usare questa suite prima di ricorrere all'esplorazione manuale del browser; riservare quest'ultima a controlli visivi mirati e diagnosi. I test di focus e scorciatoie globali richiedono un desktop dedicato per evitare interferenze dell'utente.
 
-I test verificano rifiuto di password errate e manomissioni, nonce distinti, autenticazione API, revisioni concorrenti, isolamento dei vault e persistenza del servizio. Un server SSH temporaneo su localhost verifica accesso con password e chiave, terminale e rifiuto di identità cambiate prima dell'autenticazione. Un test Rust avvia il servizio Node e verifica upload, ripristino, aggiornamenti in entrambe le direzioni e conservazione dei dati in conflitto. Su Windows il test PTY apre PowerShell e verifica input, dimensioni e chiusura. L'accesso a server SSH reali e il comportamento macOS richiedono ambienti di prova dedicati. Select, menu vault, ritorno del focus e pannelli sono stati verificati nell’anteprima browser con dati sintetici. Il percorso automatico descritto sopra è stato verificato anche nella WebView dell’app desktop su Windows.
+I test verificano rifiuto di password errate e manomissioni, nonce distinti, autenticazione API, revisioni concorrenti, isolamento dei vault e persistenza del servizio. Un server SSH temporaneo su localhost verifica accesso con password e chiave, terminale e rifiuto di identità cambiate prima dell'autenticazione. Un test Rust avvia il servizio Node con due dispositivi dello stesso utente e una collega in sola lettura: unione delle modifiche, condivisione di un’identità, rimozione con cambio della chiave, cambio password seguito dagli altri dispositivi e verifica che il server non veda niente in chiaro. Su Windows il test PTY apre PowerShell e verifica input, dimensioni e chiusura. L'accesso a server SSH reali e il comportamento macOS richiedono ambienti di prova dedicati. Select, menu vault, ritorno del focus e pannelli sono stati verificati nell’anteprima browser con dati sintetici. Il percorso automatico descritto sopra è stato verificato anche nella WebView dell’app desktop su Windows.
 
 La pianificazione delle prossime funzioni è in [ROADMAP.md](ROADMAP.md). Per generare il solo eseguibile Windows con interfaccia incorporata, senza dipendere da Vite: `npm run desktop:build -- --no-bundle`.
 

@@ -6,6 +6,9 @@ use std::{fs, path::Path};
 pub(crate) struct VaultEntry {
     pub(crate) id: String,
     pub(crate) name: String,
+    // The id on the sync server, for a server vault.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) remote: Option<String>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 pub(crate) struct VaultCatalog {
@@ -19,6 +22,7 @@ impl Default for VaultCatalog {
             vaults: vec![VaultEntry {
                 id: "personal".into(),
                 name: "Personal".into(),
+                remote: None,
             }],
         }
     }

@@ -16,7 +16,7 @@ Goal: an open source SSH client for individual users on Windows, macOS and Linux
 - [x] Flows checked in the browser preview on Windows: creating hosts/identities, returning to forms, multi-select, filters and search. The demo uses synthetic data, without SSH or encryption.
 - [ ] Visual check in the desktop WebView on Windows, macOS and Linux; screen reader test and a full keyboard-flow check on each system. Linux: CI builds, lints and tests it and builds the `.deb` and AppImage, but nobody has run the app on a real desktop yet (window resize edges, Secret Service prompt).
 
-Boundaries: switching or locking a vault closes the sessions, after confirmation when there are any. Vault names are local metadata visible before unlocking; credentials stay encrypted. The initial recents are the saved hosts with a successful last access: commands and terminal output are never recorded. The sync service is personal, with no multi-user sharing.
+Boundaries: switching or locking a vault closes the sessions, after confirmation when there are any. Vault names are local metadata visible before unlocking; credentials stay encrypted. The initial recents are the saved hosts with a successful last access: commands and terminal output are never recorded. The sync server has accounts by invite and vaults shared by role; see [sync-design](docs/sync-design.md).
 
 Check of 25 October 2026 on Windows: TypeScript/Vite build succeeded, 21 Rust tests and 16 JavaScript tests passed, including SSH on localhost, PowerShell with a native PTY, vault isolation and sync between two simulated devices. The browser preview was checked visually; the desktop WebView and macOS checks are still open.
 

@@ -7,8 +7,10 @@ mod groups;
 mod hosts;
 mod identities;
 mod keys;
+mod merge;
 mod migration;
 mod resolve;
+pub(crate) mod shared;
 #[cfg(test)]
 mod test_support;
 mod validate;
@@ -20,6 +22,7 @@ pub(crate) use groups::{Group, MAX_GROUP_DEPTH};
 pub(crate) use hosts::{Host, HostCredentials};
 pub(crate) use identities::Identity;
 pub(crate) use keys::SshKey;
+pub(crate) use merge::{merge_data, merge_private};
 pub(crate) use resolve::Connection;
 pub(crate) use workspaces::Workspace;
 

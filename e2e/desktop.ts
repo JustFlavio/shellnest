@@ -2,18 +2,29 @@ import { spawn } from "node:child_process";
 import type { StdioOptions } from "node:child_process";
 import { closeSync, openSync } from "node:fs";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { once } from "node:events";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createSyncServer } from "../sync/src/app.ts";
+import { createInvite } from "../sync/src/invite.ts";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const artifacts = join(root, "artifacts", "desktop-e2e");
 await mkdir(artifacts, { recursive: true });
 const dataDir = await mkdtemp(join(tmpdir(), "shellnest-e2e-"));
+// A real sync server on loopback, with its data beside the test vault.
+const syncDir = join(dataDir, "sync-server");
+const sync = await createSyncServer({ directory: syncDir });
+sync.listen(0, "127.0.0.1");
+await once(sync, "listening");
 const env = {
   ...process.env,
   SHELLNEST_E2E_DATA_DIR: dataDir,
   WEBVIEW2_USER_DATA_FOLDER: join(dataDir, "webview"),
+  SHELLNEST_E2E_SYNC_URL: `http://127.0.0.1:${(sync.address() as AddressInfo).port}`,
+  SHELLNEST_E2E_INVITE: await createInvite(syncDir, true),
 };
 
 function run(script: string, args: string[], stdio: StdioOptions = "inherit") {
@@ -56,6 +67,8 @@ try {
   console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
 } finally {
+  sync.closeAllConnections();
+  sync.close();
   await rm(dataDir, {
     recursive: true,
     force: true,

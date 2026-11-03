@@ -1,0 +1,37 @@
+# Shellnest Sync behind Caddy, which gets and renews the HTTPS certificate.
+# Point the DNS name at this machine, open ports 80 and 443, then:
+#   SYNC_DOMAIN=sync.example.com docker compose up -d
+#   docker compose exec sync node server.ts invite --admin
+services:
+  sync:
+    build: .
+    restart: unless-stopped
+    environment:
+      # Caddy sets X-Forwarded-For; the server is not reachable without it.
+      SYNC_TRUST_PROXY: "1"
+    volumes:
+      - sync-data:/data
+    # Reachable only from Caddy, on the compose network.
+    expose:
+      - "8787"
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on:
+      - sync
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SYNC_DOMAIN: ${SYNC_DOMAIN:?Set SYNC_DOMAIN to the server name, e.g. sync.example.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  sync-data:
+  caddy-data:
+  caddy-config:

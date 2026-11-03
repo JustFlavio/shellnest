@@ -2,20 +2,15 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { desktop } from "@/lib/platform";
 import type { SettingsSection } from "./SettingsNav";
-import type { View } from "@/lib/types";
 import type { VaultApi } from "@/features/vault/useVault";
-import { syncUrlForVault } from "@/features/terminal/workbench-state.ts";
 
 export function useSettingsDialog({
   view,
   run,
-  update,
   invokeScoped,
   setError,
 }: VaultApi) {
   const [section, setSection] = useState<SettingsSection | null>(null),
-    [syncUrl, setSyncUrl] = useState(""),
-    [syncToken, setSyncToken] = useState(""),
     [remembered, setRemembered] = useState<boolean | null>(null);
   const isOpen = section !== null;
   // Creating, switching or locking leaves the unlock screen; settings must not reappear on the next unlock.
@@ -41,29 +36,17 @@ export function useSettingsDialog({
     };
   }, [rememberedFor]);
   const open = (next: SettingsSection = "general") => {
-    setSyncUrl(view.syncUrl);
     setError("");
     setSection(next);
   };
   const close = () => {
     setSection(null);
-    setSyncToken("");
     setError("");
   };
   const changeSection = (next: SettingsSection) => {
     setError("");
     setSection(next);
   };
-  const saveSync = () =>
-    void run(async () => {
-      update(
-        await invokeScoped<View>("configure_sync", {
-          url: syncUrlForVault(syncUrl, view.vaultId),
-          token: syncToken,
-        }),
-      );
-      setSyncToken("");
-    });
   const remember = (enabled: boolean) =>
     void run(async () => {
       await invokeScoped("set_remembered", { enabled });
@@ -75,12 +58,6 @@ export function useSettingsDialog({
     open,
     close,
     changeSection,
-    syncUrl,
-    setSyncUrl,
-    syncToken,
-    setSyncToken,
-    clearToken: () => setSyncToken(""),
-    saveSync,
     remembered,
     remember,
   };

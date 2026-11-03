@@ -14,6 +14,7 @@ import type { SaveStatus } from "./HostSaveStatus";
 import { sheetField, vaultBar } from "@/lib/editor-ui";
 import { EditorSection } from "./EditorSection";
 import { Panel } from "./Panel";
+import { ReadOnlyNotice } from "@/features/vault/SharingNotices";
 import { HostTagsField } from "./HostTagsField";
 
 const HOST_FIELDS = [
@@ -121,6 +122,7 @@ export function HostEditor({
           if (form.check(e.currentTarget)) onSubmit();
         }}
       >
+        <ReadOnlyNotice />
         <FieldErrors errors={form.errors}>
           <div
             className={vaultBar}

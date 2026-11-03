@@ -38,16 +38,6 @@ export function terminalInputChunks(text: string): string[] {
   }
   return chunks;
 }
-export function syncUrlForVault(raw: string, vaultId: string): string {
-  if (vaultId === "personal") return raw;
-  const url = new URL(raw);
-  let path = url.pathname.replace(/\/+$/, "");
-  if (!path.includes("/vaults/")) {
-    if (path.endsWith("/vault")) path = path.slice(0, -6);
-    url.pathname = `${path}/vaults/${vaultId}`;
-  }
-  return url.toString().replace(/\/$/, "");
-}
 export function leafIds(node: LayoutNode): string[] {
   return "id" in node ? [node.id] : [...leafIds(node.a), ...leafIds(node.b)];
 }

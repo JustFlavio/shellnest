@@ -102,7 +102,7 @@ impl Data {
                     return Err(ModelError::HostCredentialsInvalid);
                 }
             } else if h.identity_id.is_empty() {
-                if self.inherited_identity(h).is_none() {
+                if !self.credentials_optional && self.inherited_identity(h).is_none() {
                     return Err(ModelError::HostWithoutIdentity(h.name.clone()));
                 }
             } else if !self.identities.iter().any(|i| i.id == h.identity_id) {

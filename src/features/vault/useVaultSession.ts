@@ -25,6 +25,8 @@ export function useVaultSession({
   const [vaultDialog, setVaultDialog] = useState<{
       mode: "create" | "rename";
       name: string;
+      // A new vault on the sync server rather than on this device only.
+      remote: boolean;
     } | null>(null),
     [pendingSwitch, setPendingSwitch] = useState<string | null>(null),
     [pendingLock, setPendingLock] = useState(false);
@@ -69,7 +71,10 @@ export function useVaultSession({
       if (vaultDialog.mode === "create") {
         epoch.current++;
         leave(
-          await invokeScoped<View>("create_vault", { name: vaultDialog.name }),
+          await invokeScoped<View>("create_vault", {
+            name: vaultDialog.name,
+            remote: vaultDialog.remote,
+          }),
         );
       } else {
         update(
@@ -93,13 +98,18 @@ export function useVaultSession({
     tabs.tabs.length ? setPendingLock(true) : lockVault();
   const openCreateDialog = () => {
     vault.setError("");
-    setVaultDialog({ mode: "create", name: "" });
+    setVaultDialog({
+      mode: "create",
+      name: "",
+      remote: !!view.account?.unlocked,
+    });
   };
   const openRenameDialog = () => {
     vault.setError("");
-    setVaultDialog({ mode: "rename", name: view.vaultName });
+    setVaultDialog({ mode: "rename", name: view.vaultName, remote: false });
   };
   return {
+    leave,
     vaultDialog,
     setVaultDialog,
     submitVaultDialog,

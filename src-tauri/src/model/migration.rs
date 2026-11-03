@@ -78,6 +78,7 @@ impl<'de> Deserialize<'de> for Data {
             sync_url: stored.sync_url.clone(),
             sync_token: stored.sync_token.clone(),
             migrated: stored.schema_version != Some(6),
+            credentials_optional: false,
         };
         for h in &stored.hosts {
             let identity_id = if legacy {
@@ -189,7 +190,11 @@ impl<'de> Deserialize<'de> for Data {
                 last_connected_at: h.last_connected_at,
             });
         }
+        // The team part of a server vault has hosts without credentials; a local vault never does,
+        // and its edits are checked with the strict rule again.
+        data.credentials_optional = true;
         data.validate().map_err(serde::de::Error::custom)?;
+        data.credentials_optional = false;
         Ok(data)
     }
 }
