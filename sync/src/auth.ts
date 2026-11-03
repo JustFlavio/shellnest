@@ -58,7 +58,10 @@ export const decoySalt = (secret: Buffer, username: string) =>
     .subarray(0, 16)
     .toString("base64");
 
-/** Counts failed attempts per key (a username or an address) in a sliding window. */
+// Many keys come from attempts with made-up usernames; past this many, stale ones go.
+const SWEEP_ABOVE = 10_000;
+
+/** Counts failed attempts per key in a sliding window. Keys with no recent failure are dropped. */
 export function createLimiter({
   attempts,
   windowMs,
@@ -77,6 +80,9 @@ export function createLimiter({
       const list = recent(key);
       list.push(now());
       failures.set(key, list);
+      if (failures.size > SWEEP_ABOVE)
+        for (const old of failures.keys())
+          if (!recent(old).length) failures.delete(old);
     },
     clear: (key: string) => failures.delete(key),
   };

@@ -193,38 +193,48 @@ test("accounts: invites work once, logins are checked, limited and revocable", a
   });
 });
 
-test("failed logins are limited per address too, behind a trusted proxy", async () => {
+test("failed logins are limited per username and address, and per address", async () => {
   await withServer(
     async ({ call, register }) => {
       const mario = await register("mario");
-      const from = (address: string) => ({ "X-Forwarded-For": address });
       const login = (username: string, authKey: string, address: string) =>
         call(
           "POST",
           "/login",
           { username, authKey, device: "Desktop" },
           undefined,
-          from(address),
+          { "X-Forwarded-For": address },
         );
-      // Spraying guesses over many usernames: each stays under its own limit.
-      for (let i = 0; i < 30; i++)
+      // Someone guessing Mario's password blocks only themselves, not Mario elsewhere.
+      for (let i = 0; i < 10; i++)
         assert.equal(
-          (await login(`user${i}`, b64(32), "203.0.113.9")).status,
+          (await login("mario", b64(32), "203.0.113.9")).status,
           401,
         );
       assert.equal(
         (await login("mario", mario.authKey, "203.0.113.9")).status,
         429,
       );
-      // Another address, and a client faking the header in front of the proxy's entry, are not blocked.
       assert.equal(
         (await login("mario", mario.authKey, "198.51.100.1")).status,
         200,
       );
+      // A client faking the header in front of the proxy's entry gets the proxy's entry.
       assert.equal(
         (await login("mario", mario.authKey, "203.0.113.9, 198.51.100.2"))
           .status,
         200,
+      );
+
+      // Spraying guesses over many usernames from one address stops at the address limit.
+      for (let i = 0; i < 200; i++)
+        assert.equal(
+          (await login(`user${i}`, b64(32), "192.0.2.50")).status,
+          401,
+        );
+      assert.equal(
+        (await login("mario", mario.authKey, "192.0.2.50")).status,
+        429,
       );
     },
     { trustProxy: true },

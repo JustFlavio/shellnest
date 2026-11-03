@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import http from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import {
@@ -9,6 +10,7 @@ import {
   tokenHash,
   verify,
 } from "./auth.ts";
+import type { Verifier } from "./auth.ts";
 import {
   MAX_SMALL_BYTES,
   MAX_VAULT_BYTES,
@@ -34,10 +36,11 @@ import type { Device, Store, User, Vault } from "./store.ts";
 export const INVITE_DAYS = 7;
 const MAX_DEVICES = 20;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
-// Per account, few: a password is guessed one try at a time. Per address, more: an office behind
-// one NAT shares it, while spraying guesses over many accounts still stops.
-const LOGINS_PER_USER = 10;
-const LOGINS_PER_ADDRESS = 30;
+// Per account and address, few: guessing one password from one place. Per address, many: an
+// office behind one VPN shares it, while spraying guesses over many accounts still stops. Never
+// per account alone, or anyone knowing a username could keep its owner from signing in.
+const LOGINS_PER_USER_ADDRESS = 10;
+const LOGINS_PER_ADDRESS = 200;
 // Persisting "last seen" on every request would rewrite the account file each time.
 const LAST_SEEN_STEP_MS = 60 * 60 * 1000;
 
@@ -103,9 +106,11 @@ export async function createSyncServer({
   trustProxy?: boolean;
 }) {
   const store = await openStore(directory);
+  // Checked for unknown usernames, so they take as long as a real wrong password.
+  const decoy = await makeVerifier(randomBytes(32));
   const limits = {
     users: createLimiter({
-      attempts: LOGINS_PER_USER,
+      attempts: LOGINS_PER_USER_ADDRESS,
       windowMs: LOGIN_WINDOW_MS,
       now,
     }),
@@ -115,6 +120,7 @@ export async function createSyncServer({
       now,
     }),
     address: (req: IncomingMessage) => clientAddress(req, trustProxy),
+    decoy,
   };
   const routes = createRoutes(store, limits, now);
 
@@ -197,6 +203,7 @@ function createRoutes(
     users: ReturnType<typeof createLimiter>;
     addresses: ReturnType<typeof createLimiter>;
     address: (req: IncomingMessage) => string;
+    decoy: Verifier;
   },
   now: () => number,
 ): Route[] {
@@ -227,7 +234,7 @@ function createRoutes(
     return { token, deviceId: device.id };
   };
 
-  // A wrong password and an unknown user look the same, and both count against the limits.
+  // A wrong password and an unknown user look the same, in reply and in time, and both count.
   // A success clears the account's count only: one's own account must not reset an address.
   const checkLogin = async (
     req: IncomingMessage,
@@ -237,15 +244,18 @@ function createRoutes(
   ) => {
     if (!isUsername(username)) throw httpError(400, "Invalid username");
     const address = limits.address(req);
-    if (limits.users.blocked(username) || limits.addresses.blocked(address))
+    // Neither a username nor an address can hold a space.
+    const pair = `${username} ${address}`;
+    if (limits.users.blocked(pair) || limits.addresses.blocked(address))
       throw httpError(429, "Too many attempts");
     const user = store.userByName(username);
-    if (!user || !(await verify(secret, user[field]))) {
-      limits.users.fail(username);
+    const valid = await verify(secret, user?.[field] ?? limits.decoy);
+    if (!user || !valid) {
+      limits.users.fail(pair);
       limits.addresses.fail(address);
       throw httpError(401, "Wrong username or password");
     }
-    limits.users.clear(username);
+    limits.users.clear(pair);
     return user;
   };
 

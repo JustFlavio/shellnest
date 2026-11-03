@@ -44,7 +44,8 @@ There is no open sign-up. Every account starts from a one-time invite, valid 7 d
 - At sign-up the app shows a **recovery key**, once. With it you set a new password if you forget yours, and every other device is signed out. Without the password and the recovery key the account cannot be opened, not even by the admin.
 - Changing the password keeps your devices signed in. An unlocked device takes the new password at its next sync; a device that was off opens with the new password as soon as it reaches the server.
 - **Dispositivi** lists the devices signed in to the account; removing one signs it out at its next request. An account keeps at most 20 devices: a new sign-in drops the oldest.
-- Failed sign-ins are limited per username (10 in 15 minutes) and per client address (30 in 15 minutes, across all usernames). Past a limit, sign-ins from that username or address are refused for the rest of the window. Devices already signed in keep working meanwhile.
+- Failed sign-ins are limited per username and client address together (10 in 15 minutes) and per client address (200 in 15 minutes, across all usernames). Past a limit, sign-ins from there are refused for the rest of the window. Someone guessing your password from elsewhere blocks only themselves; an office behind one VPN stays well under the address limit. Devices already signed in are never affected.
+- A wrong password and an unknown username get the same reply in the same time, so sign-ins do not reveal which accounts exist.
 
 ## Vaults, roles and sharing
 
@@ -174,7 +175,7 @@ Writes carry the revision and key epoch they started from; a stale one gets `409
 
 ## Limits
 
-- Someone who knows a username can keep its sign-in blocked by failing on purpose, from many addresses. Devices already signed in are not affected.
+- There is no limit per username alone, on purpose: it would let anyone who knows a username keep its owner from signing in. Guessing one password from many addresses at once is slowed only by the 12-character minimum and the Argon2id cost of each guess on the attacker's side.
 - Set `SYNC_TRUST_PROXY=1` only when the server is reachable through the proxy alone. Exposed directly, a client could send its own `X-Forwarded-For` and pick a new address for each attempt. Without the variable the address is the TCP peer, which behind a proxy is the proxy itself: then the per-address limit counts every client together.
 - Accounts and vault records are kept in memory and in JSON files: meant for a person or a small team, not thousands of users.
 - One server process; no clustering.

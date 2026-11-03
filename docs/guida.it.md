@@ -85,7 +85,7 @@ Dal riquadro dell’account:
 - **Esci** scollega il dispositivo e toglie da qui i vault del server, che restano sul server. È rifiutato se ci sono modifiche non ancora inviate.
 - **Password dimenticata?** nella schermata di accesso imposta una nuova password con la chiave di recupero e scollega tutti gli altri dispositivi.
 
-Dopo 10 accessi falliti in 15 minuti il nome utente è bloccato per il resto dei 15 minuti, e lo stesso vale per un indirizzo IP dopo 30 accessi falliti, su qualunque nome utente. I dispositivi già collegati continuano a funzionare.
+Dopo 10 accessi falliti in 15 minuti con lo stesso nome utente dallo stesso indirizzo IP, quell’indirizzo non può più accedere a quel nome utente per il resto dei 15 minuti; dopo 200 accessi falliti da un indirizzo, su qualunque nome utente, si ferma l’indirizzo. Chi prova a indovinare la tua password da un altro posto blocca solo se stesso, e un ufficio dietro una VPN resta lontano dal limite. I dispositivi già collegati continuano a funzionare.
 
 ### Vault sul server
 
