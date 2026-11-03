@@ -1,0 +1,13 @@
+{$SYNC_DOMAIN} {
+	encode zstd gzip
+	# One JSON line per request: method, path, status, duration and client address.
+	# Never request bodies, and the Authorization header is redacted by Caddy.
+	log {
+		output stdout
+		format json
+	}
+	request_body {
+		max_size 9MB
+	}
+	reverse_proxy sync:8787
+}
