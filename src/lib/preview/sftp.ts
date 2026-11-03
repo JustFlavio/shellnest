@@ -237,7 +237,7 @@ export function createPreviewSftp() {
         current.timers.set(request.id, timer);
         return;
       }
-      if (command === "sftp_password") return;
+      if (command === "sftp_answer") return;
       fail("InvalidPath");
     },
   };

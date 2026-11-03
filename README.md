@@ -23,12 +23,13 @@ The screenshots come from the browser demo (`npm run dev`) with sample data.
 - Reusable identities and an SSH key store; one identity can serve many hosts.
 - Tabbed terminals with split panels, reconnect, duplicate and reorder; local terminal with a native PTY.
 - Host key fingerprint check before authenticating, and a hard stop if it changes.
+- Key, password and keyboard-interactive login, including one-time codes (2FA) asked in the pane.
 - Terminal themes, fonts and rebindable keyboard shortcuts.
 - Optional sync of the encrypted vault through the small Node.js server in [`sync/`](sync) ([deployment guide](sync/README.md)).
 
 SFTP is available from each SSH pane through **Terminal / Files**, or directly from a saved host menu. See [SFTP behavior and safety](docs/sftp.md).
 
-Not implemented yet: port forwarding, jump hosts, agent forwarding, keyboard-interactive/2FA. See the [roadmap](ROADMAP.md).
+Not implemented yet: port forwarding, jump hosts, agent forwarding. See the [roadmap](ROADMAP.md).
 
 ## Install
 

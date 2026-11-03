@@ -75,7 +75,7 @@ test("opened completes every step; local has no network steps", () => {
 });
 
 test("a password request adds its step after authentication", () => {
-  const asking = { phase: "auth", passwords: 1 };
+  const asking = { phase: "auth", questions: ["password" as const] };
   assert.deepEqual(states(asking), [
     "connect:done",
     "auth:done",
@@ -92,7 +92,10 @@ test("a password request adds its step after authentication", () => {
 });
 
 test("each refused password adds one more step", () => {
-  const asking = { phase: "auth", passwords: 3 };
+  const asking = {
+    phase: "auth",
+    questions: ["password" as const, "password" as const, "prompts" as const],
+  };
   assert.deepEqual(states(asking), [
     "connect:done",
     "auth:done",
@@ -104,6 +107,10 @@ test("each refused password adds one more step", () => {
   assert.equal(
     timelineSteps({ ...base, ...asking })[3].label,
     "Password (attempt 2)",
+  );
+  assert.equal(
+    timelineSteps({ ...base, ...asking })[4].label,
+    "Verification 3",
   );
   assert.deepEqual(
     states({
@@ -129,7 +136,7 @@ test("a fallback ends in a warning, not a success", () => {
   const steps = timelineSteps({
     ...base,
     phase: "session",
-    passwords: 1,
+    questions: ["password"],
     details,
   });
   assert.deepEqual(

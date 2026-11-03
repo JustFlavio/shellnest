@@ -158,7 +158,7 @@ pub(crate) fn start(
                         .map_err(TerminalError::pty)?,
                     Ok(Input::Close) | Err(mpsc::error::TryRecvError::Disconnected) => break,
                     // Nothing here asks for a password: an answer never reaches the shell.
-                    Ok(Input::Password(_)) | Err(mpsc::error::TryRecvError::Empty) => {}
+                    Ok(Input::Answers(_)) | Err(mpsc::error::TryRecvError::Empty) => {}
                 }
                 if child.try_wait()?.is_some() {
                     return Ok(());

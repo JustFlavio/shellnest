@@ -5,7 +5,7 @@ import type { Message } from "@/i18n/message";
 import { describeError } from "../../lib/error-message.ts";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { desktop } from "../../lib/platform.ts";
-import type { Output, TerminalTab } from "@/lib/types";
+import type { Challenge, Output, TerminalTab } from "@/lib/types";
 import { inputForPeer } from "./broadcast.ts";
 import { MAX_PASSWORD_ATTEMPTS } from "./connection-steps.ts";
 import {
@@ -34,22 +34,26 @@ export type SessionUi = {
   failure: (message: Message, log?: boolean) => void;
   // the server needs a password; true when the previous one was refused
   password: (refused: boolean) => void;
+  // keyboard-interactive: the server's prompts, one answer each
+  prompts: (challenge: Challenge) => void;
 };
 
 // The preview has no server: it accepts this password and refuses any other.
 const PREVIEW_PASSWORD = "password-giusta";
-const previewAnswers = new Map<string, (password: string) => void>();
+// and this one-time code, after the password, on .otp.test.
+const PREVIEW_CODE = "123456";
+const previewAnswers = new Map<string, (answers: string[]) => void>();
 
-/** Sends the password the server asked for; it is not kept anywhere on the way. */
-export function sendSessionPassword(tab: TerminalTab, password: string) {
+/** Sends the password, or the answers, the server asked for; they are not kept anywhere on the way. */
+export function sendSessionAnswers(tab: TerminalTab, answers: string[]) {
   if (!desktop) {
-    previewAnswers.get(tab.id)?.(password);
+    previewAnswers.get(tab.id)?.(answers);
     return Promise.resolve();
   }
-  return invoke<void>("terminal_password", {
+  return invoke<void>("terminal_answer", {
     vaultId: tab.vaultId,
     sessionId: tab.id,
-    password,
+    answers,
   });
 }
 
@@ -142,6 +146,7 @@ export function startSession(
       term.focus();
     }
     if (event.type === "password") ui.password(event.data);
+    if (event.type === "prompts") ui.prompts(event.data);
     if (event.type === "metadata") callbacks.current.onMetadata(tab.vaultId);
     if (event.type === "error") fail(event.data);
     if (event.type === "closed") {
@@ -225,6 +230,7 @@ export function startSession(
 // The preview replays a real connection. Addresses ending in .slow.test stay in the authentication
 // stage, .fail.test ends there with an error and .password.test has the key refused and asks
 // for a password (the right one is PREVIEW_PASSWORD; MAX_PASSWORD_ATTEMPTS wrong ones end it).
+// .otp.test asks through keyboard-interactive for the password, then for PREVIEW_CODE.
 function startPreview(
   tab: TerminalTab,
   handle: (event: Output) => void,
@@ -289,13 +295,67 @@ function startPreview(
   at(120, status("auth"));
   if (address.endsWith(".fail.test")) {
     at(180, log("log.error.keyRefused"));
-    at(180, log("log.auth.methodsLeft", { methods: "keyboard-interactive" }));
+    at(180, log("log.auth.methodsLeft", { methods: "hostbased" }));
     at(250, {
       type: "error",
       data: {
         code: "terminal.AuthRefused",
-        params: { methods: "keyboard-interactive", context: "unsupported" },
+        params: { methods: "hostbased", context: "unsupported" },
       },
+    });
+  } else if (address.endsWith(".otp.test")) {
+    let rounds = 0;
+    const ask = (text: string, refused = false): Output => ({
+      type: "prompts",
+      data: {
+        name: "",
+        instructions: "",
+        prompts: [{ text, echo: false }],
+        refused,
+      },
+    });
+    const round = (refused: boolean) => {
+      rounds += 1;
+      at(
+        60,
+        log("log.auth.kbdAttempt", {
+          sent: rounds,
+          max: MAX_PASSWORD_ATTEMPTS,
+        }),
+      );
+      at(60, ask("Password:", refused));
+    };
+    at(180, log("log.error.keyRefused"));
+    at(180, log("log.auth.methodsLeft", { methods: "keyboard-interactive" }));
+    at(180, detail("auth", "step.keyRefused", undefined, true));
+    round(false);
+    let asked = 0;
+    let password = "";
+    previewAnswers.set(tab.id, ([answer = ""]) => {
+      asked += 1;
+      const step = asked === 1 ? "password" : `password-${asked}`;
+      if (!password) {
+        password = answer || " ";
+        at(60, ask("Verification code:"));
+        return;
+      }
+      if (password === PREVIEW_PASSWORD && answer === PREVIEW_CODE) {
+        at(60, log("log.success.kbdAccepted"));
+        open(60, step, "step.kbdAccepted");
+        return;
+      }
+      password = "";
+      at(60, log("log.error.kbdRefused"));
+      at(60, detail(step, "step.kbdRefused", undefined, true));
+      if (rounds >= MAX_PASSWORD_ATTEMPTS)
+        at(60, {
+          type: "error",
+          data: {
+            code: "terminal.AnswersExhausted",
+            params: MAX_PASSWORD_ATTEMPTS,
+          },
+        });
+      else round(true);
     });
   } else if (address.endsWith(".password.test")) {
     let wrong = 0;
@@ -303,7 +363,7 @@ function startPreview(
     at(180, log("log.auth.methodsLeft", { methods: "password, publickey" }));
     at(180, detail("auth", "step.keyRefused", undefined, true));
     at(180, { type: "password", data: false });
-    previewAnswers.set(tab.id, (password) => {
+    previewAnswers.set(tab.id, ([password = ""]) => {
       const n = wrong + 1;
       const step = n === 1 ? "password" : `password-${n}`;
       at(

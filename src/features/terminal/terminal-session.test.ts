@@ -90,6 +90,7 @@ function pane(id: string, inputResult?: () => Promise<void>) {
         opened: () => {},
         failure: () => {},
         password: () => {},
+        prompts: () => {},
       },
       {
         current: {

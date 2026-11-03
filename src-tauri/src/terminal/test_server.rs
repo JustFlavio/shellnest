@@ -1,5 +1,5 @@
-//! An in-process SSH server for the connection tests: password and key login, an echoing shell
-//! and a fixed `os-release` reply.
+//! An in-process SSH server for the connection tests: password, key and keyboard-interactive login
+//! (a password, then a one-time code when `otp` is set), an echoing shell and a fixed `os-release` reply.
 use super::os_probe::OS_PROBE;
 use crate::model::{Connection, Host};
 use russh::{
@@ -22,6 +22,9 @@ pub(super) struct Echo {
     pub(super) allow_shell: Arc<AtomicBool>,
     // What a refusal keeps offering, like a real server (the default would drop the method just tried).
     pub(super) offered: MethodSet,
+    pub(super) otp: Option<&'static str>,
+    // The keyboard-interactive question this connection is at: 0 the password, 1 the code.
+    pub(super) round: usize,
 }
 impl Echo {
     fn refuse(&self) -> server::Auth {
@@ -39,10 +42,43 @@ impl server::Handler for Echo {
         password: &str,
     ) -> Result<server::Auth, Self::Error> {
         self.attempts.fetch_add(1, Ordering::SeqCst);
-        Ok(if user == "test" && password == "test-only-password" {
-            server::Auth::Accept
-        } else {
-            self.refuse()
+        // russh leaves enforcing `methods` to the handler: password login off is refused without a check.
+        let enabled = self.offered.contains(&MethodKind::Password);
+        Ok(
+            if enabled && user == "test" && password == "test-only-password" {
+                server::Auth::Accept
+            } else {
+                self.refuse()
+            },
+        )
+    }
+    async fn auth_keyboard_interactive<'a>(
+        &'a mut self,
+        user: &str,
+        _: &str,
+        response: Option<server::Response<'a>>,
+    ) -> Result<server::Auth, Self::Error> {
+        let question = |text: &'static str| server::Auth::Partial {
+            name: "fixture".into(),
+            instructions: "Answer the prompts".into(),
+            prompts: vec![(text.into(), false)].into(),
+        };
+        let Some(mut response) = response else {
+            self.round = 0;
+            return Ok(question("Password: "));
+        };
+        self.attempts.fetch_add(1, Ordering::SeqCst);
+        let answer = response.next().unwrap_or_default();
+        Ok(match self.round {
+            0 if user == "test" && &answer[..] == b"test-only-password" => match self.otp {
+                Some(_) => {
+                    self.round = 1;
+                    question("Verification code: ")
+                }
+                None => server::Auth::Accept,
+            },
+            1 if self.otp.map(str::as_bytes) == Some(&answer[..]) => server::Auth::Accept,
+            _ => self.refuse(),
         })
     }
     async fn auth_publickey(
@@ -117,6 +153,28 @@ impl server::Handler for Echo {
     }
 }
 pub(super) async fn fixture(password_ok: bool) -> (Connection, tokio::task::JoinHandle<()>) {
+    serve(
+        if password_ok {
+            &[MethodKind::Password, MethodKind::PublicKey]
+        } else {
+            &[MethodKind::PublicKey]
+        },
+        None,
+    )
+    .await
+}
+/// A server with password login off that only takes keyboard-interactive, asking `otp` after the password.
+pub(super) async fn kbd_fixture(
+    otp: Option<&'static str>,
+) -> (Connection, tokio::task::JoinHandle<()>) {
+    let (mut connection, task) = serve(&[MethodKind::KeyboardInteractive], otp).await;
+    connection.auth = "password".into();
+    (connection, task)
+}
+async fn serve(
+    methods: &[MethodKind],
+    otp: Option<&'static str>,
+) -> (Connection, tokio::task::JoinHandle<()>) {
     let key = PrivateKey::random(&mut rand::rng(), Algorithm::Ed25519).unwrap();
     let server_key = PrivateKey::random(&mut rand::rng(), Algorithm::Ed25519).unwrap();
     let fingerprint = server_key
@@ -127,20 +185,14 @@ pub(super) async fn fixture(password_ok: bool) -> (Connection, tokio::task::Join
         key: key.public_key().clone(),
         attempts: Arc::new(AtomicUsize::new(0)),
         allow_shell: Arc::new(AtomicBool::new(true)),
-        offered: if password_ok {
-            MethodSet::from(&[MethodKind::Password, MethodKind::PublicKey][..])
-        } else {
-            MethodSet::from(&[MethodKind::PublicKey][..])
-        },
+        offered: MethodSet::from(methods),
+        otp,
+        round: 0,
     };
     let config = Arc::new(server::Config {
         keys: vec![server_key],
         auth_rejection_time: Duration::ZERO,
-        methods: if password_ok {
-            MethodSet::from(&[MethodKind::Password, MethodKind::PublicKey][..])
-        } else {
-            MethodSet::from(&[MethodKind::PublicKey][..])
-        },
+        methods: MethodSet::from(methods),
         ..Default::default()
     });
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();

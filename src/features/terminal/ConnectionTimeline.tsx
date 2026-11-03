@@ -11,6 +11,7 @@ import { useApp } from "@/app/app-context";
 import { ConnectionLog } from "./ConnectionLog";
 import { FingerprintCard } from "./FingerprintCard";
 import { PasswordStep } from "./PasswordStep";
+import { PromptsStep } from "./PromptsStep";
 import { QuickMethodStep } from "./QuickMethodStep";
 import { QuickUserStep } from "./QuickUserStep";
 import type { PasswordAsk } from "./useTerminalSession";
@@ -48,7 +49,7 @@ export function ConnectionTimeline({
   details: Record<string, StepNote>;
   failure: Message | null;
   password: PasswordAsk | null;
-  onPassword: (password: string) => void;
+  onPassword: (answers: string[]) => void;
   onCancel: () => void;
   onRetry: () => void;
   onEdit?: () => void;
@@ -116,7 +117,7 @@ export function ConnectionTimeline({
     phase,
     failure: message,
     opened: false,
-    passwords: password?.asks ?? 0,
+    questions: password?.asked,
     details: { ...quickDetails, ...details },
     setup:
       tab.kind === "quick"
@@ -202,14 +203,22 @@ export function ConnectionTimeline({
                 )}
                 {step.state === "current" &&
                   step.id.startsWith("password") &&
-                  password?.waiting && (
-                    <PasswordStep
-                      key={password.asks}
-                      refused={password.refused}
+                  password?.waiting &&
+                  (password.challenge ? (
+                    <PromptsStep
+                      key={password.asked.length}
+                      challenge={password.challenge}
                       onSubmit={onPassword}
                       onCancel={onCancel}
                     />
-                  )}
+                  ) : (
+                    <PasswordStep
+                      key={password.asked.length}
+                      refused={password.refused}
+                      onSubmit={(value) => onPassword([value])}
+                      onCancel={onCancel}
+                    />
+                  ))}
                 {step.state === "current" && step.id === "user" && (
                   <QuickUserStep
                     state={quick}
