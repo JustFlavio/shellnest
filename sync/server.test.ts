@@ -252,7 +252,7 @@ test("recovery and password change replace the login and sign every device out",
     const fetched = await keys(next);
     assert.equal(fetched.status, 200);
     assert.equal(fetched.json.salt, salt);
-    assert.deepEqual((fetched.json.keys as Json).password, password);
+    assert.deepEqual(((fetched.json as Json).keys as Json).password, password);
     assert.equal(fetched.json.token, undefined);
     assert.equal(
       (await call("GET", "/devices", undefined, token)).json.length,
