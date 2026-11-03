@@ -190,7 +190,11 @@ impl<'de> Deserialize<'de> for Data {
                 last_connected_at: h.last_connected_at,
             });
         }
+        // The team part of a server vault has hosts without credentials; a local vault never does,
+        // and its edits are checked with the strict rule again.
+        data.credentials_optional = true;
         data.validate().map_err(serde::de::Error::custom)?;
+        data.credentials_optional = false;
         Ok(data)
     }
 }

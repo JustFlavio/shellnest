@@ -78,8 +78,21 @@ pub(crate) enum Access {
 pub(crate) fn effective(team: &Data, private: &Private) -> Data {
     let mut data = team.clone();
     data.credentials_optional = true;
-    data.identities.extend(private.identities.iter().cloned());
-    data.keys.extend(private.keys.iter().cloned());
+    // An identity shared from another device is in both parts until this one syncs: the team copy wins.
+    let identities: Vec<_> = private
+        .identities
+        .iter()
+        .filter(|i| !team.identities.iter().any(|t| t.id == i.id))
+        .cloned()
+        .collect();
+    let keys: Vec<_> = private
+        .keys
+        .iter()
+        .filter(|k| !team.keys.iter().any(|t| t.id == k.id))
+        .cloned()
+        .collect();
+    data.identities.extend(identities);
+    data.keys.extend(keys);
     data.workspaces.extend(private.workspaces.iter().cloned());
     let identity_exists = |data: &Data, id: &str| data.identities.iter().any(|i| i.id == id);
     for binding in &private.groups {

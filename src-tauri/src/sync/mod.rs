@@ -2,6 +2,8 @@
 //! encrypted parts: the team part shared by the members and the private part of this member.
 //! Nothing decrypted ever leaves the device.
 pub(crate) mod members;
+#[cfg(test)]
+mod tests;
 pub(crate) mod vaults;
 
 use crate::{
@@ -161,6 +163,9 @@ pub(crate) fn exchange(s: &Session, v: &OpenVault) -> Result<(OpenVault, Option<
     let mut base: Data = open_team(&key, &disk.base, &id)?;
     let mut team = local.team.clone();
     let mut name = None;
+    // The private part first: an identity shared from another device leaves it and joins the team
+    // part, and the merged team part is checked against the up-to-date private one.
+    let private = sync_private(s, &local.private_key, &id, &local.private, &mut remote_disk)?;
     for attempt in 0..=ATTEMPTS {
         if attempt == ATTEMPTS {
             return Err(SyncError::Conflict.into());
@@ -182,7 +187,7 @@ pub(crate) fn exchange(s: &Session, v: &OpenVault) -> Result<(OpenVault, Option<
             let theirs = open_team(&key, &envelope, &id)?;
             team = if team != base && reply.role != Role::Viewer {
                 let merged = merge_data(&base, &team, &theirs);
-                shared::check(&merged, &local.private).map_err(|_| SyncError::MergeFailed)?;
+                shared::check(&merged, &private).map_err(|_| SyncError::MergeFailed)?;
                 merged
             } else {
                 theirs.clone()
@@ -212,7 +217,6 @@ pub(crate) fn exchange(s: &Session, v: &OpenVault) -> Result<(OpenVault, Option<
             Err(e) => return Err(e.into()),
         }
     }
-    let private = sync_private(s, &local.private_key, &id, &local.private, &mut remote_disk)?;
     let disk = Disk {
         envelope: v.disk.envelope.clone(),
         dirty: false,

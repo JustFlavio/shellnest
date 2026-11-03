@@ -164,3 +164,21 @@ impl OpenVault {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::account::crypto::random;
+    #[test]
+    fn parts_open_only_in_their_own_vault() {
+        let key = random::<32>().unwrap();
+        let data = Data::default();
+        let sealed = seal_part(&key, &data, &team_aad("x")).unwrap();
+        assert!(open_team(&key, &sealed, "x").unwrap().credentials_optional);
+        // The server cannot pass one vault's contents off as another's.
+        assert!(open_team(&key, &sealed, "y").is_err());
+        let private = Private::default();
+        let sealed = seal_private(&key, &private, "x").unwrap();
+        open_private(&key, &sealed, "x").unwrap();
+    }
+}

@@ -41,13 +41,11 @@ fn check_free(state: &AppState, server: &str, username: &str) -> Result<(), Erro
 }
 
 /// Saves the account, receives its vaults and, on a device with nothing to show yet, opens one.
-fn signed_in(state: &AppState, mut account: OpenAccount) -> Result<View, Error> {
+pub(crate) fn signed_in(state: &AppState, mut account: OpenAccount) -> Result<View, Error> {
     if let Some(old) = account::load(&state.path)? {
         account.file.pins = old.pins;
     }
     account::save(&state.path, &account.file)?;
-    // Whatever was remembered belongs to the previous login.
-    keychain::forget(KEYCHAIN_ENTRY);
     *state.account()? = Some(account);
     vaults::receive(state)?;
     let (selected, exists, first) = {
@@ -92,6 +90,8 @@ pub(crate) async fn sign_in(
     blocking(app, move |s| {
         check_free(s, &server, &username)?;
         let account = OpenAccount::login(&server, username.trim(), &password)?;
+        // Whatever was remembered belongs to the previous login.
+        keychain::forget(KEYCHAIN_ENTRY);
         signed_in(s, account)
     })
     .await
@@ -138,6 +138,7 @@ pub(crate) async fn recover_account(
     blocking(app, move |s| {
         check_free(s, &server, &username)?;
         let account = OpenAccount::recover(&server, &username, &recovery_key, &password)?;
+        keychain::forget(KEYCHAIN_ENTRY);
         signed_in(s, account)
     })
     .await
@@ -164,9 +165,11 @@ pub(crate) async fn change_password(
 /// back at the next sign-in. Refused while one of them has changes not yet sent.
 #[tauri::command]
 pub(crate) async fn sign_out(app: tauri::AppHandle) -> Result<View, Error> {
-    blocking(app, sign_out_now).await
+    let view = blocking(app, sign_out_now).await?;
+    keychain::forget(KEYCHAIN_ENTRY);
+    Ok(view)
 }
-fn sign_out_now(state: &AppState) -> Result<View, Error> {
+pub(crate) fn sign_out_now(state: &AppState) -> Result<View, Error> {
     let remote: Vec<(String, std::path::PathBuf)> = state
         .catalog()?
         .vaults
@@ -211,7 +214,6 @@ fn sign_out_now(state: &AppState) -> Result<View, Error> {
         vaults::remove_files(path);
     }
     account::remove(&state.path);
-    keychain::forget(KEYCHAIN_ENTRY);
     *state.account()? = None;
     view(state)
 }

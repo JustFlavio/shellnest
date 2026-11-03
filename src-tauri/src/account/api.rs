@@ -355,7 +355,7 @@ impl Api {
         .map(drop)
     }
     pub(crate) fn private(&self, id: &str) -> Result<Option<Stored>, SyncError> {
-        self.get(&format!("vaults/{id}/private"))
+        self.get(&format!("vaults/{id}/private")).map_err(revoked)
     }
     pub(crate) fn put_private(
         &self,
@@ -407,6 +407,14 @@ impl Api {
     }
     pub(crate) fn rotate(&self, id: &str, body: &serde_json::Value) -> Result<Rotated, SyncError> {
         self.send(Method::POST, &format!("vaults/{id}/rotate"), body)
+    }
+}
+
+// A vault that answers 404 to a member was deleted or the member removed.
+fn revoked(e: SyncError) -> SyncError {
+    match e {
+        SyncError::NotFound => SyncError::AccessRevoked,
+        e => e,
     }
 }
 

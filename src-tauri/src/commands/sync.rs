@@ -26,7 +26,14 @@ pub(crate) async fn sync_vault(app: tauri::AppHandle, vault_id: String) -> Resul
 }
 #[tauri::command]
 pub(crate) async fn upload_vault(app: tauri::AppHandle, vault_id: String) -> Result<View, Error> {
-    blocking(app, move |s| vaults::upload(s, &vault_id)).await
+    let view = blocking(app, {
+        let vault_id = vault_id.clone();
+        move |s| vaults::upload(s, &vault_id)
+    })
+    .await?;
+    // The key of the local password no longer opens the vault.
+    crate::keychain::forget(&vault_id);
+    Ok(view)
 }
 #[tauri::command]
 pub(crate) async fn leave_vault(app: tauri::AppHandle, vault_id: String) -> Result<View, Error> {

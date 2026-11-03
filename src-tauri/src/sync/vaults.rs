@@ -7,7 +7,7 @@ use crate::{
         crypto::{open_sealed, random, seal_to, wrap_key},
     },
     error::Error,
-    keychain, model,
+    model,
     model::{Data, shared},
     state::AppState,
     terminal,
@@ -96,8 +96,6 @@ pub(crate) fn upload(state: &AppState, vault_id: &str) -> Result<View, Error> {
     *v = candidate;
     drop(catalog);
     drop(guard);
-    // The key of the local password no longer opens the vault.
-    keychain::forget(vault_id);
     view(state)
 }
 
