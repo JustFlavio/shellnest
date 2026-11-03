@@ -1,13 +1,14 @@
 //! What the UI and the session task send each other: `Input` in, `Output` out.
-use crate::{message::Message, model::Redacted};
+use super::TerminalError;
+use crate::{message::Message, model::Redacted, ssh::Challenge};
 use serde::Serialize;
 use zeroize::Zeroizing;
 
 pub(crate) enum Input {
     Data(Vec<u8>),
     Resize(u32, u32),
-    // The answer to Output::Password; never logged, zeroized once used.
-    Password(Zeroizing<String>),
+    // The answers to Output::PasswordNeeded or Output::Prompts; never logged, zeroized once used.
+    Answers(Vec<Zeroizing<String>>),
     Close,
 }
 // Keystrokes may be a password typed into a remote prompt: only their size is ever shown.
@@ -16,7 +17,7 @@ impl std::fmt::Debug for Input {
         match self {
             Self::Data(bytes) => write!(f, "Data({} bytes)", bytes.len()),
             Self::Resize(cols, rows) => write!(f, "Resize({cols}, {rows})"),
-            Self::Password(_) => f.debug_tuple("Password").field(&Redacted).finish(),
+            Self::Answers(_) => f.debug_tuple("Answers").field(&Redacted).finish(),
             Self::Close => f.write_str("Close"),
         }
     }
@@ -30,6 +31,8 @@ pub(crate) enum Output {
     // Authentication needs a password from the user; true when the previous one was refused.
     #[serde(rename = "password")]
     PasswordNeeded(bool),
+    // Keyboard-interactive: the server's prompts, answered in order.
+    Prompts(Challenge),
     Error(Message),
     // One line of the connection log: a message code with parameters, never a secret.
     Log(Message),
@@ -37,6 +40,19 @@ pub(crate) enum Output {
     Detail(StepDetail),
     Metadata(ConnectionMetadata),
     Closed,
+}
+impl Input {
+    /// The answers typed by the user, each as long as a password may be (64 KiB in all).
+    pub(crate) fn answers(answers: Vec<String>) -> Result<Self, TerminalError> {
+        let answers: Vec<_> = answers.into_iter().map(Zeroizing::new).collect();
+        if answers.len() > 64 {
+            return Err(TerminalError::InputTooLarge);
+        }
+        if answers.iter().any(|a| a.len() > 1024) {
+            return Err(TerminalError::PasswordTooLong);
+        }
+        Ok(Self::Answers(answers))
+    }
 }
 #[derive(Clone, Serialize)]
 pub(crate) struct StepDetail {
@@ -57,13 +73,28 @@ mod tests {
     #[test]
     fn debug_output_of_input_shows_sizes_never_content() {
         assert_eq!(
-            format!("{:?}", Input::Password(Zeroizing::new("SECRET".into()))),
-            "Password(<redacted>)"
+            format!(
+                "{:?}",
+                Input::Answers(vec![Zeroizing::new("SECRET".into())])
+            ),
+            "Answers(<redacted>)"
         );
         assert_eq!(
             format!("{:?}", Input::Data(b"sudo-password\n".to_vec())),
             "Data(14 bytes)"
         );
         assert_eq!(format!("{:?}", Input::Resize(80, 24)), "Resize(80, 24)");
+    }
+    #[test]
+    fn answers_are_bounded() {
+        assert!(Input::answers(vec!["123456".into(), String::new()]).is_ok());
+        assert!(matches!(
+            Input::answers(vec!["x".repeat(1025)]),
+            Err(TerminalError::PasswordTooLong)
+        ));
+        assert!(matches!(
+            Input::answers(vec![String::new(); 65]),
+            Err(TerminalError::InputTooLarge)
+        ));
     }
 }

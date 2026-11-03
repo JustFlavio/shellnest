@@ -25,6 +25,7 @@ pub(crate) type Registry = Mutex<HashMap<String, Arc<Session>>>;
 pub(crate) enum Event {
     Ready,
     Password(bool),
+    Prompts(ssh::Challenge),
     Error(serde_json::Value),
     Closed,
     Transfer(super::transfer::Progress),
@@ -118,9 +119,12 @@ pub(crate) fn open(
         let opening = ssh::authenticate(
             &host,
             |_| {},
-            |refused| {
+            |question| {
                 let answer = prompt.ask();
-                let _ = session.output.send(Event::Password(refused));
+                let _ = session.output.send(match question {
+                    ssh::Question::Password(refused) => Event::Password(refused),
+                    ssh::Question::Prompts(challenge) => Event::Prompts(challenge),
+                });
                 async move { answer.await.ok() }
             },
         );

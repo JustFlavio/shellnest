@@ -1,4 +1,5 @@
 import type { Message } from "@/i18n/message";
+import type { Challenge } from "@/lib/types";
 
 export type Side = "local" | "remote";
 export type FileEntry = {
@@ -41,6 +42,7 @@ export type Transfer = Omit<TransferProgress, "status"> & {
 export type SftpEvent =
   | { type: "ready" | "closed" }
   | { type: "password"; data: boolean }
+  | { type: "prompts"; data: Challenge }
   | { type: "error"; data: Message }
   | { type: "transfer"; data: TransferProgress };
 export type SftpInvoke = <T>(

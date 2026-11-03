@@ -10,6 +10,7 @@ use crate::{
     error::{Error, coded},
     message::msg,
     model::Connection,
+    ssh::Question,
     state::{AppState, record_connection},
 };
 use russh::{ChannelMsg, Disconnect};
@@ -38,8 +39,8 @@ pub(crate) async fn until_open<T>(
             _=tokio::time::sleep_until(deadline),if !prompt.asking()=>return Err(TerminalError::ConnectTimeout),
             _=prompt.opened()=>{},
             input=rx.recv()=>match input{
-                Some(Input::Password(password))=>{
-                    if prompt.answer(password){deadline=tokio::time::Instant::now()+limit;}
+                Some(Input::Answers(answers))=>{
+                    if prompt.answer(answers){deadline=tokio::time::Instant::now()+limit;}
                 },
                 Some(Input::Close)|None=>return Ok(None),
                 Some(_)=>{}
@@ -69,9 +70,12 @@ async fn run(
                 }
             });
         },
-        |refused| {
+        |question| {
             let answer = prompt.ask();
-            let _ = output.send(Output::PasswordNeeded(refused));
+            let _ = output.send(match question {
+                Question::Password(refused) => Output::PasswordNeeded(refused),
+                Question::Prompts(challenge) => Output::Prompts(challenge),
+            });
             async move { answer.await.ok() }
         },
     );
@@ -101,7 +105,7 @@ async fn run(
             input=rx.recv()=>match input{
                 Some(Input::Data(bytes))=>channel.data(&bytes[..]).await?,
                 Some(Input::Resize(cols,rows))=>channel.window_change(cols,rows,0,0).await?,
-                Some(Input::Password(_))=>{}
+                Some(Input::Answers(_))=>{}
                 Some(Input::Close)|None=>{let _=channel.close().await;let _=output.send(Output::Log(msg!("log.network.closedByUser")));break;}
             },
             msg=channel.wait()=>match msg{
@@ -267,7 +271,7 @@ mod tests {
         // The question opens inside `opening`, after the timer started; the answer comes well past the limit.
         let typing = async {
             sleep(LIMIT * 3).await;
-            tx.send(Input::Password(Zeroizing::new("p".into())))
+            tx.send(Input::Answers(vec![Zeroizing::new("p".into())]))
                 .unwrap();
         };
         let (result, ()) = tokio::join!(
@@ -289,7 +293,7 @@ mod tests {
         let typing = async {
             sleep(LIMIT * 2).await;
             *answered.lock().unwrap() = Some(Instant::now());
-            tx.send(Input::Password(Zeroizing::new("p".into())))
+            tx.send(Input::Answers(vec![Zeroizing::new("p".into())]))
                 .unwrap();
         };
         let (result, ()) = tokio::join!(

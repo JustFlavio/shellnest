@@ -11,6 +11,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { translateMessage } from "@/i18n/message";
 import { useLatest } from "@/lib/useLatest";
 import { PasswordStep } from "@/features/terminal/PasswordStep";
+import { PromptsStep } from "@/features/terminal/PromptsStep";
 import { FilePane } from "./FilePane";
 import { TransferQueue } from "./TransferQueue";
 import { useFileBrowser } from "./useFileBrowser";
@@ -45,11 +46,18 @@ export function SftpWorkspace({ tab }: { tab: TerminalTab }) {
             {translateMessage(session.error, "error")}
           </Alert>
         )}
-        {session.password ? (
+        {session.password?.challenge ? (
+          <PromptsStep
+            key={session.password.attempt}
+            challenge={session.password.challenge}
+            onSubmit={session.submitPassword}
+            onCancel={() => void session.invoke("sftp_close")}
+          />
+        ) : session.password ? (
           <PasswordStep
             key={session.password.attempt}
             refused={session.password.refused}
-            onSubmit={session.submitPassword}
+            onSubmit={(value) => session.submitPassword([value])}
             onCancel={() => void session.invoke("sftp_close")}
           />
         ) : session.closed ? (
