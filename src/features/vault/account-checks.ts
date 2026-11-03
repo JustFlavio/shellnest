@@ -18,7 +18,7 @@ export const emptyAccountDraft: AccountDraft = {
   invite: "",
   recoveryKey: "",
 };
-export const MIN_ACCOUNT_PASSWORD = 12;
+const MIN_ACCOUNT_PASSWORD = 12;
 
 /** HTTPS, or HTTP on this machine only; no credentials, query or fragment. */
 export function serverAllowed(raw: string): boolean {
@@ -38,7 +38,7 @@ export function serverAllowed(raw: string): boolean {
   );
 }
 
-export const usernameAllowed = (name: string) =>
+const usernameAllowed = (name: string) =>
   /^[a-z0-9][a-z0-9._-]{1,31}$/.test(name.trim());
 
 // 32 bytes in base32 are 52 characters; dashes and spaces only group them.

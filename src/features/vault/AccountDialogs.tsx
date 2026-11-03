@@ -37,7 +37,6 @@ function CopyButton({ text }: { text: string }) {
 
 /** The account form over the settings, when signing in from an unlocked vault. */
 export function AccountFormDialog() {
-  const { t } = useTranslation();
   const {
     vault: { view, busy },
     account,

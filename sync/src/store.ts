@@ -34,7 +34,7 @@ export type User = {
   devices: Device[];
   createdAt: number;
 };
-export type Member = { role: Role; sealedKey: Sealed };
+type Member = { role: Role; sealedKey: Sealed };
 export type Vault = {
   id: string;
   /** The vault name, encrypted with the vault key. */

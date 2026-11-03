@@ -159,5 +159,3 @@ export function useAccount(
     changePassword,
   };
 }
-
-export type AccountApi = ReturnType<typeof useAccount>;
