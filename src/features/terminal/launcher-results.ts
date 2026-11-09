@@ -224,9 +224,13 @@ export function launcherKeyAction(
     busy,
     canQuickConnect,
     modified = false,
+    chosen = true,
   }: {
     count: number;
     selected: number;
+    // no row is picked yet (the search box just opened): ArrowDown picks the cursor row
+    // in place and Enter waits, since nothing shows what it would open
+    chosen?: boolean;
     busy: boolean;
     // the typed text is a target the card shows for, and nothing blocks connecting
     canQuickConnect: boolean;
@@ -236,13 +240,16 @@ export function launcherKeyAction(
 ): LauncherKeyAction | null {
   if (key === "Escape") return { type: "clear" };
   if (key === "ArrowDown" && count)
-    return { type: "select", index: (selected + 1) % count };
+    return {
+      type: "select",
+      index: chosen ? (selected + 1) % count : selected,
+    };
   if (key === "ArrowUp" && count)
     return { type: "select", index: (selected + count - 1) % count };
   if (key !== "Enter") return null;
   // Cmd/Ctrl+Enter starts the connection timeline for any text that parses as a target.
   if (modified) return canQuickConnect ? { type: "quick" } : null;
-  if (count) return busy ? null : { type: "activate" };
+  if (count) return busy || !chosen ? null : { type: "activate" };
   return canQuickConnect ? { type: "quick" } : null;
 }
 

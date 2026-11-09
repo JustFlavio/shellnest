@@ -83,12 +83,18 @@ test("arrow keys wrap around the results", () => {
     index: 2,
   });
   assert.equal(launcherKeyAction("ArrowDown", { ...state, count: 0 }), null);
+  // a row the list only highlights on its own is picked in place, not skipped
+  assert.deepEqual(
+    launcherKeyAction("ArrowDown", { ...state, selected: 0, chosen: false }),
+    { type: "select", index: 0 },
+  );
 });
 
 test("Enter opens the selection, or quick-connects when nothing matches", () => {
   const state = { count: 2, selected: 0, busy: false, canQuickConnect: true };
   assert.deepEqual(launcherKeyAction("Enter", state), { type: "activate" });
   assert.equal(launcherKeyAction("Enter", { ...state, busy: true }), null);
+  assert.equal(launcherKeyAction("Enter", { ...state, chosen: false }), null);
   assert.deepEqual(launcherKeyAction("Enter", { ...state, count: 0 }), {
     type: "quick",
   });
