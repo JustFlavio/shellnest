@@ -169,6 +169,7 @@ export function ConnectionLauncher({
   const pageKeys = launcherKeyHandler({
     results: pageResults,
     selected,
+    chosen: selection.chosen,
     marked: selection.marks.length > 0,
     unmark: () => setSelection((current) => ({ ...current, marks: [] })),
     busy,
@@ -185,6 +186,7 @@ export function ConnectionLauncher({
   const menuKeys = launcherKeyHandler({
     results: menuRows,
     selected: menuSelected,
+    chosen: true,
     marked: false,
     unmark: () => {},
     busy,
