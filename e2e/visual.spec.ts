@@ -369,11 +369,17 @@ test("Cmd+C copies the selection, right click pastes", async ({
   const term = page.locator(".xterm").first();
   await term.click();
   await page.keyboard.type("echo ciao");
-  await page
+  // xterm redraws its rows on the next frame after typing: wait for that, and for the line to show
+  await expect.poll(() => termText(page)).toContain("echo ciao");
+  const line = page
     .getByText("Sessione dimostrativa", { exact: false })
-    .first()
-    // xterm's screen layer sits over the text rows and takes the clicks at these coordinates
-    .click({ clickCount: 3, force: true });
+    .first();
+  await expect(line).toBeVisible();
+  // xterm's screen layer sits over the text rows and takes the clicks at these coordinates
+  const box = (await line.boundingBox())!;
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, {
+    clickCount: 3,
+  });
   await page.keyboard.press("Meta+c");
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
