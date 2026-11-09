@@ -191,12 +191,14 @@ where
             .await
     }?;
     let tried_something = is_key || !connection.password.is_empty();
-    // With password login off the server never judged the stored password: keyboard-interactive may take it.
+    // Keyboard-interactive may still take the stored password: with password login off the server never
+    // judged it, and with PAM two-factor the password method refuses even the right one.
     let mut stored = (!is_key
         && !connection.password.is_empty()
         && !auth.success()
         && !partial(&auth)
-        && !offers(&auth, MethodKind::Password))
+        && (!offers(&auth, MethodKind::Password)
+            || offers(&auth, MethodKind::KeyboardInteractive)))
     .then_some(connection.password.as_str());
     if tried_something && (auth.success() || partial(&auth)) {
         log(msg!(if is_key {
@@ -254,7 +256,8 @@ where
     let (mut refused, mut round_refused) = (false, false);
     let (mut asked, mut sent, mut rounds) = (0, 0, 0);
     while !auth.success() {
-        if offers(&auth, MethodKind::Password) {
+        // Keyboard-interactive first, like OpenSSH: under PAM it can ask for a one-time code, password cannot.
+        if offers(&auth, MethodKind::Password) && !offers(&auth, MethodKind::KeyboardInteractive) {
             asked += 1;
             let password = ask(Question::Password(refused))
                 .await

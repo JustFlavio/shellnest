@@ -433,6 +433,38 @@ mod tests {
         .expect("SSH fixture timed out");
     }
     #[tokio::test]
+    async fn keyboard_interactive_goes_before_password_for_a_one_time_code() {
+        tokio::time::timeout(Duration::from_secs(15), async {
+            let (mut connection, task) = pam_fixture(Some("123456")).await;
+            // The password method refuses even the right password: the stored one still answers the
+            // keyboard-interactive password prompt, and the code is asked, not another password.
+            connection.password = "test-only-password".into();
+            let notes = Arc::new(Mutex::new(Vec::new()));
+            let asked = Arc::new(Mutex::new(Vec::new()));
+            let ask = replies(vec![Some(vec!["123456"])], asked.clone());
+            assert!(open(&connection, collect(&notes), ask).await.is_ok());
+            assert_eq!(*asked.lock().unwrap(), vec![format!("{CODE}|false")]);
+            let notes = notes.lock().unwrap().join("\n");
+            assert!(!notes.contains("savedPasswordRefused"), "{notes}");
+
+            // Nothing stored: both prompts go to the user.
+            connection.password = String::new();
+            let asked = Arc::new(Mutex::new(Vec::new()));
+            let ask = replies(
+                vec![Some(vec!["test-only-password"]), Some(vec!["123456"])],
+                asked.clone(),
+            );
+            assert!(open(&connection, |_| {}, ask).await.is_ok());
+            assert_eq!(
+                *asked.lock().unwrap(),
+                vec![format!("{PASSWORD}|false"), format!("{CODE}|false")]
+            );
+            task.abort();
+        })
+        .await
+        .expect("SSH fixture timed out");
+    }
+    #[tokio::test]
     async fn a_wrong_code_asks_again_then_gives_up() {
         tokio::time::timeout(Duration::from_secs(15), async {
             let (mut connection, task) = kbd_fixture(Some("123456")).await;

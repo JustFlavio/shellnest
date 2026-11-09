@@ -43,7 +43,8 @@ impl server::Handler for Echo {
     ) -> Result<server::Auth, Self::Error> {
         self.attempts.fetch_add(1, Ordering::SeqCst);
         // russh leaves enforcing `methods` to the handler: password login off is refused without a check.
-        let enabled = self.offered.contains(&MethodKind::Password);
+        // With a one-time code set, like PAM two-factor, the password method alone never passes.
+        let enabled = self.offered.contains(&MethodKind::Password) && self.otp.is_none();
         Ok(
             if enabled && user == "test" && password == "test-only-password" {
                 server::Auth::Accept
@@ -168,6 +169,18 @@ pub(super) async fn kbd_fixture(
     otp: Option<&'static str>,
 ) -> (Connection, tokio::task::JoinHandle<()>) {
     let (mut connection, task) = serve(&[MethodKind::KeyboardInteractive], otp).await;
+    connection.auth = "password".into();
+    (connection, task)
+}
+/// A server offering password and keyboard-interactive, where only keyboard-interactive can ask for `otp`.
+pub(super) async fn pam_fixture(
+    otp: Option<&'static str>,
+) -> (Connection, tokio::task::JoinHandle<()>) {
+    let (mut connection, task) = serve(
+        &[MethodKind::Password, MethodKind::KeyboardInteractive],
+        otp,
+    )
+    .await;
     connection.auth = "password".into();
     (connection, task)
 }
