@@ -4,10 +4,9 @@ use crate::{
     model::ModelError,
     sftp::{self, Directory, Event, Mutation, Side, TransferRequest},
     state::AppState,
-    terminal::{self, Input, TerminalError},
+    terminal::{self, Input},
 };
 use tauri::{Manager, State, ipc::Channel};
-use zeroize::Zeroizing;
 
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -76,18 +75,15 @@ pub(crate) fn sftp_connect(
     sftp::open(app, &state, session_id, connection, output)
 }
 #[tauri::command]
-pub(crate) fn sftp_password(
+pub(crate) fn sftp_answer(
     state: State<AppState>,
     vault_id: String,
     session_id: String,
-    password: String,
+    answers: Vec<String>,
 ) -> Result<(), Error> {
-    let password = Zeroizing::new(password);
-    if password.len() > 1024 {
-        return Err(TerminalError::PasswordTooLong.into());
-    }
+    let answers = Input::answers(answers)?;
     sftp::get(&state, &vault_id, &session_id)?;
-    terminal::send(&state, &vault_id, &session_id, Input::Password(password))
+    terminal::send(&state, &vault_id, &session_id, answers)
 }
 #[tauri::command]
 pub(crate) async fn sftp_list(

@@ -103,7 +103,8 @@
       "Errno": "{{value}}",
       "AuthRefused": "Autenticazione fallita. Metodi accettati dal server: {{methods}}.",
       "AuthRefused_none": "Autenticazione fallita",
-      "AuthRefused_unsupported": "Autenticazione fallita. Metodi accettati dal server: {{methods}}. Shellnest supporta solo chiave e password."
+      "AuthRefused_unsupported": "Autenticazione fallita. Metodi accettati dal server: {{methods}}. Shellnest supporta solo chiave, password e keyboard-interactive.",
+      "AnswersExhausted": "Risposte non accettate dopo {{value}} tentativi."
     },
     "sync": {
       "UrlInvalid": "URL non valido",
@@ -193,7 +194,9 @@
       "passwordAttempt": "Password (tentativo {{n}})",
       "session": "Sessione aperta",
       "trustConfirmed": "Nuova impronta confermata",
-      "hostKnown": "Host già noto, impronta coincide"
+      "hostKnown": "Host già noto, impronta coincide",
+      "prompts": "Verifica",
+      "promptsAttempt": "Verifica {{n}}"
     },
     "log": {
       "network": {
@@ -215,12 +218,16 @@
         "keyAttempt": "Autenticazione con <b>chiave</b> per l’utente <b>{{user}}</b>",
         "savedPasswordAttempt": "Autenticazione con <b>password salvata</b> per l’utente <b>{{user}}</b>",
         "methodsLeft": "Metodi ancora accettati dal server: <b>{{methods}}</b>",
-        "passwordAttempt": "Tentativo con password {{sent}} di {{max}}"
+        "passwordAttempt": "Tentativo con password {{sent}} di {{max}}",
+        "kbdAttempt": "Accesso con <b>keyboard-interactive</b>, tentativo {{sent}} di {{max}}",
+        "kbdSavedPassword": "Password salvata inviata alla richiesta di password del server",
+        "furtherRequired": "Accettato; il server richiede anche: <b>{{methods}}</b>"
       },
       "success": {
         "keyAccepted": "Autenticazione con <b>chiave</b> accettata",
         "passwordAccepted": "Autenticazione con <b>password</b> accettata",
-        "passwordOk": "Password accettata"
+        "passwordOk": "Password accettata",
+        "kbdAccepted": "Autenticazione con <b>keyboard-interactive</b> accettata"
       },
       "error": {
         "resolveFailed": "Risoluzione non riuscita: {{reason}}",
@@ -229,7 +236,8 @@
         "keyRefused": "Autenticazione con chiave rifiutata dal server",
         "savedPasswordRefused": "Autenticazione con password salvata rifiutata dal server",
         "authCancelled": "Autenticazione annullata dall’utente",
-        "passwordRefused": "Password rifiutata dal server"
+        "passwordRefused": "Password rifiutata dal server",
+        "kbdRefused": "Risposte rifiutate dal server"
       }
     },
     "step": {
@@ -239,7 +247,10 @@
       "keyRefused": "Chiave rifiutata dal server",
       "savedPasswordRefused": "Password salvata rifiutata",
       "passwordAccepted": "Password accettata",
-      "passwordRefused": "Password non accettata"
+      "passwordRefused": "Password non accettata",
+      "authKbd": "Autenticato con la password salvata (keyboard-interactive)",
+      "kbdAccepted": "Risposte accettate",
+      "kbdRefused": "Risposte non accettate"
     }
   },
   "vault": {
@@ -917,6 +928,11 @@
     "demoBanner": "Sessione dimostrativa: nessuna connessione reale.",
     "tab": {
       "closeName": "Chiudi {{name}}"
+    },
+    "promptsStep": {
+      "serverAsks": "Il server chiede altre informazioni per l'accesso.",
+      "notAccepted": "Non accettato: riprova.",
+      "answer": "Risposta"
     }
   },
   "common": {

@@ -3,6 +3,8 @@ mod connection;
 mod error;
 mod messages;
 mod os_probe;
+#[cfg(test)]
+mod pam_tests;
 mod password;
 mod session;
 #[cfg(test)]

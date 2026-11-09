@@ -39,6 +39,8 @@ pub(crate) enum TerminalError {
     AuthCancelled,
     #[error("Password not accepted after {0} attempts.")]
     PasswordsExhausted(usize),
+    #[error("Answers not accepted after {0} attempts.")]
+    AnswersExhausted(usize),
     #[error("Initial server response too large")]
     InitialOutputTooLarge,
     #[error("The server refused the terminal or shell")]
@@ -83,7 +85,7 @@ fn refusal_text(methods: &[&'static str]) -> String {
         "Authentication failed. Methods accepted by the server: {}.{}",
         methods.join(", "),
         if has_unsupported(methods) {
-            " Shellnest only supports key and password."
+            " Shellnest only supports key, password and keyboard-interactive."
         } else {
             ""
         }
@@ -92,7 +94,7 @@ fn refusal_text(methods: &[&'static str]) -> String {
 fn has_unsupported(methods: &[&str]) -> bool {
     methods
         .iter()
-        .any(|m| !matches!(*m, "password" | "publickey"))
+        .any(|m| !matches!(*m, "password" | "publickey" | "keyboard-interactive"))
 }
 // The UI picks the sentence by `context`: none, or a method Shellnest cannot use.
 fn refusal<S: serde::Serializer>(
@@ -125,7 +127,11 @@ mod tests {
         );
         assert_eq!(
             TerminalError::AuthRefused(vec!["keyboard-interactive"]).to_string(),
-            "Authentication failed. Methods accepted by the server: keyboard-interactive. Shellnest only supports key and password."
+            "Authentication failed. Methods accepted by the server: keyboard-interactive."
+        );
+        assert_eq!(
+            TerminalError::AuthRefused(vec!["hostbased"]).to_string(),
+            "Authentication failed. Methods accepted by the server: hostbased. Shellnest only supports key, password and keyboard-interactive."
         );
     }
 }
