@@ -1,5 +1,6 @@
 import type { RefObject } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
+import { readText } from "@tauri-apps/plugin-clipboard-manager";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
@@ -116,9 +117,9 @@ export function openXterm(
     if (needsPasteConfirm(text)) handlers.current.confirmPaste(text);
     else term.paste(text);
   };
+  // WebKitGTK blocks navigator.clipboard.readText for text copied in other apps.
   const pasteClipboard = () =>
-    void navigator.clipboard
-      .readText()
+    void (isTauri() ? readText() : navigator.clipboard.readText())
       .then(paste)
       .catch(() => {});
   const element = term.element!;
