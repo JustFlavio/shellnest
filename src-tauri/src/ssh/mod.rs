@@ -158,6 +158,7 @@ where
     report(Note::Stage("verified"));
     report(Note::Stage("auth"));
     let is_key = connection.auth == "key";
+    let mut sent_password = false;
     let mut auth = if is_key {
         let secret = decode_secret_key(
             &connection.private_key,
@@ -178,27 +179,35 @@ where
                 PrivateKeyWithHashAlg::new(Arc::new(secret), algorithm),
             )
             .await
-    } else if connection.password.is_empty() {
-        // Nothing stored to try: only learn which methods the server takes.
-        session.authenticate_none(&connection.username).await
     } else {
-        log(msg!(
-            "log.auth.savedPasswordAttempt",
-            user = connection.username.clone()
-        ));
-        session
-            .authenticate_password(&connection.username, &connection.password)
-            .await
+        // Learn which methods the server takes first, like OpenSSH: under PAM two-factor a password
+        // refused by the password method leaves PAM unable to finish keyboard-interactive (pam_setcred
+        // fails), so the stored password goes to the password method only when it is the one offered.
+        let none = session.authenticate_none(&connection.username).await?;
+        if connection.password.is_empty()
+            || none.success()
+            || offers(&none, MethodKind::KeyboardInteractive)
+            || !offers(&none, MethodKind::Password)
+        {
+            Ok(none)
+        } else {
+            sent_password = true;
+            log(msg!(
+                "log.auth.savedPasswordAttempt",
+                user = connection.username.clone()
+            ));
+            session
+                .authenticate_password(&connection.username, &connection.password)
+                .await
+        }
     }?;
-    let tried_something = is_key || !connection.password.is_empty();
-    // Keyboard-interactive may still take the stored password: with password login off the server never
-    // judged it, and with PAM two-factor the password method refuses even the right one.
+    let tried_something = is_key || sent_password;
+    // The stored password the password method has not judged: keyboard-interactive may take it.
     let mut stored = (!is_key
+        && !sent_password
         && !connection.password.is_empty()
         && !auth.success()
-        && !partial(&auth)
-        && (!offers(&auth, MethodKind::Password)
-            || offers(&auth, MethodKind::KeyboardInteractive)))
+        && !partial(&auth))
     .then_some(connection.password.as_str());
     if tried_something && (auth.success() || partial(&auth)) {
         log(msg!(if is_key {
