@@ -12,6 +12,7 @@ type KeyEvent = Pick<
 export function launcherKeyHandler({
   results,
   selected,
+  chosen,
   marked,
   busy,
 
@@ -25,6 +26,7 @@ export function launcherKeyHandler({
 }: {
   results: LauncherResult[];
   selected: number;
+  chosen: boolean;
   marked: boolean;
   // drops the multi-selection, keeping the cursor row
   unmark: () => void;
@@ -48,6 +50,7 @@ export function launcherKeyHandler({
     const action = launcherKeyAction(event.key, {
       count: results.length,
       selected,
+      chosen,
       busy,
       canQuickConnect: !busy && !!quick,
       modified,
