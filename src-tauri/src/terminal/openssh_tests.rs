@@ -30,7 +30,8 @@ fn user(
             .iter()
             .map(|prompt| {
                 asked.lock().unwrap().push(prompt.text.clone());
-                assert!(!prompt.echo, "{} should be hidden", prompt.text);
+                // Messages leave out the prompt text: CodeQL tracks it as part of the answers (secrets).
+                assert!(!prompt.echo, "a prompt that should be hidden echoes");
                 Zeroizing::new(if prompt.text.contains("Verification code") {
                     codes
                         .next()
@@ -54,7 +55,7 @@ async fn connect(connection: &Connection, codes: Vec<Option<&'static str>>) -> V
     .await
     .expect("OpenSSH container timed out");
     if let Err(error) = result {
-        panic!("{error}; asked {:?}", asked.lock().unwrap());
+        panic!("{error}; after {} prompts", asked.lock().unwrap().len());
     }
     asked.lock().unwrap().clone()
 }
