@@ -2,9 +2,9 @@
 mod connection;
 mod error;
 mod messages;
-mod os_probe;
 #[cfg(test)]
-mod pam_tests;
+mod openssh_tests;
+mod os_probe;
 mod password;
 mod session;
 #[cfg(test)]

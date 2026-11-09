@@ -1,4 +1,5 @@
-//! Shared fixtures for tests that need a vault directory on disk.
+//! Shared fixtures for tests that need a vault directory on disk, or the OpenSSH container.
+pub(crate) mod openssh;
 use crate::state::AppState;
 use std::path::PathBuf;
 
