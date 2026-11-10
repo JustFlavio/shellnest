@@ -2,6 +2,29 @@
 
 All notable changes are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/). Versions below 1.0.0 may change in incompatible ways.
 
+## [0.1.6] - 2026-11-10
+
+### Added
+
+- Sync with accounts. A new device needs only the server address, username and password. Vaults can live on the server and be shared with colleagues, each person keeping their own credentials unless they choose to share them. Two devices editing the same vault merge their changes instead of stopping with a conflict, and a password change reaches the other devices. A recovery key, shown once at sign-up, restores the account. The server still never sees decrypted data. See `docs/sync-design.md`.
+- Sync server hardening: failed logins are limited per username and per client address, account keys use versioned Argon2id settings, and the app refuses an older revision than the last it saw, so a server cannot roll a vault back.
+- Sync server deployment: a Docker Compose file with Caddy for HTTPS, one for platforms with their own proxy (Coolify, Dokploy), and an image published to GHCR for amd64 and arm64 with each release.
+- SSH keyboard-interactive authentication and two-factor prompts (PAM one-time codes such as Google Authenticator or Duo). Like OpenSSH, it is preferred over password when the server offers both.
+- The in-app logo is drawn in the theme's primary colour.
+
+### Changed
+
+- **Breaking for sync:** the single-token sync is replaced by accounts. Set up the sync again on every device against a server running this version; the vault data itself is unchanged.
+- The shell and SFTP are also tested against a real OpenSSH server in CI.
+
+### Fixed
+
+- Pasting into the terminal works on Linux: the clipboard is read through Tauri.
+- The launcher starts with no row picked, so ArrowDown lands on the first one.
+- A modal dims everything under it, nested dialogs included.
+- A tooltip opens on focus only after keyboard input, not when a dialog returns focus to a button.
+- SFTP reads a folder before creating its copy.
+
 ## [0.1.5] - 2026-11-02
 
 ### Added

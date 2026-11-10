@@ -114,7 +114,10 @@ test("the settings card shows the version and checks on demand", async ({
   );
   await card.getByRole("button", { name: "Scarica" }).click();
   await expect(card.getByRole("status")).toContainText("pronta");
-  await expect(card).toHaveScreenshot("settings-updates.png");
+  // The version changes with every release.
+  await expect(card).toHaveScreenshot("settings-updates.png", {
+    mask: [card.getByText(/Shellnest \d+\.\d+\.\d+/)],
+  });
 });
 
 test("restarting with a connected session asks first and says it will be closed", async ({
