@@ -6,6 +6,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+// Whether the last input was the keyboard. WebKit treats the focus a dialog moves to its first
+// button as :focus-visible even after a click, so Base UI would open that button's tooltip.
+let keyboard = false;
+if (typeof window !== "undefined") {
+  window.addEventListener("keydown", () => (keyboard = true), true);
+  window.addEventListener("pointerdown", () => (keyboard = false), true);
+}
+
 // Hover and focus label for a control. It is visual only: the control keeps its aria-label.
 export function WithTooltip({
   label,
@@ -20,7 +28,12 @@ export function WithTooltip({
 }) {
   if (!label) return children;
   return (
-    <Tooltip>
+    <Tooltip
+      onOpenChange={(open, details) => {
+        if (open && details.reason === "trigger-focus" && !keyboard)
+          details.cancel();
+      }}
+    >
       <TooltipTrigger render={children} />
       <TooltipContent side={side}>
         {label}
