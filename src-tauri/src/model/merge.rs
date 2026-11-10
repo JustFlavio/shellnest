@@ -12,15 +12,8 @@ use super::{
 fn pick<T: Clone + PartialEq>(base: &T, local: &T, remote: &T) -> T {
     (if local == base { remote } else { local }).clone()
 }
-// Builds the merged record from `local`, taking each listed field through `pick`.
-macro_rules! fields {
-    ($base:expr, $local:expr, $remote:expr; $($field:ident),+) => {{
-        let mut merged = $local.clone();
-        $(merged.$field = pick(&$base.$field, &$local.$field, &$remote.$field);)+
-        merged
-    }};
-}
-
+// Each merge builds the record field by field, without `..`, so a new field does not compile
+// until it is merged here too.
 fn merge_list<T: Clone + PartialEq>(
     base: &[T],
     local: &[T],
@@ -52,38 +45,76 @@ fn merge_list<T: Clone + PartialEq>(
 }
 
 fn hosts(b: &Host, l: &Host, r: &Host) -> Host {
-    let mut host =
-        fields!(b, l, r; name, address, port, group_id, tags, fingerprint, os, last_connected_at);
     // Identity and credentials are one choice: never an identity from one side and a password from the other.
-    if (&l.identity_id, &l.credentials) == (&b.identity_id, &b.credentials) {
-        host.identity_id = r.identity_id.clone();
-        host.credentials = r.credentials.clone();
+    let (identity_id, credentials) = pick(
+        &(&b.identity_id, &b.credentials),
+        &(&l.identity_id, &l.credentials),
+        &(&r.identity_id, &r.credentials),
+    );
+    Host {
+        id: l.id.clone(),
+        name: pick(&b.name, &l.name, &r.name),
+        address: pick(&b.address, &l.address, &r.address),
+        port: pick(&b.port, &l.port, &r.port),
+        group_id: pick(&b.group_id, &l.group_id, &r.group_id),
+        tags: pick(&b.tags, &l.tags, &r.tags),
+        identity_id: identity_id.clone(),
+        credentials: credentials.clone(),
+        fingerprint: pick(&b.fingerprint, &l.fingerprint, &r.fingerprint),
+        os: pick(&b.os, &l.os, &r.os),
+        last_connected_at: pick(
+            &b.last_connected_at,
+            &l.last_connected_at,
+            &r.last_connected_at,
+        ),
     }
-    host
 }
 fn identities(b: &Identity, l: &Identity, r: &Identity) -> Identity {
-    let mut identity = fields!(b, l, r; name, username);
-    if (&l.auth, &l.key_id, &l.password) == (&b.auth, &b.key_id, &b.password) {
-        identity.auth = r.auth.clone();
-        identity.key_id = r.key_id.clone();
-        identity.password = r.password.clone();
+    let (auth, key_id, password) = pick(
+        &(&b.auth, &b.key_id, &b.password),
+        &(&l.auth, &l.key_id, &l.password),
+        &(&r.auth, &r.key_id, &r.password),
+    );
+    Identity {
+        id: l.id.clone(),
+        name: pick(&b.name, &l.name, &r.name),
+        username: pick(&b.username, &l.username, &r.username),
+        auth: auth.clone(),
+        key_id: key_id.clone(),
+        password: password.clone(),
     }
-    identity
 }
 fn keys(b: &SshKey, l: &SshKey, r: &SshKey) -> SshKey {
-    let mut key = fields!(b, l, r; name);
-    if (&l.private_key, &l.passphrase) == (&b.private_key, &b.passphrase) {
-        key.private_key = r.private_key.clone();
-        key.passphrase = r.passphrase.clone();
-        key.fingerprint = r.fingerprint.clone();
+    // The fingerprint belongs to the key material it was computed from.
+    let (private_key, passphrase, fingerprint) =
+        if (&l.private_key, &l.passphrase) == (&b.private_key, &b.passphrase) {
+            (&r.private_key, &r.passphrase, &r.fingerprint)
+        } else {
+            (&l.private_key, &l.passphrase, &l.fingerprint)
+        };
+    SshKey {
+        id: l.id.clone(),
+        name: pick(&b.name, &l.name, &r.name),
+        private_key: private_key.clone(),
+        passphrase: passphrase.clone(),
+        fingerprint: fingerprint.clone(),
     }
-    key
 }
 fn groups(b: &Group, l: &Group, r: &Group) -> Group {
-    fields!(b, l, r; name, parent_id, identity_id, port)
+    Group {
+        id: l.id.clone(),
+        name: pick(&b.name, &l.name, &r.name),
+        parent_id: pick(&b.parent_id, &l.parent_id, &r.parent_id),
+        identity_id: pick(&b.identity_id, &l.identity_id, &r.identity_id),
+        port: pick(&b.port, &l.port, &r.port),
+    }
 }
 fn workspaces(b: &Workspace, l: &Workspace, r: &Workspace) -> Workspace {
-    fields!(b, l, r; name, layout)
+    Workspace {
+        id: l.id.clone(),
+        name: pick(&b.name, &l.name, &r.name),
+        layout: pick(&b.layout, &l.layout, &r.layout),
+    }
 }
 
 /// Merges the team part. The result may still break a rule (two folders with one name, a loop of
