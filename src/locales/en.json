@@ -104,7 +104,8 @@
       "Errno": "{{value}}",
       "AuthRefused": "Authentication failed. Methods accepted by the server: {{methods}}.",
       "AuthRefused_none": "Authentication failed",
-      "AuthRefused_unsupported": "Authentication failed. Methods accepted by the server: {{methods}}. Shellnest only supports key and password."
+      "AuthRefused_unsupported": "Authentication failed. Methods accepted by the server: {{methods}}. Shellnest only supports key, password and keyboard-interactive.",
+      "AnswersExhausted": "Answers not accepted after {{value}} attempts."
     },
     "sync": {
       "UrlInvalid": "Invalid URL",
@@ -210,7 +211,9 @@
       "passwordAttempt": "Password (attempt {{n}})",
       "session": "Session open",
       "trustConfirmed": "New fingerprint confirmed",
-      "hostKnown": "Known host, fingerprint matches"
+      "hostKnown": "Known host, fingerprint matches",
+      "prompts": "Verification",
+      "promptsAttempt": "Verification {{n}}"
     },
     "log": {
       "network": {
@@ -232,12 +235,16 @@
         "keyAttempt": "Authenticating with <b>key</b> for user <b>{{user}}</b>",
         "savedPasswordAttempt": "Authenticating with <b>saved password</b> for user <b>{{user}}</b>",
         "methodsLeft": "Methods still accepted by the server: <b>{{methods}}</b>",
-        "passwordAttempt": "Password attempt {{sent}} of {{max}}"
+        "passwordAttempt": "Password attempt {{sent}} of {{max}}",
+        "kbdAttempt": "Signing in with <b>keyboard-interactive</b>, attempt {{sent}} of {{max}}",
+        "kbdSavedPassword": "Saved password sent to the server's password prompt",
+        "furtherRequired": "Accepted; the server also requires: <b>{{methods}}</b>"
       },
       "success": {
         "keyAccepted": "Authentication with <b>key</b> accepted",
         "passwordAccepted": "Authentication with <b>password</b> accepted",
-        "passwordOk": "Password accepted"
+        "passwordOk": "Password accepted",
+        "kbdAccepted": "Authentication with <b>keyboard-interactive</b> accepted"
       },
       "error": {
         "resolveFailed": "Resolution failed: {{reason}}",
@@ -246,7 +253,8 @@
         "keyRefused": "Authentication with key refused by the server",
         "savedPasswordRefused": "Authentication with saved password refused by the server",
         "authCancelled": "Authentication cancelled by the user",
-        "passwordRefused": "Password refused by the server"
+        "passwordRefused": "Password refused by the server",
+        "kbdRefused": "Answers refused by the server"
       }
     },
     "step": {
@@ -256,7 +264,10 @@
       "keyRefused": "Key refused by the server",
       "savedPasswordRefused": "Saved password refused",
       "passwordAccepted": "Password accepted",
-      "passwordRefused": "Password not accepted"
+      "passwordRefused": "Password not accepted",
+      "authKbd": "Authenticated with the saved password (keyboard-interactive)",
+      "kbdAccepted": "Answers accepted",
+      "kbdRefused": "Answers not accepted"
     }
   },
   "vault": {
@@ -1011,6 +1022,11 @@
     "demoBanner": "Demo session: no real connection.",
     "tab": {
       "closeName": "Close {{name}}"
+    },
+    "promptsStep": {
+      "serverAsks": "The server asks for more information to sign in.",
+      "notAccepted": "Not accepted: try again.",
+      "answer": "Answer"
     }
   },
   "common": {

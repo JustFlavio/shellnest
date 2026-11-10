@@ -58,7 +58,7 @@ test("the refusal sentence follows its context", async () => {
   );
   assert.match(
     refused({ methods: "gssapi", context: "unsupported" }),
-    /only supports key and password/,
+    /only supports key, password and keyboard-interactive/,
   );
 });
 

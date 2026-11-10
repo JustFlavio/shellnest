@@ -1,7 +1,7 @@
 //! Opens a PTY and shell on an authenticated SSH transport.
 use super::TerminalError;
 use crate::message::msg;
-pub(super) use crate::ssh::Note;
+pub(super) use crate::ssh::{Note, Question};
 use crate::{model::Connection, ssh::host_key::Handler};
 use russh::{ChannelMsg, client};
 use zeroize::Zeroizing;
@@ -19,8 +19,8 @@ pub(super) async fn open<Ask, Answer>(
     TerminalError,
 >
 where
-    Ask: FnMut(bool) -> Answer,
-    Answer: std::future::Future<Output = Option<Zeroizing<String>>>,
+    Ask: FnMut(Question) -> Answer,
+    Answer: std::future::Future<Output = Option<Vec<Zeroizing<String>>>>,
 {
     let session = crate::ssh::authenticate(connection, &report, ask).await?;
     report(Note::Stage("session"));
@@ -84,6 +84,8 @@ mod tests {
                 attempts: attempts.clone(),
                 allow_shell:allow_shell.clone(),
                 offered: MethodSet::from(&[MethodKind::Password, MethodKind::PublicKey][..]),
+                otp: None,
+                round: 0,
             };
             let config = Arc::new(server::Config {
                 keys: vec![server_key],
@@ -167,16 +169,49 @@ mod tests {
     fn answers(
         script: Vec<Option<&'static str>>,
         asked: Arc<Mutex<Vec<bool>>>,
-    ) -> impl FnMut(bool) -> std::future::Ready<Option<Zeroizing<String>>> {
+    ) -> impl FnMut(Question) -> std::future::Ready<Option<Vec<Zeroizing<String>>>> {
         let mut script = script.into_iter();
-        move |refused| {
+        move |question| {
+            let Question::Password(refused) = question else {
+                panic!("only passwords expected");
+            };
             asked.lock().unwrap().push(refused);
             std::future::ready(
                 script
                     .next()
                     .flatten()
-                    .map(|p| Zeroizing::new(p.to_string())),
+                    .map(|p| vec![Zeroizing::new(p.to_string())]),
             )
+        }
+    }
+    // Keyboard-interactive rounds as "name|instructions|prompt (hidden)…|refused"; each gets the next answers.
+    fn replies(
+        script: Vec<Option<Vec<&'static str>>>,
+        asked: Arc<Mutex<Vec<String>>>,
+    ) -> impl FnMut(Question) -> std::future::Ready<Option<Vec<Zeroizing<String>>>> {
+        let mut script = script.into_iter();
+        move |question| {
+            let Question::Prompts(challenge) = question else {
+                panic!("only prompts expected");
+            };
+            let prompts: Vec<String> = challenge
+                .prompts
+                .iter()
+                .map(|p| format!("{}{}", p.text, if p.echo { "" } else { "(hidden)" }))
+                .collect();
+            asked.lock().unwrap().push(format!(
+                "{}|{}|{}|{}",
+                challenge.name,
+                challenge.instructions,
+                prompts.join(","),
+                challenge.refused
+            ));
+            std::future::ready(script.next().flatten().map(|answers| {
+                answers
+                    .into_iter()
+                    .map(|a| Zeroizing::new(a.to_string()))
+                    .collect()
+            }))
         }
     }
     #[tokio::test]
@@ -323,6 +358,175 @@ mod tests {
                     .lock()
                     .unwrap()
                     .contains(&r#"step auth ok: {"code":"step.authPassword"}"#.to_string())
+            );
+            task.abort();
+        })
+        .await
+        .expect("SSH fixture timed out");
+    }
+    const PASSWORD: &str = "fixture|Answer the prompts|Password: (hidden)";
+    const CODE: &str = "fixture|Answer the prompts|Verification code: (hidden)";
+    #[tokio::test]
+    async fn keyboard_interactive_takes_the_stored_password_or_asks_for_it() {
+        tokio::time::timeout(Duration::from_secs(15), async {
+            let (mut connection, task) = kbd_fixture(None).await;
+            // Password login is off: the stored password answers the lone hidden prompt by itself.
+            connection.password = "test-only-password".into();
+            let notes = Arc::new(Mutex::new(Vec::new()));
+            let asked = Arc::new(Mutex::new(Vec::new()));
+            let ask = replies(vec![], asked.clone());
+            let (session, _, _) = open(&connection, collect(&notes), ask).await.unwrap();
+            let _ = session
+                .disconnect(Disconnect::ByApplication, "", "en")
+                .await;
+            assert!(asked.lock().unwrap().is_empty());
+            let notes = notes.lock().unwrap().join("\n");
+            assert!(
+                notes.contains(r#"log: {"code":"log.auth.kbdSavedPassword"}"#),
+                "{notes}"
+            );
+            assert!(
+                notes.contains(r#"step auth ok: {"code":"step.authKbd"}"#),
+                "{notes}"
+            );
+            assert!(!notes.contains("savedPasswordRefused"), "{notes}");
+            assert!(!notes.contains("test-only-password"));
+
+            // Nothing stored: the prompt goes to the user.
+            connection.password = String::new();
+            let notes = Arc::new(Mutex::new(Vec::new()));
+            let asked = Arc::new(Mutex::new(Vec::new()));
+            let ask = replies(vec![Some(vec!["test-only-password"])], asked.clone());
+            assert!(open(&connection, collect(&notes), ask).await.is_ok());
+            assert_eq!(*asked.lock().unwrap(), vec![format!("{PASSWORD}|false")]);
+            let notes = notes.lock().unwrap().join("\n");
+            assert!(
+                notes.contains(r#"step password ok: {"code":"step.kbdAccepted"}"#),
+                "{notes}"
+            );
+            assert!(!notes.contains("test-only-password"));
+            task.abort();
+        })
+        .await
+        .expect("SSH fixture timed out");
+    }
+    #[tokio::test]
+    async fn a_one_time_code_is_asked_after_the_stored_password() {
+        tokio::time::timeout(Duration::from_secs(15), async {
+            let (mut connection, task) = kbd_fixture(Some("123456")).await;
+            connection.password = "test-only-password".into();
+            let notes = Arc::new(Mutex::new(Vec::new()));
+            let asked = Arc::new(Mutex::new(Vec::new()));
+            let ask = replies(vec![Some(vec!["123456"])], asked.clone());
+            assert!(open(&connection, collect(&notes), ask).await.is_ok());
+            // The second hidden prompt is not answered with the password again.
+            assert_eq!(*asked.lock().unwrap(), vec![format!("{CODE}|false")]);
+            let notes = notes.lock().unwrap().join("\n");
+            assert!(
+                notes.contains(r#"step password ok: {"code":"step.kbdAccepted"}"#),
+                "{notes}"
+            );
+            assert!(!notes.contains("123456") && !notes.contains("test-only-password"));
+            task.abort();
+        })
+        .await
+        .expect("SSH fixture timed out");
+    }
+    #[tokio::test]
+    async fn keyboard_interactive_goes_before_password_for_a_one_time_code() {
+        tokio::time::timeout(Duration::from_secs(15), async {
+            let (mut connection, task) = pam_fixture(Some("123456")).await;
+            // The password method refuses even the right password: the stored one still answers the
+            // keyboard-interactive password prompt, and the code is asked, not another password.
+            connection.password = "test-only-password".into();
+            let notes = Arc::new(Mutex::new(Vec::new()));
+            let asked = Arc::new(Mutex::new(Vec::new()));
+            let ask = replies(vec![Some(vec!["123456"])], asked.clone());
+            assert!(open(&connection, collect(&notes), ask).await.is_ok());
+            assert_eq!(*asked.lock().unwrap(), vec![format!("{CODE}|false")]);
+            let notes = notes.lock().unwrap().join("\n");
+            assert!(!notes.contains("savedPasswordRefused"), "{notes}");
+
+            // Nothing stored: both prompts go to the user.
+            connection.password = String::new();
+            let asked = Arc::new(Mutex::new(Vec::new()));
+            let ask = replies(
+                vec![Some(vec!["test-only-password"]), Some(vec!["123456"])],
+                asked.clone(),
+            );
+            assert!(open(&connection, |_| {}, ask).await.is_ok());
+            assert_eq!(
+                *asked.lock().unwrap(),
+                vec![format!("{PASSWORD}|false"), format!("{CODE}|false")]
+            );
+            task.abort();
+        })
+        .await
+        .expect("SSH fixture timed out");
+    }
+    #[tokio::test]
+    async fn a_wrong_code_asks_again_then_gives_up() {
+        tokio::time::timeout(Duration::from_secs(15), async {
+            let (mut connection, task) = kbd_fixture(Some("123456")).await;
+            connection.password = "test-only-password".into();
+            // After a refused round the stored password is not sent again: the user types it.
+            let asked = Arc::new(Mutex::new(Vec::new()));
+            let ask = replies(
+                vec![
+                    Some(vec!["000000"]),
+                    Some(vec!["test-only-password"]),
+                    Some(vec!["123456"]),
+                ],
+                asked.clone(),
+            );
+            assert!(open(&connection, |_| {}, ask).await.is_ok());
+            assert_eq!(
+                *asked.lock().unwrap(),
+                vec![
+                    format!("{CODE}|false"),
+                    format!("{PASSWORD}|true"),
+                    format!("{CODE}|false"),
+                ]
+            );
+
+            let notes = Arc::new(Mutex::new(Vec::new()));
+            let asked = Arc::new(Mutex::new(Vec::new()));
+            let ask = replies(
+                vec![Some(vec!["000000"]), Some(vec!["wrong"]), Some(vec!["wrong"])],
+                asked.clone(),
+            );
+            let result = open(&connection, collect(&notes), ask).await;
+            assert!(matches!(result, Err(e) if e.to_string() == "Answers not accepted after 3 attempts."));
+            assert_eq!(asked.lock().unwrap().len(), 3);
+            let notes = notes.lock().unwrap().join("\n");
+            assert!(notes.contains(r#"step password warn: {"code":"step.kbdRefused"}"#), "{notes}");
+            assert!(notes.contains(r#"step password-3 warn: {"code":"step.kbdRefused"}"#), "{notes}");
+            assert!(!notes.contains("000000") && !notes.contains("wrong"));
+            task.abort();
+        })
+        .await
+        .expect("SSH fixture timed out");
+    }
+    #[tokio::test]
+    async fn cancelling_a_prompt_ends_the_attempt() {
+        tokio::time::timeout(Duration::from_secs(15), async {
+            let (mut connection, task) = kbd_fixture(Some("123456")).await;
+            connection.password = "test-only-password".into();
+            let notes = Arc::new(Mutex::new(Vec::new()));
+            let asked = Arc::new(Mutex::new(Vec::new()));
+            let result = open(
+                &connection,
+                collect(&notes),
+                replies(vec![None], asked.clone()),
+            )
+            .await;
+            assert!(matches!(result, Err(e) if e.to_string() == "Authentication cancelled"));
+            assert_eq!(*asked.lock().unwrap(), vec![format!("{CODE}|false")]);
+            assert!(
+                notes
+                    .lock()
+                    .unwrap()
+                    .contains(&r#"log: {"code":"log.error.authCancelled"}"#.to_string())
             );
             task.abort();
         })

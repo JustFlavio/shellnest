@@ -159,6 +159,15 @@ export type TerminalTab = {
   | { kind: "quick"; target: QuickTarget }
   | { kind: "local" }
 );
+/** A keyboard-interactive round: the server's own text, answered one value per prompt. */
+export type Challenge = {
+  name: string;
+  instructions: string;
+  // echo false: typed hidden, like a password
+  prompts: { text: string; echo: boolean }[];
+  // the previous round was refused
+  refused: boolean;
+};
 export type Output =
   | { type: "data"; data: number[] }
   // status is a stage id; error and log are coded messages the UI translates
@@ -168,6 +177,7 @@ export type Output =
   | { type: "detail"; data: { step: string; warn: boolean; text: Message } }
   // authentication needs a password; data = the previous one was refused
   | { type: "password"; data: boolean }
+  | { type: "prompts"; data: Challenge }
   | { type: "metadata"; data: { os: string | null; lastConnectedAt: number } }
   | { type: "closed" };
 export const emptyView: View = {

@@ -4,18 +4,23 @@ import type { Message } from "@/i18n/message";
 import type { RefObject } from "react";
 import { useLatest } from "@/lib/useLatest";
 import { useTheme } from "@/lib/use-theme";
-import type { TerminalTab } from "@/lib/types";
+import type { Challenge, TerminalTab } from "@/lib/types";
 import type { AppSettings } from "@/features/settings/settings.ts";
 import type { LogEntry } from "./connection-log.ts";
-import type { StepNote } from "./connection-steps.ts";
+import type { QuestionKind, StepNote } from "./connection-steps.ts";
 import { terminalHandles } from "./terminal-handles";
-import { sendSessionPassword, startSession } from "./terminal-session";
+import { sendSessionAnswers, startSession } from "./terminal-session";
 import type { SessionCallbacks } from "./terminal-session";
 import { applySettings, openXterm } from "./xterm";
 import type { Xterm } from "./xterm";
 
-// asks: how many times the server has asked so far; each question is a timeline step.
-export type PasswordAsk = { refused: boolean; waiting: boolean; asks: number };
+// asked: the questions so far, each a timeline step. challenge: the server's prompts, null for a password.
+export type PasswordAsk = {
+  refused: boolean;
+  waiting: boolean;
+  asked: QuestionKind[];
+  challenge: Challenge | null;
+};
 
 /** A terminal in `container` wired to the tab's session, torn down together when the tab goes. */
 export function useTerminalSession({
@@ -55,7 +60,7 @@ export function useTerminalSession({
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [details, setDetails] = useState<Record<string, StepNote>>({});
   const [failure, setFailure] = useState<Message | null>(null);
-  // null until the server asks for a password; the password itself never lives here.
+  // null until the server asks for a password or other answers; they never live here.
   const [password, setPassword] = useState<PasswordAsk | null>(null);
   const openRef = useLatest(onOpen);
   const tabRef = useLatest(tab);
@@ -98,7 +103,15 @@ export function useTerminalSession({
           setPassword((old) => ({
             refused,
             waiting: true,
-            asks: (old?.asks ?? 0) + 1,
+            asked: [...(old?.asked ?? []), "password"],
+            challenge: null,
+          })),
+        prompts: (challenge) =>
+          setPassword((old) => ({
+            refused: challenge.refused,
+            waiting: true,
+            asked: [...(old?.asked ?? []), "prompts"],
+            challenge,
           })),
         failure: (message, log = true) => {
           setFailure(message);
@@ -132,9 +145,9 @@ export function useTerminalSession({
     });
     return () => cancelAnimationFrame(frame);
   }, [xterm, active, focused, opened]);
-  const submitPassword = (value: string) => {
+  const submitPassword = (answers: string[]) => {
     setPassword((old) => old && { ...old, waiting: false });
-    sendSessionPassword(tab, value).catch((e) =>
+    sendSessionAnswers(tab, answers).catch((e) =>
       callbacksRef.current.onError(describeError(e)),
     );
   };

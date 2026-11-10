@@ -164,17 +164,14 @@ pub(crate) fn terminal_input(
     )
 }
 #[tauri::command]
-pub(crate) fn terminal_password(
+pub(crate) fn terminal_answer(
     state: State<AppState>,
     vault_id: String,
     session_id: String,
-    password: String,
+    answers: Vec<String>,
 ) -> Result<(), Error> {
-    let password = Zeroizing::new(password);
-    if password.len() > 1024 {
-        return Err(TerminalError::PasswordTooLong.into());
-    }
-    send(&state, &vault_id, &session_id, Input::Password(password))
+    let answers = Input::answers(answers)?;
+    send(&state, &vault_id, &session_id, answers)
 }
 #[tauri::command]
 pub(crate) fn terminal_resize(

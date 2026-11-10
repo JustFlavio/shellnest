@@ -24,7 +24,8 @@ mod view;
 pub fn run() {
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_process::init());
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_clipboard_manager::init());
     #[cfg(feature = "desktop-e2e")]
     let builder = builder
         .plugin(tauri_plugin_wdio_webdriver::init())
@@ -71,7 +72,7 @@ pub fn run() {
             commands::sync::remove_member,
             commands::sync::share_identity,
             commands::sftp::sftp_connect,
-            commands::sftp::sftp_password,
+            commands::sftp::sftp_answer,
             commands::sftp::sftp_list,
             commands::sftp::sftp_mutate,
             commands::sftp::sftp_transfer,
@@ -82,7 +83,7 @@ pub fn run() {
             commands::terminal::trust_host,
             commands::terminal::connect,
             commands::terminal::connect_quick,
-            commands::terminal::terminal_password,
+            commands::terminal::terminal_answer,
             commands::terminal::connect_local,
             commands::terminal::terminal_input,
             commands::terminal::terminal_resize,

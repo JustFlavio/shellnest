@@ -5,7 +5,7 @@ import type { Message } from "../../i18n/message.ts";
 import { connectionText } from "./connection-log.ts";
 export type StepState = "done" | "warning" | "current" | "failed" | "pending";
 export type TimelineStep = {
-  // "password" for the first question, "password-2"… for each one after a refusal
+  // "password" for the first question, "password-2"… for each one after it
   id: string;
   label: string;
   state: StepState;
@@ -21,6 +21,8 @@ export function phaseText(phase: string): string {
 }
 // Passwords the user may type per connection; the same limit as MAX_PASSWORD_ATTEMPTS in terminal/connection.rs.
 export const MAX_PASSWORD_ATTEMPTS = 3;
+/** What the server asked: a password, or its own prompts (keyboard-interactive). */
+export type QuestionKind = "password" | "prompts";
 
 /** "indirizzo", or "indirizzo:porta" when the port is not the default 22. */
 export const targetLabel = (address: string, port: number) =>
@@ -35,7 +37,7 @@ function stageOf(phase: string): "connect" | "auth" | "session" {
 /**
  * kind: tab kind. target: as shown after "Connessione a". askedTrust: the host key had to be verified in this pane.
  * awaitingTrust: the user has not answered yet. phase/failure: last status and error. opened: terminal is up.
- * passwords: how many times the server asked for a password so far (each question is a step).
+ * questions: what the server asked so far, in order (each question is a step).
  * details: how finished steps ended, by step id.
  */
 export function timelineSteps({
@@ -46,7 +48,7 @@ export function timelineSteps({
   phase,
   failure,
   opened,
-  passwords = 0,
+  questions = [],
   details = {},
   setup,
 }: {
@@ -57,7 +59,7 @@ export function timelineSteps({
   phase: string;
   failure: Message | null;
   opened: boolean;
-  passwords?: number;
+  questions?: QuestionKind[];
   details?: Record<string, StepNote>;
   // A quick connection still asking: the question being answered, and whether a second one
   // (password or key) follows. Undefined once everything is known.
@@ -65,13 +67,18 @@ export function timelineSteps({
 }): TimelineStep[] {
   const changed = failure?.code === "terminal.ServerKeyChanged";
   const remote = kind !== "local";
-  const passwordSteps = Array.from({ length: passwords }, (_, i) => ({
+  const passwordSteps = questions.map((kind, i) => ({
     id: i === 0 ? "password" : `password-${i + 1}`,
     label:
-      i === 0
-        ? t("connection.timeline.password")
-        : t("connection.timeline.passwordAttempt", { n: i + 1 }),
+      kind === "prompts"
+        ? i === 0
+          ? t("connection.timeline.prompts")
+          : t("connection.timeline.promptsAttempt", { n: i + 1 })
+        : i === 0
+          ? t("connection.timeline.password")
+          : t("connection.timeline.passwordAttempt", { n: i + 1 }),
   }));
+  const passwords = questions.length;
   const steps: Omit<TimelineStep, "state">[] = [
     ...(setup
       ? [

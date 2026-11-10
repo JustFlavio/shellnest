@@ -118,6 +118,15 @@ jobs:
         if: needs.changes.outputs.code == 'true'
       - run: cargo test --locked --manifest-path src-tauri/Cargo.toml
         if: needs.changes.outputs.code == 'true'
+      # Keyboard-interactive against a real OpenSSH with PAM two-factor (src-tauri/test-fixtures/pam-2fa).
+      - name: PAM two-factor tests
+        if: runner.os == 'Linux' && needs.changes.outputs.code == 'true'
+        env:
+          SHELLNEST_PAM_CONTAINER: shellnest-pam-2fa
+        run: |
+          docker build -t shellnest-pam-2fa src-tauri/test-fixtures/pam-2fa
+          docker run -d --name shellnest-pam-2fa -p 127.0.0.1::22 -p 127.0.0.1::2200 shellnest-pam-2fa
+          cargo test --locked --manifest-path src-tauri/Cargo.toml pam_tests -- --ignored
 
   # Playwright on the browser preview. The snapshots are taken on macOS, so this runs there.
   visual:

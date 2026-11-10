@@ -4,7 +4,7 @@ import { useApp } from "@/app/app-context";
 import { desktop } from "@/lib/platform";
 import { useLatest } from "@/lib/useLatest";
 import { toMessage } from "@/i18n/message";
-import type { TerminalTab } from "@/lib/types";
+import type { Challenge, TerminalTab } from "@/lib/types";
 import type { Message } from "@/i18n/message";
 import { TransferQueue } from "./transfer-queue.ts";
 import type { SftpEvent, Transfer } from "./types";
@@ -17,9 +17,11 @@ export function useSftpSession(tab: TerminalTab) {
   const [ready, setReady] = useState(false),
     [closed, setClosed] = useState(false);
   const [error, setError] = useState<Message | null>(null);
+  // challenge: the server's own prompts (keyboard-interactive), null for a password
   const [password, setPassword] = useState<{
     refused: boolean;
     attempt: number;
+    challenge: Challenge | null;
   } | null>(null);
   const [queue, setQueue] = useState<Transfer[]>([]);
   const [revision, setRevision] = useState(0);
@@ -53,6 +55,13 @@ export function useSftpSession(tab: TerminalTab) {
         setPassword((old) => ({
           refused: event.data,
           attempt: (old?.attempt ?? 0) + 1,
+          challenge: null,
+        }));
+      if (event.type === "prompts")
+        setPassword((old) => ({
+          refused: event.data.refused,
+          attempt: (old?.attempt ?? 0) + 1,
+          challenge: event.data,
         }));
       if (event.type === "closed") {
         setReady(false);
@@ -113,9 +122,9 @@ export function useSftpSession(tab: TerminalTab) {
     transfers.disconnected();
     setSessionId(crypto.randomUUID());
   };
-  const submitPassword = (value: string) => {
+  const submitPassword = (answers: string[]) => {
     setPassword(null);
-    void invoke("sftp_password", { password: value }).catch((e) =>
+    void invoke("sftp_answer", { answers }).catch((e) =>
       setError(toMessage(e)),
     );
   };
