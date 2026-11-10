@@ -100,13 +100,13 @@ fn check_password(password: &str) -> Result<(), SyncError> {
     }
     Ok(())
 }
-/// A new salt with the current KDF version in front.
-fn salt() -> Result<String, SyncError> {
-    Ok(format!(
-        "{}:{}",
-        crypto::KDF_VERSION,
-        B64.encode(random::<16>()?.as_ref())
-    ))
+/// Keys for a new password: a random salt, stored with the current KDF version in front, and the
+/// login and wrapping keys derived from its bytes.
+fn new_keys(password: &str) -> Result<(String, Key, Key), SyncError> {
+    let salt = random::<16>()?;
+    let (auth, wrap) = login_keys(password, salt.as_ref())?;
+    let text = format!("{}:{}", crypto::KDF_VERSION, B64.encode(salt.as_ref()));
+    Ok((text, auth, wrap))
 }
 /// The login and wrapping keys for a stored salt. A salt of a later KDF version comes from a
 /// newer app, which raised the settings.
@@ -238,8 +238,7 @@ impl OpenAccount {
     ) -> Result<(Self, String), SyncError> {
         check_password(password)?;
         let api = Api::new(server, None)?;
-        let salt = salt()?;
-        let (auth, wrap) = derive(password, &salt)?;
+        let (salt, auth, wrap) = new_keys(password)?;
         let key = random::<32>()?;
         let recovery = random::<32>()?;
         let secret = random::<32>()?;
@@ -285,8 +284,7 @@ impl OpenAccount {
             RECOVERY_KEY,
         )
         .map_err(|_| SyncError::RecoveryInvalid)?;
-        let salt = salt()?;
-        let (auth, wrap) = derive(password, &salt)?;
+        let (salt, auth, wrap) = new_keys(password)?;
         let wrapped = wrap_key(&wrap, &key, ACCOUNT_KEY)?;
         let session = api.recover_finish(&serde_json::json!({
             "username": username.trim(),
@@ -309,8 +307,7 @@ impl OpenAccount {
         let (current_auth, current_wrap) = derive(current, &self.file.salt)?;
         unwrap_key(&current_wrap, &self.file.account_key, ACCOUNT_KEY)
             .map_err(|_| SyncError::WrongPassword)?;
-        let salt = salt()?;
-        let (auth, wrap) = derive(password, &salt)?;
+        let (salt, auth, wrap) = new_keys(password)?;
         let wrapped = wrap_key(&wrap, &self.key, ACCOUNT_KEY)?;
         let reply = self.api()?.change_password(&serde_json::json!({
             "currentAuthKey": B64.encode(*current_auth),
