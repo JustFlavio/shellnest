@@ -1,19 +1,11 @@
 import type { View } from "@/lib/types";
 import { RememberSetting } from "./RememberSetting";
-import { SyncSettings } from "./SyncSettings";
+import { ServerSettings } from "./ServerSettings";
 import { VaultList } from "./VaultList";
 
 export function VaultSettings({
   view,
   busy,
-  syncUrl,
-  syncToken,
-  syncing,
-  lastSync,
-  onSyncUrl,
-  onSyncToken,
-  onSaveSync,
-  onSyncNow,
   onSwitch,
   onCreate,
   onRename,
@@ -23,14 +15,6 @@ export function VaultSettings({
 }: {
   view: View;
   busy: boolean;
-  syncUrl: string;
-  syncToken: string;
-  syncing: boolean;
-  lastSync: string;
-  onSyncUrl: (url: string) => void;
-  onSyncToken: (token: string) => void;
-  onSaveSync: () => void;
-  onSyncNow: () => void;
   onSwitch: (id: string) => void;
   onCreate: () => void;
   onRename: () => void;
@@ -51,22 +35,12 @@ export function VaultSettings({
       {remembered !== null && (
         <RememberSetting
           vaultName={view.vaultName}
+          onServer={!!view.remote}
           remembered={remembered}
           onRemember={onRemember}
         />
       )}
-      <SyncSettings
-        view={view}
-        busy={busy}
-        syncUrl={syncUrl}
-        syncToken={syncToken}
-        syncing={syncing}
-        lastSync={lastSync}
-        onSyncUrl={onSyncUrl}
-        onSyncToken={onSyncToken}
-        onSave={onSaveSync}
-        onSyncNow={onSyncNow}
-      />
+      <ServerSettings />
     </div>
   );
 }

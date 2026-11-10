@@ -50,6 +50,8 @@ export type Identity = {
   keyId: string;
   hasPassword: boolean;
   hostCount: number;
+  // In the team part of a server vault: every member can use it.
+  shared?: boolean;
 };
 export type SshKey = {
   id: string;
@@ -57,6 +59,7 @@ export type SshKey = {
   fingerprint: string;
   identityCount: number;
   hostCount: number;
+  shared?: boolean;
 };
 export type IdentityForm = Pick<
   Identity,
@@ -78,13 +81,43 @@ export type View = {
   keys: SshKey[];
   groups: Group[];
   workspaces: Workspace[];
-  syncUrl: string;
-  syncConfigured: boolean;
+  // The sync account of this device, shown even while it is locked.
+  account: AccountInfo | null;
+  // Set when the open vault is on the sync server.
+  remote: { role: Role; members: number } | null;
   dirty: boolean;
+};
+export type Role = "owner" | "editor" | "viewer";
+export type AccountInfo = {
+  server: string;
+  username: string;
+  admin: boolean;
+  // Open in this session: the account's vaults open without the password.
+  unlocked: boolean;
+  safetyCode: string;
+};
+export type Member = {
+  userId: string;
+  username: string;
+  role: Role;
+  safetyCode: string;
+  me: boolean;
+};
+export type Device = {
+  id: string;
+  name: string;
+  createdAt: number;
+  lastSeenAt: number;
+  current: boolean;
 };
 export type WorkspaceDraft = { name?: string; layout: SavedNode };
 export type Workspace = WorkspaceDraft & { id: string; name: string };
-type VaultInfo = { id: string; name: string; exists: boolean };
+type VaultInfo = {
+  id: string;
+  name: string;
+  exists: boolean;
+  remote: boolean;
+};
 /** How a quick connection logs in: a saved identity, a key from the vault, or a password. */
 export type QuickLogin =
   | { kind: "identity"; id: string }
@@ -150,7 +183,7 @@ export type Output =
 export const emptyView: View = {
   vaultId: "personal",
   vaultName: "Personal",
-  vaults: [{ id: "personal", name: "Personal", exists: false }],
+  vaults: [{ id: "personal", name: "Personal", exists: false, remote: false }],
   exists: false,
   unlocked: false,
   hosts: [],
@@ -158,8 +191,8 @@ export const emptyView: View = {
   keys: [],
   groups: [],
   workspaces: [],
-  syncUrl: "",
-  syncConfigured: false,
+  account: null,
+  remote: null,
   dirty: false,
 };
 export const newHost = (groupId = ""): HostDraft => ({

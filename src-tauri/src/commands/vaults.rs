@@ -6,13 +6,13 @@ use crate::{
     vault::{self, VaultError},
     view::{View, view},
 };
-use tauri::State;
+use tauri::{Manager, State};
 
 #[tauri::command(async)]
 pub(crate) fn select_vault(state: State<AppState>, vault_id: String) -> Result<View, Error> {
     select(&state, &vault_id)
 }
-fn select(state: &AppState, id: &str) -> Result<View, Error> {
+pub(crate) fn select(state: &AppState, id: &str) -> Result<View, Error> {
     let mut guard = state.vault()?;
     let mut catalog = state.catalog()?;
     if !catalog.vaults.iter().any(|v| v.id == id) {
@@ -34,13 +34,24 @@ fn select(state: &AppState, id: &str) -> Result<View, Error> {
     drop(guard);
     view(state)
 }
-#[tauri::command(async)]
-pub(crate) fn create_vault(
-    state: State<AppState>,
+// `remote`: on the sync server, with the account open; otherwise a local vault with its own password.
+#[tauri::command]
+pub(crate) async fn create_vault(
+    app: tauri::AppHandle,
     vault_id: String,
     name: String,
+    remote: Option<bool>,
 ) -> Result<View, Error> {
-    create(&state, &vault_id, &name)
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        if remote.unwrap_or(false) {
+            crate::sync::vaults::create(&state, &vault_id, &name)
+        } else {
+            create(&state, &vault_id, &name)
+        }
+    })
+    .await
+    .map_err(Error::from)?
 }
 fn create(state: &AppState, expected: &str, name: &str) -> Result<View, Error> {
     let mut guard = state.vault()?;
@@ -52,6 +63,7 @@ fn create(state: &AppState, expected: &str, name: &str) -> Result<View, Error> {
     next.vaults.push(vault::VaultEntry {
         id: id.clone(),
         name,
+        remote: None,
     });
     next.selected = id;
     let mut sessions = state.sessions();
@@ -67,16 +79,29 @@ fn create(state: &AppState, expected: &str, name: &str) -> Result<View, Error> {
     drop(guard);
     view(state)
 }
-#[tauri::command(async)]
-pub(crate) fn rename_vault(
-    state: State<AppState>,
+#[tauri::command]
+pub(crate) async fn rename_vault(
+    app: tauri::AppHandle,
     vault_id: String,
     name: String,
 ) -> Result<View, Error> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        // A server vault is renamed for every member, by an owner.
+        if super::unlock::on_server(&state, &vault_id)? {
+            let name = state.catalog()?.validate_name(&name, Some(&vault_id))?;
+            crate::sync::vaults::rename(&state, &vault_id, &name)?;
+        }
+        rename(&state, &vault_id, &name)
+    })
+    .await
+    .map_err(Error::from)?
+}
+fn rename(state: &AppState, vault_id: &str, name: &str) -> Result<View, Error> {
     let guard = state.vault()?;
-    state.ensure_vault(&vault_id)?;
+    state.ensure_vault(vault_id)?;
     let mut catalog = state.catalog()?;
-    let name = catalog.validate_name(&name, Some(&vault_id))?;
+    let name = catalog.validate_name(name, Some(vault_id))?;
     let mut next = catalog.clone();
     next.vaults
         .iter_mut()
@@ -87,11 +112,20 @@ pub(crate) fn rename_vault(
     *catalog = next;
     drop(catalog);
     drop(guard);
-    view(&state)
+    view(state)
 }
-#[tauri::command(async)]
-pub(crate) fn delete_vault(state: State<AppState>, vault_id: String) -> Result<View, Error> {
-    delete(&state, &vault_id)
+// A server vault is left, or deleted from the server when its owner is alone in it.
+#[tauri::command]
+pub(crate) async fn delete_vault(app: tauri::AppHandle, vault_id: String) -> Result<View, Error> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        if super::unlock::on_server(&state, &vault_id)? {
+            return crate::sync::vaults::leave(&state, &vault_id);
+        }
+        delete(&state, &vault_id)
+    })
+    .await
+    .map_err(Error::from)?
 }
 // Only the active vault, only when empty (or never created on disk), never the default one.
 fn delete(state: &AppState, id: &str) -> Result<View, Error> {

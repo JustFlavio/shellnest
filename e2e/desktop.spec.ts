@@ -247,4 +247,101 @@ describe("Tauri desktop with an isolated real vault", () => {
     assert.equal(direct.identityId, "");
     assert.equal(direct.hasPassword, false);
   });
+
+  it("signs up on a sync server, uploads the vault and follows a password change", async () => {
+    const server = process.env.SHELLNEST_E2E_SYNC_URL!;
+    const accountPassword = "synthetic-account-password";
+    const newPassword = "synthetic-account-password-2";
+    const shown = (text: string) =>
+      browser.waitUntil(
+        () => browser.execute((t) => document.body.innerText.includes(t), text),
+        { timeoutMsg: `"${text}" not shown` },
+      );
+    const field = (form: string, label: string) =>
+      $(`//form[@id='${form}']//label[contains(., '${label}')]//input`);
+
+    await appMenu("Impostazioni", [COMMAND, ","]);
+    await $('[role="tab"]=Vault').click();
+    await $("button=Carica sul server").waitForDisplayed();
+    assert.equal(await $("button=Carica sul server").isEnabled(), false);
+    await $("button=Ho un invito").click();
+    const form = "account-dialog-form";
+    await field(form, "Server").setValue(server);
+    await field(form, "Codice di invito").setValue(
+      process.env.SHELLNEST_E2E_INVITE!,
+    );
+    await field(form, "Nome utente").setValue("mario");
+    await field(form, "Nuova password").setValue(accountPassword);
+    await field(form, "Conferma password").setValue(accountPassword);
+    await $(`#${form} button[type="submit"]`).click();
+
+    await $('[role="switch"][aria-label="L’ho salvata"]').waitForDisplayed();
+    const recovery = await $("code").getText();
+    assert.equal(recovery.split("-").length, 8);
+    await $('[role="switch"][aria-label="L’ho salvata"]').click();
+    await $("button=Fatto").click();
+    await shown(`mario su ${server}`);
+
+    await $("button=Carica sul server").click();
+    await $("button=Sincronizza ora").waitForDisplayed();
+    await shown("Proprietario");
+    await screenshot("server-vault");
+
+    // The server keeps only ciphertext: no host name or address in clear.
+    const { readdir, readFile } = await import("node:fs/promises");
+    const root = join(process.env.SHELLNEST_E2E_DATA_DIR!, "sync-server");
+    const files = (await readdir(root, { recursive: true })).map((f) =>
+      join(root, f),
+    );
+    for (const file of files) {
+      const text = await readFile(file, "utf8").catch(() => "");
+      for (const clear of ["E2E Alpha", "192.0.2.10", "synthetic-ssh"])
+        assert.ok(!text.includes(clear), `${clear} in ${file}`);
+    }
+
+    await $("button=Dispositivi").click();
+    await shown("questo dispositivo");
+    // The devices panel sits over the settings: close the topmost one.
+    await $("(//*[@aria-label='Chiudi pannello'])[last()]").click();
+    await $("button=Cambia password").waitForDisplayed();
+
+    await $("button=Cambia password").click();
+    await $("//label[contains(., 'Password attuale')]//input").setValue(
+      accountPassword,
+    );
+    await $("//label[contains(., 'Nuova password')]//input").setValue(
+      newPassword,
+    );
+    await $("//label[contains(., 'Conferma password')]//input").setValue(
+      newPassword,
+    );
+    await $(
+      "//form//button[@type='submit' and normalize-space()='Cambia password']",
+    ).click();
+    await browser.waitUntil(
+      async () =>
+        !(await $("//label[contains(., 'Password attuale')]").isExisting()),
+    );
+
+    await $("button=Invita").click();
+    await shown("Vale una volta, per 7 giorni");
+    await $("button=Fatto").click();
+    await $('[aria-label="Chiudi pannello"]').click();
+
+    // The vault now opens with the account password: the new one, not the old.
+    await appMenu("Blocca vault", [COMMAND, SHIFT, "l"]);
+    const unlock = $("//label[contains(., 'Password dell’account')]//input");
+    await unlock.waitForDisplayed();
+    await unlock.setValue(accountPassword);
+    await $("button=Sblocca").click();
+    await $('[role="alert"]').waitForDisplayed();
+    await unlock.clearValue();
+    await unlock.setValue(newPassword);
+    await $("button=Sblocca").click();
+    await $('[aria-label="Seleziona E2E Alpha"]').waitForDisplayed();
+    const state = (await browser.tauri.execute(({ core }) =>
+      core.invoke("status"),
+    )) as State;
+    assert.equal(state.hosts.length, 3);
+  });
 });

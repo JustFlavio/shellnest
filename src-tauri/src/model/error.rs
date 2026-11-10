@@ -83,6 +83,8 @@ pub(crate) enum ModelError {
     FingerprintUnverified,
     #[error("Enter the SSH user")]
     UsernameMissing,
+    #[error("You can only view this shared vault: ask an editor to make the change")]
+    ReadOnly,
 }
 impl ModelError {
     /// The form field the error belongs to, so the UI can show it under that field.

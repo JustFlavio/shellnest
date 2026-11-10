@@ -5,10 +5,13 @@ import { card, cardTitle } from "@/features/settings/settings-ui";
 
 export function RememberSetting({
   vaultName,
+  onServer,
   remembered,
   onRemember,
 }: {
   vaultName: string;
+  // A server vault remembers the account key, which opens all the account's vaults.
+  onServer: boolean;
   remembered: boolean;
   onRemember: (enabled: boolean) => void;
 }) {
@@ -20,7 +23,11 @@ export function RememberSetting({
       </h3>
       <Row
         label={t("vault.rememberSetting.rememberOnThisDevice")}
-        hint={t("vault.rememberSetting.theKeyStaysIn")}
+        hint={
+          onServer
+            ? t("vault.rememberSetting.accountKeyStaysIn")
+            : t("vault.rememberSetting.theKeyStaysIn")
+        }
       >
         <Switch
           label={t("vault.rememberSetting.rememberOnThisDevice")}

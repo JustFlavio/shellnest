@@ -35,6 +35,9 @@ renamore = "0.3.2"
 tokio-util = { version = "0.7", features = ["rt"] }
 portable-pty = "0.9"
 thiserror = "2"
+curve25519-dalek = "5"
+hkdf = "0.13"
+sha2 = "0.11"
 tauri-plugin-clipboard-manager = "2"
 
 # Desktop only: the updater and the relaunch have no mobile build.
@@ -57,6 +60,13 @@ windows-native-keyring-store = "1"
 # Keep the synchronous Secret Service backend without the deprecated zbus 5 crates.
 [target.'cfg(target_os = "linux")'.dependencies]
 dbus-secret-service-keyring-store = { version = "1", features = ["crypto-rust"] }
+
+# Argon2 with the account settings takes seconds unoptimized; tests and debug builds derive keys often.
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3
 
 [profile.release]
 strip = true

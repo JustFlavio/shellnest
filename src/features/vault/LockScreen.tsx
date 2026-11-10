@@ -5,6 +5,7 @@ import { help, muted } from "@/lib/editor-ui";
 import { desktop } from "@/lib/platform";
 import { useApp } from "@/app/app-context";
 import { TitleBar } from "@/app/TitleBar";
+import { AccountForm } from "./AccountForm";
 import { BrowserGate } from "./BrowserGate";
 import { UnlockForm } from "./UnlockForm";
 import { VaultPanels } from "./VaultPanels";
@@ -16,10 +17,15 @@ export function LockScreen() {
   const { t } = useTranslation();
   const {
     vault: { view, busy, preview, error },
-    unlock,
+    account,
   } = useApp();
   const interactive = desktop || preview;
-  const state = { exists: view.exists, restore: unlock.restore, interactive };
+  const form = account.form;
+  const state = {
+    exists: view.exists,
+    account: form?.mode ?? null,
+    interactive,
+  };
   const lead = lockLead(state);
   return (
     <main className="relative grid h-dvh place-items-center overflow-auto px-[20px] pt-[64px] pb-[24px]">
@@ -29,33 +35,48 @@ export function LockScreen() {
           <BrandIcon />
           Shellnest
         </div>
-        {interactive && (
+        {interactive && !form && (
           <div className="[&>button]:mb-[24px]">
             <VaultSwitcher />
           </div>
         )}
         <h1 className="mb-[12px] text-[22px]">{lockTitle(state)}</h1>
         {lead && <p className={muted}>{lead}</p>}
-        {error && (
+        {error && !form && (
           <Alert variant="destructive" className="mb-[12px]">
             {error}
           </Alert>
         )}
-        {interactive ? <UnlockForm /> : <BrowserGate />}
-        {desktop && !view.exists && (
+        {!interactive ? (
+          <BrowserGate />
+        ) : form ? (
+          <AccountForm />
+        ) : (
+          <UnlockForm />
+        )}
+        {desktop && form && (
           <Button
             variant="link"
             type="button"
             className="mx-auto my-[18px] flex"
-            onClick={unlock.toggleRestore}
+            onClick={account.closeForm}
             disabled={busy}
           >
-            {unlock.restore
-              ? t("vault.lockScreen.createALocalVault")
-              : t("vault.lockScreen.connectAnExistingVault")}
+            {t("vault.lockScreen.back")}
           </Button>
         )}
-        {interactive && !view.exists && !unlock.restore && (
+        {desktop && !form && !view.account && (
+          <Button
+            variant="link"
+            type="button"
+            className="mx-auto my-[18px] flex"
+            onClick={() => account.openForm("signIn")}
+            disabled={busy}
+          >
+            {t("vault.lockScreen.signInToServer")}
+          </Button>
+        )}
+        {interactive && !view.exists && !form && (
           <p className={help}>{t("vault.lockScreen.atLeast12Characters")}</p>
         )}
       </section>

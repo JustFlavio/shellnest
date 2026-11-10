@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { card, cardTitle } from "@/features/settings/settings-ui";
 import type { View } from "@/lib/types";
 import { DeleteVaultDialog } from "./DeleteVaultDialog";
-import { deleteBlock } from "./vault-copy.ts";
+import { deleteBlock, leavesVault } from "./vault-copy.ts";
 import { IconButton } from "@/components/IconButton";
 
 const badge =
@@ -26,6 +26,9 @@ function VaultActions({
 }) {
   const { t } = useTranslation();
   const block = deleteBlock(view);
+  const label = leavesVault(view)
+    ? t("vault.vaultList.leaveName", { name })
+    : t("vault.vaultList.deleteName", { name });
   return (
     <>
       <span className={badge}>{t("vault.vaultList.active")}</span>
@@ -37,8 +40,8 @@ function VaultActions({
         <Pencil size={14} />
       </IconButton>
       <IconButton
-        label={t("vault.vaultList.deleteName", { name })}
-        tooltip={block || t("vault.vaultList.deleteName", { name })}
+        label={label}
+        tooltip={block || label}
         disabled={busy || !!block}
         focusableWhenDisabled
         onClick={onDelete}
@@ -76,7 +79,10 @@ export function VaultList({
             className="flex items-center gap-[8px] rounded-[8px] px-[8px] py-[6px] text-[13px]"
           >
             <span className="truncate">{v.name}</span>
-            {v.id === "personal" && (
+            {v.remote && (
+              <span className={badge}>{t("vault.vaultList.onServer")}</span>
+            )}
+            {v.id === "personal" && !v.remote && (
               <span className={badge}>{t("vault.vaultList.default")}</span>
             )}
             {!v.exists && (
@@ -121,6 +127,8 @@ export function VaultList({
       {confirming && (
         <DeleteVaultDialog
           vaultName={view.vaultName}
+          leaving={leavesVault(view)}
+          onServer={!!view.remote}
           busy={busy}
           onCancel={() => setConfirming(false)}
           onConfirm={() => {

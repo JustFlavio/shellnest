@@ -2,6 +2,7 @@
 //! is written atomically with a `.bak` of the previous version.
 mod catalog;
 mod error;
+pub(crate) mod remote;
 
 pub(crate) use catalog::{VaultCatalog, VaultEntry, valid_vault_id};
 pub(crate) use error::VaultError;
@@ -30,13 +31,18 @@ pub(crate) struct Envelope {
 #[derive(Clone, Serialize, Deserialize)]
 pub(crate) struct Disk {
     pub(crate) envelope: Envelope,
-    pub(crate) revision: Option<String>,
+    // For a server vault: the team part changed since the last sync.
     pub(crate) dirty: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) remote: Option<remote::RemoteDisk>,
 }
 pub(crate) struct OpenVault {
+    // Derived from the password, or for a server vault the random vault key.
     pub(crate) key: Zeroizing<[u8; 32]>,
+    // For a server vault, the effective view of its two parts.
     pub(crate) data: Data,
     pub(crate) disk: Disk,
+    pub(crate) remote: Option<remote::Remote>,
 }
 impl std::fmt::Debug for OpenVault {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -97,9 +103,10 @@ impl OpenVault {
                     nonce: String::new(),
                     ciphertext: String::new(),
                 },
-                revision: None,
                 dirty: true,
+                remote: None,
             },
+            remote: None,
         };
         v.seal()?;
         Ok(v)
@@ -121,10 +128,18 @@ impl OpenVault {
         let data = decrypt(&key, &disk.envelope)?;
         let mut disk = disk;
         disk.dirty |= data.migrated;
-        Ok(Self { key, data, disk })
+        Ok(Self {
+            key,
+            data,
+            disk,
+            remote: None,
+        })
     }
     pub(crate) fn seal(&mut self) -> Result<(), VaultError> {
         self.data.validate()?;
+        if self.remote.is_some() {
+            return self.seal_remote();
+        }
         let mut nonce = [0; 24];
         SysRng
             .try_fill_bytes(&mut nonce)
@@ -221,7 +236,7 @@ mod tests {
         assert!(decrypt(&v.key, &v.disk.envelope).is_err());
     }
     #[test]
-    fn encrypted_legacy_vault_upgrades_without_changing_password_or_remote_revision() {
+    fn encrypted_legacy_vault_upgrades_without_changing_password() {
         let mut original = OpenVault::create("correct horse battery staple").unwrap();
         let old = serde_json::json!({"hosts":[{"id":"host-1","name":"Original","address":"192.0.2.1","port":22,"username":"root","group":"Produzione","auth":"password","password":"synthetic-secret","privateKey":"","passphrase":"","fingerprint":"SHA256:original-trust"}],"sync_url":"https://sync.example.com","sync_token":"test-token"});
         let plain = Zeroizing::new(serde_json::to_vec(&old).unwrap());
@@ -237,12 +252,10 @@ mod tests {
             .unwrap();
         original.disk.envelope.ciphertext = B64.encode(cipher);
         original.disk.dirty = false;
-        original.disk.revision = Some("remote-revision".into());
         let mut migrated =
             OpenVault::unlock("correct horse battery staple", original.disk).unwrap();
         assert!(migrated.data.migrated);
         assert!(migrated.disk.dirty);
-        assert_eq!(migrated.disk.revision.as_deref(), Some("remote-revision"));
         let identity_id = migrated.data.hosts[0].identity_id.clone();
         migrated.seal().unwrap();
         let reopened = OpenVault::unlock("correct horse battery staple", migrated.disk).unwrap();

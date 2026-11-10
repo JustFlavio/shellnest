@@ -2,7 +2,7 @@ use super::{Data, ModelError, Redacted, validate_endpoint, workspaces::prune_lay
 use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-#[derive(Clone, Debug, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct Host {
     pub(crate) id: String,
@@ -25,7 +25,7 @@ pub(crate) struct Host {
     #[serde(default)]
     pub(crate) last_connected_at: Option<u64>,
 }
-#[derive(Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct HostCredentials {
     #[serde(default)]

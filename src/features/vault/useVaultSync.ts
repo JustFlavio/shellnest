@@ -32,6 +32,7 @@ export function useVaultSync(
   const [syncState, setSyncState] = useState<SyncState>("idle"),
     [lastSync, setLastSync] = useState("");
   const syncing = useRef(false);
+  const onServer = !!view.remote;
   const canAuto = useLatest(canAutoSync);
   // The retry button of a failure toast runs the newest synchronize, which `latest` is set to below.
   const latest = useRef<(manual?: boolean) => Promise<void>>(async () => {});
@@ -80,7 +81,7 @@ export function useVaultSync(
     if (
       !desktop ||
       !view.unlocked ||
-      !view.syncConfigured ||
+      !onServer ||
       !view.dirty ||
       !hostSaved ||
       busy
@@ -92,16 +93,16 @@ export function useVaultSync(
     hostSaved,
     view.unlocked,
     view.dirty,
-    view.syncConfigured,
+    onServer,
     view.vaultId,
     busy,
     latest,
   ]);
   useEffect(() => {
-    if (!desktop || !view.unlocked || !view.syncConfigured) return;
+    if (!desktop || !view.unlocked || !onServer) return;
     const timer = setInterval(() => void latest.current(), 30000);
     return () => clearInterval(timer);
-  }, [view.unlocked, view.syncConfigured, view.vaultId, latest]);
+  }, [view.unlocked, onServer, view.vaultId, latest]);
   const reset = () => {
     setLastSync("");
     setSyncState("idle");

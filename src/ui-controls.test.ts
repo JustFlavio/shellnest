@@ -751,21 +751,42 @@ test("preview CRUD uses isolated snapshots, preserves references and discards se
     key: { id: "demo-key", name: "Rinominata", privateKey: "" },
   });
   assert.equal(view.keys.find((k) => k.id === "demo-key")!.name, "Rinominata");
-  view = await invoke("configure_sync", {
-    url: "https://example.test/vault",
-    token: "token-fittizio".repeat(3),
+  await assert.rejects(invoke("upload_vault"), { code: "sync.NotSignedIn" });
+  await assert.rejects(invoke("sync_vault"), { code: "sync.NotOnServer" });
+  await assert.rejects(
+    invoke("sign_in", {
+      server: "http://example.test",
+      username: "demo",
+      password: "x",
+    }),
+    { code: "sync.InsecureUrl", field: "server" },
+  );
+  view = await invoke("sign_in", {
+    server: "https://example.test",
+    username: "demo",
+    password: "password-fittizia",
   });
-  assert.equal(view.syncConfigured, true);
+  assert.equal(view.account?.username, "demo");
+  view = await invoke("upload_vault");
+  assert.deepEqual(view.remote, { role: "owner", members: 1 });
+  assert.ok(view.vaults.find((v) => v.id === view.vaultId)!.remote);
+  const members = (await invoke("add_member", {
+    username: "anna",
+    role: "viewer",
+  })) as unknown as { username: string }[];
+  assert.deepEqual(
+    members.map((m) => m.username),
+    ["demo", "anna"],
+  );
+  view = await invoke("share_identity", { id: identity.id });
+  assert.ok(view.identities.find((i) => i.id === identity.id)!.shared);
   for (const secret of [
     identity.password,
     "chiave-fittizia",
     "passphrase-fittizia",
-    "token-fittizio",
+    "password-fittizia",
   ])
     assert.ok(!JSON.stringify(view).includes(secret));
-  await assert.rejects(invoke("sync_vault"), {
-    code: "preview.DesktopOnly",
-  });
   await assert.rejects(invoke("connect"), {
     code: "preview.DesktopOnly",
   });

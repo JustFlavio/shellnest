@@ -3,7 +3,7 @@ use serde::Serialize;
 use std::fmt;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-#[derive(Clone, Serialize, Zeroize, ZeroizeOnDrop)]
+#[derive(Clone, PartialEq, Serialize, Zeroize, ZeroizeOnDrop)]
 pub(crate) struct Data {
     pub(crate) schema_version: u32,
     pub(crate) hosts: Vec<Host>,
@@ -13,10 +13,14 @@ pub(crate) struct Data {
     pub(crate) groups: Vec<Group>,
     #[zeroize(skip)]
     pub(crate) workspaces: Vec<Workspace>,
+    // The settings of the token sync removed in 0.2. Still written, so earlier versions keep opening the vault.
     pub(crate) sync_url: String,
     pub(crate) sync_token: String,
     #[serde(skip)]
     pub(crate) migrated: bool,
+    // In a server vault a shared host may have no credentials: each member binds their own.
+    #[serde(skip)]
+    pub(crate) credentials_optional: bool,
 }
 // Only counts: the contents are secrets.
 impl fmt::Debug for Data {
@@ -41,6 +45,7 @@ impl Default for Data {
             sync_url: String::new(),
             sync_token: String::new(),
             migrated: false,
+            credentials_optional: false,
         }
     }
 }

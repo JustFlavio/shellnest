@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 pub(crate) const MAX_GROUP_DEPTH: usize = 5;
 // A folder of hosts. Nested via parent_id; identity and port are defaults for the hosts below it.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct Group {
     pub(crate) id: String,

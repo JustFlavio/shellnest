@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { help } from "@/lib/editor-ui";
 import { useApp } from "@/app/app-context";
 import { Alert } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
+import { AccountFormDialog, RecoveryKeyDialog } from "./AccountDialogs";
 
 export function VaultPanels() {
   const { t } = useTranslation();
@@ -64,8 +66,22 @@ export function VaultPanels() {
             </label>
             {vaultDialog.mode === "create" && (
               <>
+                {view.account?.unlocked && (
+                  <div className="mt-[12px] flex items-center justify-between gap-[12px] text-[13px]">
+                    {t("vault.vaultPanels.onServer")}
+                    <Switch
+                      label={t("vault.vaultPanels.onServer")}
+                      checked={vaultDialog.remote}
+                      onChange={(remote) =>
+                        setVaultDialog({ ...vaultDialog, remote })
+                      }
+                    />
+                  </div>
+                )}
                 <p className={help}>
-                  {t("vault.vaultPanels.afterCreatingItChoose")}
+                  {vaultDialog.remote
+                    ? t("vault.vaultPanels.onServerHelp")
+                    : t("vault.vaultPanels.afterCreatingItChoose")}
                 </p>
                 {tabs.length > 0 && (
                   <Alert className="mt-[12px]">
@@ -161,6 +177,8 @@ export function VaultPanels() {
         </Panel>
       )}
       {closeGuard.dialog}
+      <AccountFormDialog />
+      <RecoveryKeyDialog />
       {pendingLock && (
         <Panel
           variant="alert"

@@ -40,6 +40,12 @@ pub(crate) enum Error {
     #[error("{0}")]
     Task(#[from] tauri::Error),
 }
+// Key operations fail inside a sync or account operation.
+impl From<crate::account::crypto::CryptoError> for Error {
+    fn from(error: crate::account::crypto::CryptoError) -> Self {
+        Self::Sync(SyncError::Crypto(error))
+    }
+}
 impl Error {
     /// The error as the UI receives it.
     pub(crate) fn message(&self) -> Value {
@@ -49,7 +55,13 @@ impl Error {
             Self::Model(e) => model_message(e),
             Self::Vault(e) => coded("vault", e),
             Self::Keychain(e) => coded("keychain", e),
-            Self::Sync(e) => coded("sync", e),
+            Self::Sync(e) => {
+                let mut value = coded("sync", e);
+                if let Some(field) = e.field() {
+                    value["field"] = field.into();
+                }
+                value
+            }
             Self::Terminal(e) => coded("terminal", e),
             Self::StatePoisoned => own("StatePoisoned"),
             Self::CatalogPoisoned => own("CatalogPoisoned"),

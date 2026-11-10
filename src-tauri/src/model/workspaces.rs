@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 // A saved split layout. Leaves are {"hostId": id} or {"local": true}; splits are {dir, ratio, a, b}.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct Workspace {
     pub(crate) id: String,
@@ -40,6 +40,20 @@ pub(super) fn check_layout(
             obj.get(*k)
                 .is_some_and(|child| check_layout(child, hosts, depth + 1, leaves))
         })
+}
+// The hosts a layout shows.
+pub(super) fn layout_hosts(node: &serde_json::Value) -> Vec<String> {
+    let Some(obj) = node.as_object() else {
+        return vec![];
+    };
+    if let Some(id) = obj.get("hostId").and_then(|h| h.as_str()) {
+        return vec![id.into()];
+    }
+    ["a", "b"]
+        .iter()
+        .filter_map(|k| obj.get(*k))
+        .flat_map(layout_hosts)
+        .collect()
 }
 // Drops the leaves of a deleted host; a split left with one child collapses into it.
 pub(super) fn prune_layout(node: &serde_json::Value, host_id: &str) -> Option<serde_json::Value> {
