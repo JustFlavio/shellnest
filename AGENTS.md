@@ -16,6 +16,8 @@ npm test               # node:test, src/**/*.test.ts and sync/*.test.ts (Node 22
 cargo fmt --check --manifest-path src-tauri/Cargo.toml
 cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 cargo test --locked --manifest-path src-tauri/Cargo.toml
+# real OpenSSH (PAM 2FA, shell, SFTP) in Docker, ignored by default, in CI on Linux; setup in src-tauri/src/test_support/openssh.rs
+SHELLNEST_OPENSSH_CONTAINER=shellnest-openssh cargo test --manifest-path src-tauri/Cargo.toml openssh_tests -- --ignored
 cargo deny --manifest-path src-tauri/Cargo.toml check   # advisories, licenses, bans, sources (deny.toml)
 npm run test:visual    # Playwright screenshots on the browser preview, macOS only (CI runs it on macos-latest)
 npm run test:desktop   # WebDriver tests on the real app (e2e/), also in CI on macOS
