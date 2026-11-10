@@ -114,7 +114,7 @@ Le tue identità restano private finché non scegli di condividerle dall’edito
 
 ### Limiti
 
-Polling ogni 30 secondi, nessuna notifica in tempo reale. Il server è pensato per una persona o un piccolo gruppo: account e vault stanno in file JSON e in memoria. Restano da fare: esportazione/importazione guidata, blocco automatico, protezione da rollback del server, test SSH con server reali e revisione di sicurezza. Non sono implementati agent forwarding, jump host o biometria. Chiavi hardware non esportabili non sono sincronizzabili come chiavi private.
+Polling ogni 30 secondi, nessuna notifica in tempo reale. Il server è pensato per una persona o un piccolo gruppo: account e vault stanno in file JSON e in memoria. Restano da fare: esportazione/importazione guidata, blocco automatico, test SSH con server reali e revisione di sicurezza. Non sono implementati agent forwarding, jump host o biometria. Chiavi hardware non esportabili non sono sincronizzabili come chiavi private.
 
 ## Verifiche
 

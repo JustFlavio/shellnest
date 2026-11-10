@@ -11,7 +11,7 @@ use crate::{
     state::AppState,
     vault::{
         self, OpenVault,
-        remote::{Remote, key_aad, meta_aad, seal_part, team_aad},
+        remote::{Remote, key_aad, meta_aad, seal_part, team_wire_aad},
     },
     view::{View, view},
 };
@@ -159,7 +159,7 @@ pub(crate) fn remove(state: &AppState, vault_id: &str, user_id: &str) -> Result<
                 .map_err(|_| SyncError::RemoteInvalid)?,
         );
     }
-    let envelope = seal_part(&key, &remote.team, &team_aad(&id))?;
+    let envelope = seal_part(&key, &remote.team, &team_wire_aad(&id, disk.revision + 1))?;
     let name = name.unwrap_or_default();
     let rotated = session.api.rotate(
         &id,
@@ -176,6 +176,9 @@ pub(crate) fn remove(state: &AppState, vault_id: &str, user_id: &str) -> Result<
     if let Some(r) = next_disk.remote.as_mut() {
         r.key = wrap_key(&session.key, &key, &key_aad(&id))?;
         r.key_epoch = rotated.key_epoch;
+        if rotated.revision != disk.revision + 1 {
+            return Err(SyncError::RemoteInvalid.into());
+        }
         r.revision = rotated.revision;
         r.base = envelope;
         r.members = r.members.saturating_sub(1);

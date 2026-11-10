@@ -21,6 +21,7 @@ import {
 } from "./http.ts";
 import {
   isBase64,
+  isSalt,
   isBox,
   isDeviceName,
   isId,
@@ -326,7 +327,7 @@ function createRoutes(
         );
         const keys = b.keys as Record<string, unknown> | undefined;
         check(
-          isBase64(b.salt, { length: 16 }) &&
+          isSalt(b.salt) &&
             isBase64(b.publicKey, { length: 32 }) &&
             isBox(keys?.password) &&
             isBox(keys?.recovery) &&
@@ -388,11 +389,7 @@ function createRoutes(
           "recoveryAuth",
         );
         const auth = await makeVerifier(key32(b.authKey, "authKey"));
-        check(
-          isBase64(b.salt, { length: 16 }) && isBox(b.password),
-          null,
-          "password",
-        );
+        check(isSalt(b.salt) && isBox(b.password), null, "password");
         await store.serialized(async () => {
           user.salt = b.salt as string;
           user.auth = auth;
@@ -421,11 +418,7 @@ function createRoutes(
         "auth",
       );
       const auth = await makeVerifier(key32(b.authKey, "authKey"));
-      check(
-        isBase64(b.salt, { length: 16 }) && isBox(b.password),
-        null,
-        "password",
-      );
+      check(isSalt(b.salt) && isBox(b.password), null, "password");
       await store.serialized(async () => {
         user.salt = b.salt as string;
         user.auth = auth;

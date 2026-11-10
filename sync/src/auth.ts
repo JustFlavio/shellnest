@@ -48,15 +48,21 @@ export const newToken = () => randomBytes(32).toString("base64url");
 export const newId = () => randomBytes(16).toString("hex");
 
 /**
+ * The client's Argon2 settings version, which it stores in front of each salt
+ * (`account::crypto::KDF_VERSION`). Only the decoy salt needs it here.
+ */
+const KDF_VERSION = "1";
+
+/**
  * The Argon2 salt reported for an unknown username: stable and derived from a
  * server secret, so the reply looks like a real account's.
  */
 export const decoySalt = (secret: Buffer, username: string) =>
-  createHmac("sha256", secret)
+  `${KDF_VERSION}:${createHmac("sha256", secret)
     .update(`salt:${username}`)
     .digest()
     .subarray(0, 16)
-    .toString("base64");
+    .toString("base64")}`;
 
 // Many keys come from attempts with made-up usernames; past this many, stale ones go.
 const SWEEP_ABOVE = 10_000;

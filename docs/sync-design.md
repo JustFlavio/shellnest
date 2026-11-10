@@ -26,6 +26,7 @@ private-part key        derived from the account key, per vault
 device token            random, kept wrapped by the account key in account.json
 ```
 
+- **KDF settings**: Argon2id with 64 MiB, 3 passes and 4 lanes (Bitwarden's defaults). The salt carries the settings version in front (`1:<salt>`), so a later version can raise them for new passwords while existing accounts keep opening. An app that meets a newer version asks to be updated instead of failing on a wrong password. The version is a number with fixed settings, not the settings themselves, so a server cannot lower them for a new device.
 - **Login**: the app asks for the account's salt (`/prelogin`), derives both halves and sends the auth key. The server keeps a scrypt hash of it and compares in constant time. For an unknown username it returns a salt derived from a server secret, so the reply does not reveal which accounts exist.
 - **`account.json`** (beside the vaults) keeps the server, the user, the wrapped account key, the wrapped private key and the wrapped device token. It opens with the password, or with the account key from the OS keychain when "Ricorda su questo dispositivo" is on.
 - **Password change** re-wraps the account key with a new salt; no vault is re-encrypted and no device is signed out. Other devices pick up the new wrapping: an unlocked one at its next sync (`GET /account`), a locked one when the new password fails locally and the server's salt differs (`POST /login/keys`, which returns the keys without opening a session).
@@ -61,6 +62,8 @@ Each sync pulls both parts, merges, and pushes (`sync/mod.rs`, `model/merge.rs`)
 
 Writes carry the revision they started from. If someone wrote meanwhile the server answers `409` and the app pulls and merges again. The server keeps the last 20 team parts, so a value overwritten by the merge can still be recovered by hand.
 
+Each part on the server is encrypted with its revision in the authenticated context (`team_wire_aad`, `private_wire_aad`): the writer knows it, since a write moves the revision by exactly one. The app refuses a revision lower than the last one it saw, and a part whose revision does not match its context. So a server cannot hand back an older version, under its old number or under the current one. It can still hold back new versions; polling with no news looks the same.
+
 ## Members and roles
 
 | Role                    | Can                                                 |
@@ -70,6 +73,8 @@ Writes carry the revision they started from. If someone wrote meanwhile the serv
 | Viewer (Sola lettura)   | read the team part and connect with own credentials |
 
 The server enforces roles on writes; the app refuses a viewer's edit to the team part earlier, with `ModelError::ReadOnly`. Only editors change fingerprints, because a swapped shared fingerprint would let a man-in-the-middle in for the whole team. A viewer can read shared credentials: that is what sharing them means.
+
+Every member holds the same vault key, viewers too, so encryption alone cannot tell an editor's write from a viewer's: the server decides by role. A viewer working with a compromised server could change the team part, fingerprints included. Termius and Bitwarden organisations share a key the same way. Signing each write with the member's key would close it, and is not done.
 
 ### Removing a member
 
@@ -97,3 +102,4 @@ The server routes about twenty requests and checks shapes and roles; the cryptog
 - Push instead of polling: not needed at this size.
 - A viewer accepting a changed fingerprint for themselves only.
 - Hiding sizes and timing from the server (padding).
+- Signed writes, so that roles hold even against the server (see Members and roles).

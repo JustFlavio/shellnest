@@ -132,6 +132,8 @@
       "AccessRevoked": "Il tuo accesso a questo vault è stato rimosso: la copia locale resta",
       "NotSignedIn": "Prima accedi al server di sincronizzazione",
       "AlreadySignedIn": "Questo dispositivo è già collegato a un altro account: prima esci",
+      "UpdateRequired": "Questo account richiede una versione più recente di Shellnest",
+      "RolledBack": "Il server ha inviato una versione del vault più vecchia di quella già vista da questo dispositivo",
       "AccountInvalid": "Il file dell’account è danneggiato",
       "AccountNotSaved": "Impossibile salvare l’account",
       "NotOnServer": "Questo vault non è sul server",

@@ -61,6 +61,13 @@ windows-native-keyring-store = "1"
 [target.'cfg(target_os = "linux")'.dependencies]
 dbus-secret-service-keyring-store = { version = "1", features = ["crypto-rust"] }
 
+# Argon2 with the account settings takes seconds unoptimized; tests and debug builds derive keys often.
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3
+
 [profile.release]
 strip = true
 lto = true

@@ -274,6 +274,9 @@ fn two_devices_and_a_colleague_share_a_vault_end_to_end() {
     mutate(&pc, &shared_id, |d| d.upsert_host(host("cache", "admin"))).unwrap();
     synchronize(&pc, &shared_id).unwrap();
     assert_eq!(synchronize(&mac, "personal").unwrap().hosts.len(), 3);
+    // Added again, Anna catches up with the new key; her private part starts over.
+    members::add(&mac, "personal", "anna", Role::Viewer).unwrap();
+    assert_eq!(synchronize(&anna, &anna_id).unwrap().hosts.len(), 3);
 
     // Mario changes the password on the Mac while the PC is locked: the new one opens the PC.
     const NEW_PASSWORD: &str = "test-only new password, after the change";
@@ -305,6 +308,24 @@ fn two_devices_and_a_colleague_share_a_vault_end_to_end() {
     let file = crate::account::load(&mac.path).unwrap().unwrap();
     assert!(OpenAccount::unlock(file.clone(), NEW_PASSWORD).is_err());
     assert!(OpenAccount::unlock(file, NEWER_PASSWORD).is_ok());
+
+    // A server that hands back an older version under the current revision is caught.
+    mutate(&pc, &shared_id, |d| d.upsert_host(host("queue", "admin"))).unwrap();
+    synchronize(&pc, &shared_id).unwrap();
+    let data = walk(&server.root.join("server").join("data"));
+    assert_eq!(data.len(), 1);
+    let current = std::fs::read(&data[0]).unwrap();
+    std::fs::copy(
+        &walk(&server.root.join("server").join("history"))[0],
+        &data[0],
+    )
+    .unwrap();
+    assert!(matches!(
+        synchronize(&mac, "personal"),
+        Err(Error::Sync(SyncError::RemoteInvalid))
+    ));
+    std::fs::write(&data[0], current).unwrap();
+    assert_eq!(synchronize(&mac, "personal").unwrap().hosts.len(), 4);
 
     // The server never saw a secret, an address or a name in clear.
     for entry in walk(&server.root.join("server")) {

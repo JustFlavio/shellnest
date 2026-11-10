@@ -46,8 +46,18 @@ pub(crate) struct RemoteDisk {
 pub(crate) fn team_aad(id: &str) -> Vec<u8> {
     format!("shellnest:vault:2:{id}").into_bytes()
 }
-fn private_aad(id: &str) -> Vec<u8> {
+pub(crate) fn private_aad(id: &str) -> Vec<u8> {
     format!("shellnest:private:1:{id}").into_bytes()
+}
+/// Context of the team part as stored on the server: the revision it has there. The server
+/// cannot pass an older version off as a newer one, and the client refuses a lower revision than
+/// it has seen, so the server cannot roll the vault back.
+pub(crate) fn team_wire_aad(id: &str, revision: u64) -> Vec<u8> {
+    format!("shellnest:vault:3:{id}:{revision}").into_bytes()
+}
+/// The same for this member's private part on the server.
+pub(crate) fn private_wire_aad(id: &str, revision: u64) -> Vec<u8> {
+    format!("shellnest:private:2:{id}:{revision}").into_bytes()
 }
 /// Context of the vault key, both wrapped locally and sealed to each member.
 pub(crate) fn key_aad(id: &str) -> Vec<u8> {
@@ -76,24 +86,21 @@ pub(crate) fn open_part<T: DeserializeOwned>(
     let plain = open_box(key, sealed, aad).map_err(|_| VaultError::WrongPassword)?;
     serde_json::from_slice(&plain).map_err(|_| VaultError::InvalidContent)
 }
-pub(crate) fn open_team(key: &[u8; 32], sealed: &SecretBox, id: &str) -> Result<Data, VaultError> {
-    let mut team: Data = open_part(key, sealed, &team_aad(id))?;
+pub(crate) fn open_team(
+    key: &[u8; 32],
+    sealed: &SecretBox,
+    aad: &[u8],
+) -> Result<Data, VaultError> {
+    let mut team: Data = open_part(key, sealed, aad)?;
     team.credentials_optional = true;
     Ok(team)
 }
 pub(crate) fn open_private(
     key: &[u8; 32],
     sealed: &SecretBox,
-    id: &str,
+    aad: &[u8],
 ) -> Result<Private, VaultError> {
-    open_part(key, sealed, &private_aad(id))
-}
-pub(crate) fn seal_private(
-    key: &[u8; 32],
-    private: &Private,
-    id: &str,
-) -> Result<SecretBox, VaultError> {
-    seal_part(key, private, &private_aad(id))
+    open_part(key, sealed, aad)
 }
 pub(crate) fn as_box(envelope: &Envelope) -> SecretBox {
     SecretBox {
@@ -119,9 +126,9 @@ impl OpenVault {
         }
         let key = unwrap_key(account_key, &remote.key, &key_aad(&remote.id))
             .map_err(|_| VaultError::WrongPassword)?;
-        let team = open_team(&key, &as_box(&disk.envelope), &remote.id)?;
+        let team = open_team(&key, &as_box(&disk.envelope), &team_aad(&remote.id))?;
         let private_key = private_key(account_key, &remote.id);
-        let private = open_private(&private_key, &remote.private, &remote.id)?;
+        let private = open_private(&private_key, &remote.private, &private_aad(&remote.id))?;
         Ok(Self {
             key,
             data: shared::effective(&team, &private),
@@ -160,7 +167,7 @@ impl OpenVault {
         };
         shared::check(&remote.team, &remote.private)?;
         self.disk.envelope = as_envelope(seal_part(&self.key, &remote.team, &team_aad(&disk.id))?);
-        disk.private = seal_private(&remote.private_key, &remote.private, &disk.id)?;
+        disk.private = seal_part(&remote.private_key, &remote.private, &private_aad(&disk.id))?;
         Ok(())
     }
 }
@@ -174,11 +181,18 @@ mod tests {
         let key = random::<32>().unwrap();
         let data = Data::default();
         let sealed = seal_part(&key, &data, &team_aad("x")).unwrap();
-        assert!(open_team(&key, &sealed, "x").unwrap().credentials_optional);
+        assert!(
+            open_team(&key, &sealed, &team_aad("x"))
+                .unwrap()
+                .credentials_optional
+        );
         // The server cannot pass one vault's contents off as another's.
-        assert!(open_team(&key, &sealed, "y").is_err());
+        assert!(open_team(&key, &sealed, &team_aad("y")).is_err());
         let private = Private::default();
-        let sealed = seal_private(&key, &private, "x").unwrap();
-        open_private(&key, &sealed, "x").unwrap();
+        let sealed = seal_part(&key, &private, &private_aad("x")).unwrap();
+        open_private(&key, &sealed, &private_aad("x")).unwrap();
+        assert!(open_private(&key, &sealed, &private_wire_aad("x", 1)).is_err());
+        let sealed = seal_part(&key, &data, &team_wire_aad("x", 2)).unwrap();
+        assert!(open_team(&key, &sealed, &team_wire_aad("x", 1)).is_err());
     }
 }

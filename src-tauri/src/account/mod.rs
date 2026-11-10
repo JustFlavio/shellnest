@@ -100,8 +100,23 @@ fn check_password(password: &str) -> Result<(), SyncError> {
     }
     Ok(())
 }
-fn salt() -> Result<Zeroizing<[u8; 16]>, SyncError> {
-    Ok(random::<16>()?)
+/// A new salt with the current KDF version in front.
+fn salt() -> Result<String, SyncError> {
+    Ok(format!(
+        "{}:{}",
+        crypto::KDF_VERSION,
+        B64.encode(random::<16>()?.as_ref())
+    ))
+}
+/// The login and wrapping keys for a stored salt. A salt of a later KDF version comes from a
+/// newer app, which raised the settings.
+fn derive(password: &str, salt: &str) -> Result<(Key, Key), SyncError> {
+    let (version, salt) = salt.split_once(':').ok_or(SyncError::RemoteInvalid)?;
+    if version != crypto::KDF_VERSION {
+        return Err(SyncError::UpdateRequired);
+    }
+    let salt = B64.decode(salt).map_err(|_| SyncError::RemoteInvalid)?;
+    Ok(login_keys(password, &salt)?)
 }
 
 impl OpenAccount {
@@ -138,10 +153,7 @@ impl OpenAccount {
     }
     /// Opens the account file with the password: the same derivation as the login.
     pub(crate) fn unlock(file: AccountFile, password: &str) -> Result<Self, SyncError> {
-        let salt = B64
-            .decode(&file.salt)
-            .map_err(|_| SyncError::AccountInvalid)?;
-        let (_, wrap) = login_keys(password, &salt)?;
+        let (_, wrap) = derive(password, &file.salt)?;
         let key = unwrap_key(&wrap, &file.account_key, ACCOUNT_KEY)
             .map_err(|_| SyncError::WrongPassword)?;
         Self::unlock_with_key(file, key)
@@ -157,8 +169,7 @@ impl OpenAccount {
         if salt == file.salt {
             return Err(SyncError::WrongPassword);
         }
-        let raw = B64.decode(&salt).map_err(|_| SyncError::RemoteInvalid)?;
-        let (auth, wrap) = login_keys(password, &raw)?;
+        let (auth, wrap) = derive(password, &salt)?;
         let reply = api
             .login_keys(&file.username, &B64.encode(*auth))
             .map_err(|e| match e {
@@ -211,10 +222,7 @@ impl OpenAccount {
 
     pub(crate) fn login(server: &str, username: &str, password: &str) -> Result<Self, SyncError> {
         let api = Api::new(server, None)?;
-        let salt = B64
-            .decode(api.prelogin(username)?)
-            .map_err(|_| SyncError::RemoteInvalid)?;
-        let (auth, wrap) = login_keys(password, &salt)?;
+        let (auth, wrap) = derive(password, &api.prelogin(username)?)?;
         let session = api.login(username, &B64.encode(*auth), &device_name())?;
         let key = unwrap_key(&wrap, &session.account.keys.password, ACCOUNT_KEY)?;
         let mut account = Self::from_session(server, session, key)?;
@@ -231,14 +239,14 @@ impl OpenAccount {
         check_password(password)?;
         let api = Api::new(server, None)?;
         let salt = salt()?;
-        let (auth, wrap) = login_keys(password, salt.as_ref())?;
+        let (auth, wrap) = derive(password, &salt)?;
         let key = random::<32>()?;
         let recovery = random::<32>()?;
         let secret = random::<32>()?;
         let body = Register {
             invite: invite.trim(),
             username: username.trim(),
-            salt: B64.encode(salt.as_ref()),
+            salt,
             auth_key: B64.encode(*auth),
             recovery_auth: B64.encode(*subkey(&recovery, b"shellnest:recovery-auth")),
             public_key: B64.encode(public_key(&secret)),
@@ -278,12 +286,12 @@ impl OpenAccount {
         )
         .map_err(|_| SyncError::RecoveryInvalid)?;
         let salt = salt()?;
-        let (auth, wrap) = login_keys(password, salt.as_ref())?;
+        let (auth, wrap) = derive(password, &salt)?;
         let wrapped = wrap_key(&wrap, &key, ACCOUNT_KEY)?;
         let session = api.recover_finish(&serde_json::json!({
             "username": username.trim(),
             "recoveryAuth": recovery_auth,
-            "salt": B64.encode(salt.as_ref()),
+            "salt": salt,
             "authKey": B64.encode(*auth),
             "password": wrapped,
             "device": device_name(),
@@ -298,18 +306,15 @@ impl OpenAccount {
         password: &str,
     ) -> Result<(), SyncError> {
         check_password(password)?;
-        let old_salt = B64
-            .decode(&self.file.salt)
-            .map_err(|_| SyncError::AccountInvalid)?;
-        let (current_auth, current_wrap) = login_keys(current, &old_salt)?;
+        let (current_auth, current_wrap) = derive(current, &self.file.salt)?;
         unwrap_key(&current_wrap, &self.file.account_key, ACCOUNT_KEY)
             .map_err(|_| SyncError::WrongPassword)?;
         let salt = salt()?;
-        let (auth, wrap) = login_keys(password, salt.as_ref())?;
+        let (auth, wrap) = derive(password, &salt)?;
         let wrapped = wrap_key(&wrap, &self.key, ACCOUNT_KEY)?;
         let reply = self.api()?.change_password(&serde_json::json!({
             "currentAuthKey": B64.encode(*current_auth),
-            "salt": B64.encode(salt.as_ref()),
+            "salt": salt,
             "authKey": B64.encode(*auth),
             "password": wrapped,
         }))?;
@@ -344,7 +349,7 @@ mod tests {
             username: "mario".into(),
             user_id: "u".into(),
             admin: false,
-            salt: B64.encode(salt),
+            salt: format!("{}:{}", crypto::KDF_VERSION, B64.encode(salt)),
             account_key: wrap_key(&wrap, &key, ACCOUNT_KEY).unwrap(),
             public_key: B64.encode(public_key(&secret)),
             private_key: wrap_key(&key, &secret, PRIVATE_KEY).unwrap(),

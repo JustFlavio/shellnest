@@ -5,7 +5,14 @@ import { createLimiter, makeVerifier, verify } from "./src/auth.ts";
 import type { IncomingMessage } from "node:http";
 import { clientAddress } from "./src/app.ts";
 import { readConfig } from "./src/config.ts";
-import { isBase64, isBox, isId, isSealed, isUsername } from "./src/shapes.ts";
+import {
+  isBase64,
+  isBox,
+  isId,
+  isSalt,
+  isSealed,
+  isUsername,
+} from "./src/shapes.ts";
 
 const b64 = (n: number, fill = 1) => Buffer.alloc(n, fill).toString("base64");
 
@@ -31,6 +38,16 @@ test("boxes and sealed keys accept only the exact encrypted shapes", () => {
     false,
   );
   assert.equal(isBase64("QQ"), false, "non-canonical padding");
+});
+
+test("salts carry the KDF version in front of 16 bytes", () => {
+  const bytes = Buffer.alloc(16, 7).toString("base64");
+  assert.equal(isSalt(`1:${bytes}`), true);
+  assert.equal(isSalt(`12:${bytes}`), true);
+  assert.equal(isSalt(bytes), false, "no version");
+  assert.equal(isSalt(`0:${bytes}`), false);
+  assert.equal(isSalt(`1:${bytes}:x`), false);
+  assert.equal(isSalt(`1:${Buffer.alloc(15).toString("base64")}`), false);
 });
 
 test("usernames and ids cannot carry path separators or odd characters", () => {

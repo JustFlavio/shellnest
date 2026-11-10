@@ -20,6 +20,17 @@ export function isBase64(
   return length === undefined ? bytes.length >= min : bytes.length === length;
 }
 
+/** An Argon2 salt as the client stores it: `<KDF version>:<16 bytes, base64>`. */
+export function isSalt(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const [version, salt, ...rest] = value.split(":");
+  return (
+    /^[1-9][0-9]{0,2}$/.test(version) &&
+    !rest.length &&
+    isBase64(salt, { length: 16 })
+  );
+}
+
 const exactKeys = (value: unknown, keys: string[]) =>
   value !== null &&
   typeof value === "object" &&

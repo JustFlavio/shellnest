@@ -14,8 +14,8 @@ use crate::{
     vault::{
         self, Disk, OpenVault, VaultCatalog, VaultEntry, VaultError,
         remote::{
-            Remote, RemoteDisk, as_envelope, key_aad, meta_aad, open_private, private_key,
-            seal_part, seal_private, team_aad,
+            Remote, RemoteDisk, as_envelope, key_aad, meta_aad, open_private, private_aad,
+            private_key, private_wire_aad, seal_part, team_wire_aad,
         },
     },
     view::{View, view},
@@ -26,7 +26,8 @@ use crate::{
 fn publish(s: &Session, id: &str, name: &str, data: &Data) -> Result<OpenVault, Error> {
     let key = random::<32>()?;
     let (team, private) = shared::separate(data);
-    let team_box = seal_part(&key, &team, &team_aad(id))?;
+    // A new vault starts at revision 1, its private part too.
+    let team_box = seal_part(&key, &team, &team_wire_aad(id, 1))?;
     let reply = s.api.create_vault(
         id,
         &seal_part(&key, &Meta { name: name.into() }, &meta_aad(id))?,
@@ -34,8 +35,14 @@ fn publish(s: &Session, id: &str, name: &str, data: &Data) -> Result<OpenVault, 
         &team_box,
     )?;
     let private_key = private_key(&s.key, id);
-    let private_box = seal_private(&private_key, &private, id)?;
+    if reply.revision != 1 {
+        return Err(SyncError::RemoteInvalid.into());
+    }
+    let private_box = seal_part(&private_key, &private, &private_wire_aad(id, 1))?;
     let private_revision = s.api.put_private(id, 0, &private_box)?;
+    if private_revision != 1 {
+        return Err(SyncError::RemoteInvalid.into());
+    }
     let disk = Disk {
         envelope: as_envelope(team_box.clone()),
         dirty: false,
@@ -143,11 +150,15 @@ pub(crate) fn receive(state: &AppState) -> Result<(), Error> {
         let key = open_sealed(&session.secret, &listed.sealed_key, &key_aad(&id))?;
         let reply = session.api.vault(&id)?;
         let envelope = reply.envelope.ok_or(SyncError::RemoteInvalid)?;
-        let team = vault::remote::open_team(&key, &envelope, &id)?;
+        let team = vault::remote::open_team(&key, &envelope, &team_wire_aad(&id, reply.revision))?;
         let private_key = private_key(&session.key, &id);
         let stored = session.api.private(&id)?;
         let private = match &stored {
-            Some(s) => open_private(&private_key, &s.envelope, &id)?,
+            Some(s) => open_private(
+                &private_key,
+                &s.envelope,
+                &private_wire_aad(&id, s.revision),
+            )?,
             None => shared::Private::default(),
         };
         let name = vault::remote::open_part::<Meta>(&key, &reply.meta, &meta_aad(&id))
@@ -164,7 +175,7 @@ pub(crate) fn receive(state: &AppState) -> Result<(), Error> {
                 key_epoch: reply.key_epoch,
                 revision: reply.revision,
                 base: envelope,
-                private: seal_private(&private_key, &private, &id)?,
+                private: seal_part(&private_key, &private, &private_aad(&id))?,
                 private_revision: stored.as_ref().map_or(0, |s| s.revision),
                 private_base: stored.map(|s| s.envelope),
                 private_dirty: false,

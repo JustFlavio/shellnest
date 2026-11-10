@@ -1,6 +1,6 @@
 //! The account's keys. A password-derived key wraps a random account key; the account key wraps
 //! everything else of the account, and each vault has its own random key, sealed to every member.
-use argon2::Argon2;
+use argon2::{Algorithm, Argon2, Params, Version};
 use base64::{Engine, engine::general_purpose::STANDARD as B64};
 use chacha20poly1305::{
     KeyInit, XChaCha20Poly1305, XNonce,
@@ -51,11 +51,17 @@ pub(crate) fn random<const N: usize>() -> Result<Zeroizing<[u8; N]>, CryptoError
     Ok(bytes)
 }
 
+/// The Argon2id settings an account uses, stored with its salt (`<version>:<salt>`) so that a
+/// later version can raise them without locking out existing accounts. Version 1: 64 MiB, 3
+/// passes, 4 lanes, as Bitwarden. Keep in step with `KDF_VERSION` in sync/src/auth.ts.
+pub(crate) const KDF_VERSION: &str = "1";
+
 /// Argon2id of the password, split in two: the half sent to the server to log in, and the half
 /// that wraps the account key and never leaves the device.
 pub(crate) fn login_keys(password: &str, salt: &[u8]) -> Result<(Key, Key), CryptoError> {
     let mut both = Zeroizing::new([0; 64]);
-    Argon2::default()
+    let params = Params::new(64 * 1024, 3, 4, Some(64)).map_err(|_| CryptoError::Kdf)?;
+    Argon2::new(Algorithm::Argon2id, Version::V0x13, params)
         .hash_password_into(password.as_bytes(), salt, both.as_mut())
         .map_err(|_| CryptoError::Kdf)?;
     let (mut auth, mut wrap) = (Zeroizing::new([0; 32]), Zeroizing::new([0; 32]));

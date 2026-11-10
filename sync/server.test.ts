@@ -35,6 +35,7 @@ type Api = {
 };
 
 const b64 = (n: number) => randomBytes(n).toString("base64");
+const kdfSalt = () => `1:${b64(16)}`;
 const box = () => ({ nonce: b64(24), ciphertext: b64(48) });
 const sealed = () => ({
   ephemeral: b64(32),
@@ -80,7 +81,7 @@ async function withServer(
       const res = await call("POST", "/register", {
         invite,
         username,
-        salt: b64(16),
+        salt: kdfSalt(),
         authKey,
         recoveryAuth,
         publicKey: b64(32),
@@ -120,7 +121,7 @@ test("accounts: invites work once, logins are checked, limited and revocable", a
     const account = {
       invite: code,
       username: "mario",
-      salt: b64(16),
+      salt: kdfSalt(),
       authKey: b64(32),
       recoveryAuth: b64(32),
       publicKey: b64(32),
@@ -156,7 +157,7 @@ test("accounts: invites work once, logins are checked, limited and revocable", a
       decoy.json.salt,
       (await call("POST", "/prelogin", { username: "nobody" })).json.salt,
     );
-    assert.equal(Buffer.from(decoy.json.salt as string, "base64").length, 16);
+    assert.match(decoy.json.salt as string, /^1:[A-Za-z0-9+/]{22}==$/);
 
     const login = (authKey: string, username = "mario") =>
       call("POST", "/login", { username, authKey, device: "Desktop" });
@@ -262,7 +263,7 @@ test("recovery and password change replace the login and sign every device out",
     const finished = await call("POST", "/recover/finish", {
       username: "mario",
       recoveryAuth: user.recoveryAuth,
-      salt: b64(16),
+      salt: kdfSalt(),
       authKey,
       password: box(),
       device: "New laptop",
@@ -279,14 +280,14 @@ test("recovery and password change replace the login and sign every device out",
       {
         currentAuthKey: b64(32),
         authKey: b64(32),
-        salt: b64(16),
+        salt: kdfSalt(),
         password: box(),
       },
       token,
     );
     assert.equal(changed.status, 401);
     const next = b64(32);
-    const salt = b64(16);
+    const salt = kdfSalt();
     const password = box();
     assert.equal(
       (

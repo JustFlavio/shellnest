@@ -21,8 +21,8 @@ use crate::{
     vault::{
         self, Disk, OpenVault,
         remote::{
-            Remote, RemoteDisk, key_aad, meta_aad, open_part, open_private, open_team, seal_part,
-            seal_private, team_aad,
+            Remote, RemoteDisk, key_aad, meta_aad, open_part, open_private, open_team,
+            private_wire_aad, seal_part, team_wire_aad,
         },
     },
     view::{View, view},
@@ -86,6 +86,10 @@ pub(crate) enum SyncError {
     NotSignedIn,
     #[error("This device is already signed in")]
     AlreadySignedIn,
+    #[error("This account needs a newer version of Shellnest")]
+    UpdateRequired,
+    #[error("The server sent an older version of the vault than this device has seen")]
+    RolledBack,
     #[error("The account file is damaged")]
     AccountInvalid,
     #[error("The account could not be saved")]
@@ -170,7 +174,7 @@ pub(crate) fn exchange(s: &Session, v: &OpenVault) -> Result<(OpenVault, Option<
     let id = disk.id.clone();
     let mut key = v.key.clone();
     let mut remote_disk = disk.clone();
-    let mut base: Data = open_team(&key, &disk.base, &id)?;
+    let mut base: Data = open_team(&key, &disk.base, &team_wire_aad(&id, disk.revision))?;
     let mut team = local.team.clone();
     let mut name = None;
     // The private part first: an identity shared from another device leaves it and joins the team
@@ -193,8 +197,13 @@ pub(crate) fn exchange(s: &Session, v: &OpenVault) -> Result<(OpenVault, Option<
             .ok()
             .map(|m| m.name);
         let envelope = reply.envelope.ok_or(SyncError::RemoteInvalid)?;
+        if reply.revision < remote_disk.revision {
+            return Err(SyncError::RolledBack.into());
+        }
         if reply.revision != remote_disk.revision {
-            let theirs = open_team(&key, &envelope, &id)?;
+            // Tampered with, or an older version under the current revision.
+            let theirs = open_team(&key, &envelope, &team_wire_aad(&id, reply.revision))
+                .map_err(|_| SyncError::RemoteInvalid)?;
             team = if team != base && reply.role != Role::Viewer {
                 let merged = merge_data(&base, &team, &theirs);
                 shared::check(&merged, &private).map_err(|_| SyncError::MergeFailed)?;
@@ -213,11 +222,13 @@ pub(crate) fn exchange(s: &Session, v: &OpenVault) -> Result<(OpenVault, Option<
         if team == base {
             break;
         }
-        let sealed = seal_part(&key, &team, &team_aad(&id))?;
+        let next = remote_disk.revision + 1;
+        let sealed = seal_part(&key, &team, &team_wire_aad(&id, next))?;
         match s
             .api
             .put_data(&id, remote_disk.revision, remote_disk.key_epoch, &sealed)
         {
+            Ok(revision) if revision != next => return Err(SyncError::RemoteInvalid.into()),
             Ok(revision) => {
                 remote_disk.revision = revision;
                 remote_disk.base = sealed;
@@ -249,7 +260,7 @@ fn sync_private(
 ) -> Result<Private, Error> {
     let mut private = local.clone();
     let mut base = match &disk.private_base {
-        Some(sealed) => open_private(key, sealed, id)?,
+        Some(sealed) => open_private(key, sealed, &private_wire_aad(id, disk.private_revision))?,
         None => Private::default(),
     };
     for attempt in 0..=ATTEMPTS {
@@ -257,10 +268,21 @@ fn sync_private(
             return Err(SyncError::Conflict.into());
         }
         let remote = s.api.private(id)?;
+        // Removed and added again: the server dropped this member's private part, and the local
+        // one starts it over. Nothing is lost, the local copy is kept.
+        if remote.is_none() && disk.private_revision > 0 {
+            disk.private_revision = 0;
+            disk.private_base = None;
+            base = Private::default();
+        }
         let revision = remote.as_ref().map_or(0, |r| r.revision);
+        if revision < disk.private_revision {
+            return Err(SyncError::RolledBack.into());
+        }
         if revision != disk.private_revision {
             let stored = remote.ok_or(SyncError::RemoteInvalid)?;
-            let theirs = open_private(key, &stored.envelope, id)?;
+            let theirs = open_private(key, &stored.envelope, &private_wire_aad(id, revision))
+                .map_err(|_| SyncError::RemoteInvalid)?;
             private = if private != base {
                 merge_private(&base, &private, &theirs)
             } else {
@@ -273,8 +295,10 @@ fn sync_private(
         if private == base && disk.private_revision > 0 {
             break;
         }
-        let sealed = seal_private(key, &private, id)?;
+        let next = disk.private_revision + 1;
+        let sealed = seal_part(key, &private, &private_wire_aad(id, next))?;
         match s.api.put_private(id, disk.private_revision, &sealed) {
+            Ok(revision) if revision != next => return Err(SyncError::RemoteInvalid.into()),
             Ok(revision) => {
                 disk.private_revision = revision;
                 disk.private_base = Some(sealed);
