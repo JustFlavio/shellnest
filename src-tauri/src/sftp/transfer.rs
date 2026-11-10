@@ -124,12 +124,13 @@ impl Transfer<'_> {
             let Some(destination) = self.destination(&destination, dir).await? else {
                 continue;
             };
+            // Each folder is read before its copy is created: one the user cannot open leaves nothing behind.
             if dir {
                 if upload {
+                    let mut entries = tokio::fs::read_dir(local::checked(&source)?).await?;
                     if remote::exists(client, &destination).await?.is_none() {
                         client.create_dir(&destination).await?;
                     }
-                    let mut entries = tokio::fs::read_dir(local::checked(&source)?).await?;
                     while let Some(entry) = entries.next_entry().await? {
                         let name = entry
                             .file_name()
@@ -141,10 +142,11 @@ impl Transfer<'_> {
                         ));
                     }
                 } else {
+                    let entries = client.read_dir(&source).await?;
                     if local::exists(&destination).await?.is_none() {
                         tokio::fs::create_dir(&destination).await?;
                     }
-                    for entry in client.read_dir(&source).await? {
+                    for entry in entries {
                         let name = entry.file_name();
                         stack.push((
                             paths::join(&source, &name)?,
@@ -260,5 +262,7 @@ pub(crate) fn start_transfer(
     Ok(())
 }
 
+#[cfg(test)]
+mod openssh_tests;
 #[cfg(test)]
 mod tests;
