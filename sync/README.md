@@ -35,6 +35,16 @@ Check it from outside with `curl https://sync.example.com/health` (`{"ok":true}`
 - Caddy logs one JSON line per request to stdout (`docker compose logs caddy`). It redacts the `Authorization` header; request bodies are never logged.
 - Keep `SYNC_DOMAIN` in a `.env` file beside `compose.yaml` instead of typing it each time.
 
+## Coolify, Dokploy and similar platforms
+
+These platforms run their own proxy on ports 80 and 443 and get the certificate themselves, so Caddy is not needed. Use `compose.platform.yaml` instead: it runs the published image `ghcr.io/justflavio/shellnest-sync`, keeps the data in a named volume and trusts the platform's proxy for the client address.
+
+1. Create a Docker Compose service from `sync/compose.platform.yaml` (paste it, or point the platform at this repository and that file).
+2. Give the `sync` service a domain, routed to port `8787`. Coolify reads it from `SERVICE_FQDN_SYNC_8787`; in Dokploy set it in the service's Domains tab.
+3. Deploy, then open a terminal in the container and run `node server.ts invite --admin`.
+
+To pin a version, replace `latest` with the release (for example `0.2.0`). If another proxy, such as Cloudflare, sits in front of the platform's, the last `X-Forwarded-For` entry is that proxy's address, and the login limits count per that address.
+
 ## Accounts and invites
 
 There is no open sign-up. Every account starts from a one-time invite, valid 7 days.

@@ -1,0 +1,19 @@
+# Shellnest Sync on a platform that brings its own HTTPS proxy, such as Coolify or Dokploy:
+# no Caddy, no published ports. Give the service a domain in the platform and route it to port
+# 8787 (Coolify reads it from SERVICE_FQDN_SYNC_8787). Then, in the container's terminal:
+#   node server.ts invite --admin
+services:
+  sync:
+    image: ghcr.io/justflavio/shellnest-sync:latest
+    restart: unless-stopped
+    environment:
+      - SERVICE_FQDN_SYNC_8787
+      # The platform's proxy sets X-Forwarded-For.
+      - SYNC_TRUST_PROXY=1
+    volumes:
+      - sync-data:/data
+    expose:
+      - "8787"
+
+volumes:
+  sync-data:

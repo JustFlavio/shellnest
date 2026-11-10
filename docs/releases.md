@@ -8,6 +8,8 @@
 4. Wait for the `validate-release` job: it checks the draft manifest's version, platform coverage, signatures being present, and that every download points to an asset of this release. Open the draft, try an installer and a signed update, and **publish** it. Publishing is the go-live moment.
 5. Publishing triggers `.github/workflows/release-assets.yml`: it checks that `latest.json` has every platform and uploads the installers without the version in the name (`Shellnest_aarch64.dmg`, `Shellnest_amd64.deb`, …) and a `SHA256SUMS` to the same release. The README table and `install.sh` link to those through `releases/latest/download/`, so the links never change.
 
+Publishing also builds the sync server image for amd64 and arm64 and pushes it to `ghcr.io/<owner>/shellnest-sync` with the version and `latest` tags (the `sync-image` job). GitHub creates the package as private the first time: make it public once in the package settings, or `sync/compose.platform.yaml` cannot pull it without a login.
+
 Linux ships a `.deb` and an AppImage. Both are updater artifacts (`linux-x86_64-appimage` and `linux-x86_64-deb` in `latest.json`): the updater plugin replaces an AppImage in place and installs a `.deb` with `pkexec dpkg -i`, which asks for the password in a system prompt. The `.deb` path has not been tried on a real desktop. The `bundle-linux` job in `ci.yml` builds both on every pull request (without updater artifacts) so a broken bundle shows up before a release.
 
 Installers are not code-signed (no Apple or Windows certificate). That is separate from the update signature below.
