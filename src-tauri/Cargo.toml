@@ -46,7 +46,7 @@ tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.31", default-features = false, features = ["fs", "poll"] }
+nix = { version = "0.32", default-features = false, features = ["fs", "poll"] }
 
 [target.'cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))'.dependencies]
 keyring = { package = "keyring-core", version = "1" }
